@@ -170,7 +170,7 @@ def _get_eager_koda_op(
 
 def _type_annotate_expr(expr: arolla.Expr, /, **leaf_qvalues: arolla.QValue):
   qtype_annotated_leaves = {
-      k: arolla.M.annotation.qtype(arolla.L[k], arolla.as_qvalue(v).qtype)
+      k: arolla.M.annotation.qtype(arolla.L[k], arolla.as_qvalue(v).qtype)  # pyrefly: ignore[not-callable]
       for k, v in leaf_qvalues.items()
   }
   return arolla.sub_leaves(expr, **qtype_annotated_leaves)

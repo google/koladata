@@ -109,9 +109,9 @@ class FunctorFactoriesTest(parameterized.TestCase):
         ),
     ])
     fn = functor_factories.expr_fn(
-        returns=I.x + V.foo, signature=signature, foo=I.y, bar=v
+        returns=I.x + V.foo, signature=signature, foo=I.y, bar=v  # pyrefly: ignore[unsupported-operation]
     )
-    self.assertEqual(fn.returns, pack_expr(I.x + V.foo))
+    self.assertEqual(fn.returns, pack_expr(I.x + V.foo))  # pyrefly: ignore[unsupported-operation]
     self.assertEqual(fn.get_attr('__signature__'), signature)
     self.assertEqual(
         fn.get_attr('__signature__').parameters[:].name.to_py(), ['x', 'y']
@@ -122,12 +122,12 @@ class FunctorFactoriesTest(parameterized.TestCase):
 
   def test_expr_fn_undefined_variables(self):
     with self.assertRaisesRegex(ValueError, 'undefined variables: x, y'):
-      functor_factories.expr_fn(returns=V.x + V.y)
+      functor_factories.expr_fn(returns=V.x + V.y)  # pyrefly: ignore[unsupported-operation]
 
     with self.assertRaisesRegex(ValueError, 'undefined variables: y'):
-      functor_factories.expr_fn(returns=V.x + V.y, x=1)
+      functor_factories.expr_fn(returns=V.x + V.y, x=1)  # pyrefly: ignore[unsupported-operation]
 
-    fn = functor_factories.expr_fn(returns=V.x + V.y, x=1, y=2)
+    fn = functor_factories.expr_fn(returns=V.x + V.y, x=1, y=2)  # pyrefly: ignore[unsupported-operation]
     self.assertEqual(fn.x, 1)
     self.assertEqual(fn.y, 2)
 
@@ -138,13 +138,13 @@ class FunctorFactoriesTest(parameterized.TestCase):
 
     # This should succeed because 'x' is defined by with_name.
     fn = functor_factories.expr_fn(
-        returns=(I.a + 1).with_name('x'), auto_variables=True
+        returns=(I.a + 1).with_name('x'), auto_variables=True  # pyrefly: ignore[missing-attribute, unsupported-operation]
     )
-    self.assertEqual(fn.x, pack_expr(I.a + 1))
+    self.assertEqual(fn.x, pack_expr(I.a + 1))  # pyrefly: ignore[bad-argument-type, unsupported-operation]
 
   def test_expr_fn_default_signature(self):
     v = fns.new(foo=57)
-    fn = functor_factories.expr_fn(returns=I.x + V.foo, foo=I.y, bar=v)
+    fn = functor_factories.expr_fn(returns=I.x + V.foo, foo=I.y, bar=v)  # pyrefly: ignore[unsupported-operation]
     signature = fn.get_attr('__signature__')
     self.assertEqual(
         signature.parameters[:].name.to_py(),
@@ -199,19 +199,19 @@ class FunctorFactoriesTest(parameterized.TestCase):
     testing.assert_equal(fn(x=x), ds([1, 4, 9, 16]))
     testing.assert_equal(fn.get_attr('_aux_0')[:].no_bag(), ds([1, -2, 3, -4]))
 
-    fn2 = functor_factories.expr_fn(kde.call(fn, x=I.y), auto_variables=True)
+    fn2 = functor_factories.expr_fn(kde.call(fn, x=I.y), auto_variables=True)  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(fn2(y=x), ds([1, 4, 9, 16]))
     self.assertEqual(fn2.get_attr('_aux_0'), fn)
 
     fn3 = functor_factories.expr_fn(
-        kde.with_name(fn, 'foo')(x=I.y), auto_variables=True
+        kde.with_name(fn, 'foo')(x=I.y), auto_variables=True  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(fn3(y=x), ds([1, 4, 9, 16]))
     self.assertEqual(fn3.foo, fn)
 
     fn4 = functor_factories.expr_fn(
-        kde.with_name(py_boxing.as_expr(fn), 'foo')(x=I.y)
-        + kde.with_name(py_boxing.as_expr(1) + py_boxing.as_expr(2), 'bar'),
+        kde.with_name(py_boxing.as_expr(fn), 'foo')(x=I.y)  # pyrefly: ignore[missing-attribute]
+        + kde.with_name(py_boxing.as_expr(1) + py_boxing.as_expr(2), 'bar'),  # pyrefly: ignore[missing-attribute, unsupported-operation]
         auto_variables=True,
     )
     testing.assert_equal(fn4(y=x), ds([4, 7, 12, 19]))
@@ -221,7 +221,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
     )
 
     fn5 = functor_factories.expr_fn(
-        kde.with_name(py_boxing.as_expr(ds([[1, 2], [3]])), 'foo'),
+        kde.with_name(py_boxing.as_expr(ds([[1, 2], [3]])), 'foo'),  # pyrefly: ignore[missing-attribute]
         auto_variables=True,
     )
     testing.assert_equal(fn5().no_bag(), ds([[1, 2], [3]]))
@@ -229,7 +229,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
     self.assertNotIn('_aux_0', kdi.dir(fn5))
 
     fn6 = functor_factories.expr_fn(
-        kde.slice([1, 2, 3]).with_name('foo'), auto_variables=True
+        kde.slice([1, 2, 3]).with_name('foo'), auto_variables=True  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(fn6().no_bag(), ds([1, 2, 3]))
     testing.assert_equal(fn6.foo[:].no_bag(), ds([1, 2, 3]))
@@ -349,7 +349,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
     testing.assert_equivalent(fn(ds([1, 2, 3])), ds([2, 3]))
 
   def test_trace_py_fn_expr_defaults(self):
-    fn = functor_factories.trace_py_fn(lambda x, y, **unused: x + y, y=2 * I.z)
+    fn = functor_factories.trace_py_fn(lambda x, y, **unused: x + y, y=2 * I.z)  # pyrefly: ignore[unsupported-operation]
     testing.assert_equal(fn(x=2, z=3), ds(8))
 
   def test_trace_py_fn_auto_boxed_item_name(self):
@@ -493,7 +493,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
         ds(7),
     )
     testing.assert_equal(
-        kd.call(functor_factories.py_fn(lambda x, y: x + y, y=2 * I.x), x=5),
+        kd.call(functor_factories.py_fn(lambda x, y: x + y, y=2 * I.x), x=5),  # pyrefly: ignore[unsupported-operation]
         ds(15),
     )
 
@@ -685,14 +685,14 @@ class FunctorFactoriesTest(parameterized.TestCase):
     )
 
     testing.assert_equal(
-        kd.call(functor_factories.fstr_fn(f'{(I.x + I.y):s}'), x=1, y=2),
+        kd.call(functor_factories.fstr_fn(f'{(I.x + I.y):s}'), x=1, y=2),  # pyrefly: ignore[unsupported-operation]
         ds('3'),
     )
 
   def test_fstr_fn_expr(self):
     testing.assert_equal(
         kd.call(
-            functor_factories.fstr_fn(f'{kde.select(I.x, kdi.present):s}'),
+            functor_factories.fstr_fn(f'{kde.select(I.x, kdi.present):s}'),  # pyrefly: ignore[missing-attribute]
             x=ds([1, None]),
         ),
         ds(['1', None]),
@@ -713,54 +713,54 @@ class FunctorFactoriesTest(parameterized.TestCase):
       _ = kd.call(functor_factories.fstr_fn('{I.x}'), x=1)
 
   def test_bind_full_params(self):
-    fn = functor_factories.expr_fn(I.x + I.y)
+    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
     f = functor_factories.bind(fn, x=0, y=1)
     testing.assert_equal(kd.call(f), ds(1))
 
   def test_bind_partial_params(self):
-    fn = functor_factories.expr_fn(I.x + I.y)
+    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
     f = functor_factories.bind(fn, x=0)
     testing.assert_equal(kd.call(f, y=1), ds(1))
 
   def test_bind_params_not_in_sig(self):
-    fn = functor_factories.expr_fn(I.x + I.y)
+    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
     f = functor_factories.bind(fn, x=0, z=2)
     testing.assert_equal(kd.call(f, y=1), ds(1))
 
   def test_override_bound_params(self):
-    fn = functor_factories.expr_fn(I.x + I.y)
+    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
     f = functor_factories.bind(fn, x=0)
     testing.assert_equal(kd.call(f, x=2, y=1), ds(3))
 
   def test_bind_to_expr(self):
-    fn = functor_factories.expr_fn(I.x + I.y)
+    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
     f = functor_factories.bind(fn, y=I.z)
     testing.assert_equal(kd.call(f, x=1, z=2), ds(3))
 
   def test_bind_to_expr_with_variables(self):
-    fn = functor_factories.expr_fn(I.x + I.y)
-    f = functor_factories.bind(fn, y=V.z * 2, z=3)
+    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
+    f = functor_factories.bind(fn, y=V.z * 2, z=3)  # pyrefly: ignore[unsupported-operation]
     testing.assert_equal(kd.call(f, x=1), ds(7))
 
   def test_bind_no_inner_functor_without_expr(self):
-    fn = functor_factories.expr_fn(I.x + I.y)
+    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
     f = functor_factories.bind(fn, y=5)
     testing.assert_equal(kd.call(f, x=1), ds(6))
     testing.assert_equal(f.y, ds(5).with_bag(f.get_bag()))
 
   def test_bind_to_packed_expr(self):
-    fn = functor_factories.expr_fn(I.x + I.y)
+    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
     f = functor_factories.bind(fn, y=introspection.pack_expr(I.z))
     testing.assert_equal(kd.call(f, x=1, z=2), ds(3))
 
   def test_bind_to_expr_twice(self):
-    fn = functor_factories.expr_fn(I.x + I.y)
+    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
     f1 = functor_factories.bind(fn, y=I.z)
     f2 = functor_factories.bind(f1, z=I.w)
     testing.assert_equal(kd.call(f2, x=1, w=2), ds(3))
 
   def test_bind_does_not_overwrite_assignments(self):
-    fn = functor_factories.expr_fn(V.x + I.y, x=I.z + 1)
+    fn = functor_factories.expr_fn(V.x + I.y, x=I.z + 1)  # pyrefly: ignore[unsupported-operation]
     f = functor_factories.bind(fn, x=0)
     testing.assert_equal(kd.call(f, z=0, y=1), ds(2))
 
@@ -770,7 +770,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
     testing.assert_equal(kd.call(f, x=0), ds(2))
 
   def test_bind_partial_params_fails(self):
-    fn = functor_factories.expr_fn(I.x + I.y)
+    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
     f = functor_factories.bind(fn, x=0)
     with self.assertRaisesRegex(
         ValueError,
@@ -781,9 +781,9 @@ class FunctorFactoriesTest(parameterized.TestCase):
   def test_bind_fn_variable(self):
     # Note the usage of kde.bind when we need to bind a function variable.
     f = functor_factories.expr_fn(
-        kde.call(V.bound_fn, y=I.y),
-        bound_fn=kde.bind(V.z.extract(), x=0),
-        z=functor_factories.expr_fn(I.x + I.y),
+        kde.call(V.bound_fn, y=I.y),  # pyrefly: ignore[missing-attribute]
+        bound_fn=kde.bind(V.z.extract(), x=0),  # pyrefly: ignore[missing-attribute]
+        z=functor_factories.expr_fn(I.x + I.y),  # pyrefly: ignore[unsupported-operation]
     )
     testing.assert_equal(kd.call(f, y=1), ds(1))
 
@@ -806,12 +806,12 @@ class FunctorFactoriesTest(parameterized.TestCase):
       _ = kd.call(f, z=2)
 
   def test_bind_as_kd_op(self):
-    fn = functor_factories.expr_fn(I.x + I.y)
+    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
     f = kd.bind(fn, x=0, y=1)
     testing.assert_equal(kd.call(f), ds(1))
 
   def test_bind_with_self(self):
-    fn = functor_factories.expr_fn(I.x + I.y + I.self)
+    fn = functor_factories.expr_fn(I.x + I.y + I.self)  # pyrefly: ignore[unsupported-operation]
     f = functor_factories.bind(fn, x=1)
     testing.assert_equal(kd.call(f, 2, y=3), ds(6))
     testing.assert_equal(kd.call(f, 2, y=3, x=10), ds(15))
@@ -866,7 +866,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
         ),
     ])
     fn = functor_factories.expr_fn(
-        I.x + I.y,
+        I.x + I.y,  # pyrefly: ignore[unsupported-operation]
         signature=sig,
     )
     f = functor_factories.bind(fn, 1, 2)
@@ -894,7 +894,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
     testing.assert_equal(kd.call(f, z=2), ds(3))
 
     f = functor_factories.bind(
-        functor_factories.allow_arbitrary_unused_inputs(fn), V.z * 2, z=3
+        functor_factories.allow_arbitrary_unused_inputs(fn), V.z * 2, z=3  # pyrefly: ignore[unsupported-operation]
     )
     testing.assert_equal(kd.call(f, 1), ds(7))
 
@@ -905,12 +905,12 @@ class FunctorFactoriesTest(parameterized.TestCase):
 
   def test_fn_expr(self):
     testing.assert_equal(
-        kd.call(functor_factories.fn(I.x + I.y), x=ds([1, 2]), y=ds([3, 4])),
+        kd.call(functor_factories.fn(I.x + I.y), x=ds([1, 2]), y=ds([3, 4])),  # pyrefly: ignore[unsupported-operation]
         ds([4, 6]),
     )
     testing.assert_equal(
         kd.call(
-            functor_factories.fn(I.x + kde.explode(V.y), y=fns.list([3, 4])),
+            functor_factories.fn(I.x + kde.explode(V.y), y=fns.list([3, 4])),  # pyrefly: ignore[missing-attribute]
             x=ds([1, 2]),
         ),
         ds([4, 6]),
@@ -919,7 +919,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
   def test_fn_packed_expr(self):
     testing.assert_equal(
         kd.call(
-            functor_factories.fn(introspection.pack_expr(I.x + I.y)),
+            functor_factories.fn(introspection.pack_expr(I.x + I.y)),  # pyrefly: ignore[unsupported-operation]
             x=ds([1, 2]),
             y=ds([3, 4]),
         ),
@@ -928,7 +928,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
 
   def test_fn_expr_dataslice(self):
     testing.assert_equal(
-        kd.call(functor_factories.fn(I.x + I.y), x=ds([1, 2]), y=ds([3, 4])),
+        kd.call(functor_factories.fn(I.x + I.y), x=ds([1, 2]), y=ds([3, 4])),  # pyrefly: ignore[unsupported-operation]
         ds([4, 6]),
     )
 
@@ -943,10 +943,10 @@ class FunctorFactoriesTest(parameterized.TestCase):
     testing.assert_equal(kd.call(fn2, x=ds([1, 2]), y=ds([3, 4])), ds([4, 6]))
     testing.assert_equal(kd.call(fn3, x=ds([1, 2]), y=ds([3, 4])), ds([4, 6]))
     testing.assert_traced_exprs_equal(
-        introspection.unpack_expr(fn2.returns), I.x + I.y
+        introspection.unpack_expr(fn2.returns), I.x + I.y  # pyrefly: ignore[unsupported-operation]
     )
     testing.assert_traced_exprs_equal(
-        introspection.unpack_expr(fn1.returns), I.x + I.y
+        introspection.unpack_expr(fn1.returns), I.x + I.y  # pyrefly: ignore[unsupported-operation]
     )
 
     fn4 = functor_factories.fn(lambda x, y: x + y, use_tracing=True, y=5)
@@ -962,25 +962,25 @@ class FunctorFactoriesTest(parameterized.TestCase):
       fn1 = functor_factories.fn(functools.partial(f, 1), use_tracing=True)
       testing.assert_equal(kd.call(fn1, y=ds([3, 4])), ds([4, 5]))
       testing.assert_traced_exprs_equal(
-          introspection.unpack_expr(fn1.returns), 1 + I.y
+          introspection.unpack_expr(fn1.returns), 1 + I.y  # pyrefly: ignore[bad-argument-type, unsupported-operation]
       )
     with self.subTest('keyword-arg'):
       fn2 = functor_factories.fn(functools.partial(f, x=2), use_tracing=True)
       testing.assert_equal(kd.call(fn2, y=ds([3, 4])), ds([5, 6]))
       testing.assert_equal(kd.call(fn2, x=ds([1, 2]), y=ds([3, 4])), ds([4, 6]))
       testing.assert_traced_exprs_equal(
-          introspection.unpack_expr(fn2.returns), I.x + I.y
+          introspection.unpack_expr(fn2.returns), I.x + I.y  # pyrefly: ignore[unsupported-operation]
       )
 
   def test_fn_existing_fn(self):
-    existing_fn = functor_factories.expr_fn(I.x + I.y)
+    existing_fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
     testing.assert_equal(
         kd.call(functor_factories.fn(existing_fn), x=ds([1, 2]), y=ds([3, 4])),
         ds([4, 6]),
     )
 
   def test_fn_existing_fn_fails(self):
-    existing_fn = functor_factories.expr_fn(I.x + I.y)
+    existing_fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
 
     with self.assertRaisesWithLiteralMatch(
         ValueError, 'passed kwargs when calling fn on an existing functor'
@@ -1175,10 +1175,10 @@ class FunctorFactoriesTest(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         TypeError, "expected a function, got <class 'arolla.abc.expr.Expr'>"
     ):
-      functor_factories.map_py_fn(I.f, x=I.y)
+      functor_factories.map_py_fn(I.f, x=I.y)  # pyrefly: ignore[bad-argument-type]
 
   def test_get_signature(self):
-    fn = functor_factories.expr_fn(I.x + I.y)
+    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
     sig = functor_factories.get_signature(fn)
     testing.assert_equal(
         sig.parameters[:].name.no_bag(),
@@ -1194,7 +1194,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
         ]).no_bag(),
     )
     fn2 = functor_factories.expr_fn(
-        I.x + I.y,
+        I.x + I.y,  # pyrefly: ignore[unsupported-operation]
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.POSITIONAL_ONLY
@@ -1215,7 +1215,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
     )
 
   def test_get_inspect_signature(self):
-    fn = functor_factories.expr_fn(I.x + I.y)
+    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
     sig = functor_factories.get_inspect_signature(fn)
     self.assertIsInstance(sig, inspect.Signature)
     self.assertEqual(
@@ -1232,7 +1232,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
     )
 
     fn2 = functor_factories.expr_fn(
-        I.x + I.y,
+        I.x + I.y,  # pyrefly: ignore[unsupported-operation]
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.POSITIONAL_ONLY
@@ -1298,8 +1298,8 @@ class FunctorFactoriesTest(parameterized.TestCase):
     sig1 = inspect.signature(f1)
     args1, kwargs1 = functor_factories.build_forwarding_args_kwargs_exprs(sig1)
 
-    testing.assert_equal(args1, arolla.M.core.make_tuple(I.x, I.y))
-    testing.assert_equal(kwargs1, arolla.M.namedtuple.make())
+    testing.assert_equal(args1, arolla.M.core.make_tuple(I.x, I.y))  # pyrefly: ignore[missing-attribute]
+    testing.assert_equal(kwargs1, arolla.M.namedtuple.make())  # pyrefly: ignore[missing-attribute]
 
     def f2(x, *args, y, **kwargs):
       return x, args, y, kwargs
@@ -1309,11 +1309,11 @@ class FunctorFactoriesTest(parameterized.TestCase):
 
     testing.assert_equal(
         args2,
-        arolla.M.core.concat_tuples(arolla.M.core.make_tuple(I.x), I.args),
+        arolla.M.core.concat_tuples(arolla.M.core.make_tuple(I.x), I.args),  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(
         kwargs2,
-        arolla.M.namedtuple.union(arolla.M.namedtuple.make(y=I.y), I.kwargs),
+        arolla.M.namedtuple.union(arolla.M.namedtuple.make(y=I.y), I.kwargs),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_allow_arbitrary_unused_inputs(self):
@@ -1345,9 +1345,9 @@ class FunctorFactoriesTest(parameterized.TestCase):
     # See also test_evaluation_errors in tracing_decorator_test.py.
 
     fn1 = functor_factories.expr_fn(
-        V.y + 1,
-        y=arolla.M.annotation.source_location(
-            1 // I.x,
+        V.y + 1,  # pyrefly: ignore[unsupported-operation]
+        y=arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
+            1 // I.x,  # pyrefly: ignore[unsupported-operation]
             arolla.namedtuple(
                 function_name='fn1',
                 file_name='my_file.py',
@@ -1358,8 +1358,8 @@ class FunctorFactoriesTest(parameterized.TestCase):
         ),
     )
     fn2 = functor_factories.expr_fn(
-        V.z + 1,
-        z=arolla.M.annotation.source_location(
+        V.z + 1,  # pyrefly: ignore[unsupported-operation]
+        z=arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
             fn1(x=V.y),
             arolla.namedtuple(
                 function_name='fn2',

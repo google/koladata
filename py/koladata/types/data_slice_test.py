@@ -514,7 +514,7 @@ class DataSliceTest(parameterized.TestCase):
     )
 
   def test_debug_repr_with_large_expr_quote(self):
-    expr_slice = ds(arolla.quote(sum([I.x] * 4000, start=I.x)))
+    expr_slice = ds(arolla.quote(sum([I.x] * 4000, start=I.x)))  # pyrefly: ignore[no-matching-overload]
     self.assertEqual(
         expr_slice._debug_repr(),
         'DataItem('
@@ -1072,7 +1072,7 @@ class DataSliceTest(parameterized.TestCase):
     testing.assert_equivalent(x.a, ds(1))
 
   def test_updated(self):
-    schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
+    schema = kde.schema.new_schema(a=schema_constants.INT32).eval()  # pyrefly: ignore[missing-attribute]
 
     db1 = bag()
     db1.merge_inplace(schema.get_bag())
@@ -2974,7 +2974,7 @@ Assigned schema for values: ENTITY(y=FLOAT32)"""),
       del l[0:2]
 
   def test_list_pop(self):
-    l = kde.implode(ds([[1, 2, 3], [4, 5]])).eval().fork_bag()
+    l = kde.implode(ds([[1, 2, 3], [4, 5]])).eval().fork_bag()  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(l.pop(1), ds([2, 5]).with_bag(l.get_bag()))
     testing.assert_equal(l.pop(ds([1, -1])), ds([3, 4]).with_bag(l.get_bag()))
     testing.assert_equal(l[:], ds([[1], []]).with_bag(l.get_bag()))
@@ -3613,7 +3613,7 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
       testing.assert_equal(~mask, ds([None, arolla.present(), None]))
     with self.subTest('lshift'):
       o = fns.new(x=1, y=2)
-      db = kde.attrs(o, x=3, z=4).eval()
+      db = kde.attrs(o, x=3, z=4).eval()  # pyrefly: ignore[missing-attribute]
       testing.assert_equal((o << db).no_bag(), o.no_bag())
       testing.assert_equivalent(
           o << db, fns.new(x=3, y=2, z=4), schemas_equality=False
@@ -3630,7 +3630,7 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
         _ = o << o
     with self.subTest('rshift'):
       o = fns.new(x=1, y=2)
-      db = kde.attrs(o, x=3, z=4).eval()
+      db = kde.attrs(o, x=3, z=4).eval()  # pyrefly: ignore[missing-attribute]
       testing.assert_equal((o >> db).no_bag(), o.no_bag())
       testing.assert_equivalent(
           o >> db, fns.new(x=1, y=2, z=4), schemas_equality=False
@@ -3710,8 +3710,8 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
       bag().obj(x=1).with_schema_from_obj()
 
   def test_follow(self):
-    x = kde.new().eval()
-    testing.assert_equal(kde.nofollow(x).eval().follow(), x)
+    x = kde.new().eval()  # pyrefly: ignore[missing-attribute]
+    testing.assert_equal(kde.nofollow(x).eval().follow(), x)  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(ValueError, 'a nofollow schema is required'):
       ds([1, 2, 3]).follow()
 
@@ -4428,7 +4428,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
     testing.assert_equal(imploded.explode(ndim).no_bag(), x)
 
   def test_implode_itemid(self):
-    itemid = kde.allocation.new_listid_shaped_as(ds([1, 2])).eval()
+    itemid = kde.allocation.new_listid_shaped_as(ds([1, 2])).eval()  # pyrefly: ignore[missing-attribute]
     x = ds([[1, 2], [3]])
     imploded = x.implode(1, itemid=itemid)
     testing.assert_equal(imploded.get_itemid().no_bag(), itemid)

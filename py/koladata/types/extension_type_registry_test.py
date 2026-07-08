@@ -30,12 +30,12 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-M = arolla.M | derived_qtype.M
+M = arolla.M | derived_qtype.M  # pyrefly: ignore[unsupported-operation]
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 
-_EXT_TYPE = M.derived_qtype.get_labeled_qtype(
+_EXT_TYPE = M.derived_qtype.get_labeled_qtype(  # pyrefly: ignore[missing-attribute]
     extension_type_registry.BASE_QTYPE, '_MyTestExtension'
 ).qvalue
 
@@ -65,7 +65,7 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
 
   def test_is_extension_type(self):
     obj = objects.Object(x=ds(0), y=ds(1))
-    ext = arolla.eval(M.derived_qtype.downcast(_EXT_TYPE, obj))
+    ext = arolla.eval(M.derived_qtype.downcast(_EXT_TYPE, obj))  # pyrefly: ignore[missing-attribute]
     # A raw Object is not an extension type.
     self.assertFalse(extension_type_registry.is_koda_extension(obj))
     # The extension type is not yet registered, so it's false even if it has
@@ -153,7 +153,7 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
           _MyOtherTestExtension, arolla.INT32
       )
 
-    other_qtype = M.derived_qtype.get_labeled_qtype(
+    other_qtype = M.derived_qtype.get_labeled_qtype(  # pyrefly: ignore[missing-attribute]
         extension_type_registry.BASE_QTYPE, 'bar'
     ).qvalue
     with self.assertRaisesRegex(
@@ -205,7 +205,7 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
     class MyExtensionType:
       pass
 
-    dummy_qtype = M.derived_qtype.get_labeled_qtype(
+    dummy_qtype = M.derived_qtype.get_labeled_qtype(  # pyrefly: ignore[missing-attribute]
         extension_type_registry.BASE_QTYPE, 'MyExtensionType'
     ).qvalue
     extension_type_registry.register_extension_type(
@@ -247,10 +247,10 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
     class B:
       pass
 
-    a_type = M.derived_qtype.get_labeled_qtype(
+    a_type = M.derived_qtype.get_labeled_qtype(  # pyrefly: ignore[missing-attribute]
         extension_type_registry.BASE_QTYPE, 'A'
     ).qvalue
-    b_type = M.derived_qtype.get_labeled_qtype(
+    b_type = M.derived_qtype.get_labeled_qtype(  # pyrefly: ignore[missing-attribute]
         extension_type_registry.BASE_QTYPE, 'B'
     ).qvalue
 
@@ -275,7 +275,7 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
     class A:
       pass
 
-    a_type = M.derived_qtype.get_labeled_qtype(
+    a_type = M.derived_qtype.get_labeled_qtype(  # pyrefly: ignore[missing-attribute]
         extension_type_registry.BASE_QTYPE, 'A'
     ).qvalue
     extension_type_registry.register_extension_type(A, a_type)
@@ -314,7 +314,7 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
     class A:
       pass
 
-    a_type = M.derived_qtype.get_labeled_qtype(
+    a_type = M.derived_qtype.get_labeled_qtype(  # pyrefly: ignore[missing-attribute]
         extension_type_registry.BASE_QTYPE, 'A'
     ).qvalue
     extension_type_registry.register_extension_type(A, a_type)
@@ -345,7 +345,7 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
     class A:
       pass
 
-    a_type = M.derived_qtype.get_labeled_qtype(
+    a_type = M.derived_qtype.get_labeled_qtype(  # pyrefly: ignore[missing-attribute]
         extension_type_registry.BASE_QTYPE, 'A'
     ).qvalue
     extension_type_registry.register_extension_type(A, a_type)

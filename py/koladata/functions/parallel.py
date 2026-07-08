@@ -29,7 +29,7 @@ from koladata.types import py_boxing
 
 
 kde = kde_operators.kde
-koda_internal_parallel = kde_operators.internal.parallel
+koda_internal_parallel = kde_operators.internal.parallel  # pyrefly: ignore[missing-attribute]
 
 
 def _create_executor(max_threads: int | None) -> clib.Executor:
@@ -86,7 +86,7 @@ def call_multithreaded(
   res_stream = koda_internal_parallel.stream_from_future(
       koda_internal_parallel.future_from_parallel(
           executor,
-          kde.functor.call(
+          kde.functor.call(  # pyrefly: ignore[missing-attribute]
               transformed_fn,
               executor,
               *[koda_internal_parallel.as_parallel(arg) for arg in args],
@@ -152,7 +152,7 @@ def yield_multithreaded(
   """
   executor = _create_executor(max_threads)
   transformed_fn = transform(fn, allow_runtime_transforms=True)
-  res_stream = kde.functor.call(
+  res_stream = kde.functor.call(  # pyrefly: ignore[missing-attribute]
       transformed_fn,
       executor,
       *[koda_internal_parallel.as_parallel(arg) for arg in args],

@@ -78,7 +78,7 @@ class EvalOpTest(absltest.TestCase):
 
     @optools.as_lambda_operator('increase_counter_twice', deterministic=False)
     def increase_counter_twice():
-      return arolla.M.core.make_tuple(increase_counter(), increase_counter())
+      return arolla.M.core.make_tuple(increase_counter(), increase_counter())  # pyrefly: ignore[missing-attribute]
 
     counter = 0
     testing.assert_equal(eval_op(increase_counter), arolla.unit())
@@ -216,7 +216,7 @@ class EvalOpTest(absltest.TestCase):
       eval_op(op, arolla.unspecified())
 
   def test_cancellation(self):
-    op = arolla.LambdaOperator(arolla.M.core._identity_with_cancel(arolla.P.x))
+    op = arolla.LambdaOperator(arolla.M.core._identity_with_cancel(arolla.P.x))  # pyrefly: ignore[missing-attribute]
     x = arolla.int32(1)
     with self.assertRaisesWithLiteralMatch(ValueError, '[CANCELLED]'):
       eval_op(op, x)

@@ -22,7 +22,7 @@ _NON_DETERMINISTIC_TOKEN_OP = arolla.abc.lookup_operator(
     'koda_internal.non_deterministic'
 )
 
-_SOURCE_LOCATION_OP = arolla.M.annotation.source_location
+_SOURCE_LOCATION_OP = arolla.M.annotation.source_location  # pyrefly: ignore[missing-attribute]
 
 
 class Determinizer:

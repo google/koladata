@@ -224,16 +224,16 @@ def build_forwarding_args_kwargs_exprs(
     elif param.kind == inspect.Parameter.VAR_KEYWORD:
       var_keyword_name = param.name
 
-  args_expr = arolla.M.core.make_tuple(*positional_inputs)
+  args_expr = arolla.M.core.make_tuple(*positional_inputs)  # pyrefly: ignore[missing-attribute]
   if var_positional_name is not None:
-    args_expr = arolla.M.core.concat_tuples(args_expr, I[var_positional_name])
+    args_expr = arolla.M.core.concat_tuples(args_expr, I[var_positional_name])  # pyrefly: ignore[missing-attribute]
 
   if keyword_inputs:
-    kwargs_expr = arolla.M.namedtuple.make(**keyword_inputs)
+    kwargs_expr = arolla.M.namedtuple.make(**keyword_inputs)  # pyrefly: ignore[missing-attribute]
   else:
-    kwargs_expr = arolla.M.namedtuple.make()
+    kwargs_expr = arolla.M.namedtuple.make()  # pyrefly: ignore[missing-attribute]
   if var_keyword_name is not None:
-    kwargs_expr = arolla.M.namedtuple.union(kwargs_expr, I[var_keyword_name])
+    kwargs_expr = arolla.M.namedtuple.union(kwargs_expr, I[var_keyword_name])  # pyrefly: ignore[missing-attribute]
 
   return args_expr, kwargs_expr
 
@@ -472,12 +472,12 @@ def bind(
     variables_to_compute = {}
     variables_to_compute.update(kwargs)
     variables_to_compute.update(zip(arg_names, args))
-    var_tuple = arolla.M.core.make_tuple(
+    var_tuple = arolla.M.core.make_tuple(  # pyrefly: ignore[missing-attribute]
         *[V[name] for name in arg_names],
     )
-    var_namedtuple = arolla.M.namedtuple.make(**{k: V[k] for k in kwargs})
+    var_namedtuple = arolla.M.namedtuple.make(**{k: V[k] for k in kwargs})  # pyrefly: ignore[missing-attribute]
     variables['_aux_fn_compute_variables'] = expr_fn(
-        arolla.M.core.make_tuple(var_tuple, var_namedtuple),
+        arolla.M.core.make_tuple(var_tuple, var_namedtuple),  # pyrefly: ignore[missing-attribute]
         **variables_to_compute,
     )
     arg_tuple_type = arolla.tuple(
@@ -494,20 +494,20 @@ def bind(
         kwargs=I.kwargs,
         **optools.unified_non_deterministic_kwarg(),
     )
-    computed_var_tuple = arolla.M.core.get_nth(V['_aux_fn_variables'], 0)
+    computed_var_tuple = arolla.M.core.get_nth(V['_aux_fn_variables'], 0)  # pyrefly: ignore[missing-attribute]
     for i in range(len(args)):
-      variables[arg_names[i]] = arolla.M.core.get_nth(computed_var_tuple, i)
-    computed_var_namedtuple = arolla.M.core.get_nth(V['_aux_fn_variables'], 1)
+      variables[arg_names[i]] = arolla.M.core.get_nth(computed_var_tuple, i)  # pyrefly: ignore[missing-attribute]
+    computed_var_namedtuple = arolla.M.core.get_nth(V['_aux_fn_variables'], 1)  # pyrefly: ignore[missing-attribute]
     for k in kwargs:
-      variables[k] = arolla.M.namedtuple.get_field(computed_var_namedtuple, k)
+      variables[k] = arolla.M.namedtuple.get_field(computed_var_namedtuple, k)  # pyrefly: ignore[missing-attribute]
   else:
     variables.update(kwargs)
     variables.update(zip(arg_names, args))
 
-  bound_args = arolla.M.core.make_tuple(*[V[name] for name in arg_names])
-  final_args = arolla.M.core.concat_tuples(bound_args, I.args)
-  bound_kwargs = arolla.M.namedtuple.make(**{k: V[k] for k in kwargs})
-  final_kwargs = arolla.M.namedtuple.union(bound_kwargs, I.kwargs)
+  bound_args = arolla.M.core.make_tuple(*[V[name] for name in arg_names])  # pyrefly: ignore[missing-attribute]
+  final_args = arolla.M.core.concat_tuples(bound_args, I.args)  # pyrefly: ignore[missing-attribute]
+  bound_kwargs = arolla.M.namedtuple.make(**{k: V[k] for k in kwargs})  # pyrefly: ignore[missing-attribute]
+  final_kwargs = arolla.M.namedtuple.union(bound_kwargs, I.kwargs)  # pyrefly: ignore[missing-attribute]
 
   return expr_fn(
       # Note: we bypass the binding policy of functor.call since we already
@@ -548,7 +548,7 @@ def fstr_fn(returns: str, **kwargs) -> data_item.DataItem:
     returns: A format string.
     **kwargs: variable assignments.
   """
-  return expr_fn(kde.strings.fstr(returns), **kwargs)
+  return expr_fn(kde.strings.fstr(returns), **kwargs)  # pyrefly: ignore[missing-attribute]
 
 
 data_item.register_bind_method_implementation(bind)

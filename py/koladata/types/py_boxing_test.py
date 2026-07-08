@@ -58,21 +58,21 @@ class PyBoxingTest(parameterized.TestCase):
       (slice(1, 2, 3), arolla.types.Slice(ds(1), ds(2), ds(3))),
       (
           slice(arolla.L.x),
-          kde.tuples.slice(
+          kde.tuples.slice(  # pyrefly: ignore[missing-attribute]
               arolla.unspecified(), arolla.L.x, arolla.unspecified()
           ),
       ),
       (
           slice(arolla.L.x, 2, 3),
-          kde.tuples.slice(arolla.L.x, 2, 3),
+          kde.tuples.slice(arolla.L.x, 2, 3),  # pyrefly: ignore[missing-attribute]
       ),
       (
           slice(1, arolla.L.x, 3),
-          kde.tuples.slice(1, arolla.L.x, 3),
+          kde.tuples.slice(1, arolla.L.x, 3),  # pyrefly: ignore[missing-attribute]
       ),
       (
           slice(1, 2, arolla.L.x),
-          kde.tuples.slice(1, 2, arolla.L.x),
+          kde.tuples.slice(1, 2, arolla.L.x),  # pyrefly: ignore[missing-attribute]
       ),
       (..., ellipsis.ellipsis()),
       (data_slice.DataSlice, ds(None)),
@@ -83,9 +83,9 @@ class PyBoxingTest(parameterized.TestCase):
       ((1, 2), arolla.tuple(ds(1), ds(2))),
       (
           (1, (arolla.L.x, 2)),
-          kde.tuples.tuple(
+          kde.tuples.tuple(  # pyrefly: ignore[missing-attribute]
               literal_operator.literal(ds(1)),
-              kde.tuples.tuple(arolla.L.x, literal_operator.literal(ds(2))),
+              kde.tuples.tuple(arolla.L.x, literal_operator.literal(ds(2))),  # pyrefly: ignore[missing-attribute]
           ),
       ),
   )
@@ -294,7 +294,7 @@ class PyBoxingTest(parameterized.TestCase):
       (arolla.L.x, arolla.L.x),
       (
           slice(arolla.L.x, 2, 3),
-          kde.tuples.slice(arolla.L.x, 2, 3),
+          kde.tuples.slice(arolla.L.x, 2, 3),  # pyrefly: ignore[missing-attribute]
       ),
   )
   def test_as_expr(self, value, expected_res):

@@ -19,7 +19,7 @@ from koladata import kd
 from koladata.operators import kde_operators
 from koladata.serving import determinism
 
-koda_internal_parallel = kde_operators.internal.parallel
+koda_internal_parallel = kde_operators.internal.parallel  # pyrefly: ignore[missing-attribute]
 
 
 def _extract_non_deterministic_tokens(
@@ -334,7 +334,7 @@ class DeterminizerTest(parameterized.TestCase):
 
     kd.testing.assert_equal(
         kd.expr.unpack_expr(fn.returns).op,
-        arolla.M.annotation.source_location,
+        arolla.M.annotation.source_location,  # pyrefly: ignore[missing-attribute]
     )
 
     det_fn = determinizer.make_deterministic(fn)

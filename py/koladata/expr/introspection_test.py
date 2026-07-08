@@ -37,37 +37,37 @@ class IntrospectionTest(absltest.TestCase):
 
   def test_get_name(self):
     self.assertEqual(
-        introspection.get_name(kde.with_name(I.x + I.y, 'foo')), 'foo'
+        introspection.get_name(kde.with_name(I.x + I.y, 'foo')), 'foo'  # pyrefly: ignore[missing-attribute, unsupported-operation]
     )
     self.assertEqual(
-        introspection.get_name(kde.annotation.with_name(I.x + I.y, 'foo')),
+        introspection.get_name(kde.annotation.with_name(I.x + I.y, 'foo')),  # pyrefly: ignore[missing-attribute, unsupported-operation]
         'foo',
     )
     self.assertIsNone(
-        introspection.get_name(kde.with_name(I.x + I.y, 'foo') + I.z)
+        introspection.get_name(kde.with_name(I.x + I.y, 'foo') + I.z)  # pyrefly: ignore[missing-attribute, unsupported-operation]
     )
     self.assertIsNone(introspection.get_name(py_boxing.as_expr(1)))
 
   def test_unwrap_named(self):
     testing.assert_equal(
-        introspection.unwrap_named(kde.with_name(I.x + I.y, 'foo')), I.x + I.y
+        introspection.unwrap_named(kde.with_name(I.x + I.y, 'foo')), I.x + I.y  # pyrefly: ignore[missing-attribute, unsupported-operation]
     )
     testing.assert_equal(
-        introspection.unwrap_named(kde.annotation.with_name(I.x + I.y, 'foo')),
-        I.x + I.y,
+        introspection.unwrap_named(kde.annotation.with_name(I.x + I.y, 'foo')),  # pyrefly: ignore[missing-attribute, unsupported-operation]
+        I.x + I.y,  # pyrefly: ignore[unsupported-operation]
     )
     with self.assertRaisesRegex(ValueError, 'non-named'):
-      introspection.unwrap_named(kde.with_name(I.x + I.y, 'foo') + I.z)
+      introspection.unwrap_named(kde.with_name(I.x + I.y, 'foo') + I.z)  # pyrefly: ignore[missing-attribute, unsupported-operation]
 
   def test_pack_expr(self):
-    x = introspection.pack_expr(I.x + I.y)
+    x = introspection.pack_expr(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
     self.assertEqual(x.get_schema(), schema_constants.EXPR)
     self.assertEqual(x.get_ndim(), 0)
-    testing.assert_equal(introspection.unpack_expr(x), I.x + I.y)
+    testing.assert_equal(introspection.unpack_expr(x), I.x + I.y)  # pyrefly: ignore[unsupported-operation]
 
   def test_unpack_expr(self):
-    x = introspection.pack_expr(I.x + I.y)
-    testing.assert_equal(introspection.unpack_expr(x), I.x + I.y)
+    x = introspection.pack_expr(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
+    testing.assert_equal(introspection.unpack_expr(x), I.x + I.y)  # pyrefly: ignore[unsupported-operation]
     with self.assertRaisesRegex(ValueError, 'only present EXPR DataItems'):
       introspection.unpack_expr(x & mask_constants.missing)
     with self.assertRaisesRegex(ValueError, 'only present EXPR DataItems'):
@@ -76,7 +76,7 @@ class IntrospectionTest(absltest.TestCase):
       introspection.unpack_expr(x.repeat(1))
 
   def test_is_packed_expr(self):
-    x = introspection.pack_expr(I.x + I.y)
+    x = introspection.pack_expr(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
     testing.assert_equal(
         introspection.is_packed_expr(x), mask_constants.present
     )
@@ -92,14 +92,14 @@ class IntrospectionTest(absltest.TestCase):
         introspection.is_packed_expr(x.repeat(1)), mask_constants.missing
     )
     testing.assert_equal(
-        introspection.is_packed_expr(I.x + I.y), mask_constants.missing
+        introspection.is_packed_expr(I.x + I.y), mask_constants.missing  # pyrefly: ignore[unsupported-operation]
     )
 
   def test_get_input_names(self):
     decayed_input_op = arolla.abc.decay_registered_operator(
         'koda_internal.input'
     )
-    expr = I.x + I.y + I.z.val + V.w + decayed_input_op('V', 'v')
+    expr = I.x + I.y + I.z.val + V.w + decayed_input_op('V', 'v')  # pyrefly: ignore[unsupported-operation]
     self.assertEqual(introspection.get_input_names(expr), ['x', 'y', 'z'])
     self.assertEqual(introspection.get_input_names(expr, I), ['x', 'y', 'z'])
     # Note: decayed inputs are _not_ supported.
@@ -110,7 +110,7 @@ class IntrospectionTest(absltest.TestCase):
     self.assertTrue(introspection.is_input(I.y))
     self.assertFalse(introspection.is_input(V.a))
     self.assertFalse(introspection.is_input(literal_operator.literal(ds(42))))
-    self.assertFalse(introspection.is_input(I.x + I.y))
+    self.assertFalse(introspection.is_input(I.x + I.y))  # pyrefly: ignore[unsupported-operation]
 
   def test_is_variable(self):
     self.assertTrue(introspection.is_variable(V.x))
@@ -119,31 +119,31 @@ class IntrospectionTest(absltest.TestCase):
     self.assertFalse(
         introspection.is_variable(literal_operator.literal(ds(42)))
     )
-    self.assertFalse(introspection.is_variable(V.x + V.y))
+    self.assertFalse(introspection.is_variable(V.x + V.y))  # pyrefly: ignore[unsupported-operation]
 
   def test_is_literal(self):
     expr = literal_operator.literal(ds(42))
     self.assertTrue(introspection.is_literal(expr))
     self.assertFalse(introspection.is_literal(arolla.L.x))
-    self.assertFalse(introspection.is_literal(arolla.L.x + 1))
+    self.assertFalse(introspection.is_literal(arolla.L.x + 1))  # pyrefly: ignore[bad-argument-type, unsupported-operation]
 
   def test_sub_inputs(self):
     decayed_input_op = arolla.abc.decay_registered_operator(
         'koda_internal.input'
     )
-    expr = I.x + I.y + I.z.val + V.x + decayed_input_op('V', 'v')
+    expr = I.x + I.y + I.z.val + V.x + decayed_input_op('V', 'v')  # pyrefly: ignore[unsupported-operation]
     testing.assert_equal(
         introspection.sub_inputs(expr, x=I.a, z=I.o),
-        I.a + I.y + I.o.val + V.x + decayed_input_op('V', 'v'),
+        I.a + I.y + I.o.val + V.x + decayed_input_op('V', 'v'),  # pyrefly: ignore[unsupported-operation]
     )
     testing.assert_equal(
         introspection.sub_inputs(expr, I, x=I.a, z=I.o),
-        I.a + I.y + I.o.val + V.x + decayed_input_op('V', 'v'),
+        I.a + I.y + I.o.val + V.x + decayed_input_op('V', 'v'),  # pyrefly: ignore[unsupported-operation]
     )
     # Note: decayed inputs are _not_ supported.
     testing.assert_equal(
         introspection.sub_inputs(expr, V, x=I.a, y=I.o, v=I.z),
-        I.x + I.y + I.z.val + I.a + decayed_input_op('V', 'v'),
+        I.x + I.y + I.z.val + I.a + decayed_input_op('V', 'v'),  # pyrefly: ignore[unsupported-operation]
     )
     testing.assert_equal(
         introspection.sub_inputs(expr, x=1),
@@ -183,8 +183,8 @@ class IntrospectionTest(absltest.TestCase):
     )
 
   def test_sub_by_name(self):
-    foo = kde.with_name(I.x, 'foo')
-    bar = kde.with_name(I.y, 'bar')
+    foo = kde.with_name(I.x, 'foo')  # pyrefly: ignore[missing-attribute]
+    bar = kde.with_name(I.y, 'bar')  # pyrefly: ignore[missing-attribute]
     expr = foo + bar
     testing.assert_equal(
         introspection.sub_by_name(expr, foo=I.z, baz=I.w), I.z + bar
@@ -194,28 +194,28 @@ class IntrospectionTest(absltest.TestCase):
       introspection.sub_by_name(expr, foo={'x': 1})
 
   def test_sub(self):
-    expr = I.x + I.y - V.z
-    testing.assert_equal(introspection.sub(expr, I.x, I.z), I.z + I.y - V.z)
-    testing.assert_equal(introspection.sub(expr, I.x + I.y, I.z), I.z - V.z)
+    expr = I.x + I.y - V.z  # pyrefly: ignore[unsupported-operation]
+    testing.assert_equal(introspection.sub(expr, I.x, I.z), I.z + I.y - V.z)  # pyrefly: ignore[unsupported-operation]
+    testing.assert_equal(introspection.sub(expr, I.x + I.y, I.z), I.z - V.z)  # pyrefly: ignore[unsupported-operation]
     testing.assert_equal(
-        introspection.sub(expr, (I.x, I.z), (V.z, V.w)), I.z + I.y - V.w
+        introspection.sub(expr, (I.x, I.z), (V.z, V.w)), I.z + I.y - V.w  # pyrefly: ignore[unsupported-operation]
     )
     testing.assert_equal(
         introspection.sub(expr, (I.x, I.a), (I.y, I.b), (V.z, V.c)),
-        I.a + I.b - V.c,
+        I.a + I.b - V.c,  # pyrefly: ignore[unsupported-operation]
     )
     # No deep substitution.
     testing.assert_equal(
-        introspection.sub(expr, (I.x, I.z), (I.z, I.w)), I.z + I.y - V.z
+        introspection.sub(expr, (I.x, I.z), (I.z, I.w)), I.z + I.y - V.z  # pyrefly: ignore[unsupported-operation]
     )
     # boxing.
     expr = I.x + ds(1)
     testing.assert_equal(
-        introspection.sub(expr, I.x, 2),
+        introspection.sub(expr, I.x, 2),  # pyrefly: ignore[bad-argument-type]
         literal_operator.literal(ds(2)) + literal_operator.literal(ds(1)),
     )
     testing.assert_equal(
-        introspection.sub(expr, (I.x, 2)),
+        introspection.sub(expr, (I.x, 2)),  # pyrefly: ignore[bad-argument-type]
         literal_operator.literal(ds(2)) + literal_operator.literal(ds(1)),
     )
 
@@ -225,22 +225,22 @@ class IntrospectionTest(absltest.TestCase):
         ' must be exactly two non-tuple subs representing a single substitution'
     )
     with self.assertRaisesRegex(ValueError, msg):
-      introspection.sub(I.x + I.y, I.x, I.y, I.z, I.t)
+      introspection.sub(I.x + I.y, I.x, I.y, I.z, I.t)  # pyrefly: ignore[unsupported-operation]
     with self.assertRaisesRegex(ValueError, msg):
-      introspection.sub(I.x + I.y, I.x)
+      introspection.sub(I.x + I.y, I.x)  # pyrefly: ignore[unsupported-operation]
     with self.assertRaisesRegex(ValueError, msg):
       introspection.sub(ds(1) + I.x, 1, 2)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(ValueError, msg):
       introspection.sub(ds(1) + I.x, (1, 2))  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(ValueError, msg):
-      introspection.sub(I.x + I.y, ((I.x, I.y), (I.z, I.t)))
+      introspection.sub(I.x + I.y, ((I.x, I.y), (I.z, I.t)))  # pyrefly: ignore[unsupported-operation]
     with self.assertRaisesRegex(ValueError, msg):
-      introspection.sub(I.x + I.y, [I.x, I.y], [I.z, I.t])
+      introspection.sub(I.x + I.y, [I.x, I.y], [I.z, I.t])  # pyrefly: ignore[unsupported-operation]
     with self.assertRaisesRegex(
         ValueError,
         'passing a Python list to a Koda operation is ambiguous',
     ):
-      introspection.sub(I.x + I.y, I.x, [I.y, I.z])
+      introspection.sub(I.x + I.y, I.x, [I.y, I.z])  # pyrefly: ignore[unsupported-operation]
 
 
 if __name__ == '__main__':

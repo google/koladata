@@ -404,13 +404,13 @@ class SubByNameTest(absltest.TestCase):
         introspection.unpack_expr(f3.returns), V._f_result
     )
     testing.assert_traced_exprs_equal(
-        introspection.unpack_expr(f1.f.returns), I.x + V.var_1
+        introspection.unpack_expr(f1.f.returns), I.x + V.var_1  # pyrefly: ignore[unsupported-operation]
     )
     testing.assert_traced_exprs_equal(
-        introspection.unpack_expr(f2.f.returns), I.x + V.var_1
+        introspection.unpack_expr(f2.f.returns), I.x + V.var_1  # pyrefly: ignore[unsupported-operation]
     )
     testing.assert_traced_exprs_equal(
-        introspection.unpack_expr(f3.f.returns), I.x + V.var_1
+        introspection.unpack_expr(f3.f.returns), I.x + V.var_1  # pyrefly: ignore[unsupported-operation]
     )
 
   def test_vars_inside_exprs_are_not_replaced(self):
@@ -432,7 +432,7 @@ class SubByNameTest(absltest.TestCase):
         introspection.unpack_expr(f_new.foo), V.baz
     )
     testing.assert_traced_exprs_equal(
-        introspection.unpack_expr(f_new.returns), V.foo + 1
+        introspection.unpack_expr(f_new.returns), V.foo + 1  # pyrefly: ignore[bad-argument-type, unsupported-operation]
     )
 
   def test_functor_structure_remains_the_same_no_trace_as_fn(self):
@@ -444,13 +444,13 @@ class SubByNameTest(absltest.TestCase):
     f2 = substitute.sub_by_name(f1, dict(var_1=3.14))
     f3 = substitute.sub_by_name(f2, dict(var_1=2.718))
     testing.assert_traced_exprs_equal(
-        introspection.unpack_expr(f1.returns), I.x + V.var_1
+        introspection.unpack_expr(f1.returns), I.x + V.var_1  # pyrefly: ignore[unsupported-operation]
     )
     testing.assert_traced_exprs_equal(
-        introspection.unpack_expr(f2.returns), I.x + V.var_1
+        introspection.unpack_expr(f2.returns), I.x + V.var_1  # pyrefly: ignore[unsupported-operation]
     )
     testing.assert_traced_exprs_equal(
-        introspection.unpack_expr(f3.returns), I.x + V.var_1
+        introspection.unpack_expr(f3.returns), I.x + V.var_1  # pyrefly: ignore[unsupported-operation]
     )
     testing.assert_allclose(
         data_slice.from_vals([f1(1), f2(1), f3(1)]),

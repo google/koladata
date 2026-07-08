@@ -595,7 +595,7 @@ def _remove_source_locations(
     return expr
 
   def _strip_source_location(expr: _arolla.Expr) -> _arolla.Expr:
-    if expr.op == _arolla.M.annotation.source_location:
+    if expr.op == _arolla.M.annotation.source_location:  # pyrefly: ignore[missing-attribute]
       return expr.node_deps[0]
     return expr
 

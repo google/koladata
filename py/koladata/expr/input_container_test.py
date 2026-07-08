@@ -45,7 +45,7 @@ class InputContainerTest(parameterized.TestCase):
     I = input_container.InputContainer('I')
     self.assertEqual(repr(I.x), 'I.x')
     self.assertEqual(repr(I['-x']), "I['-x']")
-    self.assertEqual(repr((I.x + I.y).some_attr), '(I.x + I.y).some_attr')
+    self.assertEqual(repr((I.x + I.y).some_attr), '(I.x + I.y).some_attr')  # pyrefly: ignore[unsupported-operation]
     self.assertEqual(repr(I.self), 'S')
     self.assertEqual(repr(I.self.x), 'S.x')
 
@@ -74,15 +74,15 @@ class InputContainerTest(parameterized.TestCase):
             literal_operator.literal(arolla.text('x')),
         ),
     )
-    self.assertEqual(arolla.get_leaf_keys(I.x + I.y), [])
-    self.assertEqual(arolla.abc.get_placeholder_keys(I.x + I.y), [])
+    self.assertEqual(arolla.get_leaf_keys(I.x + I.y), [])  # pyrefly: ignore[unsupported-operation]
+    self.assertEqual(arolla.abc.get_placeholder_keys(I.x + I.y), [])  # pyrefly: ignore[unsupported-operation]
 
   def test_get_input_name(self):
     I = input_container.InputContainer('I')
     V = input_container.InputContainer('V')
     self.assertEqual(input_container.get_input_name(I.x, I), 'x')
     self.assertIsNone(input_container.get_input_name(I.x, V))
-    self.assertIsNone(input_container.get_input_name(I.x + I.y, I))
+    self.assertIsNone(input_container.get_input_name(I.x + I.y, I))  # pyrefly: ignore[unsupported-operation]
 
   def test_repr_input_container(self):
     I = input_container.InputContainer('I')

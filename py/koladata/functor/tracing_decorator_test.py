@@ -72,7 +72,7 @@ class TracingDecoratorTest(parameterized.TestCase):
     testing.assert_equal(fn.f(x=1), ds(2))
     # Make sure tracing actually happened for the contents of f.
     testing.assert_traced_exprs_equal(
-        introspection.unpack_expr(fn.f.returns), I.x + 1
+        introspection.unpack_expr(fn.f.returns), I.x + 1  # pyrefly: ignore[bad-argument-type, unsupported-operation]
     )
 
   def test_two_lambdas(self):
@@ -242,11 +242,11 @@ class TracingDecoratorTest(parameterized.TestCase):
     )
     testing.assert_traced_non_deterministic_exprs_equal(
         introspection.unpack_expr(fn.get_attr('_f_result')),
-        V.f(I.x, return_type_as=empty_bag),
+        V.f(I.x, return_type_as=empty_bag),  # pyrefly: ignore[not-callable]
     )
     testing.assert_traced_non_deterministic_exprs_equal(
         introspection.unpack_expr(fn.f.returns),
-        kd_lazy.attrs(I.x, foo=1),
+        kd_lazy.attrs(I.x, foo=1),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_custom_wrapper(self):
@@ -307,7 +307,7 @@ class TracingDecoratorTest(parameterized.TestCase):
 
     @tracing_decorator.TraceAsFnDecorator()
     def f(x):  # pylint: disable=unused-argument
-      return kd_lazy.math.abs(x)
+      return kd_lazy.math.abs(x)  # pyrefly: ignore[missing-attribute]
 
     with self.assertRaisesRegex(
         ValueError, 'computation returned an Expr instead'

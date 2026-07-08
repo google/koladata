@@ -60,8 +60,8 @@ def _signature_uuid(
     sig: data_item.DataItem | arolla.Expr,
 ) -> arolla.Expr:
   """Computes the UUID of a signature."""
-  return lazy.ids.agg_uuid(
-      lazy.ids.uuid(
+  return lazy.ids.agg_uuid(  # pyrefly: ignore[missing-attribute]
+      lazy.ids.uuid(  # pyrefly: ignore[missing-attribute]
           'Parameter',
           default_value=sig.parameters[:]
           # Mixing the default values in a single data slice is not possible
@@ -379,18 +379,18 @@ def _with_lazy_attrribute_verification(
   )
 
   def attribute_missing_error_fn(actual_schema):
-    return lazy.strings.join(
+    return lazy.strings.join(  # pyrefly: ignore[missing-attribute]
         f'{error_message_prefix} expected {attr_path} to have'
         f' attribute `{attr_name}`; no attribute `{attr_name}` on'
         f' {attr_path}=',
-        lazy.schema.get_repr(actual_schema),
+        lazy.schema.get_repr(actual_schema),  # pyrefly: ignore[missing-attribute]
     )
 
   # First assert that the value is not a primitive, and only then call
   # has_attr, otherwise has_attr will fail.
-  return lazy.assertion.with_assertion(
+  return lazy.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
       result,
-      lazy.assertion.with_assertion(
+      lazy.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
           actual_schema,
           ~actual_schema.is_primitive(),
           attribute_missing_error_fn,
@@ -432,7 +432,7 @@ def _with_lazy_constraint_verification(
       f'parameter {arg_key}{path}' if arg_key is not None else f'output{path}'
   )
   if isinstance(constraint, _DuckType):
-    actual_schema = lazy.schema.get_schema(actual_value)
+    actual_schema = lazy.schema.get_schema(actual_value)  # pyrefly: ignore[missing-attribute]
     for attr_name in constraint:
       result = _with_lazy_attrribute_verification(
           result, actual_schema, arg_key, attr_name, path  # pyrefly: ignore[bad-argument-type]
@@ -450,18 +450,18 @@ def _with_lazy_constraint_verification(
         ' statically during tracing and cannot depend on the inputs'
     ))
   elif isinstance(constraint, _FunctorType):
-    result = lazy.assertion.with_assertion(
+    result = lazy.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
         result,
-        lazy.functor.is_fn(actual_value),
-        lambda actual_value: lazy.strings.join(
+        lazy.functor.is_fn(actual_value),  # pyrefly: ignore[missing-attribute]
+        lambda actual_value: lazy.strings.join(  # pyrefly: ignore[missing-attribute]
             f'{error_message_prefix} expected {attr_path} to be a'
             ' functor, got ',
-            lazy.slices.get_repr(actual_value)
+            lazy.slices.get_repr(actual_value)  # pyrefly: ignore[missing-attribute]
         ),
         actual_value,
     )
     if constraint.signature is not None:
-      result = lazy.assertion.with_assertion(
+      result = lazy.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
           result,
           (
               _signature_uuid(actual_value.get_attr('__signature__'))
@@ -469,25 +469,25 @@ def _with_lazy_constraint_verification(
                   signature_utils.from_py_signature(constraint.signature)  # pyrefly: ignore[bad-argument-type]
               ).eval()  # eval it at tracing time since we know it is a literal.
           ),
-          lambda actual_value: lazy.strings.join(
+          lambda actual_value: lazy.strings.join(  # pyrefly: ignore[missing-attribute]
               f'{error_message_prefix} expected {attr_path} to be a functor'
               f' with signature {constraint.signature}, got a functor with'
               ' signature ',
-              lazy.slices.get_repr(actual_value.get_attr('__signature__')),
+              lazy.slices.get_repr(actual_value.get_attr('__signature__')),  # pyrefly: ignore[missing-attribute]
           ),
           actual_value,
       )
   else:
-    actual_schema = lazy.schema.get_schema(actual_value)
-    result = lazy.assertion.with_assertion(
+    actual_schema = lazy.schema.get_schema(actual_value)  # pyrefly: ignore[missing-attribute]
+    result = lazy.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
         result,
         actual_schema == constraint,
-        lambda actual_schema: lazy.strings.join(
+        lambda actual_schema: lazy.strings.join(  # pyrefly: ignore[missing-attribute]
             f'{error_message_prefix} type mismatch for {attr_path};'
             ' expected type ',
-            lazy.schema.get_repr(constraint),
+            lazy.schema.get_repr(constraint),  # pyrefly: ignore[missing-attribute]
             ', got ',
-            lazy.schema.get_repr(actual_schema),
+            lazy.schema.get_repr(actual_schema),  # pyrefly: ignore[missing-attribute]
         ),
         actual_schema,
     )

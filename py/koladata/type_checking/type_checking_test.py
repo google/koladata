@@ -734,7 +734,7 @@ class TypeCheckingTest(parameterized.TestCase):
 
     @optools.as_lambda_operator('kd.schema.get_repr')
     def get_repr(x):  # pylint: disable=unused-argument
-      return kde_operators.kde.assertion.with_assertion(
+      return kde_operators.kde.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
           'fake repr',
           kd.missing,
           '`kd.schema.get_repr` should not have been called',
