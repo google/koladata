@@ -102,7 +102,7 @@ class MapReduceUpdateTest(parameterized.TestCase):
 
   def test_return_non_databag_error(self):
     # map_reduce_update requires functor to return DataBag, not DataSlice.
-    fn = kdf.fn(I.x + 1)
+    fn = kdf.fn(I.x + 1)  # pyrefly: ignore[unsupported-operation]
     x = ds([1, 2, 3])
     with self.assertRaisesRegex(
         ValueError,
@@ -129,7 +129,7 @@ class MapReduceUpdateTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, re.escape('expected a functor DATA_SLICE, got fn: INT32')
     ):
-      kde.functor.map_reduce_update(arolla.int32(1))
+      kde.functor.map_reduce_update(arolla.int32(1))  # pyrefly: ignore[missing-attribute]
 
   def test_multiple_kwargs(self):
     fn = _bag_fn(lambda x, y: user_facing_kd.attrs(x, z=x.a + y))  # pyrefly: ignore[missing-attribute]
@@ -175,19 +175,19 @@ class MapReduceUpdateTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.functor.map_reduce_update(I.fn, I.x))
+        view.has_koda_view(kde.functor.map_reduce_update(I.fn, I.x))  # pyrefly: ignore[missing-attribute]
     )
 
   def test_alias(self):
     self.assertTrue(
         optools.equiv_to_op(
-            kde.functor.map_reduce_update, kde.map_reduce_update
+            kde.functor.map_reduce_update, kde.map_reduce_update  # pyrefly: ignore[missing-attribute]
         )
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.functor.map_reduce_update(I.fn, x=I.x, y=I.y)),
+        repr(kde.functor.map_reduce_update(I.fn, x=I.x, y=I.y)),  # pyrefly: ignore[missing-attribute]
         'kd.functor.map_reduce_update(I.fn,'
         ' include_missing=DataItem(False, schema: BOOLEAN),'
         ' x=I.x, y=I.y)',

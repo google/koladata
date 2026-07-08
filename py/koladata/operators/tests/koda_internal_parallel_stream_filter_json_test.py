@@ -77,9 +77,9 @@ x'
 
     for f in test_cases:
       expected_results = test_cases[f]
-      expr = kde_internal.parallel.stream_filter_json(
-          kde_internal.parallel.get_default_executor(),
-          kde_internal.parallel.stream_from_1d_slice(I.arg),
+      expr = kde_internal.parallel.stream_filter_json(  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.stream_from_1d_slice(I.arg),  # pyrefly: ignore[missing-attribute]
           ds(f),
       )
       res = expr.eval(arg=ds(tokenize(data)))
@@ -102,9 +102,9 @@ x'
 
     for s in error_cases:
       expected_error = error_cases[s]
-      expr = kde_internal.parallel.stream_filter_json(
-          kde_internal.parallel.get_default_executor(),
-          kde_internal.parallel.stream_from_1d_slice(I.arg),
+      expr = kde_internal.parallel.stream_filter_json(  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.stream_from_1d_slice(I.arg),  # pyrefly: ignore[missing-attribute]
           ds('$'),
       )
       with self.assertRaisesRegex(ValueError, expected_error):

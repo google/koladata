@@ -141,23 +141,23 @@ class KodaUuidForListTest(parameterized.TestCase):
             ' **kwargs: {a: DATA_SLICE, b: UNSPECIFIED}'
         ),
     ):
-      _ = kde.ids.uuid_for_list(a=ds(1), b=arolla.unspecified())
+      _ = kde.ids.uuid_for_list(a=ds(1), b=arolla.unspecified())  # pyrefly: ignore[missing-attribute]
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.ids.uuid_for_list(seed=I.seed)))
+    self.assertTrue(view.has_koda_view(kde.ids.uuid_for_list(seed=I.seed)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.ids.uuid_for_list, kde.uuid_for_list)
+        optools.equiv_to_op(kde.ids.uuid_for_list, kde.uuid_for_list)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.ids.uuid_for_list(seed=I.seed, a=I.a)),
+        repr(kde.ids.uuid_for_list(seed=I.seed, a=I.a)),  # pyrefly: ignore[missing-attribute]
         'kd.ids.uuid_for_list(I.seed, a=I.a)',
     )
     self.assertEqual(
-        repr(kde.ids.uuid_for_list(I.seed, a=I.a)),
+        repr(kde.ids.uuid_for_list(I.seed, a=I.a)),  # pyrefly: ignore[missing-attribute]
         'kd.ids.uuid_for_list(I.seed, a=I.a)',
     )
 

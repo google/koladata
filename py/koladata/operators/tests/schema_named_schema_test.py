@@ -127,16 +127,16 @@ class KodaNamedSchemaTest(parameterized.TestCase):
       kd.schema.named_schema('name', a=ds([schema_constants.INT32]))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.named_schema(I.name)))
+    self.assertTrue(view.has_koda_view(kde.schema.named_schema(I.name)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.schema.named_schema, kde.named_schema)
+        optools.equiv_to_op(kde.schema.named_schema, kde.named_schema)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.schema.named_schema('name')),
+        repr(kde.schema.named_schema('name')),  # pyrefly: ignore[missing-attribute]
         "kd.schema.named_schema(DataItem('name', schema: STRING))",
     )
 

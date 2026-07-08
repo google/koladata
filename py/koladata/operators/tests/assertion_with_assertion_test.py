@@ -109,7 +109,7 @@ class AssertionWithAssertionTest(parameterized.TestCase):
     def fn():
       raise ValueError('fn error')
 
-    expr = kde.assertion.with_assertion(ds(1), mask_constants.missing, fn)
+    expr = kde.assertion.with_assertion(ds(1), mask_constants.missing, fn)  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(ValueError, 'fn error'):
       expr_eval.eval(expr)
 
@@ -118,7 +118,7 @@ class AssertionWithAssertionTest(parameterized.TestCase):
     def fn():
       return 'error message'
 
-    expr = kde.assertion.with_assertion(
+    expr = kde.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
         ds(1), mask_constants.missing, fn, ds(2)
     )
     with self.assertRaisesRegex(
@@ -131,7 +131,7 @@ class AssertionWithAssertionTest(parameterized.TestCase):
     def fn():
       return arolla.text('error message')
 
-    expr = kde.assertion.with_assertion(ds(1), mask_constants.missing, fn)
+    expr = kde.assertion.with_assertion(ds(1), mask_constants.missing, fn)  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         ValueError, 'expected the result to have qtype DATA_SLICE, got TEXT'
     ):
@@ -142,7 +142,7 @@ class AssertionWithAssertionTest(parameterized.TestCase):
     def fn():
       return ds(1)
 
-    expr = kde.assertion.with_assertion(ds(1), mask_constants.missing, fn)
+    expr = kde.assertion.with_assertion(ds(1), mask_constants.missing, fn)  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         ValueError,
         'unsupported narrowing cast to STRING for the given INT32 DataSlice',
@@ -150,7 +150,7 @@ class AssertionWithAssertionTest(parameterized.TestCase):
       expr_eval.eval(expr)
 
   def test_additional_args_error(self):
-    expr = kde.assertion.with_assertion(
+    expr = kde.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
         ds(1), mask_constants.missing, 'error', ds(1)
     )
     with self.assertRaisesRegex(
@@ -160,7 +160,7 @@ class AssertionWithAssertionTest(parameterized.TestCase):
       expr_eval.eval(expr)
 
   def test_non_literals(self):
-    expr = kde.assertion.with_assertion(I.x, I.condition, I.message)
+    expr = kde.assertion.with_assertion(I.x, I.condition, I.message)  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(ValueError, 'with_assertion failure'):
       expr_eval.eval(
           expr,
@@ -171,9 +171,9 @@ class AssertionWithAssertionTest(parameterized.TestCase):
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.assertion.with_assertion(1, mask_constants.present, 'foo'),
+        kde.assertion.with_assertion(1, mask_constants.present, 'foo'),  # pyrefly: ignore[missing-attribute]
         arolla.abc.bind_op(
-            kde.assertion.with_assertion,
+            kde.assertion.with_assertion,  # pyrefly: ignore[missing-attribute]
             literal_operator.literal(ds(1)),
             literal_operator.literal(mask_constants.present),
             literal_operator.literal(ds('foo')),
@@ -216,7 +216,7 @@ class AssertionWithAssertionTest(parameterized.TestCase):
             (x_qtype, condition_qtype, message_qtype, arg_qtype, x_qtype)
         )
     arolla.testing.assert_qtype_signatures(
-        kde.assertion.with_assertion,
+        kde.assertion.with_assertion,  # pyrefly: ignore[missing-attribute]
         expected_qtypes,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         max_arity=4,
@@ -225,7 +225,7 @@ class AssertionWithAssertionTest(parameterized.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde.assertion.with_assertion(I.ds, I.dtype, I.message)
+            kde.assertion.with_assertion(I.ds, I.dtype, I.message)  # pyrefly: ignore[missing-attribute]
         )
     )
 

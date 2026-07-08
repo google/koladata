@@ -204,13 +204,13 @@ class MathInverseCdfTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.math.inverse_cdf,
+        kde.math.inverse_cdf,  # pyrefly: ignore[missing-attribute]
         QTYPES,
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.math.inverse_cdf(I.x, I.cdf_arg)))
+    self.assertTrue(view.has_koda_view(kde.math.inverse_cdf(I.x, I.cdf_arg)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

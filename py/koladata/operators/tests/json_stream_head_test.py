@@ -32,9 +32,9 @@ from koladata.types import schema_constants
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
-kd = eager_op_utils.operators_container(top_level_arolla_container=kde)
+kd = eager_op_utils.operators_container(top_level_arolla_container=kde)  # pyrefly: ignore[bad-argument-type]
 kd_internal = eager_op_utils.operators_container(
-    top_level_arolla_container=kde_operators.internal
+    top_level_arolla_container=kde_operators.internal  # pyrefly: ignore[bad-argument-type]
 )
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -58,7 +58,7 @@ class JsonStreamHeadTest(parameterized.TestCase):
   def test_parallel_transform(self):
     executor = kd_internal.parallel.get_default_executor()
     result = parallel_fns.transform(
-        functor_factories.expr_fn(returns=kde.json_stream.head(I.x, n=2)),
+        functor_factories.expr_fn(returns=kde.json_stream.head(I.x, n=2)),  # pyrefly: ignore[missing-attribute]
     )(
         executor,
         x=kd.streams.make('1\n2\n3\n'),
@@ -111,7 +111,7 @@ class JsonStreamHeadTest(parameterized.TestCase):
   def test_cancellation(self):
     stream, _ = stream_clib.Stream.new(DATA_SLICE)
     result_stream = parallel_fns.transform(
-        functor_factories.expr_fn(returns=kde.json_stream.head(I.x)),
+        functor_factories.expr_fn(returns=kde.json_stream.head(I.x)),  # pyrefly: ignore[missing-attribute]
     )(
         kd_internal.parallel.get_default_executor(),
         x=stream,
@@ -128,7 +128,7 @@ class JsonStreamHeadTest(parameterized.TestCase):
   def test_early_end(self):
     stream, writer = stream_clib.Stream.new(DATA_SLICE)
     result_stream = parallel_fns.transform(
-        functor_factories.expr_fn(returns=kde.json_stream.head(I.x)),
+        functor_factories.expr_fn(returns=kde.json_stream.head(I.x)),  # pyrefly: ignore[missing-attribute]
     )(
         kd_internal.parallel.get_default_executor(),
         x=stream,
@@ -140,7 +140,7 @@ class JsonStreamHeadTest(parameterized.TestCase):
     testing.assert_equal(kd.stack(*result), ds(['[]\n']))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.json_stream.head(I.x)))
+    self.assertTrue(view.has_koda_view(kde.json_stream.head(I.x)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

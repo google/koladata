@@ -235,7 +235,7 @@ class EntitiesNewTest(absltest.TestCase):
 
   def test_non_determinism(self):
     schema = bag().new_schema(a=schema_constants.INT32).freeze_bag()
-    expr = kde.entities.new(schema=schema, a=42)
+    expr = kde.entities.new(schema=schema, a=42)  # pyrefly: ignore[missing-attribute]
     res_1 = expr.eval()
     res_2 = expr.eval()
     self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
@@ -243,23 +243,23 @@ class EntitiesNewTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.entities.new,
+        kde.entities.new,  # pyrefly: ignore[missing-attribute]
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.entities.new(schema=I.x)))
+    self.assertTrue(view.has_koda_view(kde.entities.new(schema=I.x)))  # pyrefly: ignore[missing-attribute]
     self.assertTrue(
-        view.has_koda_view(kde.entities.new(itemid=I.itemid, a=I.y))
+        view.has_koda_view(kde.entities.new(itemid=I.itemid, a=I.y))  # pyrefly: ignore[missing-attribute]
     )
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.entities.new, kde.new))
+    self.assertTrue(optools.equiv_to_op(kde.entities.new, kde.new))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.entities.new(a=I.y)),
+        repr(kde.entities.new(a=I.y)),  # pyrefly: ignore[missing-attribute]
         'kd.entities.new(schema=unspecified, '
         'overwrite_schema=DataItem(False, schema: BOOLEAN), '
         'itemid=unspecified, a=I.y)',

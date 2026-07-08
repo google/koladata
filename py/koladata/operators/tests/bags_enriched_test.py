@@ -74,17 +74,17 @@ class BagsEnrichedTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.bags.enriched,
+        kde.bags.enriched,  # pyrefly: ignore[missing-attribute]
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         max_arity=3,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.bags.enriched(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.bags.enriched(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.bags.enriched, kde.enriched_bag))
+    self.assertTrue(optools.equiv_to_op(kde.bags.enriched, kde.enriched_bag))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

@@ -149,7 +149,7 @@ class IdsUuidsWithAllocationSizeTest(parameterized.TestCase):
         ValueError,
         'expected DATA_SLICE, got size: UNSPECIFIED',
     ):
-      _ = kde.ids.uuids_with_allocation_size(
+      _ = kde.ids.uuids_with_allocation_size(  # pyrefly: ignore[missing-attribute]
           seed=ds('foo'),
           size=arolla.unspecified(),
       )
@@ -157,32 +157,32 @@ class IdsUuidsWithAllocationSizeTest(parameterized.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde.ids.uuids_with_allocation_size(seed=I.seed, size=I.size)
+            kde.ids.uuids_with_allocation_size(seed=I.seed, size=I.size)  # pyrefly: ignore[missing-attribute]
         )
     )
 
   def test_alias(self):
     self.assertTrue(
         optools.equiv_to_op(
-            kde.ids.uuids_with_allocation_size, kde.uuids_with_allocation_size
+            kde.ids.uuids_with_allocation_size, kde.uuids_with_allocation_size  # pyrefly: ignore[missing-attribute]
         )
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.ids.uuids_with_allocation_size(seed='foo', size=I.size)),
+        repr(kde.ids.uuids_with_allocation_size(seed='foo', size=I.size)),  # pyrefly: ignore[missing-attribute]
         "kd.ids.uuids_with_allocation_size(DataItem('foo', schema:"
         ' STRING), size=I.size)',
     )
     self.assertEqual(
-        repr(kde.ids.uuids_with_allocation_size('foo', size=I.size)),
+        repr(kde.ids.uuids_with_allocation_size('foo', size=I.size)),  # pyrefly: ignore[missing-attribute]
         "kd.ids.uuids_with_allocation_size(DataItem('foo', schema:"
         ' STRING), size=I.size)',
     )
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.ids.uuids_with_allocation_size,
+        kde.ids.uuids_with_allocation_size,  # pyrefly: ignore[missing-attribute]
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )

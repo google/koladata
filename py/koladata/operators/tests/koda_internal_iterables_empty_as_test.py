@@ -33,13 +33,13 @@ _ALL_POSSIBLE_QTYPES.append(arolla.types.make_sequence_qtype(arolla.INT32))
 _ALL_POSSIBLE_QTYPES.append(arolla.types.make_sequence_qtype(qtypes.DATA_SLICE))
 _ALL_POSSIBLE_QTYPES.append(arolla.types.make_sequence_qtype(qtypes.DATA_BAG))
 _ALL_POSSIBLE_QTYPES.append(
-    arolla.eval(kde_internal.iterables.get_iterable_qtype(arolla.INT32))
+    arolla.eval(kde_internal.iterables.get_iterable_qtype(arolla.INT32))  # pyrefly: ignore[missing-attribute]
 )
 _ALL_POSSIBLE_QTYPES.append(
-    arolla.eval(kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE))
+    arolla.eval(kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE))  # pyrefly: ignore[missing-attribute]
 )
 _ALL_POSSIBLE_QTYPES.append(
-    arolla.eval(kde_internal.iterables.get_iterable_qtype(qtypes.DATA_BAG))
+    arolla.eval(kde_internal.iterables.get_iterable_qtype(qtypes.DATA_BAG))  # pyrefly: ignore[missing-attribute]
 )
 _ALL_POSSIBLE_QTYPES.extend([qtypes.DATA_SLICE, qtypes.DATA_BAG])
 
@@ -47,7 +47,7 @@ _ALL_POSSIBLE_QTYPES.extend([qtypes.DATA_SLICE, qtypes.DATA_BAG])
 _QTYPE_SIGNATURES = tuple(
     (arg_qtype, arg_qtype)
     for arg_qtype in _ALL_POSSIBLE_QTYPES
-    if arolla.eval(kde_internal.iterables.is_iterable_qtype(arg_qtype))
+    if arolla.eval(kde_internal.iterables.is_iterable_qtype(arg_qtype))  # pyrefly: ignore[missing-attribute]
 )
 
 
@@ -55,14 +55,14 @@ class IterablesInternalEmptyAsTest(absltest.TestCase):
 
   def test_return_value(self):
     iterable = iterable_qvalue.Iterable(bag())
-    res = expr_eval.eval(kde_internal.iterables.empty_as(I.x), x=iterable)
+    res = expr_eval.eval(kde_internal.iterables.empty_as(I.x), x=iterable)  # pyrefly: ignore[missing-attribute]
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     self.assertEqual(res.qtype.name, 'ITERABLE[DATA_BAG]')
     self.assertEmpty(list(res))
 
   def test_empty_input(self):
     iterable = iterable_qvalue.Iterable(value_type_as=bag())
-    res = expr_eval.eval(kde_internal.iterables.empty_as(I.x), x=iterable)
+    res = expr_eval.eval(kde_internal.iterables.empty_as(I.x), x=iterable)  # pyrefly: ignore[missing-attribute]
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     self.assertEqual(res.qtype.name, 'ITERABLE[DATA_BAG]')
     self.assertEmpty(list(res))
@@ -71,7 +71,7 @@ class IterablesInternalEmptyAsTest(absltest.TestCase):
     self.assertEqual(
         frozenset(
             arolla.testing.detect_qtype_signatures(
-                kde_internal.iterables.empty_as,
+                kde_internal.iterables.empty_as,  # pyrefly: ignore[missing-attribute]
                 possible_qtypes=_ALL_POSSIBLE_QTYPES,
             )
         ),
@@ -79,7 +79,7 @@ class IterablesInternalEmptyAsTest(absltest.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde_internal.iterables.empty_as(I.x)))
+    self.assertTrue(view.has_koda_view(kde_internal.iterables.empty_as(I.x)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

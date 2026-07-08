@@ -79,7 +79,7 @@ class SchemaGetValueSchemaTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'expected DATA_SLICE, got dict_schema: QTYPE'
     ):
-      kde.schema.get_value_schema(arolla.INT32)
+      kde.schema.get_value_schema(arolla.INT32)  # pyrefly: ignore[missing-attribute]
 
     with self.assertRaisesRegex(
         ValueError,
@@ -92,17 +92,17 @@ class SchemaGetValueSchemaTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.schema.get_value_schema,
+        kde.schema.get_value_schema,  # pyrefly: ignore[missing-attribute]
         [(DATA_SLICE, DATA_SLICE)],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.get_value_schema(I.x)))
+    self.assertTrue(view.has_koda_view(kde.schema.get_value_schema(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.schema.get_value_schema, kde.get_value_schema)
+        optools.equiv_to_op(kde.schema.get_value_schema, kde.get_value_schema)  # pyrefly: ignore[missing-attribute]
     )
 
 

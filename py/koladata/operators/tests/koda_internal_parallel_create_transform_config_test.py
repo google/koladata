@@ -32,21 +32,21 @@ kde_internal = kde_operators.internal
 class KodaInternalParallelCreateTransformConfigTest(absltest.TestCase):
 
   def test_can_run(self):
-    _ = arolla.eval(kde_internal.parallel.create_transform_config(None))
+    _ = arolla.eval(kde_internal.parallel.create_transform_config(None))  # pyrefly: ignore[missing-attribute]
 
   def test_config_error(self):
     with self.assertRaisesRegex(
         ValueError,
         'config_src must be a scalar, got rank 1',
     ):
-      _ = arolla.eval(kde_internal.parallel.create_transform_config(ds([None])))
+      _ = arolla.eval(kde_internal.parallel.create_transform_config(ds([None])))  # pyrefly: ignore[missing-attribute]
 
   def test_qtype_signatures(self):
     parallel_transform_config_qtype = arolla.eval(
-        kde_internal.parallel.get_transform_config_qtype()
+        kde_internal.parallel.get_transform_config_qtype()  # pyrefly: ignore[missing-attribute]
     )
     arolla.testing.assert_qtype_signatures(
-        kde_internal.parallel.create_transform_config,
+        kde_internal.parallel.create_transform_config,  # pyrefly: ignore[missing-attribute]
         [(qtypes.DATA_SLICE, parallel_transform_config_qtype)],
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES  # pyrefly: ignore[bad-argument-type]
         + (parallel_transform_config_qtype,),
@@ -54,7 +54,7 @@ class KodaInternalParallelCreateTransformConfigTest(absltest.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde_internal.parallel.create_transform_config(I.x))
+        view.has_koda_view(kde_internal.parallel.create_transform_config(I.x))  # pyrefly: ignore[missing-attribute]
     )
 
 

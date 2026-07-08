@@ -33,7 +33,7 @@ bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 kde_internal = kde_operators.internal
 kd_internal = eager_op_utils.operators_container(
-    top_level_arolla_container=kde_internal
+    top_level_arolla_container=kde_internal  # pyrefly: ignore[bad-argument-type]
 )
 
 
@@ -59,15 +59,15 @@ class KodaToArollaInt64Test(parameterized.TestCase):
 
   def test_boxing(self):
     testing.assert_equal(
-        kde_internal.to_arolla_int64(1),
+        kde_internal.to_arolla_int64(1),  # pyrefly: ignore[missing-attribute]
         arolla.abc.bind_op(
-            kde_internal.to_arolla_int64, literal_operator.literal(ds(1))
+            kde_internal.to_arolla_int64, literal_operator.literal(ds(1))  # pyrefly: ignore[missing-attribute]
         ),
     )
 
   def test_bind_time_evaluation(self):
     # Allows it to be used in operators that require literal inputs.
-    expr = kde_internal.to_arolla_int64(ds(1))
+    expr = kde_internal.to_arolla_int64(ds(1))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(expr.qvalue, arolla.int64(1))
 
   def test_unsupported_schema_error(self):
@@ -75,19 +75,19 @@ class KodaToArollaInt64Test(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to INT64'
     ):
-      kde_internal.to_arolla_int64(x)
+      kde_internal.to_arolla_int64(x)  # pyrefly: ignore[missing-attribute]
 
   def test_unsupported_dtype_error(self):
     x = data_slice.DataSlice.from_vals(arolla.unit(), schema_constants.OBJECT)
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to INT64'
     ):
-      kde_internal.to_arolla_int64(x)
+      kde_internal.to_arolla_int64(x)  # pyrefly: ignore[missing-attribute]
 
   def test_missing_value_error(self):
     x = data_slice.DataSlice.from_vals(arolla.optional_int64(None))
     with self.assertRaisesRegex(ValueError, 'expected a present value'):
-      kde_internal.to_arolla_int64(x)
+      kde_internal.to_arolla_int64(x)  # pyrefly: ignore[missing-attribute]
 
   def test_unsupported_entity(self):
     with self.assertRaisesRegex(ValueError, 'common schema'):
@@ -105,13 +105,13 @@ class KodaToArollaInt64Test(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde_internal.to_arolla_int64,
+        kde_internal.to_arolla_int64,  # pyrefly: ignore[missing-attribute]
         [(qtypes.DATA_SLICE, arolla.INT64)],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertFalse(view.has_koda_view(kde_internal.to_arolla_int64(I.x)))
+    self.assertFalse(view.has_koda_view(kde_internal.to_arolla_int64(I.x)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

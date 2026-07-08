@@ -33,7 +33,7 @@ class CurvesLogPwlCurveTest(curves_test_case.BaseCurveTestcase):
 
   @property
   def operator(self):
-    return kde.curves.log_pwl_curve
+    return kde.curves.log_pwl_curve  # pyrefly: ignore[missing-attribute]
 
   @parameterized.parameters((
       ds(3.5),

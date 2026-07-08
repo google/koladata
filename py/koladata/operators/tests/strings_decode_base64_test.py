@@ -120,13 +120,13 @@ class StringsDecodeBase64Test(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.strings.decode_base64,
+        kde.strings.decode_base64,  # pyrefly: ignore[missing-attribute]
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.strings.decode_base64(I.x)))
+    self.assertTrue(view.has_koda_view(kde.strings.decode_base64(I.x)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

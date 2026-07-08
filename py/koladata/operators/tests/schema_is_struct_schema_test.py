@@ -57,13 +57,13 @@ class SchemaIsStructSchemaTest(parameterized.TestCase):
 
   def test_qtype_signature(self):
     arolla.testing.assert_qtype_signatures(
-        kde.schema.is_struct_schema,
+        kde.schema.is_struct_schema,  # pyrefly: ignore[missing-attribute]
         [(DATA_SLICE, DATA_SLICE)],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.is_struct_schema(I.x)))
+    self.assertTrue(view.has_koda_view(kde.schema.is_struct_schema(I.x)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

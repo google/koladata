@@ -66,7 +66,7 @@ class IdsHashItemIdTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.ids.hash_itemid,
+        kde.ids.hash_itemid,  # pyrefly: ignore[missing-attribute]
         [(DATA_SLICE, DATA_SLICE)],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
@@ -87,10 +87,10 @@ class IdsHashItemIdTest(parameterized.TestCase):
     self.assertTrue(predicate)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.ids.hash_itemid(I.ds)))
+    self.assertTrue(view.has_koda_view(kde.ids.hash_itemid(I.ds)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.ids.hash_itemid, kde.hash_itemid))
+    self.assertTrue(optools.equiv_to_op(kde.ids.hash_itemid, kde.hash_itemid))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

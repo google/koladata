@@ -39,7 +39,7 @@ class KodaInternalParallelStreamInterleaveFromStreamTest(
   def test_n_input_streams(self):
     sstream, swriter = stream_clib.Stream.new(STREAM_OF_INT32)
     res = expr_eval.eval(
-        kde_internal.parallel.stream_interleave_from_stream(sstream)
+        kde_internal.parallel.stream_interleave_from_stream(sstream)  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(res.qtype, STREAM_OF_INT32)
     reader = res.make_reader()
@@ -61,7 +61,7 @@ class KodaInternalParallelStreamInterleaveFromStreamTest(
   def test_empty_input_stream(self):
     sstream, swriter = stream_clib.Stream.new(STREAM_OF_INT32)
     res = expr_eval.eval(
-        kde_internal.parallel.stream_interleave_from_stream(sstream)
+        kde_internal.parallel.stream_interleave_from_stream(sstream)  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(res.qtype, STREAM_OF_INT32)
     reader = res.make_reader()
@@ -81,7 +81,7 @@ class KodaInternalParallelStreamInterleaveFromStreamTest(
     sstreams, swriter = stream_clib.Stream.new(STREAM_OF_INT32)
     swriter.close()
     res = expr_eval.eval(
-        kde_internal.parallel.stream_interleave_from_stream(sstreams)
+        kde_internal.parallel.stream_interleave_from_stream(sstreams)  # pyrefly: ignore[missing-attribute]
     )
     self.assertIsInstance(res, stream_clib.Stream)
     self.assertEqual(res.qtype, STREAM_OF_INT32)
@@ -90,7 +90,7 @@ class KodaInternalParallelStreamInterleaveFromStreamTest(
   def test_error_on_stream(self):
     sstream, swriter = stream_clib.Stream.new(STREAM_OF_INT32)
     res = expr_eval.eval(
-        kde_internal.parallel.stream_interleave_from_stream(sstream)
+        kde_internal.parallel.stream_interleave_from_stream(sstream)  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(res.qtype, STREAM_OF_INT32)
     reader = res.make_reader()
@@ -113,27 +113,27 @@ class KodaInternalParallelStreamInterleaveFromStreamTest(
             'expected a stream of streams, got stream_of_streams: STREAM[INT32]'
         ),
     ):
-      kde_internal.parallel.stream_interleave_from_stream(stream)
+      kde_internal.parallel.stream_interleave_from_stream(stream)  # pyrefly: ignore[missing-attribute]
 
   def test_non_determinism(self):
     sstream, swriter = stream_clib.Stream.new(STREAM_OF_INT32)
     swriter.close()
     stream_1, stream_2 = expr_eval.eval((
-        kde_internal.parallel.stream_interleave_from_stream(sstream),
-        kde_internal.parallel.stream_interleave_from_stream(sstream),
+        kde_internal.parallel.stream_interleave_from_stream(sstream),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.stream_interleave_from_stream(sstream),  # pyrefly: ignore[missing-attribute]
     ))
     self.assertNotEqual(stream_1.fingerprint, stream_2.fingerprint)
 
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde_internal.parallel.stream_interleave_from_stream(I.sstream)
+            kde_internal.parallel.stream_interleave_from_stream(I.sstream)  # pyrefly: ignore[missing-attribute]
         )
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde_internal.parallel.stream_interleave_from_stream(I.a)),
+        repr(kde_internal.parallel.stream_interleave_from_stream(I.a)),  # pyrefly: ignore[missing-attribute]
         'koda_internal.parallel.stream_interleave_from_stream(I.a)',
     )
 

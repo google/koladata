@@ -26,7 +26,7 @@ from scipy import stats
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
-kd = eager_op_utils.operators_container(top_level_arolla_container=kde)
+kd = eager_op_utils.operators_container(top_level_arolla_container=kde)  # pyrefly: ignore[bad-argument-type]
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = test_qtypes.DATA_SLICE
 
@@ -45,20 +45,20 @@ class NormalDistributionInverseCdfTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.math.normal_distribution_inverse_cdf,
+        kde.math.normal_distribution_inverse_cdf,  # pyrefly: ignore[missing-attribute]
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.math.normal_distribution_inverse_cdf(I.x)),
+        repr(kde.math.normal_distribution_inverse_cdf(I.x)),  # pyrefly: ignore[missing-attribute]
         'kd.math.normal_distribution_inverse_cdf(I.x)',
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.math.normal_distribution_inverse_cdf(I.x))
+        view.has_koda_view(kde.math.normal_distribution_inverse_cdf(I.x))  # pyrefly: ignore[missing-attribute]
     )
 
 

@@ -117,7 +117,7 @@ class ListsExplodeTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.lists.explode,
+        kde.lists.explode,  # pyrefly: ignore[missing-attribute]
         [
             (DATA_SLICE, DATA_SLICE),
             (DATA_SLICE, DATA_SLICE, DATA_SLICE),
@@ -126,10 +126,10 @@ class ListsExplodeTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.lists.explode(I.x)))
+    self.assertTrue(view.has_koda_view(kde.lists.explode(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.lists.explode, kde.explode))
+    self.assertTrue(optools.equiv_to_op(kde.lists.explode, kde.explode))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == "__main__":

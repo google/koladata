@@ -448,14 +448,14 @@ assigned schema: ENTITY(u=INT64)"""),
     self.assertEqual(total, sum(range(size)) + size)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.py.map_py(I.fn, I.arg)))
+    self.assertTrue(view.has_koda_view(kde.py.map_py(I.fn, I.arg)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.py.map_py, kde.map_py))
+    self.assertTrue(optools.equiv_to_op(kde.py.map_py, kde.map_py))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.py.map_py(I.fn, I.x, a=I.a)),
+        repr(kde.py.map_py(I.fn, I.x, a=I.a)),  # pyrefly: ignore[missing-attribute]
         'kd.py.map_py(I.fn, I.x,'
         ' schema=DataItem(None, schema: NONE),'
         ' max_threads=DataItem(1, schema: INT32),'

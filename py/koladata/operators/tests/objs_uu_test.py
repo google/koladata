@@ -175,24 +175,24 @@ class ObjsUuTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'expected all arguments to be DATA_SLICE'
     ):
-      _ = kde.objs.uu(
+      _ = kde.objs.uu(  # pyrefly: ignore[missing-attribute]
           a=ds(1),
           b=arolla.unspecified(),
       )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.objs.uu(seed=I.seed)))
+    self.assertTrue(view.has_koda_view(kde.objs.uu(seed=I.seed)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.objs.uu, kde.uuobj))
+    self.assertTrue(optools.equiv_to_op(kde.objs.uu, kde.uuobj))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.objs.uu(a=I.z, seed=I.seed)),
+        repr(kde.objs.uu(a=I.z, seed=I.seed)),  # pyrefly: ignore[missing-attribute]
         'kd.objs.uu(I.seed, a=I.z)',
     )
     self.assertEqual(
-        repr(kde.objs.uu(I.seed, a=I.z)),
+        repr(kde.objs.uu(I.seed, a=I.z)),  # pyrefly: ignore[missing-attribute]
         'kd.objs.uu(I.seed, a=I.z)',
     )
 

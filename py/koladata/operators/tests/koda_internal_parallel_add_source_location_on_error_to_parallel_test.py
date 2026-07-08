@@ -63,35 +63,35 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
     self.assertEqual(frame.colno, 45)
 
   def test_future_input_success(self):
-    future = kde_internal.parallel.as_future(arolla.int32(10))
-    expr = kde_internal.parallel.add_source_location_on_error_to_future(
+    future = kde_internal.parallel.as_future(arolla.int32(10))  # pyrefly: ignore[missing-attribute]
+    expr = kde_internal.parallel.add_source_location_on_error_to_future(  # pyrefly: ignore[missing-attribute]
         future,
         self.make_source_location(),
     )
     res = expr_eval.eval(expr)
     self.assertEqual(
         res.qtype,
-        expr_eval.eval(kde_internal.parallel.get_future_qtype(arolla.INT32)),
+        expr_eval.eval(kde_internal.parallel.get_future_qtype(arolla.INT32)),  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(
-        expr_eval.eval(kde_internal.parallel.get_future_value_for_testing(res)),
+        expr_eval.eval(kde_internal.parallel.get_future_value_for_testing(res)),  # pyrefly: ignore[missing-attribute]
         arolla.int32(10),
     )
 
   def test_future_input_error(self):
-    executor = kde_internal.parallel.get_eager_executor()
+    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
     # future that will have an error
-    future = kde_internal.parallel.async_eval(
+    future = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
         executor,
-        kde.math.floordiv,
+        kde.math.floordiv,  # pyrefly: ignore[missing-attribute]
         ds(1),
         ds(0),
     )
-    expr = kde_internal.parallel.add_source_location_on_error_to_future(
+    expr = kde_internal.parallel.add_source_location_on_error_to_future(  # pyrefly: ignore[missing-attribute]
         future,
         self.make_source_location(),
     )
-    res = kde_internal.parallel.get_future_value_for_testing(expr)
+    res = kde_internal.parallel.get_future_value_for_testing(expr)  # pyrefly: ignore[missing-attribute]
     tb = None
     try:
       _ = res.eval()
@@ -100,19 +100,19 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
     self.assert_has_correct_source_location(tb)
 
   def test_future_input_error_scrambled_source_location(self):
-    executor = kde_internal.parallel.get_eager_executor()
+    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
     # future that will have an error
-    future = kde_internal.parallel.async_eval(
+    future = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
         executor,
-        kde.math.floordiv,
+        kde.math.floordiv,  # pyrefly: ignore[missing-attribute]
         ds(1),
         ds(0),
     )
-    expr = kde_internal.parallel.add_source_location_on_error_to_future(
+    expr = kde_internal.parallel.add_source_location_on_error_to_future(  # pyrefly: ignore[missing-attribute]
         future,
         self.make_scrambled_source_location(),
     )
-    res = kde_internal.parallel.get_future_value_for_testing(expr)
+    res = kde_internal.parallel.get_future_value_for_testing(expr)  # pyrefly: ignore[missing-attribute]
     tb = None
     try:
       _ = res.eval()
@@ -121,17 +121,17 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
     self.assert_has_correct_source_location(tb)
 
   def test_stream_input_success(self):
-    stream = kde_internal.parallel.stream_make(
+    stream = kde_internal.parallel.stream_make(  # pyrefly: ignore[missing-attribute]
         arolla.int32(10), arolla.int32(20)
     )
-    expr = kde_internal.parallel.add_source_location_on_error_to_stream(
+    expr = kde_internal.parallel.add_source_location_on_error_to_stream(  # pyrefly: ignore[missing-attribute]
         stream,
         self.make_source_location(),
     )
     res = expr_eval.eval(expr)
     self.assertEqual(
         res.qtype,
-        expr_eval.eval(kde_internal.parallel.get_stream_qtype(arolla.INT32)),
+        expr_eval.eval(kde_internal.parallel.get_stream_qtype(arolla.INT32)),  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=0)),
@@ -139,14 +139,14 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
     )
 
   def test_stream_input_error(self):
-    executor = kde_internal.parallel.get_eager_executor()
+    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
     # stream that will have an error
-    failing_future = kde_internal.parallel.async_eval(
-        executor, kde.math.floordiv, ds(1), ds(0)
+    failing_future = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+        executor, kde.math.floordiv, ds(1), ds(0)  # pyrefly: ignore[missing-attribute]
     )
-    failing_stream = kde_internal.parallel.stream_from_future(failing_future)
+    failing_stream = kde_internal.parallel.stream_from_future(failing_future)  # pyrefly: ignore[missing-attribute]
 
-    expr = kde_internal.parallel.add_source_location_on_error_to_stream(
+    expr = kde_internal.parallel.add_source_location_on_error_to_stream(  # pyrefly: ignore[missing-attribute]
         failing_stream,
         self.make_source_location(),
     )
@@ -159,14 +159,14 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
     self.assert_has_correct_source_location(tb)
 
   def test_stream_input_error_scrambled_source_location(self):
-    executor = kde_internal.parallel.get_eager_executor()
+    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
     # stream that will have an error
-    failing_future = kde_internal.parallel.async_eval(
-        executor, kde.math.floordiv, ds(1), ds(0)
+    failing_future = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+        executor, kde.math.floordiv, ds(1), ds(0)  # pyrefly: ignore[missing-attribute]
     )
-    failing_stream = kde_internal.parallel.stream_from_future(failing_future)
+    failing_stream = kde_internal.parallel.stream_from_future(failing_future)  # pyrefly: ignore[missing-attribute]
 
-    expr = kde_internal.parallel.add_source_location_on_error_to_stream(
+    expr = kde_internal.parallel.add_source_location_on_error_to_stream(  # pyrefly: ignore[missing-attribute]
         failing_stream,
         self.make_scrambled_source_location(),
     )
@@ -179,15 +179,15 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
     self.assert_has_correct_source_location(tb)
 
   def test_parallel_tuple(self):
-    executor = kde_internal.parallel.get_eager_executor()
-    failing_future = kde_internal.parallel.async_eval(
-        executor, kde.math.floordiv, ds(1), ds(0)
+    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
+    failing_future = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+        executor, kde.math.floordiv, ds(1), ds(0)  # pyrefly: ignore[missing-attribute]
     )
-    parallel_value = kde.tuple(
-        kde_internal.parallel.as_future(arolla.int32(10)),
+    parallel_value = kde.tuple(  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.as_future(arolla.int32(10)),  # pyrefly: ignore[missing-attribute]
         failing_future,
     )
-    expr = kde_internal.parallel.add_source_location_on_error_to_parallel(
+    expr = kde_internal.parallel.add_source_location_on_error_to_parallel(  # pyrefly: ignore[missing-attribute]
         parallel_value,
         self.make_source_location(),
     )
@@ -195,7 +195,7 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
     # first element is fine
     testing.assert_equal(
         expr_eval.eval(
-            kde_internal.parallel.get_future_value_for_testing(res[0])
+            kde_internal.parallel.get_future_value_for_testing(res[0])  # pyrefly: ignore[missing-attribute]
         ),
         arolla.int32(10),
     )
@@ -203,22 +203,22 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
     tb = None
     try:
       _ = expr_eval.eval(
-          kde_internal.parallel.get_future_value_for_testing(res[1])
+          kde_internal.parallel.get_future_value_for_testing(res[1])  # pyrefly: ignore[missing-attribute]
       )
     except Exception as e:  # pylint: disable=broad-exception-caught
       tb = traceback.extract_tb(e.__traceback__)
     self.assert_has_correct_source_location(tb)
 
   def test_parallel_namedtuple(self):
-    executor = kde_internal.parallel.get_eager_executor()
-    failing_future = kde_internal.parallel.async_eval(
-        executor, kde.math.floordiv, ds(1), ds(0)
+    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
+    failing_future = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+        executor, kde.math.floordiv, ds(1), ds(0)  # pyrefly: ignore[missing-attribute]
     )
-    parallel_value = kde.namedtuple(
-        a=kde_internal.parallel.as_future(arolla.int32(10)),
+    parallel_value = kde.namedtuple(  # pyrefly: ignore[missing-attribute]
+        a=kde_internal.parallel.as_future(arolla.int32(10)),  # pyrefly: ignore[missing-attribute]
         b=failing_future,
     )
-    expr = kde_internal.parallel.add_source_location_on_error_to_parallel(
+    expr = kde_internal.parallel.add_source_location_on_error_to_parallel(  # pyrefly: ignore[missing-attribute]
         parallel_value,
         self.make_source_location(),
     )
@@ -226,7 +226,7 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
     # 'a' is fine
     testing.assert_equal(
         expr_eval.eval(
-            kde_internal.parallel.get_future_value_for_testing(res['a'])
+            kde_internal.parallel.get_future_value_for_testing(res['a'])  # pyrefly: ignore[missing-attribute]
         ),
         arolla.int32(10),
     )
@@ -234,7 +234,7 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
     tb = None
     try:
       _ = expr_eval.eval(
-          kde_internal.parallel.get_future_value_for_testing(res['b'])
+          kde_internal.parallel.get_future_value_for_testing(res['b'])  # pyrefly: ignore[missing-attribute]
       )
     except Exception as e:  # pylint: disable=broad-exception-caught
       tb = traceback.extract_tb(e.__traceback__)
@@ -243,7 +243,7 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde_internal.parallel.add_source_location_on_error_to_parallel(
+            kde_internal.parallel.add_source_location_on_error_to_parallel(  # pyrefly: ignore[missing-attribute]
                 I.x,
                 self.make_source_location(),
             )
@@ -252,16 +252,16 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
 
   def test_qtype_signatures(self):
     future_int32_qtype = expr_eval.eval(
-        kde_internal.parallel.get_future_qtype(arolla.INT32)
+        kde_internal.parallel.get_future_qtype(arolla.INT32)  # pyrefly: ignore[missing-attribute]
     )
     stream_int32_qtype = expr_eval.eval(
-        kde_internal.parallel.get_stream_qtype(arolla.INT32)
+        kde_internal.parallel.get_stream_qtype(arolla.INT32)  # pyrefly: ignore[missing-attribute]
     )
     loc_qtype = self.make_source_location().qtype
 
     # test signature of add_source_location_on_error_to_future
     arolla.testing.assert_qtype_signatures(
-        kde_internal.parallel.add_source_location_on_error_to_future,
+        kde_internal.parallel.add_source_location_on_error_to_future,  # pyrefly: ignore[missing-attribute]
         [(
             future_int32_qtype,
             loc_qtype,
@@ -276,7 +276,7 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
 
     # test signature of add_source_location_on_error_to_stream
     arolla.testing.assert_qtype_signatures(
-        kde_internal.parallel.add_source_location_on_error_to_stream,
+        kde_internal.parallel.add_source_location_on_error_to_stream,  # pyrefly: ignore[missing-attribute]
         [(
             stream_int32_qtype,
             loc_qtype,

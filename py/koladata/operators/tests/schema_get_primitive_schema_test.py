@@ -81,27 +81,27 @@ class SchemaGetPrimitiveSchemaTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.schema.get_primitive_schema,
+        kde.schema.get_primitive_schema,  # pyrefly: ignore[missing-attribute]
         QTYPES,
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.get_primitive_schema(I.ds)))
+    self.assertTrue(view.has_koda_view(kde.schema.get_primitive_schema(I.ds)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
     self.assertTrue(
         optools.equiv_to_op(
-            kde.schema.get_primitive_schema, kde.get_primitive_schema
+            kde.schema.get_primitive_schema, kde.get_primitive_schema  # pyrefly: ignore[missing-attribute]
         )
     )
     self.assertTrue(
         optools.equiv_to_op(
-            kde.schema.get_primitive_schema, kde.schema.get_dtype
+            kde.schema.get_primitive_schema, kde.schema.get_dtype  # pyrefly: ignore[missing-attribute]
         )
     )
     self.assertTrue(
-        optools.equiv_to_op(kde.schema.get_primitive_schema, kde.get_dtype)
+        optools.equiv_to_op(kde.schema.get_primitive_schema, kde.get_dtype)  # pyrefly: ignore[missing-attribute]
     )
 
 

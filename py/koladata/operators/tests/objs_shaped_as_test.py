@@ -144,7 +144,7 @@ class ObjsShapedAsTest(absltest.TestCase):
     )
     testing.assert_equal(res_1.a.no_bag(), res_2.a.no_bag())
 
-    expr = kde.objs.shaped_as(shape_from, x=2, a=1, b='p', c=fns.list([5, 6]))
+    expr = kde.objs.shaped_as(shape_from, x=2, a=1, b='p', c=fns.list([5, 6]))  # pyrefly: ignore[missing-attribute]
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
     self.assertNotEqual(
@@ -154,21 +154,21 @@ class ObjsShapedAsTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.objs.shaped_as,
+        kde.objs.shaped_as,  # pyrefly: ignore[missing-attribute]
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.objs.shaped_as(I.x)))
-    self.assertTrue(view.has_koda_view(kde.objs.shaped_as(I.x, a=I.y)))
+    self.assertTrue(view.has_koda_view(kde.objs.shaped_as(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.objs.shaped_as(I.x, a=I.y)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.objs.shaped_as, kde.obj_shaped_as))
+    self.assertTrue(optools.equiv_to_op(kde.objs.shaped_as, kde.obj_shaped_as))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.objs.shaped_as(I.x, a=I.y)),
+        repr(kde.objs.shaped_as(I.x, a=I.y)),  # pyrefly: ignore[missing-attribute]
         'kd.objs.shaped_as(I.x, itemid=unspecified, a=I.y)',
     )
 

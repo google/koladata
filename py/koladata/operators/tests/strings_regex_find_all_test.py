@@ -128,13 +128,13 @@ class StringsRegexFindAllTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.strings.regex_find_all,
+        kde.strings.regex_find_all,  # pyrefly: ignore[missing-attribute]
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.strings.regex_find_all(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.strings.regex_find_all(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

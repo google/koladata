@@ -38,7 +38,7 @@ kde = kde_operators.kde
 
 
 def _named_tuple(**kwargs):
-  return arolla.eval(M.namedtuple.make(**kwargs))
+  return arolla.eval(M.namedtuple.make(**kwargs))  # pyrefly: ignore[missing-attribute]
 
 
 def _expr_quote(x):
@@ -157,17 +157,17 @@ class KodaUuidTest(parameterized.TestCase):
       _ = kd.ids.uuid(a=ds(1), b=arolla.unspecified())
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.ids.uuid(seed=I.seed)))
+    self.assertTrue(view.has_koda_view(kde.ids.uuid(seed=I.seed)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.ids.uuid, kde.uuid))
+    self.assertTrue(optools.equiv_to_op(kde.ids.uuid, kde.uuid))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.ids.uuid(I.seed, a=I.a)), 'kd.ids.uuid(I.seed, a=I.a)'
+        repr(kde.ids.uuid(I.seed, a=I.a)), 'kd.ids.uuid(I.seed, a=I.a)'  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(
-        repr(kde.ids.uuid(seed=I.seed, a=I.a)), 'kd.ids.uuid(I.seed, a=I.a)'
+        repr(kde.ids.uuid(seed=I.seed, a=I.a)), 'kd.ids.uuid(I.seed, a=I.a)'  # pyrefly: ignore[missing-attribute]
     )
 
 

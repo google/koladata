@@ -72,10 +72,10 @@ class KodaHasEntityTest(parameterized.TestCase):
     testing.assert_equal(kd.core.has_entity(x), expected)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.has_entity(I.x)))
+    self.assertTrue(view.has_koda_view(kde.core.has_entity(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.has_entity, kde.has_entity))
+    self.assertTrue(optools.equiv_to_op(kde.core.has_entity, kde.has_entity))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

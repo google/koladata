@@ -149,13 +149,13 @@ class KodaListAppendUpdateTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.lists.list_append_update(I.x, I.append))
+        view.has_koda_view(kde.lists.list_append_update(I.x, I.append))  # pyrefly: ignore[missing-attribute]
     )
 
   def test_alias(self):
     self.assertTrue(
         optools.equiv_to_op(
-            kde.lists.list_append_update, kde.lists.list_append_update
+            kde.lists.list_append_update, kde.lists.list_append_update  # pyrefly: ignore[missing-attribute]
         )
     )
 

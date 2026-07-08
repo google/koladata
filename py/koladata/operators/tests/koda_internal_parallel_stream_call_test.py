@@ -40,7 +40,7 @@ kde_internal = kde_operators.internal
 
 py_fn = functor_factories.py_fn
 
-default_executor = expr_eval.eval(kde_internal.parallel.get_default_executor())
+default_executor = expr_eval.eval(kde_internal.parallel.get_default_executor())  # pyrefly: ignore[missing-attribute]
 
 
 def stream_make(*args, **kwargs):
@@ -56,7 +56,7 @@ STREAM_OF_FLOAT64 = stream_make(value_type_as=f64(0)).qtype
 class KodaInternalParallelStreamCallTest(parameterized.TestCase):
 
   def test_simple(self):
-    res = kde_internal.parallel.stream_call(
+    res = kde_internal.parallel.stream_call(  # pyrefly: ignore[missing-attribute]
         default_executor, lambda x, y: x * y, x=2, y=3
     ).eval()
     self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
@@ -65,11 +65,11 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
   def test_awaited_args(self):
     x, x_writer = Stream.new(qtypes.DATA_SLICE)
     y, y_writer = Stream.new(qtypes.DATA_SLICE)
-    res = kde_internal.parallel.stream_call(
+    res = kde_internal.parallel.stream_call(  # pyrefly: ignore[missing-attribute]
         default_executor,
         lambda x, y: x * y,
-        x=kde_internal.parallel.stream_await(x),
-        y=kde_internal.parallel.stream_await(y),
+        x=kde_internal.parallel.stream_await(x),  # pyrefly: ignore[missing-attribute]
+        y=kde_internal.parallel.stream_await(y),  # pyrefly: ignore[missing-attribute]
     ).eval()
     self.assertIsInstance(res, Stream)
     self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
@@ -80,11 +80,11 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
     self.assertEqual(res.read_all(timeout=1), [ds(6)])
 
   def test_awaited_future_arg(self):
-    res = kde_internal.parallel.stream_call(
+    res = kde_internal.parallel.stream_call(  # pyrefly: ignore[missing-attribute]
         default_executor,
         lambda x: x * 2,
-        x=kde_internal.parallel.stream_await(
-            kde_internal.parallel.as_future(ds(3))
+        x=kde_internal.parallel.stream_await(  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.as_future(ds(3))  # pyrefly: ignore[missing-attribute]
         ),
     ).eval()
     self.assertIsInstance(res, Stream)
@@ -93,14 +93,14 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
 
   def test_mixed_types(self):
     def fn(x, y, z):
-      return M.math.add(M.math.multiply(x, y), z)
+      return M.math.add(M.math.multiply(x, y), z)  # pyrefly: ignore[missing-attribute]
 
-    res = kde_internal.parallel.stream_call(
+    res = kde_internal.parallel.stream_call(  # pyrefly: ignore[missing-attribute]
         default_executor,
         fn,
         f32(2),
-        y=kde_internal.parallel.stream_await(stream_make(f64(3))),
-        z=kde_internal.parallel.stream_await(stream_make(i32(4))),
+        y=kde_internal.parallel.stream_await(stream_make(f64(3))),  # pyrefly: ignore[missing-attribute]
+        z=kde_internal.parallel.stream_await(stream_make(i32(4))),  # pyrefly: ignore[missing-attribute]
         return_type_as=f64(-1),
     ).eval()
     self.assertIsInstance(res, Stream)
@@ -109,9 +109,9 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
 
   def test_functor_returns_stream(self):
     def fn():
-      return kde_internal.parallel.stream_make(1, 2, 3)
+      return kde_internal.parallel.stream_make(1, 2, 3)  # pyrefly: ignore[missing-attribute]
 
-    res = kde_internal.parallel.stream_call(default_executor, fn).eval()
+    res = kde_internal.parallel.stream_call(default_executor, fn).eval()  # pyrefly: ignore[missing-attribute]
     self.assertIsInstance(res, Stream)
     self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
     self.assertEqual(res.read_all(timeout=1), [1, 2, 3])
@@ -120,12 +120,12 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
     def fn():
       raise RuntimeError('Boom!')
 
-    res = kde_internal.parallel.stream_call(default_executor, py_fn(fn)).eval()
+    res = kde_internal.parallel.stream_call(default_executor, py_fn(fn)).eval()  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(RuntimeError, 'Boom!'):
       res.read_all(timeout=1)
 
   def test_error_fn_returns_wrong_type(self):
-    res = kde_internal.parallel.stream_call(
+    res = kde_internal.parallel.stream_call(  # pyrefly: ignore[missing-attribute]
         default_executor, lambda: i32(1), return_type_as=f32(1)
     ).eval()
     with self.assertRaisesRegex(
@@ -140,7 +140,7 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
       res.read_all(timeout=1)
 
   def test_error_fn_returns_non_stream(self):
-    res = kde_internal.parallel.stream_call(
+    res = kde_internal.parallel.stream_call(  # pyrefly: ignore[missing-attribute]
         default_executor, lambda: 1, return_type_as=stream_make()
     ).eval()
     with self.assertRaisesRegex(
@@ -156,7 +156,7 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
 
   def test_error_bad_fn(self):
     fn = ds(None)
-    res = kde_internal.parallel.stream_call(
+    res = kde_internal.parallel.stream_call(  # pyrefly: ignore[missing-attribute]
         default_executor, fn
     ).eval()  # no error
     with self.assertRaisesRegex(
@@ -166,8 +166,8 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
 
   def test_error_in_awaited_arg_before_value(self):
     arg, arg_writer = Stream.new(qtypes.DATA_SLICE)
-    res = kde_internal.parallel.stream_call(
-        default_executor, lambda x: x, kde_internal.parallel.stream_await(arg)
+    res = kde_internal.parallel.stream_call(  # pyrefly: ignore[missing-attribute]
+        default_executor, lambda x: x, kde_internal.parallel.stream_await(arg)  # pyrefly: ignore[missing-attribute]
     ).eval()
     arg_writer.close(RuntimeError('Boom!'))
     with self.assertRaisesRegex(RuntimeError, re.escape('Boom!')):
@@ -175,8 +175,8 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
 
   def test_error_in_awaited_arg_after_value(self):
     arg, arg_writer = Stream.new(qtypes.DATA_SLICE)
-    res = kde_internal.parallel.stream_call(
-        default_executor, lambda x: x, kde_internal.parallel.stream_await(arg)
+    res = kde_internal.parallel.stream_call(  # pyrefly: ignore[missing-attribute]
+        default_executor, lambda x: x, kde_internal.parallel.stream_await(arg)  # pyrefly: ignore[missing-attribute]
     ).eval()
     arg_writer.write(ds(1))
     arg_writer.close(RuntimeError('Boom!'))
@@ -185,10 +185,10 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
 
   def test_error_empty_awaited_arg(self):
     arg, arg_writer = Stream.new(qtypes.DATA_SLICE)
-    res = kde_internal.parallel.stream_call(
+    res = kde_internal.parallel.stream_call(  # pyrefly: ignore[missing-attribute]
         default_executor,
         lambda x: x,
-        kde_internal.parallel.stream_await(arg),
+        kde_internal.parallel.stream_await(arg),  # pyrefly: ignore[missing-attribute]
     ).eval()
     arg_writer.close()
     with self.assertRaisesRegex(
@@ -199,10 +199,10 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
 
   def test_error_awaited_arg_with_multiple_items(self):
     arg, arg_writer = Stream.new(qtypes.DATA_SLICE)
-    res = kde_internal.parallel.stream_call(
+    res = kde_internal.parallel.stream_call(  # pyrefly: ignore[missing-attribute]
         default_executor,
         lambda x: x,
-        kde_internal.parallel.stream_await(arg),
+        kde_internal.parallel.stream_await(arg),  # pyrefly: ignore[missing-attribute]
     ).eval()
     arg_writer.write(ds(1))
     arg_writer.write(ds(2))
@@ -217,7 +217,7 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
 
   def test_non_awaited_stream_arg(self):
     arg, arg_writer = Stream.new(qtypes.DATA_SLICE)
-    res = kde_internal.parallel.stream_call(
+    res = kde_internal.parallel.stream_call(  # pyrefly: ignore[missing-attribute]
         default_executor, lambda x: x, arg, return_type_as=arg
     ).eval()
     self.assertEqual(res.qtype, arg.qtype)
@@ -235,15 +235,15 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
       return x
 
     with self.assertRaisesRegex(ValueError, r'\[CANCELLED\].*Boom!'):
-      kde_internal.parallel.stream_call(
+      kde_internal.parallel.stream_call(  # pyrefly: ignore[missing-attribute]
           default_executor, py_fn(fn), 1
       ).eval().read_all(timeout=1)
 
   def test_non_determinism(self):
     stream_1, stream_2 = expr_eval.eval(
         (
-            kde_internal.parallel.stream_call(I.executor, I.fn, I.x),
-            kde_internal.parallel.stream_call(I.executor, I.fn, I.x),
+            kde_internal.parallel.stream_call(I.executor, I.fn, I.x),  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.stream_call(I.executor, I.fn, I.x),  # pyrefly: ignore[missing-attribute]
         ),
         executor=default_executor,
         fn=lambda x: x,
@@ -254,14 +254,14 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde_internal.parallel.stream_call(I.executor, I.fn, I.stream, I.arg)
+            kde_internal.parallel.stream_call(I.executor, I.fn, I.stream, I.arg)  # pyrefly: ignore[missing-attribute]
         )
     )
 
   def test_repr(self):
     self.assertEqual(
         repr(
-            kde_internal.parallel.stream_call(
+            kde_internal.parallel.stream_call(  # pyrefly: ignore[missing-attribute]
                 I.executor,
                 I.fn,
                 I.arg,

@@ -38,7 +38,7 @@ kd_SWITCH_DEFAULT = kde_operators.SWITCH_DEFAULT
 class FunctorSwitchTest(absltest.TestCase):
 
   def test_simple(self):
-    expr = kde.switch(
+    expr = kde.switch(  # pyrefly: ignore[missing-attribute]
         I.k,
         {
             'a': lambda x, y: x + y,
@@ -56,7 +56,7 @@ class FunctorSwitchTest(absltest.TestCase):
   def test_missing_case_fn(self):
     # TODO: Add a test for missing key (failing or not, depending
     # on the decision in the bug).
-    expr = kde.switch(
+    expr = kde.switch(  # pyrefly: ignore[missing-attribute]
         I.k,
         {
             'a': lambda x, y: x + y,
@@ -79,20 +79,20 @@ class FunctorSwitchTest(absltest.TestCase):
     # We bypass the binding policy here in order to create two slices with
     # duplicate keys.
     expr = arolla.abc.bind_op(
-        kde.functor.switch,
+        kde.functor.switch,  # pyrefly: ignore[missing-attribute]
         I.k,  # key
         ds(['a', 'b', 'a'], schema=schema_constants.OBJECT),  # case_keys
         ds([fn1, fn2, fn3]),  # case_fns
         ds(None),  # return_type_as
-        arolla.M.core.make_tuple(I.x),  # args
-        arolla.M.namedtuple.make(),  # kwargs
+        arolla.M.core.make_tuple(I.x),  # args  # pyrefly: ignore[missing-attribute]
+        arolla.M.namedtuple.make(),  # kwargs  # pyrefly: ignore[missing-attribute]
         py_boxing.NON_DETERMINISTIC_TOKEN_LEAF,
     )
     testing.assert_equal(expr_eval.eval(expr, k='a', x=10), ds(13))
     testing.assert_equal(expr_eval.eval(expr, k='b', x=10), ds(12))
 
   def test_non_string_keys(self):
-    expr = kde.functor.switch(
+    expr = kde.functor.switch(  # pyrefly: ignore[missing-attribute]
         I.k, {1: lambda x: x + 1, 2: lambda x: x * 2, 3: lambda _: 57}, I.x
     )
     testing.assert_equal(expr_eval.eval(expr, k=1, x=10), ds(11))
@@ -100,7 +100,7 @@ class FunctorSwitchTest(absltest.TestCase):
     testing.assert_equal(expr_eval.eval(expr, k=3, x=10), ds(57))
 
   def test_with_default(self):
-    expr = kde.functor.switch(
+    expr = kde.functor.switch(  # pyrefly: ignore[missing-attribute]
         I.k,
         {'a': lambda x: x + 1, kd_SWITCH_DEFAULT: lambda x: x + 100},
         x=I.x,
@@ -125,11 +125,11 @@ class FunctorSwitchTest(absltest.TestCase):
         'a': functor_factories.fn(lambda x: x + 1),
         'b': functor_factories.fn(lambda x: x * 2),
     })
-    expr = kde.functor.switch(I.k, cases, x=I.x)
+    expr = kde.functor.switch(I.k, cases, x=I.x)  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(expr_eval.eval(expr, k='a', x=10), ds(11))
 
   def test_return_type_as(self):
-    expr = kde.functor.switch(
+    expr = kde.functor.switch(  # pyrefly: ignore[missing-attribute]
         I.k,
         {
             'x': lambda x, y: (x, x),
@@ -154,7 +154,7 @@ class FunctorSwitchTest(absltest.TestCase):
     )
 
   def test_non_scalar_key(self):
-    expr = kde.functor.switch(
+    expr = kde.functor.switch(  # pyrefly: ignore[missing-attribute]
         I.k, {'a': lambda x: x + 1, 'b': lambda x: x * 2}, x=I.x
     )
     with self.assertRaisesRegex(ValueError, 'kd.switch: key must be a scalar'):
@@ -162,12 +162,12 @@ class FunctorSwitchTest(absltest.TestCase):
 
   def test_non_scalar_options(self):
     options = kd.dict({'a': functor_factories.fn(lambda x: x + 1)}).repeat(2)
-    expr = kde.functor.switch(I.k, options, x=I.x)
+    expr = kde.functor.switch(I.k, options, x=I.x)  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(ValueError, 'case_keys must be a 1D DataSlice'):
       expr_eval.eval(expr, k='a', x=10)
 
   def test_missing_without_default(self):
-    expr = kde.functor.switch(I.k, {'a': lambda x: x + 1}, x=I.x)
+    expr = kde.functor.switch(I.k, {'a': lambda x: x + 1}, x=I.x)  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         ValueError,
         'kd.switch: key not found in cases and no default provided',
@@ -175,14 +175,14 @@ class FunctorSwitchTest(absltest.TestCase):
       expr_eval.eval(expr, k='missing', x=10)
 
   def test_non_callable_in_cases(self):
-    expr = kde.functor.switch(I.k, {'a': 123, 'b': lambda x: x * 2}, x=I.x)
+    expr = kde.functor.switch(I.k, {'a': 123, 'b': lambda x: x * 2}, x=I.x)  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         ValueError, r'the first argument of kd\.call must be a functor, got'
     ):
       expr_eval.eval(expr, k='a', x=10)
 
   def test_missing_key_with_default(self):
-    expr = kde.functor.switch(
+    expr = kde.functor.switch(  # pyrefly: ignore[missing-attribute]
         I.k,
         {'a': lambda x: x + 1, kd_SWITCH_DEFAULT: lambda x: x + 100},
         x=I.x,
@@ -190,7 +190,7 @@ class FunctorSwitchTest(absltest.TestCase):
     testing.assert_equal(expr_eval.eval(expr, k=ds(None), x=10), ds(110))
 
   def test_missing_key_without_default(self):
-    expr = kde.functor.switch(I.k, {'a': lambda x: x + 1}, x=I.x)
+    expr = kde.functor.switch(I.k, {'a': lambda x: x + 1}, x=I.x)  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         ValueError,
         'kd.switch: key not found in cases and no default provided',
@@ -204,7 +204,7 @@ class FunctorSwitchTest(absltest.TestCase):
     cases = {'a': fn1, 'b': fn2}
     args = (10,)
     kwargs = dict(y=2)
-    expr = kde.functor.switch(key, cases, *args, **kwargs)
+    expr = kde.functor.switch(key, cases, *args, **kwargs)  # pyrefly: ignore[missing-attribute]
     k, c_keys, c_fns, rta, a, kw, nd = expr.node_deps
     testing.assert_equal(k.qvalue, ds('a'))
     testing.assert_equal(c_keys.qvalue, ds(['a', 'b']))
@@ -218,32 +218,32 @@ class FunctorSwitchTest(absltest.TestCase):
 
   def test_bind_expr_cases(self):
     fn1 = functor_factories.fn(lambda x: x + 1)
-    cases = kde.dict(kde.slice([I.case_key]), kde.slice([fn1]))
-    expr = kde.functor.switch('a', cases)
+    cases = kde.dict(kde.slice([I.case_key]), kde.slice([fn1]))  # pyrefly: ignore[missing-attribute]
+    expr = kde.functor.switch('a', cases)  # pyrefly: ignore[missing-attribute]
     _, c_keys, c_fns, _, _, _, _ = expr.node_deps
-    testing.assert_equal(c_keys, kde.get_keys(cases))
-    testing.assert_equal(c_fns, kde.get_values(cases))
+    testing.assert_equal(c_keys, kde.get_keys(cases))  # pyrefly: ignore[missing-attribute]
+    testing.assert_equal(c_fns, kde.get_values(cases))  # pyrefly: ignore[missing-attribute]
 
   def test_bind_expr_args_kwargs(self):
     fn1 = functor_factories.fn(lambda x: x + 1)
     cases = {'a': fn1}
     args = (I.x,)
     kwargs = dict(y=I.y)
-    expr = kde.functor.switch('a', cases, *args, **kwargs)
+    expr = kde.functor.switch('a', cases, *args, **kwargs)  # pyrefly: ignore[missing-attribute]
     _, _, _, _, a, kw, _ = expr.node_deps
-    testing.assert_equal(a, kde.tuples.tuple(I.x))
-    testing.assert_equal(kw, kde.tuples.namedtuple(y=I.y))
+    testing.assert_equal(a, kde.tuples.tuple(I.x))  # pyrefly: ignore[missing-attribute]
+    testing.assert_equal(kw, kde.tuples.namedtuple(y=I.y))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
-    expr = kde.functor.switch(
+    expr = kde.functor.switch(  # pyrefly: ignore[missing-attribute]
         I.k,
         {
             # Non-lexicographic order.
-            'b': lambda x: kde.attrs(x, foo='b'),
-            'a': lambda x: kde.attrs(x, foo='a'),
-            kd_SWITCH_DEFAULT: lambda x: kde.attrs(x, foo='default'),
+            'b': lambda x: kde.attrs(x, foo='b'),  # pyrefly: ignore[missing-attribute]
+            'a': lambda x: kde.attrs(x, foo='a'),  # pyrefly: ignore[missing-attribute]
+            kd_SWITCH_DEFAULT: lambda x: kde.attrs(x, foo='default'),  # pyrefly: ignore[missing-attribute]
         },
-        return_type_as=kde.attrs(I.k),
+        return_type_as=kde.attrs(I.k),  # pyrefly: ignore[missing-attribute]
         x=I.x,
     )
     self.assertEqual(
@@ -265,10 +265,10 @@ class FunctorSwitchTest(absltest.TestCase):
     )
 
   def test_repr_non_literal_cases(self):
-    expr = kde.functor.switch(
+    expr = kde.functor.switch(  # pyrefly: ignore[missing-attribute]
         I.k,
         I.cases,
-        return_type_as=kde.attrs(I.k),
+        return_type_as=kde.attrs(I.k),  # pyrefly: ignore[missing-attribute]
         x=I.x,
     )
     self.assertEqual(
@@ -280,10 +280,10 @@ class FunctorSwitchTest(absltest.TestCase):
     )
 
   def test_repr_no_args(self):
-    expr = kde.functor.switch(
+    expr = kde.functor.switch(  # pyrefly: ignore[missing-attribute]
         I.k,
         {
-            'a': lambda x: kde.attrs(x, foo='a'),
+            'a': lambda x: kde.attrs(x, foo='a'),  # pyrefly: ignore[missing-attribute]
         },
     )
     self.assertEqual(
@@ -298,7 +298,7 @@ class FunctorSwitchTest(absltest.TestCase):
     )
 
   def test_view(self):
-    expr = kde.functor.switch(
+    expr = kde.functor.switch(  # pyrefly: ignore[missing-attribute]
         I.k,
         {
             'a': lambda x: x + 1,

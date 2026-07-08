@@ -33,29 +33,29 @@ class KodaInternalParallelIsStreamQTypeTest(parameterized.TestCase):
   )
   def testFalse(self, value_qtype):
     testing.assert_equal(
-        arolla.eval(kde_internal.parallel.is_stream_qtype(value_qtype)),
+        arolla.eval(kde_internal.parallel.is_stream_qtype(value_qtype)),  # pyrefly: ignore[missing-attribute]
         arolla.missing_unit(),
     )
 
   @parameterized.parameters(
-      arolla.eval(kde_internal.parallel.get_stream_qtype(qtypes.DATA_SLICE)),
-      arolla.eval(kde_internal.parallel.get_stream_qtype(qtypes.DATA_BAG)),
+      arolla.eval(kde_internal.parallel.get_stream_qtype(qtypes.DATA_SLICE)),  # pyrefly: ignore[missing-attribute]
+      arolla.eval(kde_internal.parallel.get_stream_qtype(qtypes.DATA_BAG)),  # pyrefly: ignore[missing-attribute]
   )
   def testTrue(self, value_qtype):
     testing.assert_equal(
-        arolla.eval(kde_internal.parallel.is_stream_qtype(value_qtype)),
+        arolla.eval(kde_internal.parallel.is_stream_qtype(value_qtype)),  # pyrefly: ignore[missing-attribute]
         arolla.present_unit(),
     )
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde_internal.parallel.is_stream_qtype,
+        kde_internal.parallel.is_stream_qtype,  # pyrefly: ignore[missing-attribute]
         [(arolla.QTYPE, arolla.OPTIONAL_UNIT)],
     )
 
   def test_view(self):
     self.assertFalse(
-        view.has_koda_view(kde_internal.parallel.is_stream_qtype(I.x))
+        view.has_koda_view(kde_internal.parallel.is_stream_qtype(I.x))  # pyrefly: ignore[missing-attribute]
     )
 
 

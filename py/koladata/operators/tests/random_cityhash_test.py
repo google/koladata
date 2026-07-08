@@ -103,7 +103,7 @@ class RandomCityhashTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.random.cityhash,
+            kde.random.cityhash,  # pyrefly: ignore[missing-attribute]
             possible_qtypes=(
                 arolla.UNSPECIFIED,
                 qtypes.DATA_SLICE,
@@ -114,7 +114,7 @@ class RandomCityhashTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.random.cityhash(I.x, I.seed)))
+    self.assertTrue(view.has_koda_view(kde.random.cityhash(I.x, I.seed)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

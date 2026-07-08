@@ -69,10 +69,10 @@ class ExtensionTypesGetAttrQTypeTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertFalse(
-        view.has_koda_view(kde.extension_types.get_attr_qtype(I.x, "x"))
+        view.has_koda_view(kde.extension_types.get_attr_qtype(I.x, "x"))  # pyrefly: ignore[missing-attribute]
     )
     self.assertTrue(
-        view.has_base_koda_view(kde.extension_types.get_attr_qtype(I.x, "x"))
+        view.has_base_koda_view(kde.extension_types.get_attr_qtype(I.x, "x"))  # pyrefly: ignore[missing-attribute]
     )
 
 

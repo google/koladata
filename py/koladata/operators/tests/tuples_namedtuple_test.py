@@ -64,17 +64,17 @@ class TuplesNamedtupleTest(parameterized.TestCase):
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.namedtuple(x=42).node_deps[0].qvalue,
+        kde.namedtuple(x=42).node_deps[0].qvalue,  # pyrefly: ignore[missing-attribute]
         arolla.namedtuple(x=ds(42)),
     )
 
   def test_view(self):
-    x_namedtuple = kde.namedtuple(x=I.x, y=I.y)
+    x_namedtuple = kde.namedtuple(x=I.x, y=I.y)  # pyrefly: ignore[missing-attribute]
     self.assertTrue(view.has_koda_view(x_namedtuple))
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.namedtuple, kde.namedtuple)
+        optools.equiv_to_op(kde.namedtuple, kde.namedtuple)  # pyrefly: ignore[missing-attribute]
     )
 
 

@@ -152,11 +152,11 @@ class CoreCloneAsFullTest(parameterized.TestCase):
       kd.clone_as_full(ds([1, None]))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.clone_as_full(I.x)))
+    self.assertTrue(view.has_koda_view(kde.clone_as_full(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.core.clone_as_full, kde.clone_as_full)
+        optools.equiv_to_op(kde.core.clone_as_full, kde.clone_as_full)  # pyrefly: ignore[missing-attribute]
     )
 
 

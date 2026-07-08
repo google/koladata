@@ -96,7 +96,7 @@ class ShapesGetSizesTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.shapes.get_sizes,
+        kde.shapes.get_sizes,  # pyrefly: ignore[missing-attribute]
         (
             (qtypes.JAGGED_SHAPE, qtypes.DATA_SLICE),
             (qtypes.DATA_SLICE, qtypes.DATA_SLICE),
@@ -105,7 +105,7 @@ class ShapesGetSizesTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.shapes.get_sizes(I.x)))
+    self.assertTrue(view.has_koda_view(kde.shapes.get_sizes(I.x)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

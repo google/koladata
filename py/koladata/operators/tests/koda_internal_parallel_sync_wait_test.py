@@ -34,14 +34,14 @@ ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 kde_internal = kde_operators.internal
 
-eager_executor = expr_eval.eval(kde_internal.parallel.get_eager_executor())
+eager_executor = expr_eval.eval(kde_internal.parallel.get_eager_executor())  # pyrefly: ignore[missing-attribute]
 
 
 class KodaInternalParallelSyncWaitTest(absltest.TestCase):
 
   def test_basic(self):
-    result = kde_internal.parallel.sync_wait(
-        kde_internal.parallel.stream_make(1)
+    result = kde_internal.parallel.sync_wait(  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.stream_make(1)  # pyrefly: ignore[missing-attribute]
     ).eval()
     self.assertEqual(result, 1)
 
@@ -50,8 +50,8 @@ class KodaInternalParallelSyncWaitTest(absltest.TestCase):
         ValueError,
         re.escape('expected a stream with a single item, got an empty stream'),
     ):
-      _ = kde_internal.parallel.sync_wait(
-          kde_internal.parallel.stream_make()
+      _ = kde_internal.parallel.sync_wait(  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.stream_make()  # pyrefly: ignore[missing-attribute]
       ).eval()
 
   def test_error_stream_with_multiple_items(self):
@@ -62,8 +62,8 @@ class KodaInternalParallelSyncWaitTest(absltest.TestCase):
             ' items'
         ),
     ):
-      _ = kde_internal.parallel.sync_wait(
-          kde_internal.parallel.stream_make(1, 2)
+      _ = kde_internal.parallel.sync_wait(  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.stream_make(1, 2)  # pyrefly: ignore[missing-attribute]
       ).eval()
 
   def test_error_call_from_async_task(self):
@@ -72,8 +72,8 @@ class KodaInternalParallelSyncWaitTest(absltest.TestCase):
           ValueError,
           re.escape('sync_wait cannot be called from an asynchronous task'),
       ):
-        _ = kde_internal.parallel.sync_wait(
-            kde_internal.parallel.stream_make(1)
+        _ = kde_internal.parallel.sync_wait(  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.stream_make(1)  # pyrefly: ignore[missing-attribute]
         ).eval()
 
     eager_executor.schedule(do_test)
@@ -83,39 +83,39 @@ class KodaInternalParallelSyncWaitTest(absltest.TestCase):
       time.sleep(0.02)
       return ds(1)
 
-    result = kde_internal.parallel.sync_wait(
-        kde_internal.parallel.stream_call(
-            kde_internal.parallel.get_default_executor(), py_fn(fn)
+    result = kde_internal.parallel.sync_wait(  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.stream_call(  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.get_default_executor(), py_fn(fn)  # pyrefly: ignore[missing-attribute]
         )
     ).eval()
     self.assertEqual(result, 1)
 
   def test_future(self):
-    result = kde_internal.parallel.sync_wait(
-        kde_internal.parallel.as_future(1)
+    result = kde_internal.parallel.sync_wait(  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.as_future(1)  # pyrefly: ignore[missing-attribute]
     ).eval()
     self.assertEqual(result, 1)
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde_internal.parallel.sync_wait(I.stream_or_future))
+        view.has_koda_view(kde_internal.parallel.sync_wait(I.stream_or_future))  # pyrefly: ignore[missing-attribute]
     )
 
   def test_alias(self):
     self.assertTrue(
         optools.equiv_to_op(
-            kde_internal.parallel.sync_wait,
-            kde.streams.sync_wait,
+            kde_internal.parallel.sync_wait,  # pyrefly: ignore[missing-attribute]
+            kde.streams.sync_wait,  # pyrefly: ignore[missing-attribute]
         )
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde_internal.parallel.sync_wait(I.stream_or_future)),
+        repr(kde_internal.parallel.sync_wait(I.stream_or_future)),  # pyrefly: ignore[missing-attribute]
         'koda_internal.parallel.sync_wait(I.stream_or_future)',
     )
     self.assertEqual(
-        repr(kde.streams.sync_wait(I.stream_or_future)),
+        repr(kde.streams.sync_wait(I.stream_or_future)),  # pyrefly: ignore[missing-attribute]
         'kd.streams.sync_wait(I.stream_or_future)',
     )
 

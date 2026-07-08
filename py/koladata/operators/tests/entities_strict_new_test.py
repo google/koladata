@@ -267,7 +267,7 @@ class EntitiesStrictNewTest(absltest.TestCase):
 
   def test_non_determinism(self):
     schema = kd.schema.new_schema(a=schema_constants.INT32).freeze_bag()
-    expr = kde.entities.strict_new(schema=schema, a=42)
+    expr = kde.entities.strict_new(schema=schema, a=42)  # pyrefly: ignore[missing-attribute]
     res_1 = expr.eval()
     res_2 = expr.eval()
     self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
@@ -290,7 +290,7 @@ class EntitiesStrictNewTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.entities.strict_new,
+        kde.entities.strict_new,  # pyrefly: ignore[missing-attribute]
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
@@ -298,16 +298,16 @@ class EntitiesStrictNewTest(absltest.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde.entities.strict_new(
-                schema=kde.schema.new_schema(x=schema_constants.INT32),
+            kde.entities.strict_new(  # pyrefly: ignore[missing-attribute]
+                schema=kde.schema.new_schema(x=schema_constants.INT32),  # pyrefly: ignore[missing-attribute]
                 x=I.x,
             )
         )
     )
     self.assertTrue(
         view.has_koda_view(
-            kde.entities.strict_new(
-                schema=kde.schema.new_schema(y=schema_constants.INT32),
+            kde.entities.strict_new(  # pyrefly: ignore[missing-attribute]
+                schema=kde.schema.new_schema(y=schema_constants.INT32),  # pyrefly: ignore[missing-attribute]
                 itemid=I.itemid,
                 y=I.y,
             )
@@ -316,15 +316,15 @@ class EntitiesStrictNewTest(absltest.TestCase):
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.entities.strict_new, kde.strict_new)
+        optools.equiv_to_op(kde.entities.strict_new, kde.strict_new)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_repr(self):
     self.assertEqual(
         repr(
-            kde.entities.strict_new(
+            kde.entities.strict_new(  # pyrefly: ignore[missing-attribute]
                 a=I.y,
-                schema=kde.schema.new_schema(a=schema_constants.INT32),
+                schema=kde.schema.new_schema(a=schema_constants.INT32),  # pyrefly: ignore[missing-attribute]
             )
         ),
         'kd.entities.strict_new('

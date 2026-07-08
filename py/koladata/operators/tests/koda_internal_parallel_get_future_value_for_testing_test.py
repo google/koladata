@@ -29,8 +29,8 @@ class KodaInternalParallelGetFutureValueForTestingTest(absltest.TestCase):
   def test_simple(self):
     # We cannot currently get a future without a value in Python, so we only
     # test the "has value" case.
-    expr = kde_internal.parallel.get_future_value_for_testing(
-        kde_internal.parallel.as_future(I.x)
+    expr = kde_internal.parallel.get_future_value_for_testing(  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.as_future(I.x)  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(
         expr_eval.eval(expr, x=arolla.int32(10)), arolla.int32(10)
@@ -38,10 +38,10 @@ class KodaInternalParallelGetFutureValueForTestingTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     future_int32_qtype = expr_eval.eval(
-        kde_internal.parallel.get_future_qtype(arolla.INT32)
+        kde_internal.parallel.get_future_qtype(arolla.INT32)  # pyrefly: ignore[missing-attribute]
     )
     arolla.testing.assert_qtype_signatures(
-        kde_internal.parallel.get_future_value_for_testing,
+        kde_internal.parallel.get_future_value_for_testing,  # pyrefly: ignore[missing-attribute]
         [
             (future_int32_qtype, arolla.INT32),
         ],
@@ -51,7 +51,7 @@ class KodaInternalParallelGetFutureValueForTestingTest(absltest.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde_internal.parallel.get_future_value_for_testing(I.x)
+            kde_internal.parallel.get_future_value_for_testing(I.x)  # pyrefly: ignore[missing-attribute]
         )
     )
 
