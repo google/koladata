@@ -93,6 +93,11 @@ class ListTest(parameterized.TestCase):
     testing.assert_equal(nested_l_0[:], ds([1, 2]).with_bag(l.get_bag()))
     testing.assert_equal(nested_l_1[:], ds([3]).with_bag(l.get_bag()))
 
+  def test_item_with_nested_none_sublists(self):
+    l = fns.list([[1, 2], None, [3]])
+    self.assertIsInstance(l, list_item.ListItem)
+    testing.assert_equal(l[:][:], ds([[1, 2], [], [3]]).with_bag(l.get_bag()))
+
   def test_itemid(self):
     itemid = expr_eval.eval(kde.allocation.new_listid())
     x = fns.list([['a', 'b'], ['c']], itemid=itemid)

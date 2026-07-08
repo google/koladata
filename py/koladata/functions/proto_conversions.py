@@ -26,6 +26,7 @@ from koladata.operators import kde_operators
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import mask_constants
+from koladata.types import py_misc_py_ext
 from koladata.types import schema_constants
 from koladata.types import schema_item
 
@@ -56,22 +57,6 @@ _NestedAnyMessageContainer: TypeAlias = (
     | tuple['_NestedAnyMessageContainer', ...]
     | None
 )
-
-
-def _to_nested_list_of_none(x: _NestedMessageContainer) -> _NestedNoneList:
-  """Gets the "shape" of a nested container as a nested list with None leaves."""
-  if not isinstance(x, (list, tuple)):
-    return None
-  return [_to_nested_list_of_none(item) for item in x]
-
-
-def _flatten(x: _NestedMessageContainer) -> Iterator[message.Message | None]:
-  """Iterates over the leaves of a nested container."""
-  if isinstance(x, (list, tuple)):
-    for item in x:
-      yield from _flatten(item)
-  else:
-    yield x
 
 
 # Note: could use `tree.unflatten_as`, but it's not worth adding an additional
@@ -153,10 +138,7 @@ def from_proto(
   Returns:
     A DataSlice representing the proto data.
   """
-  messages_shape = data_slice.DataSlice.from_vals(
-      _to_nested_list_of_none(messages)
-  ).get_shape()
-  messages_list = list(_flatten(messages))
+  messages_list, messages_shape = py_misc_py_ext.flatten_py_list(messages)
 
   def _ellipsize_repr(x, max_length: int = 200) -> str:
     s = repr(x)
@@ -255,10 +237,7 @@ def from_proto_any(
   if descriptor_pool is None and message_type is None:
     descriptor_pool = protobuf_descriptor_pool.Default()
 
-  messages_list = _flatten(messages)  # pyrefly: ignore[bad-argument-type]
-  shape = data_slice.DataSlice.from_vals(
-      _to_nested_list_of_none(messages)  # pyrefly: ignore[bad-argument-type]
-  ).get_shape()
+  messages_list, shape = py_misc_py_ext.flatten_py_list(messages)
 
   unpacked_message_items: list[data_slice.DataSlice | None] = []
   for m in messages_list:

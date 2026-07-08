@@ -468,18 +468,29 @@ FlattenPyList(PyObject* py_list, size_t max_depth) {
     std::vector<int64_t> cur_split_points;
     cur_split_points.reserve(cur_len + 1);
 
+    bool has_list = false;
+    for (auto item : lst_items) {
+      if (PyList_Check(item) || PyTuple_Check(item)) {
+        has_list = true;
+        break;
+      }
+    }
+
     bool is_list = true;
     cur_split_points.push_back(0);
-    for (auto lst : lst_items) {
-      bool list_check = PyList_Check(lst);
-      if (list_check || PyTuple_Check(lst)) {
-        int64_t nested_len = list_check ? PyList_Size(lst) : PyTuple_Size(lst);
+    for (auto item : lst_items) {
+      bool list_check = PyList_Check(item);
+      if (list_check || PyTuple_Check(item)) {
+        int64_t nested_len =
+            list_check ? PyList_Size(item) : PyTuple_Size(item);
         auto getitem = list_check ? PyList_GetItem : PyTuple_GetItem;
         for (int j = 0; j < nested_len; ++j) {
           // Not using PySequence_GetItem as it increases refcount.
-          next_level_items.push_back(getitem(lst, j));
+          next_level_items.push_back(getitem(item, j));
         }
         cur_split_points.push_back(cur_split_points.back() + nested_len);
+      } else if (has_list && Py_IsNone(item)) {
+        cur_split_points.push_back(cur_split_points.back());
       } else {
         is_list = false;
       }

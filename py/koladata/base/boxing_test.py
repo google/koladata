@@ -439,6 +439,18 @@ The cause is the values of attribute '__schema__' are different: ENTITY\(\) with
       testing.assert_equal(x.get_schema(), INT32)
       self.assertEqual(x.internal_as_py(), [None, None, None])
 
+  def test_from_vals_nested_list_with_none(self):
+    x = ds([[1, 2], None, [3]])
+    self.assertEqual(x.internal_as_py(), [[1, 2], [], [3]])
+
+    # None skips multiple levels of nesting
+    y = ds([[[1], [2, 3]], None, [[4]]])
+    self.assertEqual(y.internal_as_py(), [[[1], [2, 3]], [], [[4]]])
+
+    # None behavior resolved based on nonlocal/future information
+    z = ds([[None], [[[1, 2]]]])
+    self.assertEqual(z.internal_as_py(), [[[]], [[[1, 2]]]])
+
   def test_from_vals_invalid_nested_list(self):
     with self.assertRaisesRegex(
         ValueError, 'input has to be a valid nested list'
