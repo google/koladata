@@ -81,14 +81,14 @@ class DumpsLoadsTest(parameterized.TestCase):
       s11n.loads(b'foo')
 
   def test_dumps_fails_on_expr(self):
-    fn = M.math.add(L.x, L.y)
+    fn = M.math.add(L.x, L.y)  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         ValueError, 'expected a DataSlice, DataBag, JaggedShape,.* got.*Expr'
     ):
       s11n.dumps(fn)
 
   def test_loads_fails_on_expr(self):
-    fn = M.math.add(L.x, L.y)
+    fn = M.math.add(L.x, L.y)  # pyrefly: ignore[missing-attribute]
     dumped_bytes = arolla.s11n.riegeli_dumps(fn)
     with self.assertRaisesRegex(
         ValueError, 'expected a DataSlice, DataBag, JaggedShape,.* got.*Expr'

@@ -73,14 +73,14 @@ class NewShapedAsTest(absltest.TestCase):
 
   def test_itemid(self):
     itemid = expr_eval.eval(
-        kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]]))
+        kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]]))  # pyrefly: ignore[missing-attribute]
     )
     x = fns.new_shaped_as(itemid, a=42, itemid=itemid)
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
 
   def test_schema_arg(self):
-    schema = kde.schema.new_schema(
+    schema = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
         a=schema_constants.FLOAT32, b=schema_constants.STRING
     ).eval()
     x = fns.new_shaped_as(ds([1, 2]), a=42, b='xyz', schema=schema)
@@ -95,7 +95,7 @@ class NewShapedAsTest(absltest.TestCase):
     )
 
   def test_overwrite_schema_arg(self):
-    schema = kde.schema.new_schema(a=schema_constants.FLOAT32).eval()
+    schema = kde.schema.new_schema(a=schema_constants.FLOAT32).eval()  # pyrefly: ignore[missing-attribute]
     x = fns.new_shaped_as(
         ds([1, 2]),
         a=42,

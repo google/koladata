@@ -482,7 +482,7 @@ class FromProtoTest(absltest.TestCase):
     ):
       _ = proto_conversions.from_proto(
           test_pb2.MessageA(),
-          schema=kde.schema.new_schema(**{
+          schema=kde.schema.new_schema(**{  # pyrefly: ignore[missing-attribute]
               '(koladata.functions.testing.MessageBExtension.message_b_extension)': (
                   schema_constants.OBJECT
               )

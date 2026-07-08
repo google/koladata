@@ -107,7 +107,7 @@ class DictTest(parameterized.TestCase):
 
   def test_itemid(self):
     itemid = expr_eval.eval(
-        kde.allocation.new_dictid_shaped_as(ds([[1, 1], [1]]))
+        kde.allocation.new_dictid_shaped_as(ds([[1, 1], [1]]))  # pyrefly: ignore[missing-attribute]
     )
     x = fns.dict('a', 42, itemid=itemid)
     testing.assert_dicts_keys_equal(x, ds([[['a'], ['a']], [['a']]]))
@@ -135,7 +135,7 @@ class DictTest(parameterized.TestCase):
 
   def test_itemid_error(self):
     itemid = expr_eval.eval(
-        kde.allocation.new_dictid_shaped_as(ds([[1, 1], [1]]))
+        kde.allocation.new_dictid_shaped_as(ds([[1, 1], [1]]))  # pyrefly: ignore[missing-attribute]
     )
     with self.assertRaisesRegex(ValueError, 'cannot be expanded'):
       _ = fns.dict(ds([[['a', 'a']]]), 42, itemid=itemid)
@@ -156,8 +156,8 @@ class DictTest(parameterized.TestCase):
     )
 
   def test_adopt_schema(self):
-    dict_schema = kde.dict_schema(
-        schema_constants.STRING, kde.uu_schema(a=schema_constants.INT32)
+    dict_schema = kde.dict_schema(  # pyrefly: ignore[missing-attribute]
+        schema_constants.STRING, kde.uu_schema(a=schema_constants.INT32)  # pyrefly: ignore[missing-attribute]
     ).eval()
     dct = fns.dict(schema=dict_schema)
 
@@ -218,7 +218,7 @@ class DictTest(parameterized.TestCase):
           values=arolla.unspecified(),
           key_schema=None,
           value_schema=None,
-          schema=kde.dict_schema(
+          schema=kde.dict_schema(  # pyrefly: ignore[missing-attribute]
               key_schema=schema_constants.INT32,
               value_schema=schema_constants.OBJECT,
           ).eval(),
@@ -231,7 +231,7 @@ class DictTest(parameterized.TestCase):
           values=ds([[1, 2], [3]]),
           key_schema=None,
           value_schema=None,
-          schema=kde.dict_schema(
+          schema=kde.dict_schema(  # pyrefly: ignore[missing-attribute]
               key_schema=schema_constants.INT64,
               value_schema=schema_constants.OBJECT,
           ).eval(),
@@ -266,7 +266,7 @@ class DictTest(parameterized.TestCase):
     )
 
   def test_schema_arg_error(self):
-    dict_schema = kde.dict_schema(
+    dict_schema = kde.dict_schema(  # pyrefly: ignore[missing-attribute]
         key_schema=schema_constants.INT64, value_schema=schema_constants.OBJECT
     ).eval()
     with self.assertRaisesRegex(
@@ -300,7 +300,7 @@ class DictTest(parameterized.TestCase):
       fns.dict(schema=42)  # pytype: disable=wrong-arg-types
 
   def test_dict_schema_error_message(self):
-    schema = kde.dict_schema(
+    schema = kde.dict_schema(  # pyrefly: ignore[missing-attribute]
         key_schema=schema_constants.INT64, value_schema=schema_constants.INT64
     ).eval()
     with self.assertRaisesRegex(
@@ -397,7 +397,7 @@ Assigned schema for values: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
     self.assertIs(fns.dict, fns.dicts.new)
 
   def test_merge_conflict(self):
-    itemid = kde.allocation.new_dictid().eval()
+    itemid = kde.allocation.new_dictid().eval()  # pyrefly: ignore[missing-attribute]
     dct1 = fns.dict({1: fns.obj(x=1)}, itemid=itemid)
     dct2 = fns.dict({1: fns.obj(y=2)}, itemid=itemid)
     with self.assertRaisesWithPredicateMatch(

@@ -150,7 +150,7 @@ class FromProtoAnyTest(absltest.TestCase):
     any_m2.Pack(m2)
 
     schema = expr_eval.eval(
-        kde.schema.new_schema(some_text=schema_constants.STRING)
+        kde.schema.new_schema(some_text=schema_constants.STRING)  # pyrefly: ignore[missing-attribute]
     )
     x = proto_conversions.from_proto_any([any_m1, any_m2], schema=schema)
     self.assertFalse(x.get_bag().is_mutable())
