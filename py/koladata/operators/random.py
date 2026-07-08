@@ -33,7 +33,7 @@ from koladata.types import py_boxing
 from koladata.types import schema_constants
 
 
-M = arolla.M | jagged_shape.M
+M = arolla.M | jagged_shape.M  # pyrefly: ignore[unsupported-operation]
 P = arolla.P
 constraints = arolla.optools.constraints
 
@@ -54,7 +54,7 @@ def _assert_key_for_sample(x, key):
       'x, key',
       assertion.with_assertion(
           assertion.assert_primitive('key', P.key, schema_constants.STRING),
-          M.jagged.equal(
+          M.jagged.equal(  # pyrefly: ignore[missing-attribute]
               arolla_bridge.to_arolla_jagged_shape(
                   jagged_shape_ops.get_shape(P.x)
               ),
@@ -113,7 +113,7 @@ def cityhash(x, seed):
   seed = assertion.assert_present_scalar('seed', seed, schema_constants.INT64)
   x_shape = jagged_shape_ops.get_shape(x)
   flat_text_x = arolla_bridge.to_arolla_dense_array_text(schema.to_str(x))
-  flat_hashes = M.random.cityhash(
+  flat_hashes = M.random.cityhash(  # pyrefly: ignore[missing-attribute]
       flat_text_x, arolla_bridge.to_arolla_int64(seed)
   )
   result_ds = arolla_bridge.to_data_slice(flat_hashes).reshape(x_shape)
@@ -192,9 +192,9 @@ def mask(x, ratio, seed, key=arolla.unspecified()):
       'ratio', ratio, schema_constants.FLOAT64
   )
   seed = assertion.assert_present_scalar('seed', seed, schema_constants.INT64)
-  flat_mask = M.random.sample(
-      M.array.make_dense_array_shape(
-          M.jagged.size(arolla_bridge.to_arolla_jagged_shape(x_shape))
+  flat_mask = M.random.sample(  # pyrefly: ignore[missing-attribute]
+      M.array.make_dense_array_shape(  # pyrefly: ignore[missing-attribute]
+          M.jagged.size(arolla_bridge.to_arolla_jagged_shape(x_shape))  # pyrefly: ignore[missing-attribute]
       ),
       arolla_bridge.to_arolla_float64(ratio),
       arolla_bridge.to_arolla_int64(seed),
@@ -331,10 +331,10 @@ def sample_n(
   n_shape_upcast = arolla_bridge.to_arolla_jagged_shape(
       jagged_shape_ops.get_shape(n)
   )
-  x_rank = M.jagged.rank(x_shape_upcast)
+  x_rank = M.jagged.rank(x_shape_upcast)  # pyrefly: ignore[missing-attribute]
   n = assertion.with_assertion(
       n,
-      M.jagged.rank(n_shape_upcast) < x_rank,
+      M.jagged.rank(n_shape_upcast) < x_rank,  # pyrefly: ignore[missing-attribute]
       "the rank of 'n' must be smaller than rank of 'x'.",
   )
   n = assertion.assert_primitive('n', n, schema_constants.INT64)
@@ -342,12 +342,12 @@ def sample_n(
       n, jagged_shape_ops.remove_last_ndim(x_shape, 1)
   )
   seed = assertion.assert_present_scalar('seed', seed, schema_constants.INT64)
-  flat_mask = M.random.sample_n(
-      M.array.make_dense_array_shape(M.jagged.size(x_shape_upcast)),
+  flat_mask = M.random.sample_n(  # pyrefly: ignore[missing-attribute]
+      M.array.make_dense_array_shape(M.jagged.size(x_shape_upcast)),  # pyrefly: ignore[missing-attribute]
       arolla_bridge.to_arolla_dense_array_int64(n),
       arolla_bridge.to_arolla_int64(seed),
       _to_dense_array_text_or_unspecified(key),
-      M.jagged.edge_at(x_shape_upcast, -1),
+      M.jagged.edge_at(x_shape_upcast, -1),  # pyrefly: ignore[missing-attribute]
   )
   ds_mask = arolla_bridge.to_data_slice(flat_mask).reshape(x_shape)
   return slices.internal_select_by_slice(x, ds_mask)
@@ -403,23 +403,23 @@ def randint_shaped(
   new_high = arolla_bridge.to_arolla_int64(
       assertion.assert_present_scalar(
           'high',
-          M.core.default_if_unspecified(
+          M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
               high,
-              M.core.default_if_unspecified(
+              M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
                   low, data_slice.DataSlice.from_vals(2**63 - 1)
               ),
           ),
           schema_constants.INT64,
       )
   )
-  seed = M.core.default_if_unspecified(
+  seed = M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
       seed, ids.hash_itemid(allocation.new_itemid())
   )
   seed = assertion.assert_present_scalar('seed', seed, schema_constants.INT64)
 
-  flat_res = M.array.randint_with_shape(
-      M.array.make_dense_array_shape(
-          M.jagged.size(arolla_bridge.to_arolla_jagged_shape(shape))
+  flat_res = M.array.randint_with_shape(  # pyrefly: ignore[missing-attribute]
+      M.array.make_dense_array_shape(  # pyrefly: ignore[missing-attribute]
+          M.jagged.size(arolla_bridge.to_arolla_jagged_shape(shape))  # pyrefly: ignore[missing-attribute]
       ),
       new_low,
       new_high,

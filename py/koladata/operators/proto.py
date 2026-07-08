@@ -110,16 +110,16 @@ def from_proto_bytes(
   Returns:
     A DataSlice representing the proto data.
   """
-  extensions = arolla.M.core.default_if_unspecified(
+  extensions = arolla.M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
       extensions, data_slice.unspecified()
   )
-  itemids = arolla.M.core.default_if_unspecified(
+  itemids = arolla.M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
       itemids, data_slice.unspecified()
   )
-  schema = arolla.M.core.default_if_unspecified(
+  schema = arolla.M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
       schema, data_slice.unspecified()
   )
-  on_invalid = arolla.M.core.default_if_unspecified(
+  on_invalid = arolla.M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
       on_invalid, data_slice.unspecified()
   )
   return _from_proto_bytes(
@@ -216,16 +216,16 @@ def from_proto_json(
   Returns:
     A DataSlice representing the proto data.
   """
-  extensions = arolla.M.core.default_if_unspecified(
+  extensions = arolla.M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
       extensions, data_slice.unspecified()
   )
-  itemids = arolla.M.core.default_if_unspecified(
+  itemids = arolla.M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
       itemids, data_slice.unspecified()
   )
-  schema = arolla.M.core.default_if_unspecified(
+  schema = arolla.M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
       schema, data_slice.unspecified()
   )
-  on_invalid = arolla.M.core.default_if_unspecified(
+  on_invalid = arolla.M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
       on_invalid, data_slice.unspecified()
   )
   return _from_proto_json(

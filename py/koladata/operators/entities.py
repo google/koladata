@@ -292,7 +292,7 @@ def _uu(seed, schema, overwrite_schema, kwargs):  # pylint: disable=unused-argum
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice(P.overwrite_schema),
         (
-            M.qtype.is_namedtuple_qtype(P.kwargs),
+            M.qtype.is_namedtuple_qtype(P.kwargs),  # pyrefly: ignore[missing-attribute]
             f'expected named tuple, got {constraints.name_type_msg(P.kwargs)}',
         ),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),

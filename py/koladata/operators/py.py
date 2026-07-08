@@ -231,7 +231,7 @@ optools.set_namespace_docstring('kd.py', __doc__)
 @optools.as_py_function_operator(
     'kd.py.apply_py',
     qtype_constraints=[_expect_py_callable(P.fn)],
-    qtype_inference_expr=arolla.M.qtype.conditional_qtype(
+    qtype_inference_expr=arolla.M.qtype.conditional_qtype(  # pyrefly: ignore[missing-attribute]
         P.return_type_as == arolla.UNSPECIFIED,
         qtypes.DATA_SLICE,
         P.return_type_as,

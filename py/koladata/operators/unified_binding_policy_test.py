@@ -653,7 +653,7 @@ class BindArgumentsTest(parameterized.TestCase):
         x, arolla.tuple(py_boxing.as_qvalue(0), py_boxing.as_qvalue(1))
     )
     (x,) = arolla.abc.aux_bind_arguments(sig, 0, P.a)
-    testing.assert_equal(x, M.core.make_tuple(py_boxing.as_expr(0), P.a))
+    testing.assert_equal(x, M.core.make_tuple(py_boxing.as_expr(0), P.a))  # pyrefly: ignore[missing-attribute]
     with mock.patch.object(py_boxing, 'as_qvalue_or_expr') as m:
       m.side_effect = [mock.DEFAULT, TypeError('unsupported type')]
       m.return_value = arolla.unit()
@@ -677,7 +677,7 @@ class BindArgumentsTest(parameterized.TestCase):
         x, arolla.namedtuple(a=py_boxing.as_qvalue(0), b=py_boxing.as_qvalue(1))
     )
     (x,) = arolla.abc.aux_bind_arguments(sig, a=0, b=P.a)
-    testing.assert_equal(x, M.namedtuple.make(a=py_boxing.as_expr(0), b=P.a))
+    testing.assert_equal(x, M.namedtuple.make(a=py_boxing.as_expr(0), b=P.a))  # pyrefly: ignore[missing-attribute]
     with mock.patch.object(py_boxing, 'as_qvalue_or_expr') as m:
       m.side_effect = [mock.DEFAULT, TypeError('unsupported type')]
       m.return_value = arolla.unit()

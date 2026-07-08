@@ -239,7 +239,7 @@ def map_(
     The resulting stream.
   """
   return koda_internal_parallel.stream_map(
-      M.core.default_if_unspecified(executor, current_executor()),
+      M.core.default_if_unspecified(executor, current_executor()),  # pyrefly: ignore[missing-attribute]
       stream,
       fn,
       value_type_as=value_type_as,
@@ -279,7 +279,7 @@ def map_unordered(
     The resulting stream.
   """
   return koda_internal_parallel.stream_map_unordered(
-      M.core.default_if_unspecified(executor, current_executor()),
+      M.core.default_if_unspecified(executor, current_executor()),  # pyrefly: ignore[missing-attribute]
       stream,
       fn,
       value_type_as=value_type_as,
@@ -327,7 +327,7 @@ def flat_map_chained(
     The resulting interleaved results of `fn` calls.
   """
   return koda_internal_parallel.stream_flat_map_chain(
-      M.core.default_if_unspecified(executor, current_executor()),
+      M.core.default_if_unspecified(executor, current_executor()),  # pyrefly: ignore[missing-attribute]
       stream,
       fn,
       value_type_as=value_type_as,
@@ -382,7 +382,7 @@ def flat_map_interleaved(
     The resulting interleaved results of `fn` calls.
   """
   return koda_internal_parallel.stream_flat_map_interleaved(
-      M.core.default_if_unspecified(executor, current_executor()),
+      M.core.default_if_unspecified(executor, current_executor()),  # pyrefly: ignore[missing-attribute]
       stream,
       fn,
       value_type_as=value_type_as,
@@ -423,7 +423,7 @@ def reduce(fn, stream, initial_value, *, executor=arolla.unspecified()):
     A stream with a single item containing the final result of the reduction.
   """
   return koda_internal_parallel.stream_reduce(
-      M.core.default_if_unspecified(executor, current_executor()),
+      M.core.default_if_unspecified(executor, current_executor()),  # pyrefly: ignore[missing-attribute]
       fn,
       stream,
       initial_value,
@@ -462,7 +462,7 @@ def reduce_concat(
     A single-item stream with the concatenated data slice.
   """
   return koda_internal_parallel.stream_reduce_concat(
-      M.core.default_if_unspecified(executor, current_executor()),
+      M.core.default_if_unspecified(executor, current_executor()),  # pyrefly: ignore[missing-attribute]
       stream,
       initial_value,
       ndim,
@@ -501,7 +501,7 @@ def reduce_stack(
     A single-item stream with the stacked data slice.
   """
   return koda_internal_parallel.stream_reduce_stack(
-      M.core.default_if_unspecified(executor, current_executor()),
+      M.core.default_if_unspecified(executor, current_executor()),  # pyrefly: ignore[missing-attribute]
       stream,
       initial_value,
       ndim,
@@ -569,7 +569,7 @@ def while_(
   initial_state = arolla.optools.fix_trace_kwargs(initial_state)
   return arolla.abc.bind_op(
       koda_internal_parallel.stream_while,
-      M.core.default_if_unspecified(executor, current_executor()),
+      M.core.default_if_unspecified(executor, current_executor()),  # pyrefly: ignore[missing-attribute]
       condition_fn=condition_fn,
       body_fn=body_fn,
       returns=returns,
@@ -665,7 +665,7 @@ def for_(
   initial_state = arolla.optools.fix_trace_kwargs(initial_state)
   return arolla.abc.bind_op(
       koda_internal_parallel.stream_for,
-      M.core.default_if_unspecified(executor, current_executor()),
+      M.core.default_if_unspecified(executor, current_executor()),  # pyrefly: ignore[missing-attribute]
       stream,
       body_fn=body_fn,
       finalize_fn=finalize_fn,
@@ -735,7 +735,7 @@ def call(
   args, kwargs = arolla.optools.fix_trace_args_kwargs(args, kwargs)
   return arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
       koda_internal_parallel.stream_call,
-      M.core.default_if_unspecified(executor, current_executor()),
+      M.core.default_if_unspecified(executor, current_executor()),  # pyrefly: ignore[missing-attribute]
       fn,
       args=args,
       return_type_as=return_type_as,  # pyrefly: ignore[bad-argument-type]

@@ -27,7 +27,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-M = arolla.M | jagged_shape.M
+M = arolla.M | jagged_shape.M  # pyrefly: ignore[unsupported-operation]
 P = arolla.P
 INT64 = schema_constants.INT64
 constraints = arolla.optools.constraints
@@ -41,9 +41,9 @@ def _expect_data_slice_or_edge_args(param):
       'x', (P.x == qtypes.DATA_SLICE) | (P.x == arolla.DENSE_ARRAY_EDGE)  # pyrefly: ignore[unsupported-operation]
   )
   return (
-      M.qtype.is_tuple_qtype(param)
-      & M.seq.all(
-          M.seq.map(is_data_slice_or_edge, M.qtype.get_field_qtypes(param))
+      M.qtype.is_tuple_qtype(param)  # pyrefly: ignore[missing-attribute]
+      & M.seq.all(  # pyrefly: ignore[missing-attribute]
+          M.seq.map(is_data_slice_or_edge, M.qtype.get_field_qtypes(param))  # pyrefly: ignore[missing-attribute]
       ),
       (
           'expected all arguments to be data slices or edges, got'
@@ -115,7 +115,7 @@ def _new_with_size(result_size, *dimensions):  # pylint: disable=unused-argument
 def size(shape):
   """Returns the total number of elements the jagged shape represents."""
   return arolla_bridge.to_data_slice(
-      M.jagged.size(arolla_bridge.to_arolla_jagged_shape(shape))
+      M.jagged.size(arolla_bridge.to_arolla_jagged_shape(shape))  # pyrefly: ignore[missing-attribute]
   )
 
 
@@ -136,7 +136,7 @@ def get_shape(x):  # pylint: disable=unused-argument
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         (
-            M.qtype.is_tuple_qtype(P.shape) | (P.shape == qtypes.JAGGED_SHAPE),
+            M.qtype.is_tuple_qtype(P.shape) | (P.shape == qtypes.JAGGED_SHAPE),  # pyrefly: ignore[missing-attribute]
             (
                 'expected a tuple or a shape, got:'
                 f' {constraints.name_type_msg(P.shape)}'
@@ -182,7 +182,7 @@ def reshape(x, shape):
       shape_case=arolla.types.DispatchCase(
           P.value, condition=P.value == qtypes.JAGGED_SHAPE
       ),
-      default=M.core.apply_varargs(
+      default=M.core.apply_varargs(  # pyrefly: ignore[missing-attribute]
           _new_with_size, size(get_shape(P.x)), P.value
       ),
   )
@@ -211,7 +211,7 @@ def reshape_as(x, shape_from):
         ),
         (
             (P.ndim == qtypes.DATA_SLICE)
-            | M.qtype.is_integral_scalar_qtype(P.ndim),
+            | M.qtype.is_integral_scalar_qtype(P.ndim),  # pyrefly: ignore[missing-attribute]
             (
                 'expected a DataSlice or a scalar integer, got:'
                 f' {constraints.name_type_msg(P.ndim)}'
@@ -235,13 +235,13 @@ def _flatten_last_ndim(x, ndim):
   )
   def flatten_shape(x, ndim):
     x_upcast = arolla_bridge.to_arolla_jagged_shape(x)
-    x_rank = M.jagged.rank(x_upcast)
+    x_rank = M.jagged.rank(x_upcast)  # pyrefly: ignore[missing-attribute]
     ndim = to_int64(ndim)
     ndim = assertion.with_assertion(
         ndim, (ndim >= 0) & (ndim <= x_rank), 'expected 0 <= ndim <= rank'
     )
     return arolla_bridge.from_arolla_jagged_shape(
-        M.jagged.flatten(x_upcast, x_rank - ndim)
+        M.jagged.flatten(x_upcast, x_rank - ndim)  # pyrefly: ignore[missing-attribute]
     )
 
   @optools.as_lambda_operator(
@@ -303,13 +303,13 @@ def flatten_last_ndim(x, ndim):
 def _remove_last_ndim(x, ndim):
   """(internal) Remove the last `ndim` dimensions of shape `x`."""
   x_upcast = arolla_bridge.to_arolla_jagged_shape(x)
-  x_rank = M.jagged.rank(x_upcast)
+  x_rank = M.jagged.rank(x_upcast)  # pyrefly: ignore[missing-attribute]
   ndim = arolla_bridge.to_arolla_int64(ndim)
   ndim = assertion.with_assertion(
       ndim, (ndim >= 0) & (ndim <= x_rank), 'expected 0 <= ndim <= rank'
   )
   return arolla_bridge.from_arolla_jagged_shape(
-      M.jagged.remove_dims(x_upcast, x_rank - ndim)
+      M.jagged.remove_dims(x_upcast, x_rank - ndim)  # pyrefly: ignore[missing-attribute]
   )
 
 
@@ -445,7 +445,7 @@ def is_expandable_to_shape(x, target_shape, ndim=arolla.unspecified()):
   """
   shape = remove_last_ndim(get_shape(x), ndim)
   return arolla_bridge.to_data_slice(
-      M.jagged.is_broadcastable_to(
+      M.jagged.is_broadcastable_to(  # pyrefly: ignore[missing-attribute]
           arolla_bridge.to_arolla_jagged_shape(shape),
           arolla_bridge.to_arolla_jagged_shape(target_shape),
       )
@@ -512,7 +512,7 @@ def flatten(
   return reshape(
       x,
       arolla_bridge.from_arolla_jagged_shape(
-          M.jagged.flatten(
+          M.jagged.flatten(  # pyrefly: ignore[missing-attribute]
               arolla_bridge.to_arolla_jagged_shape(get_shape(x)),
               to_int64(from_dim),
               to_int64(to_dim),
@@ -545,7 +545,7 @@ def flatten_end(x, n_times=data_slice.DataSlice.from_vals(1, INT64)):
       (0 <= n_times <= rank).
   """
   x_shape = arolla_bridge.to_arolla_jagged_shape(get_shape(x))
-  x_ndim = M.jagged.rank(x_shape)
+  x_ndim = M.jagged.rank(x_shape)  # pyrefly: ignore[missing-attribute]
   x_ndim = assertion.with_assertion(
       x_ndim, x_ndim > 0, 'expected multidim DataSlice, got DataItem'
   )
@@ -557,9 +557,9 @@ def flatten_end(x, n_times=data_slice.DataSlice.from_vals(1, INT64)):
   return reshape(
       x,
       arolla_bridge.from_arolla_jagged_shape(
-          M.jagged.flatten(
+          M.jagged.flatten(  # pyrefly: ignore[missing-attribute]
               x_shape,
-              arolla.M.math.neg(n_times) - 1,
+              arolla.M.math.neg(n_times) - 1,  # pyrefly: ignore[missing-attribute]
               arolla.unspecified(),
           ),
       ),
@@ -576,7 +576,7 @@ def flatten_end(x, n_times=data_slice.DataSlice.from_vals(1, INT64)):
 def rank(shape):
   """Returns the rank of the jagged shape."""
   return arolla_bridge.to_data_slice(
-      M.jagged.rank(arolla_bridge.to_arolla_jagged_shape(shape))
+      M.jagged.rank(arolla_bridge.to_arolla_jagged_shape(shape))  # pyrefly: ignore[missing-attribute]
   )
 
 
@@ -603,8 +603,8 @@ def dim_sizes(shape, dim):
   """
   dim_int64 = arolla_bridge.to_arolla_int64(dim)
   return arolla_bridge.to_data_slice(
-      M.edge.sizes(
-          M.jagged.edge_at(
+      M.edge.sizes(  # pyrefly: ignore[missing-attribute]
+          M.jagged.edge_at(  # pyrefly: ignore[missing-attribute]
               arolla_bridge.to_arolla_jagged_shape(shape), dim_int64
           )
       )
@@ -634,8 +634,8 @@ def dim_mapping(shape, dim):
   """
   dim_int64 = arolla_bridge.to_arolla_int64(dim)
   return arolla_bridge.to_data_slice(
-      M.edge.mapping(
-          M.jagged.edge_at(
+      M.edge.mapping(  # pyrefly: ignore[missing-attribute]
+          M.jagged.edge_at(  # pyrefly: ignore[missing-attribute]
               arolla_bridge.to_arolla_jagged_shape(shape), dim_int64
           )
       )

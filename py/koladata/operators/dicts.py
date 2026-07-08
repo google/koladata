@@ -32,7 +32,7 @@ from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
-M = arolla.M | jagged_shape.M
+M = arolla.M | jagged_shape.M  # pyrefly: ignore[unsupported-operation]
 P = arolla.P
 MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
@@ -113,21 +113,21 @@ def new(
   Returns:
     A DataSlice with the dict.
   """
-  keys = M.core.default_if_unspecified(keys, data_slice.unspecified())
-  values = M.core.default_if_unspecified(values, data_slice.unspecified())
-  key_schema = M.core.default_if_unspecified(
+  keys = M.core.default_if_unspecified(keys, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
+  values = M.core.default_if_unspecified(values, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
+  key_schema = M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
       key_schema, data_slice.unspecified()
   )
-  value_schema = M.core.default_if_unspecified(
+  value_schema = M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
       value_schema, data_slice.unspecified()
   )
-  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
+  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
 
   shape = arolla.types.DispatchOperator(
       'itemid, keys',
       unspecified_case=arolla.types.DispatchCase(
           arolla_bridge.from_arolla_jagged_shape(
-              M.jagged.remove_dims(
+              M.jagged.remove_dims(  # pyrefly: ignore[missing-attribute]
                   arolla_bridge.to_arolla_jagged_shape(
                       jagged_shape_ops.get_shape(P.keys)
                   ),
@@ -139,7 +139,7 @@ def new(
       default=jagged_shape_ops.get_shape(P.itemid),
   )(itemid, keys)
 
-  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
+  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
 
   return arolla.abc.bind_op(
       _shaped,
@@ -281,13 +281,13 @@ def uu(
   Returns:
     A DataSlice with the dict.
   """
-  key_schema = M.core.default_if_unspecified(
+  key_schema = M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
       key_schema, data_slice.unspecified()
   )
-  value_schema = M.core.default_if_unspecified(
+  value_schema = M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
       value_schema, data_slice.unspecified()
   )
-  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
+  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
 
   itemid = ids_ops.uuid_for_dict(
       seed=seed,
@@ -296,7 +296,7 @@ def uu(
   )
 
   shape = arolla_bridge.from_arolla_jagged_shape(
-      M.jagged.remove_dims(
+      M.jagged.remove_dims(  # pyrefly: ignore[missing-attribute]
           arolla_bridge.to_arolla_jagged_shape(
               jagged_shape_ops.get_shape(keys)
           ),
@@ -385,16 +385,16 @@ def shaped(
   Returns:
     A DataSlice with the dicts.
   """
-  keys = M.core.default_if_unspecified(keys, data_slice.unspecified())
-  values = M.core.default_if_unspecified(values, data_slice.unspecified())
-  key_schema = M.core.default_if_unspecified(
+  keys = M.core.default_if_unspecified(keys, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
+  values = M.core.default_if_unspecified(values, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
+  key_schema = M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
       key_schema, data_slice.unspecified()
   )
-  value_schema = M.core.default_if_unspecified(
+  value_schema = M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
       value_schema, data_slice.unspecified()
   )
-  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
-  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
+  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
+  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
   return _shaped(
       shape,
       keys=keys,
@@ -522,16 +522,16 @@ def like(
   Returns:
     A DataSlice with the dicts.
   """
-  keys = M.core.default_if_unspecified(keys, data_slice.unspecified())
-  values = M.core.default_if_unspecified(values, data_slice.unspecified())
-  key_schema = M.core.default_if_unspecified(
+  keys = M.core.default_if_unspecified(keys, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
+  values = M.core.default_if_unspecified(values, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
+  key_schema = M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
       key_schema, data_slice.unspecified()
   )
-  value_schema = M.core.default_if_unspecified(
+  value_schema = M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
       value_schema, data_slice.unspecified()
   )
-  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
-  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
+  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
+  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
   return _like(
       shape_and_mask_from,
       keys=keys,

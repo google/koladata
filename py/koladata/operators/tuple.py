@@ -24,7 +24,7 @@ from koladata.operators import qtype_utils
 from koladata.operators import view_overloads as _
 from koladata.types import schema_constants
 
-M = arolla.M | jagged_shape.M
+M = arolla.M | jagged_shape.M  # pyrefly: ignore[unsupported-operation]
 P = arolla.P
 MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
@@ -66,7 +66,7 @@ def slice_(
     stop: (optional) Indexing stop.
     step: (optional) Indexing step size.
   """
-  return arolla.M.core.make_slice(start, stop, step)
+  return arolla.M.core.make_slice(start, stop, step)  # pyrefly: ignore[missing-attribute]
 
 
 arolla.abc.set_expr_view_for_registered_operator(
@@ -99,13 +99,13 @@ def get_nth(x, n):
       range [0, len(x)).
   """
   n = arolla_bridge.to_arolla_int64(n)
-  return M.core.get_nth(x, n)
+  return M.core.get_nth(x, n)  # pyrefly: ignore[missing-attribute]
 
 
 optools.add_to_registry_as_overload(
     'koda_internal.view.get_item._tuple',
-    overload_condition_expr=M.qtype.is_tuple_qtype(P.x)
-    | M.qtype.is_slice_qtype(P.x),
+    overload_condition_expr=M.qtype.is_tuple_qtype(P.x)  # pyrefly: ignore[missing-attribute]
+    | M.qtype.is_slice_qtype(P.x),  # pyrefly: ignore[missing-attribute]
     via_cc_operator_package=True,
 )(get_nth)
 
@@ -126,11 +126,11 @@ def get_namedtuple_field(namedtuple, field_name):
       string.
   """
   field_name = arolla_bridge.to_arolla_text(field_name)
-  return M.namedtuple.get_field(namedtuple, field_name)
+  return M.namedtuple.get_field(namedtuple, field_name)  # pyrefly: ignore[missing-attribute]
 
 
 optools.add_to_registry_as_overload(
     'koda_internal.view.get_item._namedtuple',
-    overload_condition_expr=arolla.M.qtype.is_namedtuple_qtype(P.namedtuple),
+    overload_condition_expr=arolla.M.qtype.is_namedtuple_qtype(P.namedtuple),  # pyrefly: ignore[missing-attribute]
     via_cc_operator_package=True,
 )(get_namedtuple_field)

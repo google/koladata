@@ -243,7 +243,7 @@ class EagerOpUtilsTest(parameterized.TestCase):
     )
     def non_deterministic_op(arg=arolla.unit()):
       """non_deterministic_op docstring."""
-      return arolla.M.core.make_tuple(
+      return arolla.M.core.make_tuple(  # pyrefly: ignore[missing-attribute]
           arg, increase_counter_op(), increase_counter_op()
       )
 

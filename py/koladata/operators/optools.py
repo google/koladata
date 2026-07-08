@@ -635,7 +635,7 @@ def as_py_function_operator(
     stub_op_signature = arolla.abc.make_operator_signature(','.join(all_params))
     return_type_expr = arolla.types.LambdaOperator(
         stub_op_signature,
-        arolla.M.qtype.qtype_of(
+        arolla.M.qtype.qtype_of(  # pyrefly: ignore[missing-attribute]
             arolla.types.BackendOperator(
                 'koda_internal._undefined_backend_op',
                 stub_op_signature,
@@ -647,14 +647,14 @@ def as_py_function_operator(
 
     # Prepare an expression for `args`.
     if positional_params and var_positional_params:
-      args_expr = arolla.M.core.concat_tuples(
-          arolla.M.core.make_tuple(
+      args_expr = arolla.M.core.concat_tuples(  # pyrefly: ignore[missing-attribute]
+          arolla.M.core.make_tuple(  # pyrefly: ignore[missing-attribute]
               *map(arolla.abc.placeholder, positional_params)
           ),
           arolla.abc.placeholder(var_positional_params[0]),
       )
     elif positional_params:
-      args_expr = arolla.M.core.make_tuple(
+      args_expr = arolla.M.core.make_tuple(  # pyrefly: ignore[missing-attribute]
           *map(arolla.abc.placeholder, positional_params)
       )
     elif var_positional_params:
@@ -666,14 +666,14 @@ def as_py_function_operator(
     if keyword_params and var_keyword_params:
       # TODO: Consider detecting cases where a dynamic `**kwargs`
       # shadows `keyword-only` arguments.
-      kwargs_expr = arolla.M.namedtuple.union(
-          arolla.M.namedtuple.make(
+      kwargs_expr = arolla.M.namedtuple.union(  # pyrefly: ignore[missing-attribute]
+          arolla.M.namedtuple.make(  # pyrefly: ignore[missing-attribute]
               **{k: arolla.abc.placeholder(k) for k in keyword_params}
           ),
           arolla.abc.placeholder(var_keyword_params[0]),
       )
     elif keyword_params:
-      kwargs_expr = arolla.M.namedtuple.make(
+      kwargs_expr = arolla.M.namedtuple.make(  # pyrefly: ignore[missing-attribute]
           **{k: arolla.abc.placeholder(k) for k in keyword_params}
       )
     elif var_keyword_params:
