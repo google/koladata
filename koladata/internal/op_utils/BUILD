@@ -422,6 +422,29 @@ cc_library(
 )
 
 cc_test(
+    name = "auto_id_cleanup_update_test",
+    srcs = ["auto_id_cleanup_update_test.cc"],
+    deps = [
+        ":auto_values_update",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/internal:schema_attrs",
+        "//koladata/internal:uuid_object",
+        "//koladata/internal/testing:deep_op_utils",
+        "//koladata/internal/testing:matchers",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "deep_clone_test",
     srcs = ["deep_clone_test.cc"],
     deps = [

@@ -213,6 +213,34 @@ class AutoValuesVisitor : public AbstractVisitor {
     return item;
   }
 
+  // Clean up all attributes related to AUTO_ID, including metadata and schemas.
+  absl::Status CleanUpAutoIdsInDataAndSchema(
+      const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks) {
+    for (const auto& item : auto_id_) {
+      RETURN_IF_ERROR(new_databag_->SetAttr(DataItem(item.object),
+                                            item.attr_name, DataItem()));
+    }
+
+    // Clean up metadata and schemas.
+    for (const auto& [key, id_name] : auto_id_attrs_) {
+      DataItem metadata_obj(key.object);
+      RETURN_IF_ERROR(
+          new_databag_->SetAttr(metadata_obj, key.attr_name, DataItem()));
+
+      ASSIGN_OR_RETURN(auto metadata_schema,
+                       databag.GetObjSchemaAttr(metadata_obj, fallbacks));
+      RETURN_IF_ERROR(new_databag_->SetSchemaAttr(metadata_schema,
+                                                  key.attr_name, DataItem()));
+
+      if (auto it = metadata_to_schema_.find(key.object);
+          it != metadata_to_schema_.end()) {
+        RETURN_IF_ERROR(new_databag_->SetSchemaAttr(
+            DataItem(it->second), key.attr_name, DataItem()));
+      }
+    }
+    return absl::OkStatus();
+  }
+
   // Assign values in the `new_databag_` to all detected AUTO_ID attributes.
   absl::Status SetIds() {
     std::sort(auto_id_.begin(), auto_id_.end());
@@ -483,6 +511,7 @@ class AutoValuesVisitor : public AbstractVisitor {
           schema::kSchemaMetadataAttr, schema, attr));
     }
     schema_metadata_[schema.value<ObjectId>()] = attr.value<ObjectId>();
+    metadata_to_schema_[attr.value<ObjectId>()] = schema.value<ObjectId>();
     return absl::OkStatus();
   }
 
@@ -523,6 +552,7 @@ class AutoValuesVisitor : public AbstractVisitor {
   absl::flat_hash_map<ObjectId, absl::string_view> auto_id_schema_names_;
   absl::flat_hash_map<ObjectId, absl::string_view> auto_reference_schema_names_;
   absl::flat_hash_map<ObjectId, ObjectId> schema_metadata_;
+  absl::flat_hash_map<ObjectId, ObjectId> metadata_to_schema_;
   absl::flat_hash_map<ObjectWithAttrName, absl::string_view> auto_id_attrs_;
   absl::flat_hash_map<ObjectWithAttrName, absl::string_view>
       auto_reference_attrs_;
@@ -596,6 +626,23 @@ absl::Status AutoReferenceUpdateOp::operator()(
       DataSliceImpl::Create(/*size=*/1, item), schema, databag, fallbacks,
       DataSliceImpl::Create(/*size=*/1, input_item), input_schema,
       input_databag, input_fallbacks);
+}
+
+absl::Status AutoIdCleanupUpdateOp::operator()(
+    const DataSliceImpl& ds, const DataItem& schema, const DataBagImpl& databag,
+    DataBagImpl::FallbackSpan fallbacks) const {
+  auto visitor = std::make_shared<AutoValuesVisitor>(
+      DataBagImplPtr::NewRef(new_databag_));
+  Traverser<AutoValuesVisitor> traverser(databag, fallbacks, visitor);
+  RETURN_IF_ERROR(traverser.TraverseSlice(ds, schema));
+  return visitor->CleanUpAutoIdsInDataAndSchema(databag, fallbacks);
+}
+
+absl::Status AutoIdCleanupUpdateOp::operator()(
+    const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
+    DataBagImpl::FallbackSpan fallbacks) const {
+  return AutoIdCleanupUpdateOp::operator()(
+      DataSliceImpl::Create(/*size=*/1, item), schema, databag, fallbacks);
 }
 
 }  // namespace koladata::internal

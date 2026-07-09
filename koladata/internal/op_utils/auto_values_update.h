@@ -43,6 +43,23 @@ class AutoIdsUpdateOp {
  private:
   DataBagImpl* new_databag_;
 };
+// kd_ext.ids.auto_id_cleanup_update operator.
+class AutoIdCleanupUpdateOp {
+ public:
+  explicit AutoIdCleanupUpdateOp(DataBagImpl* new_databag)
+      : new_databag_(new_databag) {}
+
+  absl::Status operator()(const DataSliceImpl& ds, const DataItem& schema,
+                          const DataBagImpl& databag,
+                          DataBagImpl::FallbackSpan fallbacks = {}) const;
+
+  absl::Status operator()(const DataItem& item, const DataItem& schema,
+                          const DataBagImpl& databag,
+                          DataBagImpl::FallbackSpan fallbacks = {}) const;
+
+ private:
+  DataBagImpl* new_databag_;
+};
 
 // kd_ext.ids.auto_reference_update operator.
 class AutoReferenceUpdateOp {
