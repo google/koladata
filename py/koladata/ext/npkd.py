@@ -181,7 +181,7 @@ def reshape_based_on_indices(
           f' Got {index_dimension.shape} instead of {ds.get_size()}.'
       )
 
-  indices = [
+  indices = [  # pyrefly: ignore[bad-assignment]
       kd.slice(arolla.dense_array_int64(index_dimension))  # pyrefly: ignore[missing-attribute]
       for index_dimension in indices
   ]
@@ -200,10 +200,10 @@ def reshape_based_on_indices(
     # This creates some unused dicts as only the last dict assigned to
     # a particular value will stay, which is fine for now.
     schema = cur_lookup.get_schema().get_value_schema()
-    cur_lookup[index] = db.dict_like(cur_lookup, schema=schema)
-    cur_lookup = cur_lookup[index]
+    cur_lookup[index] = db.dict_like(cur_lookup, schema=schema)  # pyrefly: ignore[unsupported-operation]
+    cur_lookup = cur_lookup[index]  # pyrefly: ignore[bad-index]
   # Drop the bag to avoid potentially expensive extraction.
-  cur_lookup[indices[-1]] = ds.no_bag()
+  cur_lookup[indices[-1]] = ds.no_bag()  # pyrefly: ignore[unsupported-operation]
 
   prefix = lookup
   for _ in range(len(indices)):

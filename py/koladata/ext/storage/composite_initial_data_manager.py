@@ -126,7 +126,7 @@ class CompositeInitialDataManager(
   ) -> CompositeInitialDataManager:
     with fs.open(_get_metadata_filepath(persistence_dir), 'rb') as f:
       metadata = metadata_pb2.CompositeInitialDataManagerMetadata.FromString(
-          f.read()
+          f.read()  # pyrefly: ignore[bad-argument-type]
       )
 
     managers = [

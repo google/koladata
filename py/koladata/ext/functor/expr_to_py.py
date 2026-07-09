@@ -356,7 +356,7 @@ def _compute_effective_schema_for_slice_op(
     # If there are none, the schema remains unspecified (return None).
     for dep in tuple_deps:
       if dep.is_operator and kd.optools.equiv_to_op(
-          dep.op, kd.lazy.slices.item
+          dep.op, kd.lazy.slices.item  # pyrefly: ignore[bad-argument-type]
       ):
         schemas.append(dep.node_deps[1])
     if (
@@ -391,7 +391,7 @@ def _should_unwrap_item_in_slice(
     True if the kd.slices.item wrapper should be unwrapped.
   """
   if not (
-      dep.is_operator and kd.optools.equiv_to_op(dep.op, kd.lazy.slices.item)
+      dep.is_operator and kd.optools.equiv_to_op(dep.op, kd.lazy.slices.item)  # pyrefly: ignore[bad-argument-type]
   ):
     return False
   if op_name != 'kd.slice':
@@ -458,7 +458,7 @@ def _generate_slice_op_map() -> dict[arolla.abc.Operator, str]:
       kd.lazy.mask: 'kd.mask',
   }
   return {
-      arolla.abc.decay_registered_operator(op): op_name
+      arolla.abc.decay_registered_operator(op): op_name  # pyrefly: ignore[bad-argument-type]
       for op, op_name in _map.items()
   }
 
@@ -971,7 +971,7 @@ class _Expr2PyAst:
           slice=self._convert_node(node.node_deps[1]),
       )
 
-    elif kd.optools.equiv_to_op(node.op, kd.lazy.slices.item):
+    elif kd.optools.equiv_to_op(node.op, kd.lazy.slices.item):  # pyrefly: ignore[bad-argument-type]
       # kd.slices.item(with_assertion(x, ...), schema) — 2 deps.
       ast_node = self._convert_item_op(node)
 
