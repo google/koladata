@@ -231,7 +231,7 @@ class TracingTest(absltest.TestCase):
 
     testing.assert_traced_exprs_equal(
         tracing.trace(f),
-        d[I.x],  # pyrefly: ignore[bad-argument-type, bad-index]
+        d[I.x],
     )
     self.assertTrue(view.has_koda_view(tracing.trace(f)))
 
@@ -242,7 +242,7 @@ class TracingTest(absltest.TestCase):
 
     testing.assert_traced_exprs_equal(
         tracing.trace(f),
-        l[I.x],  # pyrefly: ignore[bad-argument-type, bad-index]
+        l[I.x],
     )
     self.assertTrue(view.has_koda_view(tracing.trace(f)))
 
@@ -252,7 +252,7 @@ class TracingTest(absltest.TestCase):
       return x
 
     testing.assert_traced_exprs_equal(
-        tracing.trace(fn).eval(x=kd.slice(1)), kd.slice(1)  # pyrefly: ignore[bad-argument-type, missing-attribute]
+        tracing.trace(fn).eval(x=kd.slice(1)), kd.slice(1)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_extra_input_in_expr_error(self):

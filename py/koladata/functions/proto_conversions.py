@@ -39,6 +39,9 @@ _T = TypeVar('_T')
 # They can also be replaced with PEP 695 `type X[T] = ...` syntax once support
 # is more widely available in type checkers.
 _NestedNoneList: TypeAlias = list['_NestedNoneList'] | None
+_NestedMessageList: TypeAlias = (
+    message.Message | list['_NestedMessageList'] | None
+)
 _NestedMessageContainer: TypeAlias = (
     message.Message
     | list['_NestedMessageContainer']
@@ -324,7 +327,7 @@ def schema_from_proto(
 
 def to_proto(
     x: data_slice.DataSlice, /, message_class: Type[message.Message]
-) -> Any:  # A nested list of proto messages.
+) -> _NestedMessageList:
   """Converts a DataSlice or DataItem to one or more proto messages.
 
   If `x` is a DataItem, this returns a single proto message object. Otherwise,

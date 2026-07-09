@@ -30,7 +30,7 @@ class PyCloudpickleTest(absltest.TestCase):
       return x + y + z
 
     kd.testing.assert_equal(
-        kd.call(kd.py_fn(py_cloudpickle.py_cloudpickle(pickled_f)), x=1, y=2),  # pyrefly: ignore[bad-argument-type, missing-attribute]
+        kd.call(kd.py_fn(py_cloudpickle.py_cloudpickle(pickled_f)), x=1, y=2),  # pyrefly: ignore[missing-attribute]
         ds(6),
     )
 
@@ -40,7 +40,7 @@ class PyCloudpickleTest(absltest.TestCase):
 
     kd.testing.assert_equal(
         kd.call(  # pyrefly: ignore[missing-attribute]
-            kd.py_fn(py_cloudpickle.py_cloudpickle(f_with_kd)), x=ds([3, 4])  # pyrefly: ignore[bad-argument-type]
+            kd.py_fn(py_cloudpickle.py_cloudpickle(f_with_kd)), x=ds([3, 4])
         ),
         ds([4, 6]),
     )
