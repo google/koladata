@@ -15,6 +15,7 @@
 #include <Python.h>
 
 #include <cstddef>
+#include <optional>
 #include <vector>
 
 #include "absl/status/statusor.h"
