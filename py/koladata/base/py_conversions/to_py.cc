@@ -48,6 +48,7 @@
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/extract.h"
 #include "koladata/internal/op_utils/traverser.h"
@@ -223,6 +224,11 @@ class ToPyVisitor : internal::AbstractVisitor {
       const DataItem& from_item, const DataItem& from_schema,
       const std::optional<absl::string_view>& from_item_attr_name,
       const DataItem& item, const DataItem& schema) final {
+    // TODO: Distinguish metadata attributes by name.
+    if (from_schema == schema::kSchema && schema == schema::kObject) {
+      // The `item` is schema_metadata for `from_item`.
+      return false;
+    }
     if (!item.holds_value<ObjectId>()) {
       return true;
     }

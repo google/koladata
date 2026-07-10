@@ -33,6 +33,7 @@ cc_library(
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
         "//koladata/internal:object_id",
         "//koladata/internal:schema_attrs",
         "//koladata/internal/op_utils:extract",

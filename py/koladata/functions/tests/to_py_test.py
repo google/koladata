@@ -112,6 +112,15 @@ class ToPyTest(parameterized.TestCase):
     self.assertEqual(expected, py_obj)
     self.assertEqual(py_obj, expected)
 
+  def test_schema_in_metadata(self):
+    foo_schema = kde.schema.new_schema(bar=schema_constants.STRING)
+    foo_schema = kde.core.with_metadata(
+        foo_schema, bar=kde.schema.named_schema('bar')
+    )
+    foo = kde.new(schema=foo_schema, bar=kde.slice(['a']))
+    res = py_conversions.to_pytree(foo.eval())
+    self.assertEqual(res, [{'bar': 'a'}])
+
   def test_list_object_ownership(self):
     entity = fns.new(a=1, b='x')
     lst = fns.list([entity, entity, entity]).to_py()
