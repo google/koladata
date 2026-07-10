@@ -2534,9 +2534,31 @@ absl::Status DataBagImpl::ClearDict(const DataSliceImpl& dicts) {
   return dict_getter.status();
 }
 
-template <bool kReturnValues>
+namespace {
+
+void UpdateFilterKeysWithPresentValues(
+    std::vector<DataItem> &keys, const std::vector<DataItem>& values) {
+  DCHECK_EQ(keys.size(), values.size());
+  int64_t keys_count = 0;
+  for (int64_t i = 0; i < keys.size(); ++i) {
+    if (values[i].has_value()) {
+      if (i != keys_count) {
+        keys[keys_count] = std::move(keys[i]);
+      }
+      ++keys_count;
+    }
+  }
+  keys.resize(keys_count);
+}
+
+}  // namespace
+
+template <bool kReturnValues, bool kKeysWithPresentValues>
 std::vector<DataItem> DataBagImpl::GetDictKeysOrValuesAsVector(
     ObjectId dict_id, FallbackSpan fallbacks) const {
+  static_assert(
+      !(kReturnValues && kKeysWithPresentValues),
+      "kKeysWithPresentValues is only supported with kReturnValues=false");
   AllocationId alloc_id(dict_id);
 
   const std::shared_ptr<DictVector>* main_dicts = GetConstDictsOrNull(alloc_id);
@@ -2553,6 +2575,12 @@ std::vector<DataItem> DataBagImpl::GetDictKeysOrValuesAsVector(
   if (fallbacks.empty()) {
     if constexpr (kReturnValues) {
       return dict.GetValues();
+    } else if constexpr (kKeysWithPresentValues) {
+      // GetKeys and GetValues are guaranteed to be in the same order.
+      auto keys = dict.GetKeys();
+      auto values = dict.GetValues();
+      UpdateFilterKeysWithPresentValues(keys, values);
+      return keys;
     } else {
       return dict.GetKeys();
     }
@@ -2568,6 +2596,11 @@ std::vector<DataItem> DataBagImpl::GetDictKeysOrValuesAsVector(
   }
   if constexpr (kReturnValues) {
     return dict.GetValues(fallback_dicts);
+  } else if constexpr (kKeysWithPresentValues) {
+    auto keys = dict.GetKeys(fallback_dicts);
+    auto values = dict.GetValues(fallback_dicts);
+    UpdateFilterKeysWithPresentValues(keys, values);
+    return keys;
   } else {
     return dict.GetKeys(fallback_dicts);
   }
@@ -2699,10 +2732,11 @@ absl::Status DataBagImpl::ClearDict(const DataItem& dict) {
 
 // ************************* Schema functions
 
-absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttrs(
-    const DataItem& schema_item, FallbackSpan fallbacks) const {
-  ASSIGN_OR_RETURN(auto keys,
-                   GetSchemaAttrsAsVector(schema_item, fallbacks));
+namespace {
+
+// Converts a vector of Text DataItems (attr names) to a DataSliceImpl.
+static DataSliceImpl SchemaAttrsVectorToSlice(
+    const std::vector<DataItem>& keys) {
   if (keys.empty()) {
     return DataSliceImpl::Create(
         arolla::CreateEmptyDenseArray<arolla::Text>(/*size=*/0));
@@ -2715,8 +2749,33 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttrs(
   return DataSliceImpl::Create(std::move(keys_array).Build());
 }
 
+}  // namespace
+
+absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttrs(
+    const DataItem& schema_item, FallbackSpan fallbacks) const {
+  ASSIGN_OR_RETURN(auto keys,
+                   GetSchemaAttrsAsVectorImpl(schema_item, fallbacks,
+                                              /*filter_removed=*/false));
+  return SchemaAttrsVectorToSlice(keys);
+}
+
 absl::StatusOr<std::vector<DataItem>> DataBagImpl::GetSchemaAttrsAsVector(
     const DataItem& schema_item, FallbackSpan fallbacks) const {
+  return GetSchemaAttrsAsVectorImpl(schema_item, fallbacks,
+                                   /*filter_removed=*/false);
+}
+
+absl::StatusOr<DataSliceImpl> DataBagImpl::GetPresentSchemaAttrs(
+    const DataItem& schema_item, FallbackSpan fallbacks) const {
+  ASSIGN_OR_RETURN(auto keys,
+                   GetSchemaAttrsAsVectorImpl(schema_item, fallbacks,
+                                             /*filter_removed=*/true));
+  return SchemaAttrsVectorToSlice(keys);
+}
+
+absl::StatusOr<std::vector<DataItem>> DataBagImpl::GetSchemaAttrsAsVectorImpl(
+    const DataItem& schema_item, FallbackSpan fallbacks,
+    bool filter_removed) const {
   if (!schema_item.holds_value<ObjectId>()) {
     if (!schema_item.has_value()) {
       return std::vector<DataItem>();
@@ -2725,9 +2784,18 @@ absl::StatusOr<std::vector<DataItem>> DataBagImpl::GetSchemaAttrsAsVector(
   }
   ASSIGN_OR_RETURN(ObjectId schema_id, ItemToSchemaObjectId(schema_item));
   if (schema_id.IsSmallAlloc()) {
+    // For small alloc schemas, attribute names and values are stored in a Dict.
+    if (filter_removed) {
+      return GetDictKeysOrValuesAsVector</*kReturnValues=*/false,
+                                         /*kKeysWithPresentValues=*/true>(
+          schema_id, fallbacks);
+    }
     return GetDictKeysOrValuesAsVector</*kReturnValues=*/false>(
         schema_id, fallbacks);
   }
+  // For big alloc schemas, attribute names are shared across the allocation
+  // (stored in the Dict at offset 0). Attribute values are stored as regular
+  // entity attributes per schema object.
   auto attr_names = GetDictKeysOrValuesAsVector</*kReturnValues=*/false>(
       AllocationId(schema_id).ObjectByOffset(0), fallbacks);
   std::vector<DataItem> result;
@@ -2736,8 +2804,9 @@ absl::StatusOr<std::vector<DataItem>> DataBagImpl::GetSchemaAttrsAsVector(
     DCHECK(attr_name.holds_value<arolla::Text>());
     auto attr_schema = GetAttrWithRemoved(
         schema_id, attr_name.value<arolla::Text>(), fallbacks);
-    if (attr_schema.has_value()) {
-      result.push_back(DataItem(attr_name));
+    if (attr_schema.has_value() &&
+        (!filter_removed || attr_schema->has_value())) {
+      result.push_back(attr_name);
     }
   }
   return result;

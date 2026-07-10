@@ -540,12 +540,18 @@ class DataBagImpl : public arolla::RefcountedBase {
   // Equivalent to functions above, but work for DataItems holding Schema
   // ObjectId(s).
   //
-  // Returns attribute names of all attributes of the given `schema_item`.
+  // Returns attribute names of all attributes of the given `schema_item`,
+  // including removed attributes.
   absl::StatusOr<DataSliceImpl> GetSchemaAttrs(
       const DataItem& schema_item, FallbackSpan fallbacks = {}) const;
 
   // Same as GetSchemaAttrs, but returns a vector instead of a DataSliceImpl.
   absl::StatusOr<std::vector<DataItem>> GetSchemaAttrsAsVector(
+      const DataItem& schema_item, FallbackSpan fallbacks = {}) const;
+
+  // Returns attribute names of all present attributes of the given
+  // `schema_item`. Removed attributes are excluded from the result.
+  absl::StatusOr<DataSliceImpl> GetPresentSchemaAttrs(
       const DataItem& schema_item, FallbackSpan fallbacks = {}) const;
 
   // Returns a superset of attribute names for schemas in the given allocation.
@@ -833,9 +839,18 @@ class DataBagImpl : public arolla::RefcountedBase {
   absl::StatusOr<std::pair<DataSliceImpl, arolla::DenseArrayEdge>>
   GetDictKeysOrValues(const DataItem& dicts, FallbackSpan fallbacks) const;
 
-  template <bool kReturnValues>
+  // Shared implementation for GetSchemaAttrsAsVector and
+  // GetPresentSchemaAttrsAsVector. When filter_removed is true, attributes
+  // with removed values are excluded from the result.
+  absl::StatusOr<std::vector<DataItem>> GetSchemaAttrsAsVectorImpl(
+      const DataItem& schema_item, FallbackSpan fallbacks,
+      bool filter_removed) const;
+
   // Lower level utility for GetDictKeys that returns a vector.
   // This function bypass verification of object id.
+  // When kKeysWithPresentValues is true (only valid with kReturnValues=false),
+  // keys whose values are missing are excluded from the result.
+  template <bool kReturnValues, bool kKeysWithPresentValues = false>
   std::vector<DataItem> GetDictKeysOrValuesAsVector(
       ObjectId dict_id, FallbackSpan fallbacks) const;
 

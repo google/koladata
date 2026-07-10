@@ -453,6 +453,160 @@ TEST(DataBagTest, DelSchemaAttr_Item) {
   ASSERT_OK(db->DelSchemaAttr(DataItem(), "a"));
 }
 
+TEST(DataBagTest, GetPresentSchemaAttrs_ExplicitSchema) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto schema = DataItem(AllocateExplicitSchema());
+
+  // Empty schema.
+  EXPECT_THAT(db->GetPresentSchemaAttrs(schema),
+              IsOkAndHolds(ElementsAre()));
+
+  // Set some attributes.
+  ASSERT_OK(db->SetSchemaAttr(schema, "a", GetIntSchema()));
+  ASSERT_OK(db->SetSchemaAttr(schema, "b", GetFloatSchema()));
+  EXPECT_THAT(db->GetPresentSchemaAttrs(schema),
+              IsOkAndHolds(UnorderedElementsAre(arolla::Text("a"),
+                                                arolla::Text("b"))));
+
+  // Remove one attribute.
+  ASSERT_OK(db->DelSchemaAttr(schema, "a"));
+  // GetSchemaAttrs still returns removed attributes.
+  EXPECT_THAT(db->GetSchemaAttrs(schema),
+              IsOkAndHolds(UnorderedElementsAre(DataItem(arolla::Text("a")),
+                                                DataItem(arolla::Text("b")))));
+  // GetPresentSchemaAttrs excludes removed attributes.
+  EXPECT_THAT(db->GetPresentSchemaAttrs(schema),
+              IsOkAndHolds(UnorderedElementsAre(arolla::Text("b"))));
+
+  // Remove all attributes.
+  ASSERT_OK(db->SetSchemaAttr(schema, "b", DataItem()));
+  EXPECT_THAT(db->GetPresentSchemaAttrs(schema),
+              IsOkAndHolds(ElementsAre()));
+}
+
+TEST(DataBagTest, GetPresentSchemaAttrs_ImplicitSchema) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto schemas_alloc = GenerateImplicitSchemas(3);
+  auto schema = DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({
+    schemas_alloc.ObjectByOffset(0), schemas_alloc.ObjectByOffset(1),
+    schemas_alloc.ObjectByOffset(2)
+  }));
+
+  // Set attributes on all schemas.
+  auto values_a = DataSliceImpl::Create(
+      arolla::CreateDenseArray<schema::DType>({
+        schema::kInt32, schema::kInt32, schema::kInt32}));
+  auto values_b = DataSliceImpl::Create(
+      arolla::CreateDenseArray<schema::DType>({
+        schema::kFloat32, schema::kFloat32, schema::kFloat32}));
+  ASSERT_OK(db->SetSchemaAttr(schema, "a", values_a));
+  ASSERT_OK(db->SetSchemaAttr(schema, "b", values_b));
+
+  for (int i = 0; i < schema.size(); ++i) {
+    EXPECT_THAT(db->GetPresentSchemaAttrs(schema[i]),
+                IsOkAndHolds(UnorderedElementsAre(arolla::Text("a"),
+                                                  arolla::Text("b"))));
+  }
+
+  // Remove "a" from the first schema item only.
+  auto del_values = DataSliceImpl::Create(
+      arolla::CreateDenseArray<schema::DType>({
+        std::nullopt, schema::kInt32, schema::kInt32}));
+  ASSERT_OK(db->SetSchemaAttr(schema, "a", del_values));
+
+  // First schema has "a" removed.
+  EXPECT_THAT(db->GetPresentSchemaAttrs(schema[0]),
+              IsOkAndHolds(UnorderedElementsAre(arolla::Text("b"))));
+  // Other schemas still have both attributes.
+  EXPECT_THAT(db->GetPresentSchemaAttrs(schema[1]),
+              IsOkAndHolds(UnorderedElementsAre(arolla::Text("a"),
+                                                arolla::Text("b"))));
+  EXPECT_THAT(db->GetPresentSchemaAttrs(schema[2]),
+              IsOkAndHolds(UnorderedElementsAre(arolla::Text("a"),
+                                                arolla::Text("b"))));
+
+  // GetSchemaAttrs still returns "a" for first schema (includes removed).
+  EXPECT_THAT(db->GetSchemaAttrs(schema[0]),
+              IsOkAndHolds(UnorderedElementsAre(arolla::Text("a"),
+                                                arolla::Text("b"))));
+}
+
+TEST(DataBagTest, GetPresentSchemaAttrs_EmptyAndInvalid) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+
+  // Empty DataItem returns empty result.
+  EXPECT_THAT(db->GetPresentSchemaAttrs(DataItem()),
+              IsOkAndHolds(ElementsAre()));
+
+  // Non-schema DataItem returns error.
+  EXPECT_THAT(db->GetPresentSchemaAttrs(DataItem(42)),
+              StatusIs(absl::StatusCode::kFailedPrecondition));
+}
+
+TEST(DataBagTest, GetPresentSchemaAttrs_WithFallbacks) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto fb_db = DataBagImpl::CreateEmptyDatabag();
+  auto schema = DataItem(AllocateExplicitSchema());
+
+  // Attribute "a" in main db, "b" in fallback db.
+  ASSERT_OK(db->SetSchemaAttr(schema, "a", GetIntSchema()));
+  ASSERT_OK(fb_db->SetSchemaAttr(schema, "b", GetFloatSchema()));
+
+  EXPECT_THAT(db->GetPresentSchemaAttrs(schema, {fb_db.get()}),
+              IsOkAndHolds(UnorderedElementsAre(arolla::Text("a"),
+                                                arolla::Text("b"))));
+
+  // Remove "a" in main db. "b" from fallback should remain.
+  ASSERT_OK(db->DelSchemaAttr(schema, "a"));
+  EXPECT_THAT(db->GetPresentSchemaAttrs(schema, {fb_db.get()}),
+              IsOkAndHolds(UnorderedElementsAre(arolla::Text("b"))));
+
+  // GetSchemaAttrs still returns removed "a".
+  EXPECT_THAT(
+      db->GetSchemaAttrs(schema, {fb_db.get()}),
+      IsOkAndHolds(UnorderedElementsAre(DataItem(arolla::Text("a")),
+                                        DataItem(arolla::Text("b")))));
+}
+
+TEST(DataBagTest, GetPresentSchemaAttrs_WithFallbacks_ImplicitSchema) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto fb_db = DataBagImpl::CreateEmptyDatabag();
+  auto schemas_alloc = GenerateImplicitSchemas(2);
+  auto schema = DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({
+    schemas_alloc.ObjectByOffset(0), schemas_alloc.ObjectByOffset(1)
+  }));
+
+  // Attribute "a" in fallback db.
+  auto values_a = DataSliceImpl::Create(
+      arolla::CreateDenseArray<schema::DType>({
+        schema::kInt32, schema::kInt32}));
+  ASSERT_OK(fb_db->SetSchemaAttr(schema, "a", values_a));
+
+  // Attribute "b" in main db.
+  auto values_b = DataSliceImpl::Create(
+      arolla::CreateDenseArray<schema::DType>({
+        schema::kFloat32, schema::kFloat32}));
+  ASSERT_OK(db->SetSchemaAttr(schema, "b", values_b));
+
+  EXPECT_THAT(db->GetPresentSchemaAttrs(schema[0], {fb_db.get()}),
+              IsOkAndHolds(UnorderedElementsAre(arolla::Text("a"),
+                                                arolla::Text("b"))));
+
+  // Remove "a" in main db for the first schema item.
+  auto del_values = DataSliceImpl::Create(
+      arolla::CreateDenseArray<schema::DType>({
+        std::nullopt, schema::kInt32}));
+  ASSERT_OK(db->SetSchemaAttr(schema, "a", del_values));
+
+  // "a" is removed for the first schema item.
+  EXPECT_THAT(db->GetPresentSchemaAttrs(schema[0], {fb_db.get()}),
+              IsOkAndHolds(UnorderedElementsAre(arolla::Text("b"))));
+  // "a" is still present for the second schema item.
+  EXPECT_THAT(db->GetPresentSchemaAttrs(schema[1], {fb_db.get()}),
+              IsOkAndHolds(UnorderedElementsAre(arolla::Text("a"),
+                                                arolla::Text("b"))));
+}
+
 TEST(DataBagTest, MissingSchemaAttr_Slice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto schemas_alloc = GenerateImplicitSchemas(3);
