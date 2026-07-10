@@ -486,5 +486,15 @@ TEST(DataBagTest, MetadataCache) {
   EXPECT_EQ(db->GetCachedMetadataOrNull<int>(id1), int1);
 }
 
+TEST(DataBagTest, IsEmpty_DeepFallbackChain) {
+  // Test that IsEmpty() does not crash with stack overflow when checking a
+  // very deep fallback chain.
+  auto db = DataBag::Empty();
+  for (int i = 0; i < 150000; ++i) {
+    ASSERT_OK_AND_ASSIGN(db, DataBag::ImmutableEmptyWithFallbacks({db}));
+  }
+  EXPECT_TRUE(db->IsEmpty());
+}
+
 }  // namespace
 }  // namespace koladata

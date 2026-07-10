@@ -262,8 +262,10 @@ bool DataBag::IsEmpty() const {
   if (!impl_->IsEmpty()) {
     return false;
   }
-  for (const auto& fb : fallbacks_) {
-    if (!fb->IsEmpty()) {
+  FlattenFallbackFinder fallback_finder(*this);
+  for (const internal::DataBagImpl* fallback :
+       fallback_finder.GetFlattenFallbacks()) {
+    if (!fallback->IsEmpty()) {
       return false;
     }
   }
