@@ -1509,7 +1509,7 @@ Alias for [kd.schema.to_none](kd/schema.md#kd.schema.to_none)
 
 Alias for [kd.schema.to_object](kd/schema.md#kd.schema.to_object)
 
-### `kd.to_proto(x: DataSlice, /, message_class: type[Message]) -> Message | list[_NestedMessageList] | None` {#kd.to_proto}
+### `kd.to_proto(x: DataSlice, /, message_class: type[Message]) -> Any` {#kd.to_proto}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Converts a DataSlice or DataItem to one or more proto messages.
 

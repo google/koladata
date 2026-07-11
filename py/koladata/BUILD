@@ -20,7 +20,12 @@ package(default_visibility = ["//py/koladata:__subpackages__"])
 
 licenses(["notice"])
 
-exports_files(["LICENSE"])
+exports_files(
+    [
+        "LICENSE",
+        "kd.pyi",
+    ],
+)
 
 py_library(
     name = "koladata",
@@ -34,11 +39,11 @@ py_library(
 py_library(
     name = "kd",
     srcs = ["kd.py"],
+    pyi_srcs = ["kd.pyi"],
     tags = [
     ],
     visibility = ["//visibility:public"],
     deps = [
-        ":kd_dynamic",
         ":kd_types",
         "//py:python_path",
         "//py/koladata/base:init",
@@ -119,14 +124,9 @@ py_library(
 )
 
 py_library(
-    name = "kd_dynamic",
-    srcs = ["kd_dynamic.py"],
-    deps = ["//py:python_path"],
-)
-
-py_library(
     name = "kd_types",
     srcs = ["kd_types.py"],
+    pyi_srcs = ["kd_types.pyi"],
     deps = [
         "//py:python_path",
         "//py/koladata/functor/parallel:clib",

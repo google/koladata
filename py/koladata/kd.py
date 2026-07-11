@@ -54,8 +54,6 @@ from koladata.types import qtypes as _qtypes
 from koladata.types import schema_constants as _schema_constants
 
 
-_HAS_DYNAMIC_ATTRIBUTES = True
-
 # This module supports tracing, which means running a Python function
 # in a special mode where "kd.smth" APIs create new expressions instead
 # of executing operations eagerly. Therefore for every API in this file
@@ -363,8 +361,6 @@ def _SetUpEager():
 
 
 _SetUpEager()
-
-from koladata.kd_dynamic import *  # pylint: disable=g-import-not-at-top,g-bad-import-order,wildcard-import
 
 # Set up the tracing mode machinery. This must be the last thing in this file.
 if not _typing.TYPE_CHECKING:

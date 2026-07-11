@@ -1268,7 +1268,7 @@ def internal_range(start, end):
         qtype_utils.expect_data_slice_or_unspecified(P.end),
     ],
 )
-def _range(start, end=arolla.unspecified()):
+def range_(start, end=arolla.unspecified()):
   """Returns a DataSlice of INT64s with range [start, end).
 
   `start` and `end` must be broadcastable to the same shape. The resulting
@@ -1890,7 +1890,7 @@ def unique(x, sort=False):  # pylint: disable=redefined-outer-name,unused-argume
         ],
     ],
 )
-def _zip(*args):
+def zip_(*args):
   """Zips the given DataSlices into a new DataSlice with a new last dimension.
 
   Input DataSlices are automatically aligned. The result has the shape of the

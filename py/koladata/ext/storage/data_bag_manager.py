@@ -819,7 +819,7 @@ def _read_latest_metadata(
   )
   latest_metadata_filepath = max(committed_metadata_filepaths)
   with fs.open(latest_metadata_filepath, 'rb') as f:
-    return metadata_pb2.DataBagManagerMetadata.FromString(f.read())
+    return metadata_pb2.DataBagManagerMetadata.FromString(f.read())  # pyrefly: ignore[bad-argument-type]
 
 
 def _get_global_cache_key(*, bag_name: str, bag_filepath: str) -> str:
