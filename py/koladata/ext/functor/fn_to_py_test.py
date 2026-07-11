@@ -49,7 +49,7 @@ class FnToPyFuncRecTest(parameterized.TestCase):
     self.assertEqual(func_rec.signature, inspect.signature(lambda x: None))
 
   @parameterized.parameters(
-      (kd.S + 1, inspect.signature(lambda self, /: None)),  # pyrefly: ignore[unsupported-operation]
+      (kd.S + 1, inspect.signature(lambda self, /: None)),
       (kd.I.x + kd.I.y, inspect.signature(lambda *, x, y: None)),
       (kd.I.x + kd.S, inspect.signature(lambda self, /, *, x: None)),
   )
@@ -66,7 +66,7 @@ class FnToPyFuncRecTest(parameterized.TestCase):
     result = fn_to_py.fn_to_py_fn_rec(fn, root_name='top')
     self.assertLen(result, 1)
     func_rec = result[fn.get_itemid().no_bag()]
-    kd.testing.assert_equal(kd.expr.unpack_expr(func_rec.code), kd.S * 2)  # pyrefly: ignore[bad-argument-type, unsupported-operation]
+    kd.testing.assert_equal(kd.expr.unpack_expr(func_rec.code), kd.S * 2)
     self.assertEqual(
         func_rec.signature,
         inspect.signature(lambda self=kd.item(42), /: None)

@@ -1489,7 +1489,7 @@ def _read_metadata(
       persistence_dir, at_revision_history_index
   )
   with fs.open(metadata_filepath, 'rb') as f:
-    return metadata_pb2.DataSliceManagerMetadata.FromString(f.read())  # pyrefly: ignore[bad-argument-type]
+    return metadata_pb2.DataSliceManagerMetadata.FromString(f.read())
 
 
 def _get_branches_dir(persistence_dir: str) -> str:

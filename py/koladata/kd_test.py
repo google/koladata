@@ -30,7 +30,7 @@ kdi = kd.eager
 I = kd.I
 V = kd.V
 S = kd.S
-kdf = kd.functor
+kdf = kd.functor  # pyrefly: ignore[missing-attribute]
 
 
 def cond_add_fn(x, y):
@@ -40,9 +40,9 @@ def cond_add_fn(x, y):
 class KdTest(absltest.TestCase):
 
   def test_types(self):
-    self.assertIsInstance(kd.bag(), kd.types.DataBag)
-    self.assertIsInstance(kd.slice([1, 2, 3]), kd.types.DataSlice)
-    self.assertIsInstance(kd.item(5), kd.types.DataItem)
+    self.assertIsInstance(kd.bag(), kd.types.DataBag)  # pyrefly: ignore[missing-attribute]
+    self.assertIsInstance(kd.slice([1, 2, 3]), kd.types.DataSlice)  # pyrefly: ignore[missing-attribute]
+    self.assertIsInstance(kd.item(5), kd.types.DataItem)  # pyrefly: ignore[missing-attribute]
     self.assertIsInstance(kd.mutable_bag().list([1, 2]), kd.types.ListItem)
     self.assertIsInstance(kd.mutable_bag().dict({'a': 42}), kd.types.DictItem)
     self.assertIsInstance(kd.INT32, kd.types.SchemaItem)
@@ -66,16 +66,16 @@ class KdTest(absltest.TestCase):
     self.assertIs(sig.parameters['ex'].annotation, kd.types.Expr)
 
   def test_bag_returns_new_instance(self):
-    db1 = kd.bag()
-    db2 = kd.bag()
+    db1 = kd.bag()  # pyrefly: ignore[missing-attribute]
+    db2 = kd.bag()  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equivalent(db1, db2)
     kd.testing.assert_not_equal(db1, db2)
 
   def test_data_slice_and_data_item_magic_methods(self):
     kd.testing.assert_equal(
-        kd.slice([1, 2, 3]) + kd.slice([4, 5, 6]), kd.slice([5, 7, 9])
+        kd.slice([1, 2, 3]) + kd.slice([4, 5, 6]), kd.slice([5, 7, 9])  # pyrefly: ignore[missing-attribute]
     )
-    kd.testing.assert_equal(kd.item(1) + kd.item(4), kd.item(5))
+    kd.testing.assert_equal(kd.item(1) + kd.item(4), kd.item(5))  # pyrefly: ignore[missing-attribute]
 
   def test_schema_constants(self):
     for const in dir(schema_constants):
@@ -87,41 +87,41 @@ class KdTest(absltest.TestCase):
         else:
           kd.testing.assert_equal(
               getattr(schema_constants, const),
-              getattr(kd.schema_filters, const[: -len('_FILTER')]),
+              getattr(kd.schema_filters, const[: -len('_FILTER')]),  # pyrefly: ignore[missing-attribute]
           )
 
   def test_mask_constants(self):
     self.assertEqual(kd.present.get_schema(), kd.MASK)
     self.assertEqual(kd.missing.get_schema(), kd.MASK)
-    self.assertEqual(kd.has(kd.item(1)), kd.present)
+    self.assertEqual(kd.has(kd.item(1)), kd.present)  # pyrefly: ignore[missing-attribute]
     # NOTE: `==` on missing items returns missing and bool(missing) is False.
-    kd.testing.assert_equal(kd.has(kd.item(None)), kd.missing)
+    kd.testing.assert_equal(kd.has(kd.item(None)), kd.missing)  # pyrefly: ignore[missing-attribute]
 
   def test_ops(self):
     kd.testing.assert_equal(
-        kd.math.add(kd.slice([1, 2]), kd.slice([3, 4])), kd.slice([4, 6])
+        kd.math.add(kd.slice([1, 2]), kd.slice([3, 4])), kd.slice([4, 6])  # pyrefly: ignore[missing-attribute]
     )
     kd.testing.assert_equal(
-        kd.has(kd.slice([1, None])), kd.slice([arolla.present(), None])
+        kd.has(kd.slice([1, None])), kd.slice([arolla.present(), None])  # pyrefly: ignore[missing-attribute]
     )
     kd.testing.assert_equal(
-        kd.shapes.new(kd.slice([1])), jagged_shape.create_shape([1])
+        kd.shapes.new(kd.slice([1])), jagged_shape.create_shape([1])  # pyrefly: ignore[missing-attribute]
     )
     kd.testing.assert_equal(
-        kd.strings.agg_join(kd.slice(['ab', 'd'])), kd.item('abd')
+        kd.strings.agg_join(kd.slice(['ab', 'd'])), kd.item('abd')  # pyrefly: ignore[missing-attribute]
     )
 
   def test_entities(self):
-    x = kd.new(a=1, b='abc')
-    y = kd.new(a=1, b='abc')
+    x = kd.new(a=1, b='abc')  # pyrefly: ignore[missing-attribute]
+    y = kd.new(a=1, b='abc')  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equal(x.get_schema().a, kd.INT32.with_bag(x.get_bag()))
     kd.testing.assert_equal(x.get_schema().b, kd.STRING.with_bag(x.get_bag()))
     kd.testing.assert_not_equal(x, y)
     kd.testing.assert_equal(x.a.no_bag(), y.a.no_bag())
 
   def test_objects(self):
-    x = kd.obj(a=1, b='abc')
-    y = kd.obj(a=1, b='abc')
+    x = kd.obj(a=1, b='abc')  # pyrefly: ignore[missing-attribute]
+    y = kd.obj(a=1, b='abc')  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equal(x.get_schema(), kd.OBJECT.with_bag(x.get_bag()))
     kd.testing.assert_equal(y.get_schema(), kd.OBJECT.with_bag(y.get_bag()))
     kd.testing.assert_not_equal(x, y)
@@ -131,23 +131,23 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(
         kd.eval(
             kd.lazy.math.add(S.x, I.y),
-            kd.new(x=kd.slice([1, 2])),
-            y=kd.slice([3, 4]),
+            kd.new(x=kd.slice([1, 2])),  # pyrefly: ignore[missing-attribute]
+            y=kd.slice([3, 4]),  # pyrefly: ignore[missing-attribute]
         ),
-        kd.slice([4, 6]),
+        kd.slice([4, 6]),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_literal(self):
-    expr = kd.expr.literal(kd.item(1))
+    expr = kd.expr.literal(kd.item(1))  # pyrefly: ignore[missing-attribute]
     self.assertIsInstance(expr, arolla.Expr)
-    kd.testing.assert_equal(arolla.eval(expr), kd.item(1))
+    kd.testing.assert_equal(arolla.eval(expr), kd.item(1))  # pyrefly: ignore[missing-attribute]
 
   def test_dir(self):
     for api_name in dir(kd):
       self.assertFalse(api_name.startswith('_'))
 
   def test_docstring(self):
-    self.assertIn('Koda API', kd.__doc__)  # pyrefly: ignore[bad-argument-type]
+    self.assertIn('Koda API', kd.__doc__)
 
   def test_kdf(self):
     fn = kdf.expr_fn(
@@ -165,14 +165,14 @@ class KdTest(absltest.TestCase):
     self.assertEqual(kdf.call(fn, 1, 2), 3)
 
   def test_bind(self):
-    fn = kd.bind(kd.trace_py_fn(lambda x, y: x + y), y=2)
+    fn = kd.bind(kd.trace_py_fn(lambda x, y: x + y), y=2)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(fn(3), 5)
 
   def test_with_name(self):
-    x = kd.slice([1, 2, 3])
-    y = kd.with_name(x, 'foo')
+    x = kd.slice([1, 2, 3])  # pyrefly: ignore[missing-attribute]
+    y = kd.with_name(x, 'foo')  # pyrefly: ignore[missing-attribute]
     self.assertIs(y, x)
-    y = kd.annotation.with_name(x, 'foo')
+    y = kd.annotation.with_name(x, 'foo')  # pyrefly: ignore[missing-attribute]
     self.assertIs(y, x)
 
   def test_get_name(self):
@@ -191,37 +191,37 @@ class KdTest(absltest.TestCase):
         kd.expr.unpack_expr(kd.expr.pack_expr(I.x + I.y)), I.x + I.y
     )
     with self.assertRaisesRegex(ValueError, 'only present EXPR DataItems'):
-      kd.expr.unpack_expr(kd.item(1))
+      kd.expr.unpack_expr(kd.item(1))  # pyrefly: ignore[missing-attribute]
 
   def test_is_packed_expr(self):
     ds = kd.expr.pack_expr(I.x + I.y)
     kd.testing.assert_equal(kd.expr.is_packed_expr(ds), kd.present)
-    kd.testing.assert_equal(kd.expr.is_packed_expr(kd.slice(1)), kd.missing)
+    kd.testing.assert_equal(kd.expr.is_packed_expr(kd.slice(1)), kd.missing)  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equal(kd.expr.is_packed_expr(I.x + I.y), kd.missing)
 
   def test_is_fn(self):
     fn = kdf.expr_fn(57, signature=signature_utils.signature([]))
-    self.assertTrue(kd.is_fn(fn))
-    self.assertEqual(kd.is_fn(fn).get_schema(), schema_constants.MASK)
+    self.assertTrue(kd.is_fn(fn))  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(kd.is_fn(fn).get_schema(), schema_constants.MASK)  # pyrefly: ignore[missing-attribute]
     fn = fn.with_attrs(returns=None)
-    self.assertFalse(kd.is_fn(fn))
-    self.assertEqual(kd.is_fn(fn).get_schema(), schema_constants.MASK)
-    self.assertFalse(kd.is_fn(57))
-    self.assertFalse(kd.is_fn(I.x))
+    self.assertFalse(kd.is_fn(fn))  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(kd.is_fn(fn).get_schema(), schema_constants.MASK)  # pyrefly: ignore[missing-attribute]
+    self.assertFalse(kd.is_fn(57))  # pyrefly: ignore[missing-attribute]
+    self.assertFalse(kd.is_fn(I.x))  # pyrefly: ignore[missing-attribute]
 
   def test_as_expr(self):
-    kd.testing.assert_equal(kd.expr.as_expr(1), kd.expr.literal(kd.slice(1)))
+    kd.testing.assert_equal(kd.expr.as_expr(1), kd.expr.literal(kd.slice(1)))  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equal(kd.expr.as_expr(I.x), I.x)
 
   def test_fstr(self):
-    kd.testing.assert_equal(kd.fstr(f'{kd.slice(1):s}'), kd.slice('1'))
-    kd.testing.assert_equal(kd.strings.fstr(f'{kd.slice(1):s}'), kd.slice('1'))
+    kd.testing.assert_equal(kd.fstr(f'{kd.slice(1):s}'), kd.slice('1'))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(kd.strings.fstr(f'{kd.slice(1):s}'), kd.slice('1'))  # pyrefly: ignore[missing-attribute]
 
   def test_fstr_expr_not_allowed(self):
     with self.assertRaisesRegex(
         ValueError, 'contains expression.*eager kd.fstr call'
     ):
-      kd.fstr(f'{kd.expr.literal(kd.slice(1)):s}')
+      kd.fstr(f'{kd.expr.literal(kd.slice(1)):s}')  # pyrefly: ignore[missing-attribute]
 
   def test_get_input_names(self):
     expr = I.x + I.y + V.z
@@ -237,7 +237,7 @@ class KdTest(absltest.TestCase):
     self.assertFalse(kd.expr.is_variable(kd.I.x))
 
   def test_is_literal(self):
-    self.assertTrue(kd.expr.is_literal(kd.expr.literal(kd.item(42))))
+    self.assertTrue(kd.expr.is_literal(kd.expr.literal(kd.item(42))))  # pyrefly: ignore[missing-attribute]
     self.assertFalse(kd.expr.is_literal(kd.I.x))
 
   def test_named_container(self):
@@ -264,9 +264,9 @@ class KdTest(absltest.TestCase):
       return x
 
     # Assert does not raise.
-    _ = f(kd.slice([1, 2]))
+    _ = f(kd.slice([1, 2]))  # pyrefly: ignore[missing-attribute]
     with self.assertRaises(TypeError):
-      _ = f(kd.slice([1.0, 2]))
+      _ = f(kd.slice([1.0, 2]))  # pyrefly: ignore[missing-attribute]
 
   def test_check_output(self):
     @kd.check_output(kd.INT32)
@@ -274,9 +274,9 @@ class KdTest(absltest.TestCase):
       return x
 
     # Assert does not raise.
-    _ = f(kd.slice([1, 2]))
+    _ = f(kd.slice([1, 2]))  # pyrefly: ignore[missing-attribute]
     with self.assertRaises(TypeError):
-      _ = f(kd.slice([1.0, 2]))
+      _ = f(kd.slice([1.0, 2]))  # pyrefly: ignore[missing-attribute]
 
   def test_check_inputs_is_traceable(self):
     def f(x):
@@ -288,10 +288,10 @@ class KdTest(absltest.TestCase):
 
     fn = kd.fn(f)
     # Assert does not raise.
-    kd.testing.assert_equal(fn(kd.slice([1, 2])), kd.slice([3, 4]))
+    kd.testing.assert_equal(fn(kd.slice([1, 2])), kd.slice([3, 4]))  # pyrefly: ignore[missing-attribute]
 
     with self.assertRaises(ValueError):
-      _ = fn(kd.slice([1.0, 2.0]))
+      _ = fn(kd.slice([1.0, 2.0]))  # pyrefly: ignore[missing-attribute]
 
   def test_check_output_is_traceable(self):
     def f(x):
@@ -303,9 +303,9 @@ class KdTest(absltest.TestCase):
 
     fn = kd.fn(f)
     # Assert does not raise.
-    kd.testing.assert_equal(fn(kd.slice([1, 2])), kd.slice([3, 4]))
+    kd.testing.assert_equal(fn(kd.slice([1, 2])), kd.slice([3, 4]))  # pyrefly: ignore[missing-attribute]
     with self.assertRaises(ValueError):
-      _ = fn(kd.slice([1.0, 2.0]))
+      _ = fn(kd.slice([1.0, 2.0]))  # pyrefly: ignore[missing-attribute]
 
   def test_duck_type(self):
     @kd.check_inputs(x=kd.duck_type(a=kd.INT32, b=kd.STRING))
@@ -313,12 +313,12 @@ class KdTest(absltest.TestCase):
       return x.b
 
     kd.testing.assert_equal(
-        f(kd.new(a=kd.slice([1, 2]), b=kd.slice(['a', 'b']))).no_bag(),
-        kd.slice(['a', 'b']),
+        f(kd.new(a=kd.slice([1, 2]), b=kd.slice(['a', 'b']))).no_bag(),  # pyrefly: ignore[missing-attribute]
+        kd.slice(['a', 'b']),  # pyrefly: ignore[missing-attribute]
     )
 
     with self.assertRaises(TypeError):
-      _ = f(kd.new(a=kd.slice([1, 2])))
+      _ = f(kd.new(a=kd.slice([1, 2])))  # pyrefly: ignore[missing-attribute]
 
   def test_duck_type_is_traceable(self):
     def f(x):
@@ -330,29 +330,29 @@ class KdTest(absltest.TestCase):
 
     fn = kd.fn(f)
     kd.testing.assert_equal(
-        fn(kd.new(a=kd.slice([1, 2]), b=kd.slice(['a', 'b']))).no_bag(),
-        kd.slice(['a', 'b']),
+        fn(kd.new(a=kd.slice([1, 2]), b=kd.slice(['a', 'b']))).no_bag(),  # pyrefly: ignore[missing-attribute]
+        kd.slice(['a', 'b']),  # pyrefly: ignore[missing-attribute]
     )
 
     with self.assertRaises(ValueError):
-      _ = fn(kd.new(a=kd.slice([1, 2])))
+      _ = fn(kd.new(a=kd.slice([1, 2])))  # pyrefly: ignore[missing-attribute]
 
   def test_duck_list(self):
     @kd.check_inputs(x=kd.duck_list(kd.INT32))
     def f(x):
       return x[:]
 
-    kd.testing.assert_equal(f(kd.list([1, 2])).no_bag(), kd.slice([1, 2]))
+    kd.testing.assert_equal(f(kd.list([1, 2])).no_bag(), kd.slice([1, 2]))  # pyrefly: ignore[missing-attribute]
 
     with self.assertRaises(TypeError):
-      _ = f(kd.list([1.0, 2.0]))
+      _ = f(kd.list([1.0, 2.0]))  # pyrefly: ignore[missing-attribute]
 
     # Tracing mode
     fn = kd.fn(f)
-    kd.testing.assert_equal(fn(kd.list([1, 2])).no_bag(), kd.slice([1, 2]))
+    kd.testing.assert_equal(fn(kd.list([1, 2])).no_bag(), kd.slice([1, 2]))  # pyrefly: ignore[missing-attribute]
 
     with self.assertRaises(ValueError):
-      _ = fn(kd.list([1.0, 2.0]))
+      _ = fn(kd.list([1.0, 2.0]))  # pyrefly: ignore[missing-attribute]
 
   def test_duck_list_is_traceable(self):
     def f(x):
@@ -363,38 +363,38 @@ class KdTest(absltest.TestCase):
       return g(x)
 
     fn = kd.fn(f)
-    kd.testing.assert_equal(fn(kd.list([1, 2])).no_bag(), kd.slice([1, 2]))
+    kd.testing.assert_equal(fn(kd.list([1, 2])).no_bag(), kd.slice([1, 2]))  # pyrefly: ignore[missing-attribute]
 
     with self.assertRaises(ValueError):
-      _ = fn(kd.list([1.0, 2.0]))
+      _ = fn(kd.list([1.0, 2.0]))  # pyrefly: ignore[missing-attribute]
 
   def test_duck_dict(self):
     @kd.check_inputs(x=kd.duck_dict(kd.STRING, kd.INT32))
     def f(x):
-      return kd.sort(x.get_values())
+      return kd.sort(x.get_values())  # pyrefly: ignore[missing-attribute]
 
     kd.testing.assert_equal(
-        f(kd.dict({'a': 1, 'b': 2})).no_bag(), kd.slice([1, 2])
+        f(kd.dict({'a': 1, 'b': 2})).no_bag(), kd.slice([1, 2])  # pyrefly: ignore[missing-attribute]
     )
 
     with self.assertRaises(TypeError):
-      _ = f(kd.dict({'a': '1', 'b': '2'}))
+      _ = f(kd.dict({'a': '1', 'b': '2'}))  # pyrefly: ignore[missing-attribute]
 
   def test_duck_dict_is_traceable(self):
     def f(x):
       @kd.check_inputs(x=kd.duck_dict(kd.STRING, kd.INT32))
       def g(x):
-        return kd.sort(x.get_values())
+        return kd.sort(x.get_values())  # pyrefly: ignore[missing-attribute]
 
       return g(x)
 
     fn = kd.fn(f)
     kd.testing.assert_equal(
-        fn(kd.dict({'a': 1, 'b': 2})).no_bag(), kd.slice([1, 2])
+        fn(kd.dict({'a': 1, 'b': 2})).no_bag(), kd.slice([1, 2])  # pyrefly: ignore[missing-attribute]
     )
 
     with self.assertRaises(ValueError):
-      _ = fn(kd.dict({'a': '1', 'b': '2'}))
+      _ = fn(kd.dict({'a': '1', 'b': '2'}))  # pyrefly: ignore[missing-attribute]
 
   def test_type_checking_functor(self):
     @kd.check_inputs(x=kd.type_checking.functor())
@@ -404,7 +404,7 @@ class KdTest(absltest.TestCase):
     _ = f(lambda x: x + 1)  # Assert does not raise.
 
     with self.assertRaises(TypeError):
-      _ = f(kd.slice([1, 2]))
+      _ = f(kd.slice([1, 2]))  # pyrefly: ignore[missing-attribute]
 
   def test_type_checking_functor_is_traceable(self):
     def f(x):
@@ -418,7 +418,7 @@ class KdTest(absltest.TestCase):
     _ = fn(lambda x: x + 1)  # Assert does not raise.
 
     with self.assertRaises(ValueError):
-      _ = fn(kd.slice([1, 2]))
+      _ = fn(kd.slice([1, 2]))  # pyrefly: ignore[missing-attribute]
 
   def test_sub_inputs(self):
     expr = I.x + I.y + V.x
@@ -439,10 +439,10 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(kd.expr.sub(expr, (I.x, I.z)), I.z + I.y)
 
   def test_eager(self):
-    self.assertCountEqual(kd.eager.__all__, dir(kd.eager))  # pyrefly: ignore[missing-attribute]
+    self.assertCountEqual(kd.eager.__all__, dir(kd.eager))
     self.assertCountEqual(set(dir(kd)) - set(dir(kd.eager)), ['eager'])
     self.assertCountEqual(set(dir(kd.eager)) - set(dir(kd)), [])
-    for name in kd.eager.__all__:  # pyrefly: ignore[missing-attribute]
+    for name in kd.eager.__all__:
       self.assertIs(getattr(kd.eager, name), getattr(kd, name))
     for bad_name in ['eager']:
       with self.assertRaises(AttributeError):
@@ -453,13 +453,13 @@ class KdTest(absltest.TestCase):
         AttributeError,
         "'koladata.kd' object has no attribute 'nonexisting_method'",
     ):
-      _ = getattr(kd, 'nonexisting_method')
+      _ = kd.nonexisting_method  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         AttributeError,
         "'koladata.kd' object has no attribute 'nonexisting_method'",
     ):
       with tracing_mode.enable_tracing():
-        _ = getattr(kd, 'nonexisting_method')
+        _ = kd.nonexisting_method  # pyrefly: ignore[missing-attribute]
 
   def test_unavailable_in_tracing_error_message(self):
     with tracing_mode.enable_tracing():
@@ -472,17 +472,17 @@ class KdTest(absltest.TestCase):
   def test_tracing_for_ops(self):
     with self.subTest('top_level_operator'):
       with tracing_mode.enable_tracing():
-        expr = kd.sum(I.x)
+        expr = kd.sum(I.x)  # pyrefly: ignore[missing-attribute]
       kd.testing.assert_equal(expr.op, kd.lazy.sum)
 
     with self.subTest('nested_operator'):
       with tracing_mode.enable_tracing():
-        expr = kd.math.abs(I.x)
+        expr = kd.math.abs(I.x)  # pyrefly: ignore[missing-attribute]
       kd.testing.assert_equal(expr.op, kd.lazy.math.abs)
 
     with self.subTest('namespace_overloaded_by_impure_functions'):
       with tracing_mode.enable_tracing():
-        expr = kd.core.attrs(I.x)
+        expr = kd.core.attrs(I.x)  # pyrefly: ignore[missing-attribute]
       kd.testing.assert_equal(expr.op, kd.lazy.core.attrs)
 
     with self.subTest('operator_overloaded_by_impure_functions'):
@@ -494,11 +494,11 @@ class KdTest(absltest.TestCase):
       #
       # instead, however asserting on the particular type seems to be safer to
       # catch implementation changes.
-      assert isinstance(kd.slices.slice, types.BuiltinFunctionType)
+      assert isinstance(kd.slices.slice, types.BuiltinFunctionType)  # pyrefly: ignore[missing-attribute]
 
       with tracing_mode.enable_tracing():
-        expr = kd.slices.slice(I.x)
-      kd.testing.assert_equal(expr.op, kd.lazy.slices.slice)  # pyrefly: ignore[bad-argument-type]
+        expr = kd.slices.slice(I.x)  # pyrefly: ignore[missing-attribute]
+      kd.testing.assert_equal(expr.op, kd.lazy.slices.slice)
 
   def test_tracing_for_functions_error(self):
     with tracing_mode.enable_tracing():
@@ -534,76 +534,76 @@ class KdTest(absltest.TestCase):
 
   def test_tracing_for_with_name(self):
     with tracing_mode.enable_tracing():
-      with_name_expr = kd.with_name(1, 'foo')
+      with_name_expr = kd.with_name(1, 'foo')  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_traced_exprs_equal(
         with_name_expr, kd.lazy.with_name(1, 'foo')
     )
 
     with tracing_mode.enable_tracing():
-      with_name_expr = kd.annotation.with_name(1, 'foo')
+      with_name_expr = kd.annotation.with_name(1, 'foo')  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_traced_exprs_equal(
         with_name_expr, kd.lazy.annotation.with_name(1, 'foo')
     )
 
   def test_tracing_for_slice_and_item(self):
     with tracing_mode.enable_tracing():
-      ds = kd.slice([1, 2, 3], schema=kd.INT64).with_name('ds')
-      item = kd.item(3, schema=kd.OBJECT).with_name('item')
+      ds = kd.slice([1, 2, 3], schema=kd.INT64).with_name('ds')  # pyrefly: ignore[missing-attribute]
+      item = kd.item(3, schema=kd.OBJECT).with_name('item')  # pyrefly: ignore[missing-attribute]
     self.assertIsInstance(ds, arolla.abc.Expr)
     self.assertIsInstance(item, arolla.abc.Expr)
-    kd.testing.assert_equal(kd.eval(ds), kd.slice([1, 2, 3], schema=kd.INT64))
-    kd.testing.assert_equal(kd.eval(item), kd.item(3, schema=kd.OBJECT))
+    kd.testing.assert_equal(kd.eval(ds), kd.slice([1, 2, 3], schema=kd.INT64))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(kd.eval(item), kd.item(3, schema=kd.OBJECT))  # pyrefly: ignore[missing-attribute]
     self.assertEqual(kd.expr.get_name(ds), 'ds')
     self.assertEqual(kd.expr.get_name(item), 'item')
 
   def test_tracing_for_slice_of_kd_obj(self):
     with tracing_mode.enable_tracing():
-      ds = kd.slice([[kd.obj(a=1), kd.obj(a=2)], [kd.obj(a=3)]])
+      ds = kd.slice([[kd.obj(a=1), kd.obj(a=2)], [kd.obj(a=3)]])  # pyrefly: ignore[missing-attribute]
     self.assertIsInstance(ds, arolla.abc.Expr)
-    kd.testing.assert_equal(kd.eval(ds).a.no_bag(), kd.slice([[1, 2], [3]]))
+    kd.testing.assert_equal(kd.eval(ds).a.no_bag(), kd.slice([[1, 2], [3]]))  # pyrefly: ignore[missing-attribute]
 
   def test_tracing_for_nested_slice_with_cast(self):
     with tracing_mode.enable_tracing():
-      ds = kd.slice(kd.slice([[1, 2], [3]]), schema=kd.INT64)
+      ds = kd.slice(kd.slice([[1, 2], [3]]), schema=kd.INT64)  # pyrefly: ignore[missing-attribute]
     self.assertIsInstance(ds, arolla.abc.Expr)
     kd.testing.assert_equal(
-        kd.eval(ds), kd.slice([[1, 2], [3]], schema=kd.INT64)
+        kd.eval(ds), kd.slice([[1, 2], [3]], schema=kd.INT64)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_tracing_for_kd_item_does_not_use_float32(self):
     with tracing_mode.enable_tracing():
-      ds = kd.item(1 + 1e-14, schema=kd.FLOAT64)
+      ds = kd.item(1 + 1e-14, schema=kd.FLOAT64)  # pyrefly: ignore[missing-attribute]
     self.assertIsInstance(ds, arolla.abc.Expr)
-    kd.testing.assert_equal(kd.eval(ds), kd.item(1 + 1e-14, schema=kd.FLOAT64))
+    kd.testing.assert_equal(kd.eval(ds), kd.item(1 + 1e-14, schema=kd.FLOAT64))  # pyrefly: ignore[missing-attribute]
 
   def test_tracing_for_nested_item_with_cast(self):
     with tracing_mode.enable_tracing():
-      ds = kd.item(kd.item(57), schema=kd.INT64)
+      ds = kd.item(kd.item(57), schema=kd.INT64)  # pyrefly: ignore[missing-attribute]
     self.assertIsInstance(ds, arolla.abc.Expr)
-    kd.testing.assert_equal(kd.eval(ds), kd.item(57, schema=kd.INT64))
+    kd.testing.assert_equal(kd.eval(ds), kd.item(57, schema=kd.INT64))  # pyrefly: ignore[missing-attribute]
 
   def test_tracing_for_dedicated_py_conversions(self):
     expr = kd.expr.pack_expr(kd.I.x)
     with tracing_mode.enable_tracing():
-      int32 = kd.int32([1, 2])
-      int64 = kd.int64(1)
-      float32 = kd.float32(3.14)
-      float64 = kd.float64(3)
-      str_item = kd.str('abc')
-      bytes_slice = kd.bytes([b'x', b'y'])
-      bool_item = kd.bool(True)
-      mask = kd.mask([kd.present, kd.missing])
-      expr_quote = kd.expr_quote(expr)
-    kd.testing.assert_equal(kd.eval(int32), kd.slice([1, 2], schema=kd.INT32))
-    kd.testing.assert_equal(kd.eval(int64), kd.slice(1, schema=kd.INT64))
-    kd.testing.assert_equal(kd.eval(float32), kd.slice(3.14))
-    kd.testing.assert_equal(kd.eval(float64), kd.slice(3, schema=kd.FLOAT64))
-    kd.testing.assert_equal(kd.eval(str_item), kd.slice('abc'))
-    kd.testing.assert_equal(kd.eval(bytes_slice), kd.slice([b'x', b'y']))
-    kd.testing.assert_equal(kd.eval(bool_item), kd.slice(True))
-    kd.testing.assert_equal(kd.eval(mask), kd.slice([kd.present, kd.missing]))
+      int32 = kd.int32([1, 2])  # pyrefly: ignore[missing-attribute]
+      int64 = kd.int64(1)  # pyrefly: ignore[missing-attribute]
+      float32 = kd.float32(3.14)  # pyrefly: ignore[missing-attribute]
+      float64 = kd.float64(3)  # pyrefly: ignore[missing-attribute]
+      str_item = kd.str('abc')  # pyrefly: ignore[missing-attribute]
+      bytes_slice = kd.bytes([b'x', b'y'])  # pyrefly: ignore[missing-attribute]
+      bool_item = kd.bool(True)  # pyrefly: ignore[missing-attribute]
+      mask = kd.mask([kd.present, kd.missing])  # pyrefly: ignore[missing-attribute]
+      expr_quote = kd.expr_quote(expr)  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(kd.eval(int32), kd.slice([1, 2], schema=kd.INT32))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(kd.eval(int64), kd.slice(1, schema=kd.INT64))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(kd.eval(float32), kd.slice(3.14))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(kd.eval(float64), kd.slice(3, schema=kd.FLOAT64))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(kd.eval(str_item), kd.slice('abc'))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(kd.eval(bytes_slice), kd.slice([b'x', b'y']))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(kd.eval(bool_item), kd.slice(True))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(kd.eval(mask), kd.slice([kd.present, kd.missing]))  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equal(
-        kd.eval(expr_quote), kd.slice(kd.expr.pack_expr(kd.I.x))
+        kd.eval(expr_quote), kd.slice(kd.expr.pack_expr(kd.I.x))  # pyrefly: ignore[missing-attribute]
     )
 
   def test_tracing_for_constants(self):
@@ -636,7 +636,7 @@ class KdTest(absltest.TestCase):
   def test_types_while_tracing(self):
     @kd.trace_as_fn(return_type_as=kd.types.DataBag)
     def f():
-      return kd.bag()
+      return kd.bag()  # pyrefly: ignore[missing-attribute]
 
     @kd.trace_as_fn(return_type_as=kd.types.DataBag)
     def g(f):
@@ -647,21 +647,21 @@ class KdTest(absltest.TestCase):
 
   def test_to_py_sub_functor_regression(self):
     f = kd.fn(kd.V.g(kd.I.x) + 2, g=kd.fn(kd.I.x))
-    _ = kd.list([f]).to_py(max_depth=1)  # no error
+    _ = kd.list([f]).to_py(max_depth=1)  # no error  # pyrefly: ignore[missing-attribute]
 
   def test_tracing_schema_new(self):
     with tracing_mode.enable_tracing():
-      entity = kd.uu_schema(a=kd.INT32, b=kd.STRING).new(a=42, b='xyz')
+      entity = kd.uu_schema(a=kd.INT32, b=kd.STRING).new(a=42, b='xyz')  # pyrefly: ignore[missing-attribute]
     entity = kd.eval(entity)
     kd.testing.assert_equal(
         entity.get_schema().no_bag(),
-        kd.uu_schema(a=kd.INT32, b=kd.STRING).no_bag(),
+        kd.uu_schema(a=kd.INT32, b=kd.STRING).no_bag(),  # pyrefly: ignore[missing-attribute]
     )
-    kd.testing.assert_equal(entity.a.no_bag(), kd.item(42))
-    kd.testing.assert_equal(entity.b.no_bag(), kd.item('xyz'))
+    kd.testing.assert_equal(entity.a.no_bag(), kd.item(42))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(entity.b.no_bag(), kd.item('xyz'))  # pyrefly: ignore[missing-attribute]
 
   def test_call_with_kd_types_return_type(self):
-    obj = kd.obj(x=1)
+    obj = kd.obj(x=1)  # pyrefly: ignore[missing-attribute]
 
     with self.subTest('DataBag'):
       fn = kdf.expr_fn(returns=I.x.get_bag())
@@ -680,7 +680,7 @@ class KdTest(absltest.TestCase):
       )
 
   def test_eager_op_error_message(self):
-    x = kd.slice(1)
+    x = kd.slice(1)  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         ValueError,
         re.escape("""cannot find a common schema
@@ -688,15 +688,15 @@ class KdTest(absltest.TestCase):
  the common schema(s) INT32
  the first conflicting schema ITEMID"""),
     ):
-      kd.schema.cast_to_implicit(x, kd.ITEMID)
+      kd.schema.cast_to_implicit(x, kd.ITEMID)  # pyrefly: ignore[missing-attribute]
 
   def test_non_deterministic_op_derived_from_expr_op(self):
-    itemid1 = kd.new_itemid()
-    itemid2 = kd.new_itemid()
+    itemid1 = kd.new_itemid()  # pyrefly: ignore[missing-attribute]
+    itemid2 = kd.new_itemid()  # pyrefly: ignore[missing-attribute]
     self.assertNotEqual(itemid1.fingerprint, itemid2.fingerprint)
 
   def test_clear_eval_cache(self):
-    non_whole_ds = kd.obj(non_whole_attr=kd.obj(a=42)).non_whole_attr
+    non_whole_ds = kd.obj(non_whole_attr=kd.obj(a=42)).non_whole_attr  # pyrefly: ignore[missing-attribute]
     expr = kd.lazy.extract(non_whole_ds)
     first_eval = expr.eval()
     cached_eval = expr.eval()  # literal-folded computation.
@@ -711,26 +711,26 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(eval_after_clear_cache, expr.eval())
 
   def test_clear_all_arolla_caches_does_not_break(self):
-    obj = kd.obj(a=42)
+    obj = kd.obj(a=42)  # pyrefly: ignore[missing-attribute]
     expr = kd.lazy.get_attr(obj, 'a') - 12
-    kd.testing.assert_equal(expr.eval(), kd.slice(30))
+    kd.testing.assert_equal(expr.eval(), kd.slice(30))  # pyrefly: ignore[missing-attribute]
     arolla.abc.clear_caches()
-    kd.testing.assert_equal(expr.eval(), kd.slice(30))
+    kd.testing.assert_equal(expr.eval(), kd.slice(30))  # pyrefly: ignore[missing-attribute]
 
   def test_eager_op_overrides_expr_op(self):
-    self.assertIs(kd.obj, functions.obj)
-    self.assertIs(kd.objs.new, functions.objs.new)
+    self.assertIs(kd.obj, functions.obj)  # pyrefly: ignore[missing-attribute]
+    self.assertIs(kd.objs.new, functions.objs.new)  # pyrefly: ignore[missing-attribute]
 
   def test_functor_expr_fn(self):
-    fn = kd.functor.expr_fn(returns=I.x + V.foo, foo=I.y)
-    kd.testing.assert_equal(kd.call(fn, x=1, y=2), kd.item(3))
-    kd.testing.assert_equal(fn(x=1, y=2), kd.item(3))
-    self.assertTrue(kd.is_fn(fn))
-    self.assertFalse(kd.is_fn(57))
+    fn = kd.functor.expr_fn(returns=I.x + V.foo, foo=I.y)  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(kd.call(fn, x=1, y=2), kd.item(3))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(fn(x=1, y=2), kd.item(3))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(kd.is_fn(fn))  # pyrefly: ignore[missing-attribute]
+    self.assertFalse(kd.is_fn(57))  # pyrefly: ignore[missing-attribute]
 
   def test_functor_get_signature(self):
     fn = kd.trace_py_fn(lambda x, y: x + y)
-    sig = kd.functor.get_signature(fn)
+    sig = kd.functor.get_signature(fn)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(
         sig.parameters[:].name.to_py(),
         ['x', 'y'],
@@ -738,7 +738,7 @@ class KdTest(absltest.TestCase):
 
   def test_functor_get_inspect_signature(self):
     fn = kd.trace_py_fn(lambda x, y: x + y)
-    sig = kd.functor.get_inspect_signature(fn)
+    sig = kd.functor.get_inspect_signature(fn)  # pyrefly: ignore[missing-attribute]
     self.assertIsInstance(sig, inspect.Signature)
     self.assertEqual(
         list(sig.parameters.keys()),
@@ -746,44 +746,44 @@ class KdTest(absltest.TestCase):
     )
 
   def test_functor_factorial(self):
-    fn = kd.functor.expr_fn(
+    fn = kd.functor.expr_fn(  # pyrefly: ignore[missing-attribute]
         kd.lazy.cond(I.n == 0, V.stop, V.go)(n=I.n),
-        go=kd.functor.expr_fn(I.n * V.rec(n=I.n - 1), rec=None),
-        stop=kd.functor.expr_fn(1),
+        go=kd.functor.expr_fn(I.n * V.rec(n=I.n - 1), rec=None),  # pyrefly: ignore[missing-attribute]
+        stop=kd.functor.expr_fn(1),  # pyrefly: ignore[missing-attribute]
     )
-    fn = fn.updated(kd.attrs(fn.go, rec=fn))
-    kd.testing.assert_equal(fn(n=5), kd.item(120))
+    fn = fn.updated(kd.attrs(fn.go, rec=fn))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(fn(n=5), kd.item(120))  # pyrefly: ignore[missing-attribute]
 
   def test_trace_py_fn(self):
     fn = kd.trace_py_fn(lambda x, y: x + y)
-    kd.testing.assert_equal(fn(x=1, y=2), kd.item(3))
+    kd.testing.assert_equal(fn(x=1, y=2), kd.item(3))  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_traced_exprs_equal(
         kd.expr.unpack_expr(fn.returns), I.x + I.y
     )
 
   def test_py_fn(self):
     fn = kd.py_fn(lambda x, y: x + 1 if y == 2 else x + 3)
-    kd.testing.assert_equal(fn(x=1, y=2), kd.item(2))
-    kd.testing.assert_equal(fn(x=1, y=3), kd.item(4))
+    kd.testing.assert_equal(fn(x=1, y=2), kd.item(2))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(fn(x=1, y=3), kd.item(4))  # pyrefly: ignore[missing-attribute]
 
   def test_register_py_fn(self):
     fn = kd.register_py_fn(cond_add_fn, unsafe_override=True)
-    kd.testing.assert_equal(fn(x=1, y=2), kd.item(2))
-    kd.testing.assert_equal(fn(x=1, y=3), kd.item(4))
+    kd.testing.assert_equal(fn(x=1, y=2), kd.item(2))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(fn(x=1, y=3), kd.item(4))  # pyrefly: ignore[missing-attribute]
 
   def test_functor_register_py_fn(self):
-    fn = kd.functor.register_py_fn(cond_add_fn, unsafe_override=True)
-    kd.testing.assert_equal(fn(x=1, y=2), kd.item(2))
-    kd.testing.assert_equal(fn(x=1, y=3), kd.item(4))
+    fn = kd.functor.register_py_fn(cond_add_fn, unsafe_override=True)  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(fn(x=1, y=2), kd.item(2))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(fn(x=1, y=3), kd.item(4))  # pyrefly: ignore[missing-attribute]
 
   def test_functor_factory_protocol(self):
-    self.assertTrue(issubclass(kd.functor.FunctorFactory, Protocol))
+    self.assertTrue(issubclass(kd.functor.FunctorFactory, Protocol))  # pyrefly: ignore[missing-attribute]
 
   def test_fn(self):
     fn = kd.fn(lambda x, y: x + y)
-    kd.testing.assert_equal(fn(x=1, y=2), kd.item(3))
+    kd.testing.assert_equal(fn(x=1, y=2), kd.item(3))  # pyrefly: ignore[missing-attribute]
     fn = kd.fn(I.x + I.y)
-    kd.testing.assert_equal(fn(x=1, y=2), kd.item(3))
+    kd.testing.assert_equal(fn(x=1, y=2), kd.item(3))  # pyrefly: ignore[missing-attribute]
 
   def test_operator_definition(self):
 
@@ -800,7 +800,7 @@ class KdTest(absltest.TestCase):
 
     # Can access and eval op.
     expr = kd.lazy.core.kd_test_op(kd.slice([1, 2]))  # pyrefly: ignore[missing-attribute]
-    kd.testing.assert_equal(kd.eval(expr), kd.slice([2, 3]))
+    kd.testing.assert_equal(kd.eval(expr), kd.slice([2, 3]))  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equal(
         kd.core.kd_test_op(kd.slice([1, 2])), kd.slice([2, 3])  # pyrefly: ignore[missing-attribute]
     )
@@ -808,7 +808,7 @@ class KdTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'expected DATA_SLICE, got x: DATA_BAG'
     ):
-      kd_test_op(kd.bag())
+      kd_test_op(kd.bag())  # pyrefly: ignore[missing-attribute]
 
   def test_equiv_to_op(self):
     @kd.optools.add_to_registry()
@@ -837,14 +837,14 @@ class KdTest(absltest.TestCase):
     )
 
   def test_as_qvalue(self):
-    kd.testing.assert_equal(kd.optools.as_qvalue(1), kd.item(1))
+    kd.testing.assert_equal(kd.optools.as_qvalue(1), kd.item(1))  # pyrefly: ignore[missing-attribute]
 
   def test_as_qvalue_or_expr(self):
-    kd.testing.assert_equal(kd.optools.as_qvalue_or_expr(1), kd.item(1))
+    kd.testing.assert_equal(kd.optools.as_qvalue_or_expr(1), kd.item(1))  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equal(kd.optools.as_qvalue_or_expr(I.x), I.x)
 
   def test_qtypes(self):
-    kd.testing.assert_equal(kd.item(1).qtype, kd.qtypes.DATA_SLICE)
+    kd.testing.assert_equal(kd.item(1).qtype, kd.qtypes.DATA_SLICE)  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equal(kd.mutable_bag().qtype, kd.qtypes.DATA_BAG)
 
     @kd.trace_as_fn(return_type_as=arolla.INT32)
@@ -854,24 +854,24 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(get_data_slice(), kd.qtypes.DATA_SLICE)
 
   def test_eager_operator(self):
-    self.assertIsInstance(kd.math.add, kd.optools.eager.EagerOperator)
-    kd.testing.assert_equal(kd.math.add.lazy_op, kd.lazy.math.add)
+    self.assertIsInstance(kd.math.add, kd.optools.eager.EagerOperator)  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(kd.math.add.lazy_op, kd.lazy.math.add)  # pyrefly: ignore[missing-attribute]
 
   def test_function_boxing(self):
     fn = kd.expr.as_expr(lambda x: x + 1)
-    kd.testing.assert_equal(kd.eval(kd.lazy.call(fn, 5)), kd.item(6))
+    kd.testing.assert_equal(kd.eval(kd.lazy.call(fn, 5)), kd.item(6))  # pyrefly: ignore[missing-attribute]
 
   def test_get_nth_eager_version(self):
     # This operator requires a specific eager implementation since it requires
     # literal inputs.
-    kd.testing.assert_equal(kd.tuples.get_nth((1, 2, 3), 1), kd.item(2))
+    kd.testing.assert_equal(kd.tuples.get_nth((1, 2, 3), 1), kd.item(2))  # pyrefly: ignore[missing-attribute]
 
   def test_get_namedtuple_field_eager_version(self):
     # This operator requires a specific eager implementation since it requires
     # literal inputs.
     kd.testing.assert_equal(
-        kd.tuples.get_namedtuple_field(kd.namedtuple(x=1, y='abc'), 'y'),
-        kd.item('abc'),
+        kd.tuples.get_namedtuple_field(kd.namedtuple(x=1, y='abc'), 'y'),  # pyrefly: ignore[missing-attribute]
+        kd.item('abc'),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_extension_type_functions(self):
@@ -879,11 +879,11 @@ class KdTest(absltest.TestCase):
     class A:
       x: kd.INT32
 
-      @kd.extension_types.virtual()
+      @kd.extension_types.virtual()  # pyrefly: ignore[missing-attribute]
       def fn(self, y):
         return self.x + y
 
-    kd.testing.assert_equal(A(1).fn(2), kd.slice(3))  # pyrefly: ignore[bad-argument-count]
+    kd.testing.assert_equal(A(1).fn(2), kd.slice(3))  # pyrefly: ignore[bad-argument-count, missing-attribute]
 
   def test_extension_type_operators(self):
     @kd.extension_type(unsafe_override=True)
@@ -892,37 +892,28 @@ class KdTest(absltest.TestCase):
 
     def fn(a: A):
       a_qtype = kd.eager.extension_types.get_extension_qtype(A)
-      return kd.extension_types.dynamic_cast(a, a_qtype).x + 2
+      return kd.extension_types.dynamic_cast(a, a_qtype).x + 2  # pyrefly: ignore[missing-attribute]
 
     a = A(1)  # pyrefly: ignore[bad-argument-count]
-    kd.testing.assert_equal(fn(a), kd.slice(3))
-    kd.testing.assert_equal(kd.fn(fn)(a), kd.slice(3))
+    kd.testing.assert_equal(fn(a), kd.slice(3))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(kd.fn(fn)(a), kd.slice(3))  # pyrefly: ignore[missing-attribute]
 
   def test_functor_switch(self):
     # Testing that kd.SWITCH_DEFAULT is available, with and without alias.
-    kd.testing.assert_equal(
-        kd.functor.switch(
-            'missing',
-            {
-                'a': lambda x: x + 1,
-                kd.functor.SWITCH_DEFAULT: lambda x: x + 100,
-            },
-            x=10,
-        ),
-        kd.item(110),
-    )
-    kd.testing.assert_equal(
-        kd.switch(
-            'missing',
-            {'a': lambda x: x + 1, kd.SWITCH_DEFAULT: lambda x: x + 100},
-            x=10,
-        ),
-        kd.item(110),
-    )
+    kd.testing.assert_equal(kd.functor.switch(  # pyrefly: ignore[missing-attribute]
+        'missing',
+        {'a': lambda x: x + 1, kd.functor.SWITCH_DEFAULT: lambda x: x + 100},  # pyrefly: ignore[missing-attribute]
+        x=10,
+    ), kd.item(110))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(kd.switch(  # pyrefly: ignore[missing-attribute]
+        'missing',
+        {'a': lambda x: x + 1, kd.SWITCH_DEFAULT: lambda x: x + 100},
+        x=10,
+    ), kd.item(110))  # pyrefly: ignore[missing-attribute]
 
   def test_dump_and_load(self):
     temp_dir = self.create_tempdir().full_path
-    x = kd.obj(a=kd.slice([1, 2, 3]), b='hello')
+    x = kd.obj(a=kd.slice([1, 2, 3]), b='hello')  # pyrefly: ignore[missing-attribute]
     path = f'{temp_dir}/x.kd'
     kd.dump(x, path)
     y = kd.load(path)

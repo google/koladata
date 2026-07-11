@@ -72,14 +72,14 @@ class ValueCountsTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
         kde.contrib.value_counts,
-        (  # pyrefly: ignore[bad-argument-type]
+        (
             (
                 kd.qtypes.DATA_SLICE,
                 kd.qtypes.NON_DETERMINISTIC_TOKEN,
                 kd.qtypes.DATA_SLICE,
             ),
         ),
-        possible_qtypes=kd.testing.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
+        possible_qtypes=kd.testing.DETECT_SIGNATURES_QTYPES,
     )
 
 

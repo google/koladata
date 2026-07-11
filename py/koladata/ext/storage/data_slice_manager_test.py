@@ -4163,11 +4163,11 @@ class DataSliceManagerTest(parameterized.TestCase):
       raise KeyboardInterrupt()
 
     fs_rename_then_keyboard_interrupt = fs_factory()
-    fs_rename_then_keyboard_interrupt.rename = rename_then_keyboard_interrupt  # pyrefly: ignore[bad-assignment]
+    fs_rename_then_keyboard_interrupt.rename = rename_then_keyboard_interrupt
 
     fs_no_rename_only_keyboard_interrupt = fs_factory()
     fs_no_rename_only_keyboard_interrupt.rename = (
-        no_rename_only_keyboard_interrupt  # pyrefly: ignore[bad-assignment]
+        no_rename_only_keyboard_interrupt
     )
 
     persistence_dir = self.create_tempdir().full_path

@@ -585,7 +585,7 @@ class TypeCheckingTest(parameterized.TestCase):
         ' StaticWhenTraced, got 0',
     ):
 
-      @type_checking.check_inputs(x=kd.int32(0))  # pyrefly: ignore[bad-argument-type]
+      @type_checking.check_inputs(x=kd.int32(0))  # pyrefly: ignore[missing-attribute]
       def _(x):
         return x
 
@@ -597,7 +597,7 @@ class TypeCheckingTest(parameterized.TestCase):
         ' StaticWhenTraced, got 0',
     ):
 
-      @type_checking.check_output(kd.int32(0))  # pyrefly: ignore[bad-argument-type]
+      @type_checking.check_output(kd.int32(0))  # pyrefly: ignore[missing-attribute]
       def _(x):
         return x
 

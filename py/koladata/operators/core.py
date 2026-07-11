@@ -481,7 +481,7 @@ def strict_attrs(x, /, **attrs):  # pylint: disable=redefined-outer-name
     ],
     qtype_inference_expr=qtypes.DATA_BAG,
 )
-def attr(x, attr_name, value, overwrite_schema=False):  # pylint: disable=unused-argument
+def _attr(x, attr_name, value, overwrite_schema=False):  # pylint: disable=unused-argument,redefined-outer-name
   """Returns a new DataBag containing attribute `attr_name` update for `x`.
 
   This operator is useful if attr_name cannot be used as a key in keyword
@@ -598,7 +598,7 @@ def with_attr(x, attr_name, value, overwrite_schema=False):
     overwrite_schema: if True, schema for attribute is always updated.
   """
   return updated(
-      x, attr(x, attr_name, value, overwrite_schema=overwrite_schema)
+      x, _attr(x, attr_name, value, overwrite_schema=overwrite_schema)
   )
 
 
