@@ -543,6 +543,7 @@ class slices:
   empty_shaped = _operators_slices.empty_shaped
   empty_shaped_as = _operators_slices.empty_shaped_as
   expand_to = _operators_slices.expand_to
+  expand_to_present = _operators_slices.expand_to_present
   expr_quote = _operators_slices.expr_quote
   float32 = _operators_slices.float32
   float64 = _operators_slices.float64
@@ -716,6 +717,7 @@ enriched = _operators_core.enriched
 enriched_bag = _operators_bags.enriched
 equal = _operators_comparison.equal
 expand_to = _operators_slices.expand_to
+expand_to_present = _operators_slices.expand_to_present
 expand_to_shape = _operators_jagged_shape.expand_to_shape
 explode = _operators_lists.explode
 expr_quote = _operators_slices.expr_quote

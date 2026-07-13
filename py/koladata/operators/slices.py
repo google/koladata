@@ -37,7 +37,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-M = arolla.M | jagged_shape.M  # pyrefly: ignore[unsupported-operation]
+M = arolla.M | jagged_shape.M
 P = arolla.P
 MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
@@ -131,10 +131,10 @@ def agg_count(x, ndim=arolla.unspecified()):
   flat_units = arolla_bridge.to_arolla_dense_array_unit(masking.has(x))
   shape = jagged_shape_ops.get_shape(x)
   shape_upcast = arolla_bridge.to_arolla_jagged_shape(shape)
-  flat_res = M.array.count(flat_units, into=M.jagged.edge_at(shape_upcast, -1))  # pyrefly: ignore[missing-attribute]
+  flat_res = M.array.count(flat_units, into=M.jagged.edge_at(shape_upcast, -1))
   return arolla_bridge.to_data_slice(flat_res).reshape(
       arolla_bridge.from_arolla_jagged_shape(
-          M.jagged.remove_dims(shape_upcast, from_dim=-1)  # pyrefly: ignore[missing-attribute]
+          M.jagged.remove_dims(shape_upcast, from_dim=-1)
       )
   )
 
@@ -167,9 +167,9 @@ def cum_count(x, ndim=arolla.unspecified()):
   """
   x_shape = jagged_shape_ops.get_shape(x)
   flat_units = arolla_bridge.to_arolla_dense_array_unit(masking.has(x))
-  flat_res = M.array.cum_count(  # pyrefly: ignore[missing-attribute]
+  flat_res = M.array.cum_count(
       flat_units,
-      over=M.jagged.edge_at(  # pyrefly: ignore[missing-attribute]
+      over=M.jagged.edge_at(
           arolla_bridge.to_arolla_jagged_shape(
               jagged_shape_ops.flatten_last_ndim(x_shape, ndim),
           ),
@@ -371,12 +371,12 @@ def _concat_or_stack(stack, ndim, *args):  # pylint: disable=unused-argument,red
 @optools.add_to_registry(aliases=['kd.concat'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.concat',
-    qtype_constraints=[  # pyrefly: ignore[bad-argument-type]
+    qtype_constraints=[
         qtype_utils.expect_data_slice_args(P.args),
-        [
-            M.qtype.get_field_count(P.args) > 0,  # pyrefly: ignore[missing-attribute]
+        (
+            M.qtype.get_field_count(P.args) > 0,
             'expected a nonzero number of args',
-        ],
+        ),
         qtype_utils.expect_data_slice(P.ndim),
     ],
 )
@@ -431,7 +431,7 @@ def concat(*args, ndim=1):
     new merged immutable DataBag.
   """
   args = arolla.optools.fix_trace_args(args)
-  return M.core.apply_varargs(  # pyrefly: ignore[missing-attribute]
+  return M.core.apply_varargs(
       _concat_or_stack, data_slice.DataSlice.from_vals(False), ndim, args
   )
 
@@ -565,6 +565,78 @@ def expand_to(x, target, ndim=arolla.unspecified()):
 
 
 @optools.add_to_registry(
+    aliases=['kd.expand_to_present'], via_cc_operator_package=True
+)
+@optools.as_backend_operator(
+    'kd.slices.expand_to_present',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.target),
+        qtype_utils.expect_data_slice(P.ndim),
+    ],
+)
+def expand_to_present(
+    x,
+    target,
+    ndim=data_slice.DataSlice.from_vals(0, schema_constants.INT64),
+):
+  """Expands `x` based on the shape and sparsity of `target`.
+
+  When `ndim` is not set, expands `x` to `target` preserving the mask of
+  `target` (`kd.has(target)`). The shape of `x` must be a prefix of the shape
+  of `target`.
+  For example,
+
+  Example 1:
+    x: kd.slice([[1, 2], [3]])
+    target: kd.slice([[[0], [None, 0]], [[0, None, 0]]])
+    result: kd.slice([[[1], [None, 2]], [[3, None, 3]]])
+
+  Example 2:
+    x: kd.slice([[1, 2], [3]])
+    target: kd.slice([[[0]], [[0, 0, 0]]])
+    result: incompatible shapes
+
+  Example 3:
+    x: kd.slice([[1, 2], [3]])
+    target: kd.slice([0, 0])
+    result: incompatible shapes
+
+  When `ndim` is set, the expansion is performed in 3 steps:
+    1) the last N dimensions of `x` are first imploded into lists
+    2) the expansion operation is performed on the DataSlice of lists
+    3) the lists in the expanded DataSlice are exploded
+
+  The result will have M + ndim dimensions where M is the number
+  of dimensions of `target`. Where `target` is missing (`None`), the resulting
+  sub-slice will be empty.
+
+  For example,
+
+  Example 4:
+    x: kd.slice([[1, 2], [3]])
+    target: kd.slice([[1], [None, 3]])
+    ndim: 1
+    result: kd.slice([[[1, 2]], [[], [3]]])
+
+  Example 5:
+    x: kd.slice([[1, 2], [3]])
+    target: kd.slice([[1], [None, 3]])
+    ndim: 2
+    result: kd.slice([[[[1, 2], [3]]], [[], [[1, 2], [3]]]])
+
+  Args:
+    x: DataSlice to expand.
+    target: target DataSlice.
+    ndim: the number of dimensions to implode during expansion.
+
+  Returns:
+    Expanded DataSlice.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(
     aliases=['kd.is_expandable_to'], via_cc_operator_package=True
 )
 @optools.as_lambda_operator(
@@ -661,7 +733,7 @@ def _group_by_indices(*keys):  # pylint: disable=unused-argument
     'kd.slices.group_by_indices',
     qtype_constraints=[
         (
-            M.qtype.get_field_count(P.keys) > 0,  # pyrefly: ignore[missing-attribute]
+            M.qtype.get_field_count(P.keys) > 0,
             'expected at least one argument',
         ),
         qtype_utils.expect_data_slice_args(P.keys),
@@ -727,7 +799,7 @@ def group_by_indices(*keys, sort=False):  # pylint: disable=redefined-outer-name
     INT64 DataSlice with indices and injected grouped_by dimension.
   """
   keys = arolla.optools.fix_trace_args(keys)
-  return M.core.apply_varargs(_group_by_indices, sort, keys)  # pyrefly: ignore[missing-attribute]
+  return M.core.apply_varargs(_group_by_indices, sort, keys)
 
 
 @optools.add_to_registry(aliases=['kd.group_by'], via_cc_operator_package=True)
@@ -812,23 +884,23 @@ def group_by(x, *keys, sort=False):  # pylint: disable=redefined-outer-name
       'x, keys, sort',
       x_is_key_case=arolla.types.DispatchCase(
           take(P.x, _group_by_indices(P.sort, P.x)),
-          condition=M.qtype.get_field_count(P.keys) == 0,  # pyrefly: ignore[missing-attribute]
+          condition=M.qtype.get_field_count(P.keys) == 0,
       ),
       default=take(
           assertion.with_assertion(
               P.x,
-              M.jagged.equal(  # pyrefly: ignore[missing-attribute]
+              M.jagged.equal(
                   arolla_bridge.to_arolla_jagged_shape(
                       jagged_shape_ops.get_shape(P.x)
                   ),
                   arolla_bridge.to_arolla_jagged_shape(
-                      jagged_shape_ops.get_shape(M.core.get_nth(P.keys, 0)),  # pyrefly: ignore[missing-attribute]
+                      jagged_shape_ops.get_shape(M.core.get_nth(P.keys, 0)),
                   ),
               ),
               'First argument `x` must have the same shape as the other'
               ' arguments',
           ),
-          M.core.apply_varargs(_group_by_indices, P.sort, P.keys),  # pyrefly: ignore[missing-attribute]
+          M.core.apply_varargs(_group_by_indices, P.sort, P.keys),
       ),
   )
   return dispatch_op(x, keys, sort)
@@ -903,9 +975,9 @@ def index(x, dim=-1):
   aggregated = masking.agg_has(x, ndim)
   flat_units = arolla_bridge.to_arolla_dense_array_unit(masking.has(aggregated))
   shape = jagged_shape_ops.get_shape(aggregated)
-  flat_res = M.array.agg_index(  # pyrefly: ignore[missing-attribute]
+  flat_res = M.array.agg_index(
       flat_units,
-      over=M.jagged.edge_at(  # pyrefly: ignore[missing-attribute]
+      over=M.jagged.edge_at(
           arolla_bridge.to_arolla_jagged_shape(shape),
           -1,
       ),
@@ -1145,7 +1217,7 @@ def ordinal_rank(
   Returns:
     A DataSlice of ordinal ranks.
   """
-  tie_breaker = M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
+  tie_breaker = M.core.default_if_unspecified(
       tie_breaker, data_slice.DataSlice.from_vals(0, schema_constants.INT64)
   )
   res = _ordinal_rank(
@@ -1190,12 +1262,12 @@ def repeat(x, sizes):
   """
   x, expanded_sizes = align(x, sizes)
   x_shape = jagged_shape_ops.get_shape(x)
-  edge = M.edge.from_sizes(  # pyrefly: ignore[missing-attribute]
+  edge = M.edge.from_sizes(
       arolla_bridge.to_arolla_dense_array_int64(expanded_sizes)
   )
 
   target_shape = arolla_bridge.from_arolla_jagged_shape(
-      M.jagged.add_dims(  # pyrefly: ignore[missing-attribute]
+      M.jagged.add_dims(
           arolla_bridge.to_arolla_jagged_shape(x_shape),
           edge,
       )
@@ -1446,7 +1518,7 @@ def sort(x, sort_by=arolla.unspecified(), descending=False):
       'x, sort_by',
       assertion.with_assertion(
           P.x,
-          M.jagged.equal(  # pyrefly: ignore[missing-attribute]
+          M.jagged.equal(
               arolla_bridge.to_arolla_jagged_shape(
                   jagged_shape_ops.get_shape(P.x)
               ),
@@ -1481,12 +1553,12 @@ def sort(x, sort_by=arolla.unspecified(), descending=False):
 @optools.add_to_registry(aliases=['kd.stack'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.stack',
-    qtype_constraints=[  # pyrefly: ignore[bad-argument-type]
+    qtype_constraints=[
         qtype_utils.expect_data_slice_args(P.args),
-        [
-            M.qtype.get_field_count(P.args) > 0,  # pyrefly: ignore[missing-attribute]
+        (
+            M.qtype.get_field_count(P.args) > 0,
             'expected a nonzero number of args',
-        ],
+        ),
         qtype_utils.expect_data_slice(P.ndim),
     ],
 )
@@ -1527,7 +1599,7 @@ def stack(*args, ndim=0):
     this will refer to a merged immutable DataBag.
   """
   args = arolla.optools.fix_trace_args(args)
-  return M.core.apply_varargs(  # pyrefly: ignore[missing-attribute]
+  return M.core.apply_varargs(
       _concat_or_stack, data_slice.DataSlice.from_vals(True), ndim, args
   )
 
@@ -1538,25 +1610,25 @@ def _expect_data_slices_or_slices_or_ellipsis(value):
       'x',
       (P.x == qtypes.DATA_SLICE)
       | (
-          M.qtype.is_slice_qtype(P.x)  # pyrefly: ignore[missing-attribute]
-          & M.seq.all(  # pyrefly: ignore[missing-attribute]
-              M.seq.map(  # pyrefly: ignore[missing-attribute]
+          M.qtype.is_slice_qtype(P.x)
+          & M.seq.all(
+              M.seq.map(
                   arolla.LambdaOperator(
                       'arg',
                       (P.arg == qtypes.DATA_SLICE)
                       | (P.arg == arolla.UNSPECIFIED),
                   ),
-                  M.qtype.get_field_qtypes(P.x),  # pyrefly: ignore[missing-attribute]
+                  M.qtype.get_field_qtypes(P.x),
               )
           )
       )
       | (P.x == qtypes.ELLIPSIS),
   )
   return (
-      M.seq.all(  # pyrefly: ignore[missing-attribute]
-          M.seq.map(  # pyrefly: ignore[missing-attribute]
+      M.seq.all(
+          M.seq.map(
               is_data_slice_or_slice_or_ellipsis,
-              M.qtype.get_field_qtypes(value),  # pyrefly: ignore[missing-attribute]
+              M.qtype.get_field_qtypes(value),
           )
       ),
       (
@@ -1796,7 +1868,7 @@ def translate_group(keys_to, keys_from, values_from):
       'keys_from, values_from',
       assertion.with_assertion(
           P.keys_from,
-          M.jagged.equal(  # pyrefly: ignore[missing-attribute]
+          M.jagged.equal(
               arolla_bridge.to_arolla_jagged_shape(
                   jagged_shape_ops.get_shape(P.keys_from)
               ),
@@ -1882,12 +1954,12 @@ def unique(x, sort=False):  # pylint: disable=redefined-outer-name,unused-argume
 @optools.add_to_registry(aliases=['kd.zip'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.zip',
-    qtype_constraints=[  # pyrefly: ignore[bad-argument-type]
+    qtype_constraints=[
         qtype_utils.expect_data_slice_args(P.args),
-        [
-            M.qtype.get_field_count(P.args) > 0,  # pyrefly: ignore[missing-attribute]
+        (
+            M.qtype.get_field_count(P.args) > 0,
             'expected a nonzero number of args',
-        ],
+        ),
     ],
 )
 def _zip(*args):
@@ -1915,11 +1987,11 @@ def _zip(*args):
     this will refer to a merged immutable DataBag.
   """
   args = arolla.optools.fix_trace_args(args)
-  return M.core.apply_varargs(  # pyrefly: ignore[missing-attribute]
+  return M.core.apply_varargs(
       _concat_or_stack,
       data_slice.DataSlice.from_vals(True),
       data_slice.DataSlice.from_vals(0),
-      M.core.apply_varargs(align, args),  # pyrefly: ignore[missing-attribute]
+      M.core.apply_varargs(align, args),
   )
 
 
@@ -2365,7 +2437,7 @@ def shape_sizes(x):
 
   @optools.as_lambda_operator('size_slice')
   def get_sizes(edge):
-    return arolla_bridge.to_data_slice(M.edge.sizes(edge))  # pyrefly: ignore[missing-attribute]
+    return arolla_bridge.to_data_slice(M.edge.sizes(edge))
 
   @optools.as_lambda_operator('concat_sizes')
   def concat_sizes(x, y):
@@ -2373,10 +2445,10 @@ def shape_sizes(x):
                   jagged_shape_ops.flatten(y, 0, 0),  # Add an outer dimension.
                   ndim=2)
 
-  edges = M.jagged.edges(arolla_bridge.to_arolla_jagged_shape(  # pyrefly: ignore[missing-attribute]
+  edges = M.jagged.edges(arolla_bridge.to_arolla_jagged_shape(
       dispatch_get_shape(x)))
-  sizes_ = M.seq.map(get_sizes, edges)  # pyrefly: ignore[missing-attribute]
-  return M.seq.reduce(  # pyrefly: ignore[missing-attribute]
+  sizes_ = M.seq.map(get_sizes, edges)
+  return M.seq.reduce(
       concat_sizes,
       sizes_,
       initial=data_slice.DataSlice.from_vals([], schema_constants.INT64).repeat(

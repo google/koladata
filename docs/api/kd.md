@@ -436,6 +436,10 @@ Args:
 
 Alias for [kd.slices.expand_to](kd/slices.md#kd.slices.expand_to)
 
+### `kd.expand_to_present(x, target, ndim=0)` {#kd.expand_to_present}
+
+Alias for [kd.slices.expand_to_present](kd/slices.md#kd.slices.expand_to_present)
+
 ### `kd.expand_to_shape(x, shape, ndim=unspecified)` {#kd.expand_to_shape}
 
 Alias for [kd.shapes.expand_to_shape](kd/shapes.md#kd.shapes.expand_to_shape)

@@ -475,6 +475,7 @@ OPERATOR("kd.slices._ordinal_rank", OrdinalRank, "kd.slices.ordinal_rank");
 OPERATOR_FAMILY("kd.slices.align",
                      std::make_unique<AlignOperatorFamily>());
 OPERATOR("kd.slices.empty_shaped", EmptyShaped);
+OPERATOR("kd.slices.expand_to_present", ExpandToPresent);
 OPERATOR("kd.slices.get_repr", GetRepr);
 OPERATOR("kd.slices.internal_select_by_slice", Select, "kd.slices.select");
 OPERATOR("kd.slices.inverse_select", InverseSelect);

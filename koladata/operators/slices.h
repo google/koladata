@@ -98,6 +98,11 @@ class SubsliceOperatorFamily : public arolla::OperatorFamily {
 // kd.slices.take operator.
 absl::StatusOr<DataSlice> Take(const DataSlice& x, const DataSlice& indices);
 
+// kd.slices._expand_to_present.
+absl::StatusOr<DataSlice> ExpandToPresent(const DataSlice& x,
+                                          const DataSlice& target,
+                                          const DataSlice& ndim);
+
 // kd.slices.translate.
 absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
                                     const DataSlice& keys_from,

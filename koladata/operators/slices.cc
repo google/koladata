@@ -81,6 +81,7 @@
 #include "koladata/internal/slice_builder.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/arolla_bridge.h"
+#include "koladata/operators/masking.h"
 #include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
 #include "koladata/subslice_utils.h"
@@ -1128,6 +1129,54 @@ absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
          });
   return DataSlice::Create(internal::DataItem(arolla::Text(std::move(repr))),
                            internal::DataItem(schema::kString));
+}
+
+absl::StatusOr<DataSlice> ExpandToPresent(const DataSlice& x,
+                                          const DataSlice& target,
+                                          const DataSlice& ndim) {
+  ASSIGN_OR_RETURN(auto ndim_val, ToArollaScalar<int64_t>(ndim),
+                   _ << "`ndim` argument must be a scalar INT64, but got "
+                     << arolla::Repr(ndim));
+  if (ndim_val == 0) {
+    ASSIGN_OR_RETURN(auto broadcasted, BroadcastToShape(x, target.GetShape()));
+    ASSIGN_OR_RETURN(auto mask, Has(target));
+    return ApplyMask(broadcasted, mask);
+  }
+
+  if (ndim_val < 0 || ndim_val > x.GetShape().rank()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "ndim must be a positive integer and <= x.ndim, got %d", ndim_val));
+  }
+
+  auto create_error = [&]() -> absl::Status {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "Cannot expand 'x' imploded with the last %d dimension(s) to "
+        "'target' due to incompatible shapes. Got 'x' shape: %s, imploded "
+        "'x' shape: %s, 'target' shape: %s",
+        ndim_val, arolla::Repr(x.GetShape()),
+        arolla::Repr(x.GetShape().RemoveDims(x.GetShape().rank() - ndim_val)),
+        arolla::Repr(target.GetShape())));
+  };
+
+  if (x.GetShape().rank() - ndim_val > target.GetShape().rank()) {
+    return create_error();
+  }
+  ASSIGN_OR_RETURN(
+      auto zeros,
+      DataSlice::CreatePrimitive(arolla::CreateConstDenseArray<int64_t>(
+                                     target.GetShape().size(), 0),
+                                 target.GetShape()));
+  ASSIGN_OR_RETURN(auto mask, Has(target));
+  ASSIGN_OR_RETURN(zeros, ApplyMask(std::move(zeros), std::move(mask)));
+  std::vector<subslice::SlicingArgType> slice_args;
+  slice_args.reserve(ndim_val);
+  slice_args.emplace_back(subslice::Slice{std::move(zeros), std::nullopt});
+  for (int i = 1; i < ndim_val; ++i) {
+    slice_args.emplace_back(subslice::Slice{std::nullopt, std::nullopt});
+  }
+  ASSIGN_OR_RETURN(auto res, subslice::Subslice(x, std::move(slice_args)),
+                   create_error());
+  return std::move(res);
 }
 
 }  // namespace koladata::ops

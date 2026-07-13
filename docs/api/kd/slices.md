@@ -339,6 +339,64 @@ Args:
 Returns:
   Expanded DataSlice</code></pre>
 
+### `kd.slices.expand_to_present(x, target, ndim=0)` {#kd.slices.expand_to_present}
+Aliases:
+
+- [kd.expand_to_present](../kd.md#kd.expand_to_present)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Expands `x` based on the shape and sparsity of `target`.
+
+When `ndim` is not set, expands `x` to `target` preserving the mask of
+`target` (`kd.has(target)`). The shape of `x` must be a prefix of the shape
+of `target`.
+For example,
+
+Example 1:
+  x: kd.slice([[1, 2], [3]])
+  target: kd.slice([[[0], [None, 0]], [[0, None, 0]]])
+  result: kd.slice([[[1], [None, 2]], [[3, None, 3]]])
+
+Example 2:
+  x: kd.slice([[1, 2], [3]])
+  target: kd.slice([[[0]], [[0, 0, 0]]])
+  result: incompatible shapes
+
+Example 3:
+  x: kd.slice([[1, 2], [3]])
+  target: kd.slice([0, 0])
+  result: incompatible shapes
+
+When `ndim` is set, the expansion is performed in 3 steps:
+  1) the last N dimensions of `x` are first imploded into lists
+  2) the expansion operation is performed on the DataSlice of lists
+  3) the lists in the expanded DataSlice are exploded
+
+The result will have M + ndim dimensions where M is the number
+of dimensions of `target`. Where `target` is missing (`None`), the resulting
+sub-slice will be empty.
+
+For example,
+
+Example 4:
+  x: kd.slice([[1, 2], [3]])
+  target: kd.slice([[1], [None, 3]])
+  ndim: 1
+  result: kd.slice([[[1, 2]], [[], [3]]])
+
+Example 5:
+  x: kd.slice([[1, 2], [3]])
+  target: kd.slice([[1], [None, 3]])
+  ndim: 2
+  result: kd.slice([[[[1, 2], [3]]], [[], [[1, 2], [3]]]])
+
+Args:
+  x: DataSlice to expand.
+  target: target DataSlice.
+  ndim: the number of dimensions to implode during expansion.
+
+Returns:
+  Expanded DataSlice.</code></pre>
+
 ### `kd.slices.expr_quote(x: Any) -> DataSlice` {#kd.slices.expr_quote}
 Aliases:
 

@@ -1,0 +1,176 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import re
+import typing
+
+from absl.testing import absltest
+from absl.testing import parameterized
+from arolla import arolla
+from koladata.expr import input_container
+from koladata.expr import py_expr_eval_py_ext
+from koladata.expr import view
+from koladata.operators import eager_op_utils
+from koladata.operators import kde_operators
+from koladata.operators import optools
+from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.testing import testing
+from koladata.types import data_bag
+from koladata.types import data_slice
+from koladata.types import qtypes
+from koladata.types import schema_constants
+
+eval_op = py_expr_eval_py_ext.eval_op
+I = input_container.InputContainer("I")
+kde = kde_operators.kde
+kd = eager_op_utils.operators_container("kd")
+ds = data_slice.DataSlice.from_vals
+DATA_SLICE = qtypes.DATA_SLICE
+
+
+QTYPES = frozenset([
+    (DATA_SLICE, DATA_SLICE, DATA_SLICE),
+    (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
+])
+
+
+class SlicesExpandToPresentTest(parameterized.TestCase):
+
+  @parameterized.parameters(
+      # basic
+      (
+          ds([[1, 2], [3]]),
+          ds([[[0], [None, 0]], [[0, None, 0]]]),
+          None,
+          ds([[[1], [None, 2]], [[3, None, 3]]]),
+      ),
+      # ndim 0
+      (
+          ds(10),
+          ds([1, None, 2]),
+          0,
+          ds([10, None, 10]),
+      ),
+      # ndim 1
+      (
+          ds([[1, 2], [3]]),
+          ds([[1], [None, 3]]),
+          1,
+          ds([[[1, 2]], [[], [3]]]),
+      ),
+      # ndim 2
+      (
+          ds([[1, 2], [3]]),
+          ds([[1], [None, 3]]),
+          2,
+          ds([[[[1, 2], [3]]], [[], [[1, 2], [3]]]]),
+      ),
+      # all missing target
+      (
+          ds([1, 2]),
+          ds([None, None], schema_constants.INT64),
+          None,
+          ds([None, None], schema_constants.INT32),
+      ),
+  )
+  def test_expand_to_present(self, x, target, ndim, expected):
+    if ndim is None:
+      testing.assert_equal(kd.expand_to_present(x, target), expected)
+      testing.assert_equal(eval_op("kd.expand_to_present", x, target), expected)
+    else:
+      testing.assert_equal(kd.expand_to_present(x, target, ndim), expected)
+      testing.assert_equal(
+          eval_op("kd.expand_to_present", x, target, ndim), expected
+      )
+
+  def test_same_bag(self):
+    db = data_bag.DataBag.empty_mutable()
+    x = ds([[1], [2, 3]]).with_bag(db)
+    target = ds([[1, None], [3]])
+    expected = ds([[[1], []], [[2, 3]]]).with_bag(db)
+    result = eval_op("kd.expand_to_present", x, target, 1)
+    arolla.testing.assert_qvalue_equal_by_fingerprint(result, expected)
+
+  def test_invalid_ndim_error(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape("ndim must be a positive integer and <= x.ndim, got -1"),
+    ):
+      kd.expand_to_present(ds(1), ds(0), -1)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape("ndim must be a positive integer and <= x.ndim, got 1"),
+    ):
+      kd.expand_to_present(ds(1), ds(0), 1)
+
+  def test_incompatible_shape_error(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            "DataSlice with shape=JaggedShape(2) cannot be expanded to"
+            " shape=JaggedShape(3)"
+        ),
+    ):
+      kd.expand_to_present(ds([1, 2]), ds([1, 2, 3]))
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            "Cannot expand 'x' imploded with the last 1 dimension(s) to"
+            " 'target' due to incompatible shapes. Got 'x' shape:"
+            " JaggedShape(2, [2, 1]), imploded 'x' shape: JaggedShape(2),"
+            " 'target' shape: JaggedShape(3)"
+        ),
+    ):
+      kd.expand_to_present(ds([[1, 2], [3]]), ds([1, 2, 3]), 1)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            "Cannot expand 'x' imploded with the last 1 dimension(s) to"
+            " 'target' due to incompatible shapes. Got 'x' shape:"
+            " JaggedShape(1, 1, 1), imploded 'x' shape: JaggedShape(1, 1),"
+            " 'target' shape: JaggedShape(1)"
+        ),
+    ):
+      kd.expand_to_present(ds([[[1]]]), ds([1]), 1)
+
+  def test_qtype_signatures(self):
+    self.assertCountEqual(
+        arolla.testing.detect_qtype_signatures(
+            kde.slices.expand_to_present,
+            possible_qtypes=typing.cast(
+                typing.Iterable[arolla.QType],
+                test_qtypes.DETECT_SIGNATURES_QTYPES,
+            ),
+        ),
+        QTYPES,
+    )
+
+  def test_view(self):
+    self.assertTrue(
+        view.has_koda_view(kde.expand_to_present(I.x, I.y, I.z))
+    )
+
+  def test_alias(self):
+    self.assertTrue(
+        optools.equiv_to_op(
+            kde.slices.expand_to_present, kde.expand_to_present
+        )
+    )
+
+
+if __name__ == "__main__":
+  absltest.main()
