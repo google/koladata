@@ -388,9 +388,17 @@ class TraverseHelper {
   }
 
   // Calls the given function for each directly reachable object.
+  // fn should be a callable taking three arguments: const DataItem& to_item,
+  // const DataItem& to_schema, absl::string_view to_item_attr_name.
+  // The latter is attr_name for objects;
+  // for dicts: if dict key is a text, it would be the dict key, otherwise
+  // schema::kDictKeysSchemaAttr.
+  // TODO: consider passing std::variant<ObjectTransitionPath,
+  // DictKeyTransitionPath, ListItemTransitionPath> or something like this
+  // instead of attr_name.
   template <typename Fn>
   absl::Status ForEachObject(const DataItem& item, const DataItem& schema,
-                     const TransitionsSet& transitions_set, Fn&& fn) {
+                             const TransitionsSet& transitions_set, Fn&& fn) {
     static_assert(std::is_same_v<decltype(fn(arolla::view_type_t<DataItem>{},
                                              arolla::view_type_t<DataItem>(),
                                              absl::string_view{})),
@@ -530,11 +538,18 @@ class TraverseHelper {
     }
     if (!transitions_set.dict_values_schema().is_primitive_schema()) {
       const DataSliceImpl& dict_values = transitions_set.dict_values();
+      const DataSliceImpl& dict_keys = transitions_set.dict_keys();
+      DCHECK_EQ(dict_keys.size(), dict_values.size());
       for (int64_t i = 0; i < dict_values.size(); ++i) {
-        const DataItem& value = dict_values[i];
+        const DataItem value = dict_values[i];
+        const DataItem& key = dict_keys[i];
         if (value.holds_value<ObjectId>()) {
-          fn(value, transitions_set.dict_values_schema(),
-             schema::kDictValuesSchemaAttr);
+          absl::string_view key_name = schema::kDictValuesSchemaAttr;
+          if (key.holds_value<arolla::Text>()) {
+            key_name = key.value<arolla::Text>().view();
+          }
+
+          fn(value, transitions_set.dict_values_schema(), key_name);
         }
       }
     }

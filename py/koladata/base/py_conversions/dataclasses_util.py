@@ -192,20 +192,21 @@ def get_class_field_type(
           )
       return maybe_decay_optional(args[0])
 
-    if isinstance(origin_type, type) and issubclass(
-        origin_type, typing.Mapping
+    if (
+        isinstance(origin_type, type)
+        and issubclass(origin_type, typing.Mapping)
+        and attr_name != '__items__'
     ):
       # `dict[Obj, int]`
       if attr_name == '__keys__':
         return maybe_decay_optional(typing.get_args(py_obj)[0])
       # `dict[int, Obj]`
-      if attr_name == '__values__':
-        args = typing.get_args(py_obj)
-        if len(args) != 2:
-          raise ValueError(
-              f'expected dict; got instead: {typing.get_origin(py_obj)}'
-          )
-        return maybe_decay_optional(args[1])
+      args = typing.get_args(py_obj)
+      if len(args) != 2:
+        raise ValueError(
+            f'expected dict; got instead: {typing.get_origin(py_obj)}'
+        )
+      return maybe_decay_optional(args[1])
     if attr_name == '__keys__' or attr_name == '__values__':
       raise ValueError(f'expected dict class; got instead: {py_obj}')
     if attr_name == '__items__':

@@ -644,7 +644,7 @@ TEST_P(TraverseHelperTest, TransitionKeyToAccessString) {
             "");
 }
 
-TEST_P(TraverseHelperTest, ForEachObject) {
+TEST_P(TraverseHelperTest, ForEachObject_Object) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto obj_ids = AllocateEmptyObjects(4);
   auto a0 = obj_ids[0];
@@ -684,6 +684,55 @@ TEST_P(TraverseHelperTest, ForEachObject) {
   EXPECT_THAT(result_items, UnorderedElementsAre(a1, a2));
   EXPECT_THAT(result_paths, UnorderedElementsAre("x", "y"));
   EXPECT_THAT(result_schemas, ElementsAre(schema, schema));
+}
+
+TEST_P(TraverseHelperTest, ForEachObject_Dict) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(2);
+  auto a1 = obj_ids[0];
+  auto a2 = obj_ids[1];
+  auto dict_ids = AllocateEmptyDicts(1);
+  auto d0 = dict_ids[0];
+  auto obj_schema = AllocateSchema();
+
+  auto dict_schema = AllocateSchema();
+  TriplesT dict_schema_triples = {
+      {dict_schema,
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kObject)},
+        {schema::kDictValuesSchemaAttr, obj_schema}}}};
+
+  auto dicts_expanded =
+      DataSliceImpl::Create(CreateDenseArray<DataItem>({d0, d0}));
+  auto keys = DataSliceImpl::Create(
+      CreateDenseArray<DataItem>({DataItem(arolla::Text("x")), DataItem(123)}));
+  auto values = DataSliceImpl::Create(CreateDenseArray<DataItem>({a1, a2}));
+  ASSERT_OK(db->SetInDict(dicts_expanded, keys, values));
+
+  SetSchemaTriples(*db, dict_schema_triples);
+
+  DataBagImplPtr main_db = GetMainDb(db);
+  auto fallback_db = GetFallbackDb(db);
+  auto fallbacks = std::vector<const DataBagImpl*>({fallback_db.get()});
+  auto traverse_helper = TraverseHelper(*main_db, fallbacks);
+  ASSERT_OK_AND_ASSIGN(auto transition_set,
+                       traverse_helper.GetTransitions(d0, dict_schema));
+
+  std::vector<DataItem> result_items;
+  std::vector<DataItem> result_schemas;
+  std::vector<std::string> result_paths;
+  EXPECT_OK(traverse_helper.ForEachObject(
+      d0, dict_schema, transition_set,
+      [&](const DataItem& item, const DataItem& schema,
+          std::optional<absl::string_view> from_item_attr_name) {
+        result_items.push_back(item);
+        result_schemas.push_back(schema);
+        if (from_item_attr_name.has_value()) {
+          result_paths.push_back(std::string(from_item_attr_name.value()));
+        }
+      }));
+  EXPECT_THAT(result_items, UnorderedElementsAre(a1, a2));
+  EXPECT_THAT(result_paths, UnorderedElementsAre("x", "__values__"));
+  EXPECT_THAT(result_schemas, ElementsAre(obj_schema, obj_schema));
 }
 
 }  // namespace
