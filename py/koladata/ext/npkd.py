@@ -56,7 +56,18 @@ def to_array(ds: kd.types.DataSlice) -> np.ndarray:
 
 
 def from_array(arr: np.ndarray) -> kd.types.DataSlice:
-  """Converts a numpy array to a DataSlice."""
+  """Converts a numpy array to a DataSlice.
+
+  If `arr` is a numpy masked array (np.ma.MaskedArray), masked positions are
+  converted to missing values in the resulting DataSlice.
+
+  Args:
+    arr: A numpy ndarray that is possibly masked.
+
+  Returns:
+    A DataSlice with the same shape and values as `arr`. Masked positions
+    become missing values.
+  """
 
   # TODO: treat string/bytes in the same way as other primitives.
   if (
@@ -65,19 +76,32 @@ def from_array(arr: np.ndarray) -> kd.types.DataSlice:
       or np.issubdtype(arr.dtype, np.bytes_)
   ):
     return kdi.from_py(list(arr), from_dim=1, schema=None)
+
+  # NOTE: Converting Numpy Array of integers to signed version as Arolla might
+  # not support unsigned integer in the long-term.
+  if np.issubdtype(arr.dtype, np.integer) and not np.issubdtype(
+      arr.dtype, np.signedinteger
+  ):
+    if np.isdtype(arr.dtype, np.uint8) or np.isdtype(arr.dtype, np.uint16):
+      arr = arr.astype(np.int32)
+    else:
+      # NOTE: Values larger than max int64 will be overflown, which is
+      # consistent with the rest of Koda (e.g. from_proto).
+      arr = arr.astype(np.int64)
+
+  flat = arr.flatten()
+  if isinstance(arr, np.ma.MaskedArray) and arr.mask is not np.ma.nomask:
+    # Build a sparse array `da`: only pass the present (non-masked) values,
+    # along with their indices and the total size.
+    mask_flat = np.ma.getmaskarray(flat)
+    present_ids = np.where(~mask_flat)[0]
+    present_values = np.asarray(flat.data[present_ids])
+    da = arolla.dense_array(
+        present_values, ids=present_ids, size=len(flat)
+    )
   else:
-    # NOTE: Converting Numpy Array of integers to signed version as Arolla might
-    # not support unsigned integer in the long-term.
-    if np.issubdtype(arr.dtype, np.integer) and not np.issubdtype(
-        arr.dtype, np.signedinteger
-    ):
-      if np.isdtype(arr.dtype, np.uint8) or np.isdtype(arr.dtype, np.uint16):
-        arr = arr.astype(np.int32)
-      else:
-        # NOTE: Values larger than max int64 will be overflown, which is
-        # consistent with the rest of Koda (e.g. from_proto).
-        arr = arr.astype(np.int64)
-    return kd.slice(arolla.dense_array(arr.flatten())).reshape(arr.shape)  # pyrefly: ignore[missing-attribute]
+    da = arolla.dense_array(flat)
+  return kd.slice(da).reshape(arr.shape)  # pyrefly: ignore[missing-attribute]
 
 
 # Two following functions get_indices_from_ds and reshape_based_on_indices

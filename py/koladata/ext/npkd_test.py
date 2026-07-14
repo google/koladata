@@ -128,6 +128,54 @@ class NpkdTest(parameterized.TestCase):
   def test_numpy_unsigned_int(self, arr, ds):
     kd.testing.assert_equal(npkd.from_array(arr), ds)
 
+  def test_from_masked_array_1d_float(self):
+    data = np.array([1.0, 2.0, 3.0, 4.0])
+    mask = np.array([False, True, False, True])
+    ma_arr = np.ma.array(data, mask=mask)
+    result = npkd.from_array(ma_arr)
+    expected = kd.slice([1.0, None, 3.0, None], schema=kd.FLOAT64)  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(result, expected)
+
+  def test_from_masked_array_1d_int(self):
+    data = np.array([10, 20, 30])
+    mask = np.array([True, False, True])
+    ma_arr = np.ma.array(data, mask=mask)
+    result = npkd.from_array(ma_arr)
+    expected = kd.slice([None, 20, None], schema=kd.INT64)  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(result, expected)
+
+  def test_from_masked_array_2d(self):
+    data = np.array([[1.0, 2.0], [3.0, 4.0]])
+    mask = np.array([[False, True], [True, False]])
+    ma_arr = np.ma.array(data, mask=mask)
+    result = npkd.from_array(ma_arr)
+    expected = kd.slice([[1.0, None], [None, 4.0]], schema=kd.FLOAT64)  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(result, expected)
+
+  def test_from_masked_array_no_masked_values(self):
+    # Masked array with mask=nomask (no masked elements).
+    data = np.array([1.0, 2.0, 3.0])
+    ma_arr = np.ma.array(data)
+    result = npkd.from_array(ma_arr)
+    expected = kd.slice([1.0, 2.0, 3.0], schema=kd.FLOAT64)  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(result, expected)
+
+  def test_from_masked_array_all_masked(self):
+    data = np.array([1.0, 2.0])
+    mask = np.array([True, True])
+    ma_arr = np.ma.array(data, mask=mask)
+    result = npkd.from_array(ma_arr)
+    expected = kd.slice([None, None], schema=kd.FLOAT64)  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(result, expected)
+
+  def test_from_masked_array_scalar_mask_false(self):
+    # Scalar mask=False is equivalent to nomask.
+    data = np.array([1.0, 2.0, 3.0])
+    ma_arr = np.ma.array(data, mask=False)
+    result = npkd.from_array(ma_arr)
+    expected = kd.slice([1.0, 2.0, 3.0], schema=kd.FLOAT64)  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(result, expected)
+
   @parameterized.named_parameters(
       ('int ds', [1, 2, 3]),
       ('float ds', [1.0, 2.0, 3.0]),

@@ -11,7 +11,17 @@
 
 ### `kd_ext.npkd.from_array(arr: ndarray) -> DataSlice` {#kd_ext.npkd.from_array}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Converts a numpy array to a DataSlice.</code></pre>
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Converts a numpy array to a DataSlice.
+
+If `arr` is a numpy masked array (np.ma.MaskedArray), masked positions are
+converted to missing values in the resulting DataSlice.
+
+Args:
+  arr: A numpy ndarray that is possibly masked.
+
+Returns:
+  A DataSlice with the same shape and values as `arr`. Masked positions
+  become missing values.</code></pre>
 
 ### `kd_ext.npkd.get_elements_indices_from_ds(ds: DataSlice) -> list[ndarray]` {#kd_ext.npkd.get_elements_indices_from_ds}
 
