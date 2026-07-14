@@ -25,6 +25,20 @@ Args:
 Returns:
   Tuple that can be used as description of an AUTO_ID attribute.</code></pre>
 
+### `kd_ext.ids.auto_id_cleanup_update(x)` {#kd_ext.ids.auto_id_cleanup_update}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Removes all auto_id attributes and their metadata from x.
+
+For each auto_id attribute in the schema, returns an update that remove the
+attribute and its corresponding metadata. Recursivly traverses the dataslice
+and removes all reachable auto_id attributes.
+
+Args:
+  x: DataSlice to remove auto_id attributes from.
+
+Returns:
+  A DataBag with auto_id attributes removed (from data, schema, and metadata).</code></pre>
+
 ### `kd_ext.ids.auto_id_pointwise_update(x)` {#kd_ext.ids.auto_id_pointwise_update}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Assigns auto_id values independently to each item in x.
@@ -49,7 +63,7 @@ Example:
       ]),
   ])
   x = kd.new(docs=docs, schema=input_schema)
-  x.enriched(kd_ext.ids.auto_id_pointwise_update(x)).docs[:].doc_id
+  x.updated(kd_ext.ids.auto_id_pointwise_update(x)).docs[:].doc_id
     -&gt; kd.slice([[&#39;doc_1&#39;, &#39;doc_2&#39;], [&#39;doc_1&#39;, &#39;doc_2&#39;, &#39;doc_3&#39;]])
 
 Args:
@@ -74,7 +88,7 @@ Example:
       foo_id=kd_ext.ids.auto_id(&#39;foo&#39;),
   )
   x = kd.new(a=kd.slice([1, 3, 2]), schema=schema)
-  x.enriched(kd_ext.ids.auto_id_update(x))
+  x.updated(kd_ext.ids.auto_id_update(x))
     -&gt; kd.new(
         a=kd.slice([1, 3, 2]),
         foo_id=kd.slice([&#39;foo_1&#39;, &#39;foo_2&#39;, &#39;foo_3&#39;]),
@@ -135,7 +149,8 @@ Example:
   )
   x = schema.new(doc_ref=kd.slice([&#39;doc_2&#39;, &#39;doc_1&#39;]))
   update_db = kd_ext.ids.auto_reference_pointwise_update(x, x_input)
-  x.with_bag(update_db).enriched(x_input.get_bag()).enriched(x.get_bag())
+  x.updated(update_db).enriched(x_input.get_bag())
+  -&gt; kd.new(doc_ref=kd.slice([x_input.S[0].docs[1], x_input.S[1].docs[0]]))
 
 Args:
   x: DataSlice with a schema that has auto_reference attributes.
@@ -168,7 +183,7 @@ Example:
   )
   x = schema.new(foo_ref=kd.slice([&#39;foo_2&#39;, &#39;foo_1&#39;]))
   update_db = kd_ext.ids.auto_reference_update(x, x_input)
-  x.with_bag(update_db).enriched(x_input.get_bag()).enriched(x.get_bag())
+  x.updated(update_db).enriched(x_input.get_bag())
     -&gt; kd.new(foo_ref=kd.slice([x_input.S[1], x_input.S[0]]))
 
 Args:

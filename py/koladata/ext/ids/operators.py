@@ -203,7 +203,7 @@ def auto_id_update(x):  # pylint: disable=unused-argument
         foo_id=kd_ext.ids.auto_id('foo'),
     )
     x = kd.new(a=kd.slice([1, 3, 2]), schema=schema)
-    x.enriched(kd_ext.ids.auto_id_update(x))
+    x.updated(kd_ext.ids.auto_id_update(x))
       -> kd.new(
           a=kd.slice([1, 3, 2]),
           foo_id=kd.slice(['foo_1', 'foo_2', 'foo_3']),
@@ -214,6 +214,30 @@ def auto_id_update(x):  # pylint: disable=unused-argument
 
   Returns:
     A DataBag with auto_id attributes set.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@kd.optools.add_to_registry(via_cc_operator_package=True)
+@kd.optools.as_backend_operator(
+    'kd_ext.ids.auto_id_cleanup_update',
+    qtype_constraints=[
+        kd.optools.constraints.expect_data_slice(P.x),
+    ],
+    qtype_inference_expr=kd.qtypes.DATA_BAG,
+)
+def auto_id_cleanup_update(x):  # pylint: disable=unused-argument
+  """Removes all auto_id attributes and their metadata from x.
+
+  For each auto_id attribute in the schema, returns an update that remove the
+  attribute and its corresponding metadata. Recursivly traverses the dataslice
+  and removes all reachable auto_id attributes.
+
+  Args:
+    x: DataSlice to remove auto_id attributes from.
+
+  Returns:
+    A DataBag with auto_id attributes removed (from data, schema, and metadata).
   """
   raise NotImplementedError('implemented in the backend')
 
@@ -249,7 +273,7 @@ def auto_reference_update(x, input_ds):  # pylint: disable=unused-argument
     )
     x = schema.new(foo_ref=kd.slice(['foo_2', 'foo_1']))
     update_db = kd_ext.ids.auto_reference_update(x, x_input)
-    x.with_bag(update_db).enriched(x_input.get_bag()).enriched(x.get_bag())
+    x.updated(update_db).enriched(x_input.get_bag())
       -> kd.new(foo_ref=kd.slice([x_input.S[1], x_input.S[0]]))
 
   Args:
@@ -302,7 +326,7 @@ def auto_id_pointwise_update(x):
         ]),
     ])
     x = kd.new(docs=docs, schema=input_schema)
-    x.enriched(kd_ext.ids.auto_id_pointwise_update(x)).docs[:].doc_id
+    x.updated(kd_ext.ids.auto_id_pointwise_update(x)).docs[:].doc_id
       -> kd.slice([['doc_1', 'doc_2'], ['doc_1', 'doc_2', 'doc_3']])
 
   Args:
@@ -354,7 +378,8 @@ def auto_reference_pointwise_update(x, input_ds):
     )
     x = schema.new(doc_ref=kd.slice(['doc_2', 'doc_1']))
     update_db = kd_ext.ids.auto_reference_pointwise_update(x, x_input)
-    x.with_bag(update_db).enriched(x_input.get_bag()).enriched(x.get_bag())
+    x.updated(update_db).enriched(x_input.get_bag())
+    -> kd.new(doc_ref=kd.slice([x_input.S[0].docs[1], x_input.S[1].docs[0]]))
 
   Args:
     x: DataSlice with a schema that has auto_reference attributes.

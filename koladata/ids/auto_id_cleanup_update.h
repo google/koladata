@@ -12,23 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/ids/auto_id_update.h"
-#include "koladata/ids/auto_reference_update.h"
-#include "koladata/ids/auto_id_cleanup_update.h"
-#include "koladata/data_slice_qtype.h"
-#include "koladata/internal/op_utils/qexpr.h"
+#ifndef KOLADATA_IDS_AUTO_ID_CLEANUP_UPDATE_H_
+#define KOLADATA_IDS_AUTO_ID_CLEANUP_UPDATE_H_
+
+#include "absl/status/statusor.h"
+#include "koladata/data_bag.h"
+#include "koladata/data_slice.h"
 
 namespace koladata::ids {
-namespace {
 
-KODA_QEXPR_OPERATOR("kd_ext.ids.auto_id_update",
-                    AutoIdUpdate);
+// Returns a DataBag containing explicit deletions for all AUTO_ID attributes
+// in the data and schemas of the given DataSlice.
+absl::StatusOr<DataBagPtr> AutoIdCleanupUpdate(const DataSlice& ds);
 
-KODA_QEXPR_OPERATOR("kd_ext.ids.auto_id_cleanup_update",
-                    AutoIdCleanupUpdate);
-
-KODA_QEXPR_OPERATOR("kd_ext.ids.auto_reference_update",
-                    AutoReferenceUpdate);
-
-}  // namespace
 }  // namespace koladata::ids
+
+#endif  // KOLADATA_IDS_AUTO_ID_CLEANUP_UPDATE_H_

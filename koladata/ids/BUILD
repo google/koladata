@@ -28,6 +28,7 @@ cc_library(
         "//py/koladata/ext/ids:__pkg__",
     ],
     deps = [
+        ":auto_id_cleanup_update",
         ":auto_id_update",
         ":auto_reference_update",
         "//koladata:data_slice_qtype",
@@ -59,6 +60,20 @@ cc_library(
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata/internal:data_item",
+        "//koladata/internal/op_utils:auto_values_update",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
+    name = "auto_id_cleanup_update",
+    srcs = ["auto_id_cleanup_update.cc"],
+    hdrs = ["auto_id_cleanup_update.h"],
+    deps = [
+        "//koladata:data_bag",
+        "//koladata:data_slice",
         "//koladata/internal/op_utils:auto_values_update",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
