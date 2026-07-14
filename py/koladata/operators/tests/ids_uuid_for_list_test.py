@@ -137,8 +137,8 @@ class KodaUuidForListTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'expected all arguments to be DATA_SLICEs, got'
-            ' **kwargs: {a: DATA_SLICE, b: UNSPECIFIED}'
+            'expected all keyword arguments to be DATA_SLICE, got **kwargs: {b:'
+            ' UNSPECIFIED}'
         ),
     ):
       _ = kde.ids.uuid_for_list(a=ds(1), b=arolla.unspecified())  # pyrefly: ignore[missing-attribute]

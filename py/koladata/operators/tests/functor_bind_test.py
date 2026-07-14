@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import input_container
@@ -76,7 +78,11 @@ class FunctorBindTest(absltest.TestCase):
   def test_bound_is_not_ds(self):
     fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y)))  # pyrefly: ignore[missing-attribute, unsupported-operation]
     with self.assertRaisesRegex(
-        ValueError, 'expected all arguments to be DATA_SLICE'
+        ValueError,
+        re.escape(
+            'expected all keyword arguments to be DATA_SLICE, got **kwargs: {x:'
+            ' INT64}'
+        ),
     ):
       kde.functor.bind(fn, x=arolla.int64(57))  # pyrefly: ignore[missing-attribute]
 

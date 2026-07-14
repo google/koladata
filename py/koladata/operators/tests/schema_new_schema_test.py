@@ -94,8 +94,8 @@ class KodaNewSchemaTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'expected all arguments to be DATA_SLICEs, got'
-            ' **kwargs: {a: DATA_SLICE, b: UNSPECIFIED}'
+            'expected all keyword arguments to be DATA_SLICE, got **kwargs: {b:'
+            ' UNSPECIFIED}'
         ),
     ):
       _ = expr_eval.eval(

@@ -166,11 +166,11 @@ class KodaUuSchemaTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'expected all arguments to be DATA_SLICEs, got'
-            ' **kwargs: {a: DATA_SLICE, b: UNSPECIFIED}'
+            'expected all keyword arguments to be DATA_SLICE, got **kwargs: {b:'
+            ' UNSPECIFIED}'
         ),
     ):
-      _ = kd.schema.uu_schema(a=schema_constants.INT32, b=arolla.unspecified())
+      _ = kde.schema.uu_schema(a=schema_constants.INT32, b=arolla.unspecified())
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.schema.uu_schema(I.seed)))  # pyrefly: ignore[missing-attribute]

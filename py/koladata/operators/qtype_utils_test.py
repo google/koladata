@@ -205,8 +205,8 @@ class KodaQTypesTest(absltest.TestCase):
       with self.assertRaisesRegex(
           ValueError,
           re.escape(
-              'expected all arguments to be DATA_SLICEs, got'
-              ' **x: {a: DATA_SLICE, b: INT32}'
+              'expected all keyword arguments to be DATA_SLICE, got **x: {b:'
+              ' INT32}'
           ),
       ):
         _op(

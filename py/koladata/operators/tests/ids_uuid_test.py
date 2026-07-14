@@ -150,11 +150,11 @@ class KodaUuidTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'expected all arguments to be DATA_SLICEs, got'
-            ' **kwargs: {a: DATA_SLICE, b: UNSPECIFIED}'
+            'expected all keyword arguments to be DATA_SLICE, got **kwargs: {b:'
+            ' UNSPECIFIED}'
         ),
     ):
-      _ = kd.ids.uuid(a=ds(1), b=arolla.unspecified())
+      _ = kde.ids.uuid(a=ds(1), b=arolla.unspecified())
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.ids.uuid(seed=I.seed)))  # pyrefly: ignore[missing-attribute]

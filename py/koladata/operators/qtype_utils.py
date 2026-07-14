@@ -81,11 +81,9 @@ def expect_data_slice_kwargs(param) -> constraints.QTypeConstraint:
               M.qtype.get_field_qtypes(param),  # pyrefly: ignore[missing-attribute]
           )
       ),
-      (
-          'expected all arguments to be DATA_SLICEs, got'
-          f' **{param.placeholder_key}:'
-          f' {{{constraints.namedtuple_field_types_msg(param)}}}'
-      ),
+      f'expected all keyword arguments to be DATA_SLICE, got'
+      f' **{param.placeholder_key}:'
+      f' {{{{**{param.placeholder_key}!DATA_SLICE}}}}',
   )
 
 
