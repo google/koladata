@@ -445,6 +445,62 @@ class ToPyTest(parameterized.TestCase):
     self.assertEqual(converted, root_obj)
     self.assertEqual(root_obj, converted)
 
+  def test_output_class_for_dict_properly_checked(self):
+    data = {'a': 1, 'b': '2'}
+    root = fns.dict(data)
+
+    expected = Obj1(a=1, b='2')
+    res = py_conversions.to_py(root, output_class=Obj1)
+    self.assertEqual(res, expected)
+
+    res = py_conversions.to_py(root, output_class=Any)
+    self.assertEqual(res, data)
+
+    res = py_conversions.to_py(root, output_class=dict[str, Any])
+    self.assertEqual(res, data)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'keys must be strings when converting dict to dataclass',
+    ):
+      _ = py_conversions.to_py(fns.dict({1: 2}), output_class=Obj1)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'could not get type for attribute __keys__; only dataclasses or'
+        r" SimpleNamespace are supported; got instead: <class 'int'>",
+    ):
+      _ = py_conversions.to_py(root, output_class=int)
+
+    # Test type mismatch error. Obj1 expects b to be str, but we pass int.
+    root_invalid = fns.dict({'a': 1, 'b': 2})
+    with self.assertRaisesRegex(
+        ValueError,
+        'value is int32, but requested output class is not int',
+    ):
+      _ = py_conversions.to_py(root_invalid, output_class=Obj1)
+
+  def test_output_class_dict_as_obj(self):
+    root = py_conversions.from_py(
+        {'a': 1, 'b': 'x', 'c': {'a': 1, 'b': 'x'}, 'd': {'e': 1}}
+    )
+
+    @dataclasses.dataclass
+    class ObjWithDict:
+      a: int
+      b: str
+      c: Obj1
+      d: _py_types.SimpleNamespace
+
+    root_obj = ObjWithDict(
+        a=1, b='x', c=Obj1(a=1, b='x'), d=_py_types.SimpleNamespace(e=1)
+    )
+
+    converted = py_conversions.to_py(
+        root, max_depth=5, output_class=ObjWithDict
+    )
+    self.assertEqual(converted, root_obj)
+
   def test_output_class_shallow(self):
 
     root = fns.obj(a=1, b='x')
@@ -655,8 +711,8 @@ class ToPyTest(parameterized.TestCase):
     converted = py_conversions.to_py(
         root, output_class=_py_types.SimpleNamespace
     )
-    self.assertEqual(converted, {'a': 1, 'b': 2})
-    self.assertIs(converted.__class__, dict)
+    self.assertEqual(converted, _py_types.SimpleNamespace(a=1, b=2))
+    self.assertIs(converted.__class__, _py_types.SimpleNamespace)
 
     with self.assertRaisesRegex(
         ValueError, r'expected dict class; got instead: list.int.'
@@ -790,13 +846,13 @@ class ToPyTest(parameterized.TestCase):
   def test_output_class_simple_namespace_in_dict(self):
     root = fns.obj(d=fns.dict({'a': fns.obj(g=3, h='z')}))
     output_class = _py_types.SimpleNamespace(
-        d={'a': _py_types.SimpleNamespace(g=3, h='z')}
+        d=_py_types.SimpleNamespace(a=_py_types.SimpleNamespace(g=3, h='z'))
     )
     converted = py_conversions.to_py(
         root, max_depth=5, output_class=_py_types.SimpleNamespace
     )
     self.assertIs(converted.__class__, _py_types.SimpleNamespace)
-    self.assertIs(converted.d['a'].__class__, _py_types.SimpleNamespace)
+    self.assertIs(converted.d.a.__class__, _py_types.SimpleNamespace)
     self.assertEqual(converted, output_class)
 
   def test_output_class_converts_empty_obj_to_int(self):

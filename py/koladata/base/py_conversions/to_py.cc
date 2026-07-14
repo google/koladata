@@ -442,6 +442,26 @@ class ToPyVisitor : internal::AbstractVisitor {
     return result;
   }
 
+  // Returns true if the result_class is a dict or None, i.e. for this input
+  // a dict will be created.
+  absl::StatusOr<bool> IsDictTargetForDictInput(PyObject* result_class) {
+    if (result_class == nullptr || Py_IsNone(result_class)) {
+      return true;
+    }
+
+    PyObject* target_class = result_class;
+    ASSIGN_OR_RETURN(PyObjectPtr decayed_class,
+                     DecayGenericAlias(result_class));
+    target_class = decayed_class.get();
+    DCHECK(target_class != nullptr);
+    // This is intercepted at the beginning of this function.
+    DCHECK(!Py_IsNone(target_class));
+
+    return (PyType_Check(target_class) &&
+         PyType_HasFeature(reinterpret_cast<PyTypeObject*>(target_class),
+                           Py_TPFLAGS_DICT_SUBCLASS));
+  }
+
   absl::Status VisitDict(const DataItem& dict, const DataItem& schema,
                          bool is_object_schema, const DataSliceImpl& keys,
                          const DataSliceImpl& values) final {
@@ -449,20 +469,10 @@ class ToPyVisitor : internal::AbstractVisitor {
       return absl::OkStatus();
     }
     ObjectId dict_id = dict.value<ObjectId>();
-    // We need to be careful not to invalidate the result reference.
-    PyObjectPtr& result = converted_object_cache_[dict_id];
-
-    if (result == nullptr) {
-      // This can only happen with output_class_descriptor_ provided.
-      result = PyObjectPtr::Own(PyDict_New());
-      if (result == nullptr) {
-        return arolla::python::StatusWithRawPyErr(
-            absl::StatusCode::kInternal, "could not create a new dict");
-      }
-    }
 
     // In case of output_class_descriptor_ is provided, these will fail
-    // if the class for this dict is not a dict.
+    // if the class for this dict is not a dict. If it is a SimpleNamespace
+    // or a Dataclass, std::nullopt will be returned and not used.
     ASSIGN_OR_RETURN(
         std::optional<DataClassesUtil::FieldTypeDescriptor> dict_keys_class,
         GetAttrClass(dict, schema::kDictKeysSchemaAttr));
@@ -480,36 +490,77 @@ class ToPyVisitor : internal::AbstractVisitor {
                      db_->GetImpl().GetSchemaAttr(
                          schema, schema::kDictKeysSchemaAttr, fallback_span_));
 
-    for (size_t i = 0; i < keys.size(); ++i) {
-      const DataItem& key = keys[i];
-
-      PyObjectPtr py_key;
-
-      if (output_class_descriptor_.has_value()) {
-        // If output_class_descriptor_ is provided, we convert the key to a
-        // Python object. TODO: we can reconsider this behavior
-        // and only support primitive keys.
-        ASSIGN_OR_RETURN(py_key, GetConvertedPyObjectOrCreatePrimitive(
-                                     key, dict_keys_class));
-      } else {
-        // In the case when output_class_descriptor_ is not provided, If
-        // dict keys are objects, we keep them as data items (without data bag
-        // being assigned), because list/dict/dataclass object keys are
-        // not hashable in Python.
-        ASSIGN_OR_RETURN(py_key,
-                         PyObjectFromDataItem(key, key_schema, /*db=*/nullptr));
-      }
-
-      ASSIGN_OR_RETURN(
-          PyObjectPtr py_value,
-          GetConvertedPyObjectOrCreatePrimitive(values[i], dict_values_class));
-      if (PyDict_SetItem(result.get(), py_key.get(), py_value.get()) < 0) {
-        return arolla::python::StatusWithRawPyErr(
-            absl::StatusCode::kInternal, "could not set an item in a dict");
-      }
+    PyObject* result_class = nullptr;
+    if (output_class_descriptor_.has_value()) {
+      ASSIGN_OR_RETURN(result_class,
+                       GetCachedClass(dict, /*return_none_if_not_found=*/true));
     }
 
-    return absl::OkStatus();
+    ASSIGN_OR_RETURN(bool is_dict_target,
+                     IsDictTargetForDictInput(result_class));
+
+    PyObjectPtr& result = converted_object_cache_[dict_id];
+
+    // If the target is a dict, we set the items in the dict.
+    if (is_dict_target) {
+      // If the dict was not created yet, we create it.
+      if (result == nullptr) {
+        if (result_class == nullptr || result_class == Py_None) {
+          result = PyObjectPtr::Own(PyDict_New());
+        } else {
+          result = PyObjectPtr::Own(PyObject_CallNoArgs(result_class));
+        }
+        if (result == nullptr) {
+          return arolla::python::StatusWithRawPyErr(
+              absl::StatusCode::kInternal, "could not create a new dict");
+        }
+      }
+      if (!PyDict_Check(result.get())) {
+        return arolla::python::StatusWithRawPyErr(
+            absl::StatusCode::kInternal, "output class class is not a dict");
+      }
+
+      for (size_t item_i = 0; item_i < keys.size(); ++item_i) {
+        const DataItem key = keys[item_i];
+        PyObjectPtr py_key;
+        if (output_class_descriptor_.has_value()) {
+          // If output_class_descriptor_ is provided, we convert the key to a
+          // Python object. TODO: we can reconsider this behavior
+          // and only support primitive keys.
+          ASSIGN_OR_RETURN(py_key, GetConvertedPyObjectOrCreatePrimitive(
+                                       key, dict_keys_class));
+        } else {
+          // In the case when output_class_descriptor_ is not provided, If
+          // dict keys are objects, we keep them as data items (without data bag
+          // being assigned), because list/dict/dataclass object keys are
+          // not hashable in Python.
+          ASSIGN_OR_RETURN(
+              py_key, PyObjectFromDataItem(key, key_schema, /*db=*/nullptr));
+        }
+        ASSIGN_OR_RETURN(PyObjectPtr py_value,
+                         GetConvertedPyObjectOrCreatePrimitive(
+                             values[item_i], dict_values_class));
+        if (PyDict_SetItem(result.get(), py_key.get(), py_value.get()) < 0) {
+          return arolla::python::StatusWithRawPyErr(
+              absl::StatusCode::kInternal, "could not set an item in a dict");
+        }
+      }
+      return absl::OkStatus();
+    }
+    // The target is a dataclass or a SimpleNamespace, call VisitObject.
+    DCHECK(output_class_descriptor_.has_value());
+    arolla::DenseArrayBuilder<DataItem> attr_values_builder(keys.size());
+
+    for (size_t i = 0; i < keys.size(); ++i) {
+      if (!keys[i].holds_value<arolla::Text>()) {
+        return absl::InvalidArgumentError(
+            "dict keys must be strings when converting dict to dataclass");
+      }
+      attr_values_builder.Set(i, values[i]);
+    }
+    return VisitObject(dict, schema, is_object_schema,
+                       keys.values<arolla::Text>(),
+                       std::move(attr_values_builder).Build());
   }
 
   // Sets the attributes of the given Python object.
