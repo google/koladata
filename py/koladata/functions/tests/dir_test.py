@@ -56,6 +56,28 @@ class DirTest(absltest.TestCase):
     x = ds([1, 2, 3]).with_bag(object_factories.mutable_bag())
     self.assertEqual(attrs.dir(x, intersection=True), [])
 
+  def test_mixed_object_and_primitive(self):
+    db = object_factories.mutable_bag()
+    x = ds([db.obj(a=1, b='abc'), 1])
+    self.assertEqual(attrs.dir(x, intersection=True), [])
+    self.assertEqual(attrs.dir(x, intersection=False), ['a', 'b'])
+    with self.assertRaisesRegex(
+        ValueError,
+        r'dir\(\) cannot determine attribute names because objects'
+        r' have different attributes\. Please specify intersection='
+        r' explicitly\.',
+    ):
+      attrs.dir(x)
+
+    # Object has no attributes -> no error.
+    y = ds([db.obj(), 1])
+    self.assertEqual(attrs.dir(y), [])
+
+  def test_primitive_with_object_schema(self):
+    db = object_factories.mutable_bag()
+    x = ds([db.obj(a=1), 1])
+    self.assertEqual(attrs.dir(x.S[1]), [])
+
   def test_schema(self):
     db = object_factories.mutable_bag()
     self.assertEqual(

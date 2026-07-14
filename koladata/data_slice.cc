@@ -286,6 +286,10 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataItem(
   if (ds_schema == schema::kSchema) {
     schema_item = item;
   } else if (ds_schema == schema::kObject) {
+    // primitive item
+    if (item.has_value() && !item.holds_value<internal::ObjectId>()) {
+      return DataSlice::AttrNamesSet();
+    }
     ASSIGN_OR_RETURN(schema_item, db_impl.GetObjSchemaAttr(item, fallbacks));
   } else {
     // Empty set.
@@ -356,6 +360,24 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSlice(
     if (!objects_only) {
       // Empty set.
       return DataSlice::AttrNamesSet();
+    }
+    bool has_primitives = objects_only->PresentCount() < slice.present_count();
+    if (has_primitives) {
+      if (on_mismatch == DataSlice::OnAttrNamesMismatch::kError) {
+        ASSIGN_OR_RETURN(
+            auto union_attrs,
+            GetAttrsFromDataSlice(slice, ds_schema, db_impl, fallbacks,
+                                  DataSlice::OnAttrNamesMismatch::kUnion));
+        if (!union_attrs.empty()) {
+          return arolla::WithPayload(absl::FailedPreconditionError(
+                                         "objects have different attributes"),
+                                     DataSlice::AttrNamesMismatchError{});
+        }
+        return DataSlice::AttrNamesSet();
+      }
+      if (on_mismatch == DataSlice::OnAttrNamesMismatch::kIntersection) {
+        return DataSlice::AttrNamesSet();
+      }
     }
     ASSIGN_OR_RETURN(
         schemas,

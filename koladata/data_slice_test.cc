@@ -1487,8 +1487,13 @@ TEST(DataSliceTest, GetAttrNames_MixedObjectAndPrimitive) {
       test::MixedDataSlice<int, ObjectId>(
           {42, std::nullopt}, {std::nullopt, object.item().value<ObjectId>()})
           .WithBag(db);
-  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection),
+              IsOkAndHolds(ElementsAre()));
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kUnion),
               IsOkAndHolds(ElementsAre("a", "b", "c")));
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       "objects have different attributes"));
 }
 
 TEST(DataSliceTest, GetAttrNames_IgnoreShemaMetadata) {
