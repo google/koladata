@@ -1824,9 +1824,9 @@ TEST(DataSliceReprTest, DataSliceRepr_ShowPresentCount) {
   {
     // DataSlice - default behavior.
     auto slice = test::DataSlice<int>({1, 2, std::nullopt});
-    EXPECT_THAT(DataSliceRepr(slice, {.show_shape = false,
-                                      .show_schema = false}),
-                Eq("DataSlice([1, 2, None])"));
+    EXPECT_THAT(
+        DataSliceRepr(slice, {.show_shape = false, .show_schema = false}),
+        Eq("[1, 2, None]"));
   }
   {
     // DataSlice - enabled.
@@ -1842,7 +1842,7 @@ TEST(DataSliceReprTest, DataSliceRepr_ShowPresentCount) {
     EXPECT_THAT(DataSliceRepr(slice, {.show_shape = false,
                                       .show_schema = false,
                                       .show_present_count = false}),
-                Eq("DataSlice([1, 2, None])"));
+                Eq("[1, 2, None]"));
   }
   {
     // DataSlice - with truncation.
@@ -1859,7 +1859,7 @@ TEST(DataSliceReprTest, DataSliceRepr_ShowPresentCount) {
     EXPECT_THAT(DataSliceRepr(slice, {.show_shape = false,
                                       .show_schema = false,
                                       .show_present_count = true}),
-                Eq("DataItem(1)"));
+                Eq("1"));
   }
 }
 
@@ -2017,10 +2017,9 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_SchemaName_SkipNone) {
         EntityCreator::FromAttrs(
             bag, {"a", "b"},
             {test::DataItem(1), test::DataItem(std::nullopt, schema::kInt32)}));
-    EXPECT_THAT(
-        DataSliceRepr(entity_with_none,
-                      {.show_databag_id = false, .show_schema = false}),
-        "DataItem(Entity(a=1, b=None))");
+    EXPECT_THAT(DataSliceRepr(entity_with_none,
+                              {.show_databag_id = false, .show_schema = false}),
+                "Entity(a=1, b=None)");
   }
   {
     // None values are not skipped for Objects.
@@ -2046,6 +2045,25 @@ TEST(DataSliceReprTest, SchemaItemLimit) {
   EXPECT_THAT(
       DataSliceToStr(entity.GetSchema(), {.item_limit = 5}),
       IsOkAndHolds("ENTITY(a=INT32, b=INT32, c=INT32, d=INT32, e=INT32, ...)"));
+}
+
+TEST(DataSliceReprTest, DataSliceRepr_EmptySlice) {
+  {
+    // Rank 1 empty slice, show_shape = false
+    auto shape = test::ShapeFromSizes({{0}});
+    auto ds = test::DataSlice<int>({}, std::move(shape));
+    EXPECT_THAT(
+        DataSliceRepr(ds, {.show_databag_id = false, .show_shape = false}),
+        Eq("DataSlice([], schema: INT32)"));
+  }
+  {
+    // Rank 2 empty slice, show_shape = false
+    auto shape = test::ShapeFromSizes({{0}, {}});
+    auto ds = test::DataSlice<int>({}, std::move(shape));
+    EXPECT_THAT(
+        DataSliceRepr(ds, {.show_databag_id = false, .show_shape = false}),
+        Eq("DataSlice([], schema: INT32, shape: JaggedShape(0, []))"));
+  }
 }
 
 }  // namespace

@@ -839,6 +839,15 @@ class DataSliceTest(parameterized.TestCase):
 ), bag_id: {bag_id})"""
     self.assertEqual(repr(x), expected)
 
+  def test_empty_slice_with_rank_repr(self):
+    x = ds([])
+    y = x.repeat(0)
+    self.assertEqual(repr(x), 'DataSlice([], schema: NONE, present: 0/0)')
+    self.assertEqual(
+        repr(y),
+        'DataSlice([], schema: NONE, present: 0/0, shape: JaggedShape(0, []))',
+    )
+
   # Special case for itemid, since it includes a non-deterministic id.
   def test_str_repr_itemid_works(self):
     x = bag().list()

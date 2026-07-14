@@ -982,11 +982,21 @@ std::string DataSliceRepr(const DataSlice& ds, const ReprOption& option) {
   std::string result;
   bool only_print_attr_names =
       ds.size() >= option.item_limit && option.show_attributes && ds.IsEntity();
+  // We force showing the shape for empty DataSlices of rank > 1 to distinguish
+  // them from empty DataSlices of rank 1 (e.g. DataSlice([]) vs DataSlice([],
+  // shape=...)). See b/456187313 for more details.
+  bool show_shape =
+      !ds.is_item() &&
+      (option.show_shape || (ds.size() == 0 && ds.GetShape().rank() > 1));
+  bool show_present_count = option.show_present_count && !ds.is_item();
+  bool show_databag_id = option.show_databag_id && ds.GetBag() != nullptr;
+  bool show_item_id =
+      option.show_item_id && ds.is_item() && ds.item().holds_value<ObjectId>();
   // Wrap in DataItem/DataSlice only if we have need to print something other
   // than the DataSlice literal.
-  bool wrap_repr = (option.show_databag_id || option.show_shape ||
-                    option.show_schema || option.show_item_id ||
-                    option.show_present_count || only_print_attr_names);
+  bool wrap_repr =
+      (show_databag_id || show_shape || option.show_schema || show_item_id ||
+       show_present_count || only_print_attr_names);
   if (wrap_repr) {
     absl::StrAppend(&result, ds.is_item() ? "DataItem(" : "DataSlice(");
   }
@@ -1006,17 +1016,16 @@ std::string DataSliceRepr(const DataSlice& ds, const ReprOption& option) {
     auto schema = ValueOrError(DataSliceToStr(ds.GetSchema(), schema_option));
     absl::StrAppend(&result, schema);
   }
-  if (option.show_present_count && !ds.is_item()) {
+  if (show_present_count) {
     absl::StrAppend(&result, ", present: ", ds.present_count(), "/", ds.size());
   }
-  if (!ds.is_item() && option.show_shape) {
+  if (show_shape) {
     absl::StrAppend(&result, ", shape: ", arolla::Repr(ds.GetShape()));
   }
-  if (option.show_databag_id && ds.GetBag() != nullptr) {
+  if (show_databag_id) {
     absl::StrAppend(&result, ", bag_id: ", GetBagIdRepr(ds.GetBag()));
   }
-  if (option.show_item_id && ds.is_item() &&
-      ds.item().holds_value<ObjectId>()) {
+  if (show_item_id) {
     absl::StrAppend(&result, ", item_id: ", ds.item().value<ObjectId>());
   }
   if (wrap_repr) {
