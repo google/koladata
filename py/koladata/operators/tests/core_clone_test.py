@@ -111,6 +111,53 @@ class CoreCloneTest(parameterized.TestCase):
     )
     testing.assert_equivalent(result, expected, ids_equality=True)
 
+  def test_clone_with_removed_schema_attr(self):
+    db = bag()
+    e = db.new(a=1, b=2)
+    del e.get_schema().b  # pyrefly: ignore[missing-attribute]
+
+    # Cloning e should succeed and ignore 'b'
+    res = kd.clone(e)
+
+    self.assertEqual(res.a, 1)
+    with self.assertRaises(AttributeError):
+      _ = res.b
+
+    # Verify that the schema of the cloned object also has 'b' removed
+    schema = res.get_schema()
+    db_fb = bag()
+    schema_in_fb = schema.no_bag().with_bag(db_fb)
+    schema_in_fb.b = schema_constants.INT32
+
+    # Since 'b' is removed in 'schema', it should NOT fall back to db_fb.
+    # So accessing it on enriched schema should still fail.
+    enriched_schema = schema.enriched(db_fb)
+    with self.assertRaises(AttributeError):
+      _ = enriched_schema.b
+
+  def test_clone_schema_with_removed_attr(self):
+    db = bag()
+    e = db.new(a=1, b=2)
+    del e.get_schema().b  # pyrefly: ignore[missing-attribute]
+
+    # Cloning e should succeed and ignore 'b'
+    res = kd.clone(e.get_schema())
+
+    self.assertEqual(res.a, schema_constants.INT32)
+    with self.assertRaises(AttributeError):
+      _ = res.b
+
+    # Verify that the schema of the cloned object also has 'b' removed
+    db_fb = bag()
+    schema_in_fb = res.no_bag().with_bag(db_fb)
+    schema_in_fb.b = schema_constants.INT32
+
+    # Since 'b' is removed in 'schema', it should NOT fall back to db_fb.
+    # So accessing it on enriched schema should still fail.
+    enriched_schema = res.enriched(db_fb)
+    with self.assertRaises(AttributeError):
+      _ = enriched_schema.b
+
   @parameterized.product(
       pass_schema=[True, False],
   )

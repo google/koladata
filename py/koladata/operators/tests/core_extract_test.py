@@ -272,6 +272,30 @@ class CoreExtractTest(parameterized.TestCase):
     ):
       (kd.extract(o, schema))
 
+  def test_extract_with_removed_schema_attr(self):
+    db = data_bag.DataBag.empty_mutable()
+    e = db.new(a=1, b=2)
+    del e.get_schema().b  # pyrefly: ignore[missing-attribute]
+
+    # Extracting e should succeed and ignore 'b'.
+    res = kd.extract(e)
+
+    self.assertEqual(res.a, 1)
+    with self.assertRaises(AttributeError):
+      _ = res.b
+
+    # Verify that the schema of the extracted object also has 'b' removed.
+    schema = res.get_schema()
+    db_fb = data_bag.DataBag.empty_mutable()
+    schema_in_fb = schema.no_bag().with_bag(db_fb)
+    schema_in_fb.b = schema_constants.INT32
+
+    # Since 'b' is removed in 'schema', it should NOT fall back to db_fb.
+    # So accessing it on enriched schema should still fail.
+    enriched_schema = schema.enriched(db_fb)
+    with self.assertRaises(AttributeError):
+      _ = enriched_schema.b
+
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(

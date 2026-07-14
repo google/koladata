@@ -253,6 +253,54 @@ class TestUtilsTest(parameterized.TestCase):
         ds([1, 2, 3]).with_bag(bag().new(a=1).get_bag()),
     )
 
+  def test_assert_equivalent_with_removed_schema_attr(self):
+    db1 = bag()
+    e1 = db1.new(a=1, b=2)
+
+    db2 = db1.fork()
+    e2 = e1.with_bag(db2)
+    e2.b = 3
+
+    # Delete 'b' from schema in db1 and db2.
+    del e1.get_schema().b  # pyrefly: ignore[missing-attribute]
+    del e2.get_schema().b  # pyrefly: ignore[missing-attribute]
+
+    # Now e1 and e2 should be equivalent because 'b' is removed in schema,
+    # so the difference in 'b' values (2 vs 3) is ignored.
+    test_utils.assert_equivalent(e1, e2)
+
+  def test_assert_equivalent_with_removed_schema_attr_different_schemas(self):
+    db1 = bag()
+    e1 = db1.new(a=1, b=2)
+    del e1.get_schema().b  # pyrefly: ignore[missing-attribute]
+
+    db2 = bag()
+    e2 = db2.new(a=1, b=3)
+    del e2.get_schema().b  # pyrefly: ignore[missing-attribute]
+
+    # They should be equivalent if we ignore schema IDs, because 'b' is ignored.
+    test_utils.assert_equivalent(e1, e2, schemas_equality=False)
+
+    # If we don't ignore schema IDs, they are not equivalent.
+    with self.assertRaises(AssertionError):
+      test_utils.assert_equivalent(e1, e2)
+
+  def test_assert_equivalent_removed_vs_missing_schema_attr(self):
+    db1 = bag()
+    e1 = db1.new(a=1, b=2)
+    del e1.get_schema().b  # pyrefly: ignore[missing-attribute]
+
+    db2 = bag()
+    schema_id = e1.get_schema().no_bag()
+    schema_in_db2 = schema_id.with_bag(db2)
+    schema_in_db2.a = schema_constants.INT32  # pyrefly: ignore[missing-attribute]
+
+    e2 = db2.new(a=1, schema=schema_in_db2)
+
+    # They should be equivalent because we don't distinguish removed and missing
+    test_utils.assert_equivalent(e1, e2)
+    test_utils.assert_equivalent(e1.get_schema(), e2.get_schema())
+
   def test_assert_equivalent_error(self):
     with self.assertRaisesRegex(
         AssertionError,

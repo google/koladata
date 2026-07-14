@@ -636,7 +636,7 @@ class TraverseHelper {
       return TransitionsSet::CreateEmpty();
     }
     ASSIGN_OR_RETURN(DataSliceImpl attr_names_slice,
-                     databag_.GetSchemaAttrs(schema, fallbacks_));
+                     databag_.GetPresentSchemaAttrs(schema, fallbacks_));
     if (attr_names_slice.size() == 0) {
       return TransitionsSet::CreateEmpty();
     }
@@ -710,8 +710,10 @@ class TraverseHelper {
       // No processing needed for NoFollowSchema.
       return TransitionsSet::CreateEmpty();
     }
+    // TODO: switch to GetSchemaAttrs for distinction between
+    // missing and removed schema attributes.
     ASSIGN_OR_RETURN(DataSliceImpl attr_names_slice,
-                     databag_.GetSchemaAttrs(item, fallbacks_));
+                     databag_.GetPresentSchemaAttrs(item, fallbacks_));
     if (attr_names_slice.size() == 0) {
       return TransitionsSet::CreateEmpty();
     }

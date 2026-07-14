@@ -152,6 +152,52 @@ class CoreDeepCloneTest(parameterized.TestCase):
     )
     testing.assert_not_equal(result.ref(), o.ref())
 
+  def test_deep_clone_with_removed_schema_attr(self):
+    db = data_bag.DataBag.empty_mutable()
+    e = db.new(a=1, b=2)
+    del e.get_schema().b  # pyrefly: ignore[missing-attribute]
+
+    # Deep cloning e should succeed and ignore 'b'.
+    res = kd.deep_clone(e)
+
+    self.assertEqual(res.a, 1)
+    with self.assertRaises(AttributeError):
+      _ = res.b
+
+    # Verify that the schema of the deep cloned object also has 'b' removed
+    schema = res.get_schema()
+    db_fb = data_bag.DataBag.empty_mutable()
+    schema_in_fb = schema.no_bag().with_bag(db_fb)
+    schema_in_fb.b = schema_constants.INT32
+
+    # Since 'b' is removed in 'schema', it should NOT fall back to db_fb.
+    # So accessing it on enriched schema should still fail.
+    enriched_schema = schema.enriched(db_fb)
+    with self.assertRaises(AttributeError):
+      _ = enriched_schema.b
+
+  def test_deep_clone_with_removed_implicit_schema_attr(self):
+    db = data_bag.DataBag.empty_mutable()
+    o = db.obj(a=1, b=2)
+    del o.get_obj_schema().b  # pyrefly: ignore[missing-attribute]
+
+    # Deep cloning o should succeed.
+    res = kd.deep_clone(o)
+
+    self.assertEqual(res.a, 1)
+    with self.assertRaises(AttributeError):
+      _ = res.b
+
+    # Verify that the schema of the deep cloned object has 'b' missing
+    schema = res.get_obj_schema()
+    db_fb = data_bag.DataBag.empty_mutable()
+    schema_in_fb = schema.no_bag().with_bag(db_fb)
+    schema_in_fb.b = schema_constants.INT32
+
+    # Since 'b' is missing in 'schema', it SHOULD fall back to db_fb.
+    enriched_schema = schema.enriched(db_fb)
+    self.assertEqual(enriched_schema.b, schema_constants.INT32)
+
   @parameterized.parameters(True, False)
   def test_named_schema(self, pass_schema):
     db = data_bag.DataBag.empty_mutable()

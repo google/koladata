@@ -113,6 +113,59 @@ class SchemaCastToTest(parameterized.TestCase):
         result.x.get_bag().fingerprint, schema.get_bag().fingerprint
     )
 
+  def test_cast_to_with_removed_schema_attr(self):
+    db1 = data_bag.DataBag.empty_mutable()
+    e1 = db1.new(a=1)
+
+    db2 = data_bag.DataBag.empty_mutable()
+    target_schema = db2.new_schema(
+        a=schema_constants.INT32, b=schema_constants.INT32
+    )
+    del target_schema.b  # pyrefly: ignore[missing-attribute]
+
+    res = kd.schema.cast_to(e1, target_schema)
+
+    self.assertEqual(res.a, 1)
+    with self.assertRaises(AttributeError):
+      _ = res.b
+
+    # Verify that the schema of the casted object also has 'b' removed
+    schema = res.get_schema()
+    db_fb = data_bag.DataBag.empty_mutable()
+    schema_in_fb = schema.no_bag().with_bag(db_fb)
+    schema_in_fb.b = schema_constants.INT32
+
+    # Since 'b' is removed in 'schema', it should NOT fall back to db_fb.
+    # So accessing it on enriched schema should still fail.
+    enriched_schema = schema.enriched(db_fb)
+    with self.assertRaises(AttributeError):
+      _ = enriched_schema.b
+
+  def test_cast_to_with_removed_input_schema_attr(self):
+    db1 = data_bag.DataBag.empty_mutable()
+    e1 = db1.new(a=1, b=2)
+    del e1.get_schema().b  # pyrefly: ignore[missing-attribute]
+
+    db2 = data_bag.DataBag.empty_mutable()
+    target_schema = db2.new_schema(
+        a=schema_constants.INT32
+    )
+
+    res = kd.schema.cast_to(e1, target_schema)
+
+    self.assertEqual(res.a, 1)
+    with self.assertRaises(AttributeError):
+      _ = res.b
+
+    # Verify that the schema of the casted object also has 'b' removed
+    schema = res.get_schema()
+    db_fb = data_bag.DataBag.empty_mutable()
+    schema_in_fb = schema.no_bag().with_bag(db_fb)
+    schema_in_fb.b = schema_constants.INT32
+
+    enriched_schema = schema.enriched(db_fb)
+    self.assertEqual(enriched_schema.b, schema_constants.INT32)
+
   def test_same_schema_id_is_noop(self):
     bag1 = data_bag.DataBag.empty_mutable()
     bag2 = data_bag.DataBag.empty_mutable()

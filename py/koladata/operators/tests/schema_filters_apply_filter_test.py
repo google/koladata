@@ -68,6 +68,55 @@ class SchemaFiltersApplyFilterTest(parameterized.TestCase):
     result = kd.schema_filters.apply_filter(schema, filter_schema)
     testing.assert_equivalent(result, schema)
 
+  def test_apply_filter_with_removed_schema_attr(self):
+    db = data_bag.DataBag.empty_mutable()
+    schema = db.new_schema(
+        x=schema_constants.INT32, y=schema_constants.FLOAT32
+    )
+    del schema.y  # pyrefly: ignore[missing-attribute]
+
+    # Filter schema only contains 'x'.
+    filter_schema = db.new_schema(
+        x=schema_constants.INT32, y=schema_constants.FLOAT32
+    )
+    del filter_schema.y  # pyrefly: ignore[missing-attribute]
+
+    result = kd.schema_filters.apply_filter(schema, filter_schema)
+    expected = db.new_schema(x=schema_constants.INT32)
+    testing.assert_equivalent(result, expected)
+
+    # Verify that 'y' is MISSING (not removed) in result.
+    db_fb = data_bag.DataBag.empty_mutable()
+    schema_in_fb = result.no_bag().with_bag(db_fb)
+    schema_in_fb.y = schema_constants.FLOAT32
+
+    # Since 'y' is missing in 'result', it SHOULD fall back to db_fb.
+    enriched_schema = result.enriched(db_fb)
+    self.assertEqual(enriched_schema.y, schema_constants.FLOAT32)
+
+  def test_apply_filter_with_removed_schema_attr_any_filter(self):
+    db = data_bag.DataBag.empty_mutable()
+    schema = db.new_schema(
+        x=schema_constants.INT32, y=schema_constants.FLOAT32
+    )
+    del schema.y  # pyrefly: ignore[missing-attribute]
+
+    # ANY_SCHEMA_FILTER should keep all present attributes and ignore removed.
+    filter_schema = schema_constants.ANY_SCHEMA_FILTER
+
+    result = kd.schema_filters.apply_filter(schema, filter_schema)
+    expected = db.new_schema(x=schema_constants.INT32)
+    testing.assert_equivalent(result, expected)
+
+    # Verify that 'y' is MISSING (not removed) in result.
+    db_fb = data_bag.DataBag.empty_mutable()
+    schema_in_fb = result.no_bag().with_bag(db_fb)
+    schema_in_fb.y = schema_constants.FLOAT32
+
+    # Since 'y' is missing in 'result', it SHOULD fall back to db_fb.
+    enriched_schema = result.enriched(db_fb)
+    self.assertEqual(enriched_schema.y, schema_constants.FLOAT32)
+
   def test_contradicting_filters(self):
     a = kd.new(x=1, y=2)
     b = kd.new(a=a, also_a=a)
