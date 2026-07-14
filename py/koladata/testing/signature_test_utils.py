@@ -49,10 +49,7 @@ def generate_method_function_signature_compatibility_cases(
   Yields:
     Dicts with 'method_name' and 'param_index' keys.
   """
-  # We use object.__dir__ here since dir() on DataSlice currently does something
-  # different.
-  # TODO: switch to dir() once DataSlice is fixed.
-  for name in object.__dir__(obj_with_methods):
+  for name in dir(obj_with_methods):
     if (
         name.startswith('_')
         or not hasattr(obj_with_functions, name)
