@@ -444,9 +444,12 @@ py_library(
     name = "matrix",
     srcs = ["matrix.py"],
     deps = [
+        ":jagged_shape",
+        ":math",
         ":optools",
         ":qtype_utils",
         "//py:python_path",
+        "//py/koladata/types:data_slice",
         "@com_google_arolla//py/arolla",
     ],
 )

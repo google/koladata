@@ -36,6 +36,7 @@ import google_benchmark
 from koladata import kd
 from koladata import kd_ext
 import numpy as np
+from numpy import ma
 
 BATCH_SIZE = 100
 UNIFORM_SIZE = 50
@@ -53,12 +54,21 @@ def _make_jagged_sizes():
   return [random.choice(JAGGED_SIZES) for _ in range(BATCH_SIZE)]
 
 
+def _make_masked_matrix_np(rows, cols):
+  data = np.random.randn(rows, cols)
+  mask = np.random.random((rows, cols)) < 0.1  # ~10% missing
+  return np.ma.array(data, mask=mask)
+
+
 def _make_uniform_matrices_np():
-  return [np.random.randn(BATCH_SIZE, UNIFORM_SIZE, UNIFORM_SIZE)]
+  return [
+      _make_masked_matrix_np(UNIFORM_SIZE, UNIFORM_SIZE)
+      for _ in range(BATCH_SIZE)
+  ]
 
 
 def _make_jagged_matrices_np(sizes):
-  return [np.random.randn(s, s) for s in sizes]
+  return [_make_masked_matrix_np(s, s) for s in sizes]
 
 
 def _np_to_kd_matrices(mats_np):
@@ -80,6 +90,79 @@ eager_transpose_lambda = kd.optools.eager.EagerOperator(transpose_lambda)
 
 # Switch off docstring lint checks for the benchmark functions below.
 # pylint: disable=missing-function-docstring
+
+# ---- matmul ----
+
+
+def _np_matmul_impl(a_np, b_np):
+  # In the general case of multiplying non-square matrices that contain
+  # missing values, one has to fill in the missing values with 0 first.
+  # Otherwise the @ operator will fail with a ValueError it tries to combine
+  # the masks, which have different shapes.
+  # Another option is to use ma.dot (see below), but that is much slower.
+  return [a_np[i].filled(0) @ b_np[i].filled(0) for i in range(BATCH_SIZE)]
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def numpy_matmul_fill_zeros(state):
+  """NumPy matmul with missing values filled in with zeros (baseline)."""
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    a_np = _make_uniform_matrices_np()
+    b_np = _make_uniform_matrices_np()
+  else:
+    sizes = _make_jagged_sizes()
+    a_np = _make_jagged_matrices_np(sizes)
+    b_np = _make_jagged_matrices_np(sizes)
+  while state:
+    _ = _np_matmul_impl(a_np, b_np)
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def numpy_matmul_ma_dot(state):
+  """NumPy matmul using ma.dot (baseline)."""
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    a_np = _make_uniform_matrices_np()
+    b_np = _make_uniform_matrices_np()
+  else:
+    sizes = _make_jagged_sizes()
+    a_np = _make_jagged_matrices_np(sizes)
+    b_np = _make_jagged_matrices_np(sizes)
+  while state:
+    _ = [ma.dot(a_np[i], b_np[i]) for i in range(BATCH_SIZE)]
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def koda_matmul(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    a_np = _make_uniform_matrices_np()
+    b_np = _make_uniform_matrices_np()
+  else:
+    sizes = _make_jagged_sizes()
+    a_np = _make_jagged_matrices_np(sizes)
+    b_np = _make_jagged_matrices_np(sizes)
+  a_kd = _np_to_kd_matrices(a_np)
+  b_kd = _np_to_kd_matrices(b_np)
+  # Sanity check: from_array preserves numpy masks as Koda missing values,
+  # and matmul treats missing values as 0 (matching NumPy's filled(0) behavior).
+  kd.testing.assert_allclose(
+      kd.matrix.matmul(a_kd, b_kd),
+      _np_to_kd_matrices(_np_matmul_impl(a_np, b_np)),
+  )
+  while state:
+    _ = kd.matrix.matmul(a_kd, b_kd)
+
 
 # ---- transpose ----
 

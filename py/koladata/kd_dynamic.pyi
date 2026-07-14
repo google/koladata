@@ -410,6 +410,7 @@ class math:
 
 @_dataclass
 class matrix:
+  matmul = _operators_matrix.matmul
   transpose = _operators_matrix.transpose
 
 

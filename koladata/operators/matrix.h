@@ -24,6 +24,13 @@ namespace koladata::ops {
 // Supports batch dimensions: (..., m, n) -> (..., n, m).
 absl::StatusOr<DataSlice> MatrixTranspose(const DataSlice& x);
 
+// kd.matrix.matmul: Matrix multiplication with batch support.
+// a_ndim/b_ndim control how many trailing dims are matrix dims (1 or 2). A
+// value of -1 means auto-detect: min(rank, 2).
+absl::StatusOr<DataSlice> MatrixMatmul(const DataSlice& a, const DataSlice& b,
+                                       const DataSlice& a_ndim,
+                                       const DataSlice& b_ndim);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_MATRIX_H_

@@ -14,6 +14,49 @@ subject to standard Koda broadcasting rules.
 
 
 
+### `kd.matrix.matmul(a, b, *, a_ndim=-1, b_ndim=-1)` {#kd.matrix.matmul}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Matrix multiplication.
+
+Supports:
+  2D x 2D -&gt; 2D: (m,k) @ (k,n) -&gt; (m,n)
+  2D x 1D -&gt; 1D: (m,k) @ (k,) -&gt; (m,)
+  1D x 2D -&gt; 1D: (k,) @ (k,n) -&gt; (n,)
+  1D x 1D -&gt; 0D: dot product
+  ND x MD -&gt; batched matmul with broadcasting leading dimensions. The batch
+    dimensions (all dimensions except the last `a_ndim` or `b_ndim` dims) of
+    one input must be a prefix of the batch dims of the other. The
+    shorter-batch input is implicitly broadcast.
+
+The `a_ndim` and `b_ndim` parameters control how many trailing dimensions
+are treated as matrix dimensions for each input. Valid values are 1 or 2.
+When set to -1 (the default), defaults to 2 if the input has rank &gt;= 2,
+or 1 if the input has rank 1.
+
+This is useful when both inputs have rank &gt;= 2 but one should be treated
+as a batch of vectors (ndim=1) rather than a batch of matrices (ndim=2).
+
+Examples:
+  matmul(shape (2, 5, 6), shape (2, 3, 6, 7)) -&gt; shape (2, 3, 5, 7):
+    a batch (2,) is prefix of b batch (2, 3), so a is broadcast.
+  matmul(shape (m, k), shape (B, k, n)) -&gt; shape (B, m, n):
+    2D a has 0 batch dims, broadcast across B.
+  matmul(shape (B, k), shape (B, k, n), a_ndim=1) -&gt; shape (B, n):
+    a is treated as a batch of vectors, not a matrix.
+
+None values are treated as 0.
+
+Args:
+  a: A numeric DataSlice with at least 1 dimension.
+  b: A numeric DataSlice with at least 1 dimension.
+  a_ndim: Scalar integer. Number of trailing dimensions of `a` to use as
+    matrix dimensions (1 or 2). Defaults to -1, meaning min(rank(a), 2).
+  b_ndim: Scalar integer. Number of trailing dimensions of `b` to use as
+    matrix dimensions (1 or 2). Defaults to -1, meaning min(rank(b), 2).
+
+Returns:
+  The result of the matrix multiplication.</code></pre>
+
 ### `kd.matrix.transpose(x)` {#kd.matrix.transpose}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Transpose a matrix (swap last two dimensions).
