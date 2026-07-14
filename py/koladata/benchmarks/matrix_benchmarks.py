@@ -111,6 +111,11 @@ def koda_transpose(state):
     sizes = _make_jagged_sizes()
     a_np = _make_jagged_matrices_np(sizes)
   a_kd = _np_to_kd_matrices(a_np)
+  # Check that Koda's result is the same as the NumPy result:
+  kd.testing.assert_equal(
+      kd.matrix.transpose(a_kd),
+      _np_to_kd_matrices([a.swapaxes(-1, -2).copy() for a in a_np]),
+  )
   while state:
     _ = kd.matrix.transpose(a_kd)
 
