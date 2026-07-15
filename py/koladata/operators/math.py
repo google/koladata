@@ -22,7 +22,7 @@ from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import data_slice
 
-M = arolla.M | jagged_shape.M  # pyrefly: ignore[unsupported-operation]
+M = arolla.M | jagged_shape.M
 P = arolla.P
 
 
@@ -886,7 +886,7 @@ def cdf(x, weights=arolla.unspecified(), ndim=arolla.unspecified()):
     ndim: The number of dimensions to compute CDF over.
   """
 
-  weights = M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
+  weights = M.core.default_if_unspecified(
       weights,
       data_slice.DataSlice.from_vals(1.0),
   )

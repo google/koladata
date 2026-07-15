@@ -62,9 +62,9 @@ def is_iterable_qtype(qtype):  # pylint: disable=unused-argument
 )
 def from_sequence(x):
   """Converts a sequence to an iterable."""
-  return derived_qtype.M.downcast(  # pyrefly: ignore[missing-attribute]
+  return derived_qtype.M.downcast(
       get_iterable_qtype(
-          arolla.M.qtype.get_value_qtype(arolla.M.qtype.qtype_of(x))  # pyrefly: ignore[missing-attribute]
+          arolla.M.qtype.get_value_qtype(arolla.M.qtype.qtype_of(x))
       ),
       x,
   )
@@ -78,13 +78,13 @@ def from_sequence(x):
 )
 def to_sequence(x):
   """Converts an iterable to a sequence."""
-  return derived_qtype.M.upcast(arolla.M.qtype.qtype_of(x), x)  # pyrefly: ignore[missing-attribute]
+  return derived_qtype.M.upcast(arolla.M.qtype.qtype_of(x), x)
 
 
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.iterables.sequence_from_1d_slice',
-    qtype_inference_expr=arolla.M.qtype.make_sequence_qtype(qtypes.DATA_SLICE),  # pyrefly: ignore[missing-attribute]
+    qtype_inference_expr=arolla.M.qtype.make_sequence_qtype(qtypes.DATA_SLICE),
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
     view=view.ArollaView,
 )
@@ -98,7 +98,7 @@ def sequence_from_1d_slice(x):  # pylint: disable=unused-argument
     'koda_internal.iterables.sequence_to_1d_slice',
     qtype_inference_expr=qtypes.DATA_SLICE,
     qtype_constraints=[(
-        P.x == arolla.M.qtype.make_sequence_qtype(qtypes.DATA_SLICE),  # pyrefly: ignore[missing-attribute]
+        P.x == arolla.M.qtype.make_sequence_qtype(qtypes.DATA_SLICE),
         (
             'expected a sequence of DataItems, got'
             f' {arolla.optools.constraints.name_type_msg(P.x)}'
@@ -129,20 +129,20 @@ def shuffle(x):
     A shuffled iterable.
   """
   input_seq = to_sequence(x)
-  size = arolla.M.seq.size(input_seq)  # pyrefly: ignore[missing-attribute]
+  size = arolla.M.seq.size(input_seq)
   shape = jagged_shape.new(arolla_bridge.to_data_slice(size))
   # We use Koda rather than Arolla random to pick up the "nondeterministic
   # default seed" behavior.
   random_values = random.randint_shaped(shape)
   random_order = slices.ordinal_rank(random_values)
   random_order_seq = sequence_from_1d_slice(random_order)
-  random_order_seq = arolla.M.seq.map(  # pyrefly: ignore[missing-attribute]
+  random_order_seq = arolla.M.seq.map(
       arolla_bridge.to_arolla_int64, random_order_seq
   )
-  shuffled_seq = arolla.M.seq.map(  # pyrefly: ignore[missing-attribute]
-      arolla.M.seq.at,  # pyrefly: ignore[missing-attribute]
+  shuffled_seq = arolla.M.seq.map(
+      arolla.M.seq.at,
       # Copying the sequence is cheap-ish since it has a shared_ptr inside.
-      arolla.M.seq.repeat(input_seq, size),  # pyrefly: ignore[missing-attribute]
+      arolla.M.seq.repeat(input_seq, size),
       random_order_seq,
   )
   return from_sequence(shuffled_seq)
@@ -151,12 +151,12 @@ def shuffle(x):
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.iterables.sequence_chain',
-    qtype_inference_expr=arolla.M.qtype.get_value_qtype(P.sequences),  # pyrefly: ignore[missing-attribute]
+    qtype_inference_expr=arolla.M.qtype.get_value_qtype(P.sequences),
     qtype_constraints=[
         arolla.optools.constraints.expect_sequence(P.sequences),
         (
-            arolla.M.qtype.is_sequence_qtype(  # pyrefly: ignore[missing-attribute]
-                arolla.M.qtype.get_value_qtype(P.sequences)  # pyrefly: ignore[missing-attribute]
+            arolla.M.qtype.is_sequence_qtype(
+                arolla.M.qtype.get_value_qtype(P.sequences)
             ),
             'expected a sequence of sequences',
         ),
@@ -174,8 +174,8 @@ def sequence_chain(sequences):  # pylint: disable=unused-argument
     qtype_constraints=[
         arolla.optools.constraints.expect_sequence(P.sequences),
         (
-            arolla.M.qtype.is_sequence_qtype(  # pyrefly: ignore[missing-attribute]
-                arolla.M.qtype.get_value_qtype(P.sequences)  # pyrefly: ignore[missing-attribute]
+            arolla.M.qtype.is_sequence_qtype(
+                arolla.M.qtype.get_value_qtype(P.sequences)
             ),
             'expected a sequence of sequences',
         ),
@@ -196,8 +196,8 @@ def sequence_interleave(sequences):
     An interleaved sequence.
   """
   chain_res = sequence_chain(sequences)
-  sizes_seq = arolla.M.seq.map(arolla.M.seq.size, sequences)  # pyrefly: ignore[missing-attribute]
-  sizes_item_seq = arolla.M.seq.map(  # pyrefly: ignore[missing-attribute]
+  sizes_seq = arolla.M.seq.map(arolla.M.seq.size, sequences)
+  sizes_item_seq = arolla.M.seq.map(
       # We need a lambda wrapper to always use a default value for the 'shape'
       # argument.
       optools.as_lambda_operator('koda_internal.iterables._to_data_slice')(
@@ -230,13 +230,13 @@ def sequence_interleave(sequences):
       + index_in_group
   )
   overall_index_seq = sequence_from_1d_slice(overall_index)
-  overall_index_seq = arolla.M.seq.map(  # pyrefly: ignore[missing-attribute]
+  overall_index_seq = arolla.M.seq.map(
       arolla_bridge.to_arolla_int64, overall_index_seq
   )
-  return arolla.M.seq.map(  # pyrefly: ignore[missing-attribute]
-      arolla.M.seq.at,  # pyrefly: ignore[missing-attribute]
+  return arolla.M.seq.map(
+      arolla.M.seq.at,
       # A sequence has a shared_ptr inside, so copying it is cheap.
-      arolla.M.seq.repeat(chain_res, arolla.M.seq.size(chain_res)),  # pyrefly: ignore[missing-attribute]
+      arolla.M.seq.repeat(chain_res, arolla.M.seq.size(chain_res)),
       overall_index_seq,
   )
 
@@ -248,4 +248,4 @@ def sequence_interleave(sequences):
 )
 def empty_as(iterable):
   """Returns an empty iterable of the same type as `iterable`."""
-  return from_sequence(arolla.M.seq.slice(to_sequence(iterable), 0, 0))  # pyrefly: ignore[missing-attribute]
+  return from_sequence(arolla.M.seq.slice(to_sequence(iterable), 0, 0))

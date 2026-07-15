@@ -37,7 +37,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-M = arolla.M | jagged_shape.M  # pyrefly: ignore[unsupported-operation]
+M = arolla.M | jagged_shape.M
 P = arolla.P
 MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
@@ -642,7 +642,7 @@ def _get_list_item_by_range(ds, start, stop):  # pylint: disable=unused-argument
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         (
-            M.qtype.is_slice_qtype(P.s),  # pyrefly: ignore[missing-attribute]
+            M.qtype.is_slice_qtype(P.s),
             'key_or_index must be Slice',
         ),
     ],
@@ -690,7 +690,7 @@ def _get_item(x, key_or_index):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.x),
         (
             (P.key_or_index == qtypes.DATA_SLICE)
-            | M.qtype.is_slice_qtype(P.key_or_index),  # pyrefly: ignore[missing-attribute]
+            | M.qtype.is_slice_qtype(P.key_or_index),
             'key_or_index must be DataSlice or Slice',
         ),
     ],
@@ -763,7 +763,7 @@ def extract(ds, schema=arolla.unspecified()):
   Returns:
     A DataSlice with a new immutable DataBag attached.
   """
-  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(ds))  # pyrefly: ignore[missing-attribute]
+  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(ds))
   return _extract(ds, schema)
 
 
@@ -817,8 +817,8 @@ def shallow_clone(
     copied by reference.
   """
   overrides = arolla.optools.fix_trace_kwargs(overrides)
-  itemid = M.core.default_if_unspecified(itemid, _new_ids_like(x))  # pyrefly: ignore[missing-attribute]
-  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(x))  # pyrefly: ignore[missing-attribute]
+  itemid = M.core.default_if_unspecified(itemid, _new_ids_like(x))
+  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(x))
   return arolla.types.DispatchOperator(
       'x, itemid, schema, overrides, non_deterministic',
       overrides_case=arolla.types.DispatchCase(
@@ -828,7 +828,7 @@ def shallow_clone(
               overwrite_schema=py_boxing.as_qvalue(False),
               attrs=P.overrides,
           ),
-          condition=arolla.M.qtype.get_field_count(P.overrides) > 0,  # pyrefly: ignore[missing-attribute]
+          condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
       ),
       default=_shallow_clone(P.x, P.itemid, P.schema, P.non_deterministic),
   )(x, itemid, schema, overrides, optools.unified_non_deterministic_arg())
@@ -882,8 +882,8 @@ def clone(
     and all of the rest extracted.
   """
   overrides = arolla.optools.fix_trace_kwargs(overrides)
-  itemid = M.core.default_if_unspecified(itemid, _new_ids_like(x))  # pyrefly: ignore[missing-attribute]
-  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(x))  # pyrefly: ignore[missing-attribute]
+  itemid = M.core.default_if_unspecified(itemid, _new_ids_like(x))
+  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(x))
   return arolla.types.DispatchOperator(
       'x, itemid, schema, overrides, non_deterministic',
       overrides_case=arolla.types.DispatchCase(
@@ -893,7 +893,7 @@ def clone(
               overwrite_schema=py_boxing.as_qvalue(False),
               attrs=P.overrides,
           ),
-          condition=arolla.M.qtype.get_field_count(P.overrides) > 0,  # pyrefly: ignore[missing-attribute]
+          condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
       ),
       default=_clone(P.x, P.itemid, P.schema, P.non_deterministic),
   )(x, itemid, schema, overrides, optools.unified_non_deterministic_arg())
@@ -1007,7 +1007,7 @@ def deep_clone(x, /, schema=arolla.unspecified(), **overrides):
     that UUIDs will be copied as ItemIds.
   """
   overrides = arolla.optools.fix_trace_kwargs(overrides)
-  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(x))  # pyrefly: ignore[missing-attribute]
+  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(x))
   return arolla.types.DispatchOperator(
       'x, schema, overrides, non_deterministic',
       overrides_case=arolla.types.DispatchCase(
@@ -1017,7 +1017,7 @@ def deep_clone(x, /, schema=arolla.unspecified(), **overrides):
               overwrite_schema=py_boxing.as_qvalue(False),
               attrs=P.overrides,
           ),
-          condition=arolla.M.qtype.get_field_count(P.overrides) > 0,  # pyrefly: ignore[missing-attribute]
+          condition=arolla.M.qtype.get_field_count(P.overrides) > 0,
       ),
       default=_deep_clone(P.x, P.schema, P.non_deterministic),
   )(x, schema, overrides, optools.unified_non_deterministic_arg())
@@ -1276,7 +1276,7 @@ def enriched(ds, *bag):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice_or_data_bag(P.x),
         qtype_utils.expect_data_slice_or_data_bag(P.y),
         (
-            (P.x == qtypes.DATA_BAG) | (P.y == qtypes.DATA_BAG),  # pyrefly: ignore[unsupported-operation]
+            (P.x == qtypes.DATA_BAG) | (P.y == qtypes.DATA_BAG),
             (
                 'at least one argument must be a DATA_BAG, this operation is'
                 ' not supported on two DATA_SLICEs'
@@ -1290,15 +1290,15 @@ def lshift(x, y):
       'x, y',
       x_is_slice_case=arolla.types.DispatchCase(
           updated(P.x, P.y),
-          condition=(P.x == qtypes.DATA_SLICE) & (P.y == qtypes.DATA_BAG),  # pyrefly: ignore[unsupported-operation]
+          condition=(P.x == qtypes.DATA_SLICE) & (P.y == qtypes.DATA_BAG),
       ),
       y_is_slice_case=arolla.types.DispatchCase(
           enriched(P.y, P.x),
-          condition=(P.y == qtypes.DATA_SLICE) & (P.x == qtypes.DATA_BAG),  # pyrefly: ignore[unsupported-operation]
+          condition=(P.y == qtypes.DATA_SLICE) & (P.x == qtypes.DATA_BAG),
       ),
       databag_case=arolla.types.DispatchCase(
           bags.updated(P.x, P.y),
-          condition=(P.x == qtypes.DATA_BAG) & (P.y == qtypes.DATA_BAG),  # pyrefly: ignore[unsupported-operation]
+          condition=(P.x == qtypes.DATA_BAG) & (P.y == qtypes.DATA_BAG),
       ),
   )(x, y)
 
@@ -1445,7 +1445,7 @@ arolla.abc.set_expr_view_for_registered_operator(
 )
 @optools.as_backend_operator(
     'kd.core.with_timestamp',
-    qtype_inference_expr=M.qtype.make_tuple_qtype(P.x, qtypes.DATA_SLICE),  # pyrefly: ignore[missing-attribute]
+    qtype_inference_expr=M.qtype.make_tuple_qtype(P.x, qtypes.DATA_SLICE),
     deterministic=False,
 )
 def with_timestamp(x):  # pylint: disable=unused-argument,redefined-outer-name

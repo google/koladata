@@ -36,7 +36,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-M = arolla.M | jagged_shape.M  # pyrefly: ignore[unsupported-operation]
+M = arolla.M | jagged_shape.M
 P = arolla.P
 MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
@@ -89,12 +89,12 @@ def like(
   Returns:
     A DataSlice with the lists.
   """
-  items = M.core.default_if_unspecified(items, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
-  item_schema = M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
+  items = M.core.default_if_unspecified(items, data_slice.unspecified())
+  item_schema = M.core.default_if_unspecified(
       item_schema, data_slice.unspecified()
   )
-  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
-  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
+  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
+  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
   return _like(shape_and_mask_from, items, item_schema, schema, itemid)
 
 
@@ -141,12 +141,12 @@ def shaped(
   Returns:
     A DataSlice with the lists.
   """
-  items = M.core.default_if_unspecified(items, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
-  item_schema = M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
+  items = M.core.default_if_unspecified(items, data_slice.unspecified())
+  item_schema = M.core.default_if_unspecified(
       item_schema, data_slice.unspecified()
   )
-  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
-  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
+  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
+  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
   return _shaped(shape, items, item_schema, schema, itemid)
 
 
@@ -276,7 +276,7 @@ def implode(
   Returns:
     DataSlice of nested Lists
   """
-  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
+  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
   return _implode(x, arolla_bridge.to_arolla_int64(ndim), itemid)
 
 
@@ -341,12 +341,12 @@ def new(
   Returns:
     The slice with list/lists.
   """
-  items = M.core.default_if_unspecified(items, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
-  item_schema = M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
+  items = M.core.default_if_unspecified(items, data_slice.unspecified())
+  item_schema = M.core.default_if_unspecified(
       item_schema, data_slice.unspecified()
   )
-  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
-  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
+  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
+  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
   return arolla.types.DispatchOperator(
       'items, item_schema, schema, itemid, non_deterministic',
       everything_unspecified_case=arolla.types.DispatchCase(
@@ -501,10 +501,10 @@ def uu(
   Returns:
     A DataSlice with the list.
   """
-  item_schema = M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
+  item_schema = M.core.default_if_unspecified(
       item_schema, data_slice.unspecified()
   )
-  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())  # pyrefly: ignore[missing-attribute]
+  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
 
   itemid = ids_ops.uuid_for_list(
       seed=seed,
@@ -512,7 +512,7 @@ def uu(
   )
 
   shape = arolla_bridge.from_arolla_jagged_shape(
-      M.jagged.remove_dims(  # pyrefly: ignore[missing-attribute]
+      M.jagged.remove_dims(
           arolla_bridge.to_arolla_jagged_shape(
               jagged_shape_ops.get_shape(items)
           ),
@@ -572,7 +572,7 @@ def concat_lists(arg0, *args):
   """Implementation of kde.lists.concat."""
   # TODO: Support 0 args.
   args = arolla.optools.fix_trace_args(args)
-  return arolla.M.core.apply_varargs(  # pyrefly: ignore[missing-attribute]
+  return arolla.M.core.apply_varargs(
       _concat_lists,
       arolla.abc.aux_bind_op('koda_internal.non_deterministic_identity', arg0),
       args,

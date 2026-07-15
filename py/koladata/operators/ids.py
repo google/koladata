@@ -268,7 +268,7 @@ def deep_uuid(x, /, schema=arolla.unspecified(), *, seed=''):
   Returns:
     Result of recursive uuid application `x`.
   """
-  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(x))  # pyrefly: ignore[missing-attribute]
+  schema = M.core.default_if_unspecified(schema, schema_ops.get_schema(x))
   return _deep_uuid(x, schema, seed)
 
 
@@ -321,7 +321,7 @@ def hash_itemid(x):
   Returns:
     A DataSlice of INT64 hash values.
   """
-  hash_value = M.random.cityhash(  # pyrefly: ignore[missing-attribute]
+  hash_value = M.random.cityhash(
       arolla_bridge.to_arolla_dense_array_text(encode_itemid(x)),
       arolla.int64(85852539),
   )

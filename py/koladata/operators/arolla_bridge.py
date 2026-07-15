@@ -21,7 +21,7 @@ from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import qtypes
 
-M = arolla.M | derived_qtype.M  # pyrefly: ignore[unsupported-operation]
+M = arolla.M | derived_qtype.M
 P = arolla.P
 constraints = arolla.optools.constraints
 
@@ -190,9 +190,9 @@ def to_arolla_dense_array_text(x):  # pylint: disable=unused-argument
     'koda_internal._to_data_slice',
     qtype_constraints=[
         (
-            M.qtype.is_scalar_qtype(P.x)  # pyrefly: ignore[missing-attribute]
-            | M.qtype.is_optional_qtype(P.x)  # pyrefly: ignore[missing-attribute]
-            | M.qtype.is_dense_array_qtype(P.x),  # pyrefly: ignore[missing-attribute]
+            M.qtype.is_scalar_qtype(P.x)
+            | M.qtype.is_optional_qtype(P.x)
+            | M.qtype.is_dense_array_qtype(P.x),
             (
                 'expected scalar, optional or dense_array, got'
                 f' {constraints.name_type_msg(P.x)}'
@@ -225,7 +225,7 @@ def to_data_slice(x):
   to_dense_array_or_scalar = arolla.types.DispatchOperator(
       'x',
       array_case=arolla.types.DispatchCase(
-          M.array.as_dense_array(P.x), condition=M.qtype.is_array_qtype(P.x)  # pyrefly: ignore[missing-attribute]
+          M.array.as_dense_array(P.x), condition=M.qtype.is_array_qtype(P.x)
       ),
       default=P.x,
   )
@@ -246,7 +246,7 @@ def to_data_slice(x):
 )
 def from_arolla_jagged_shape(shape):
   """Returns a Koda JaggedShape from an Arolla JaggedShape."""
-  return M.derived_qtype.downcast(qtypes.JAGGED_SHAPE, shape)  # pyrefly: ignore[missing-attribute]
+  return M.derived_qtype.downcast(qtypes.JAGGED_SHAPE, shape)
 
 
 @optools.add_to_registry(via_cc_operator_package=True)
@@ -257,4 +257,4 @@ def from_arolla_jagged_shape(shape):
 )
 def to_arolla_jagged_shape(shape):
   """Returns an Arolla JaggedShape from a Koda JaggedShape."""
-  return M.derived_qtype.upcast(qtypes.JAGGED_SHAPE, shape)  # pyrefly: ignore[missing-attribute]
+  return M.derived_qtype.upcast(qtypes.JAGGED_SHAPE, shape)

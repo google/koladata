@@ -26,7 +26,7 @@ from koladata.types import iterable_qvalue
 from koladata.types import jagged_shape
 from koladata.types import qtypes
 
-koda_internal_parallel = kde_operators.internal.parallel  # pyrefly: ignore[missing-attribute]
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 class KodaQTypesTest(absltest.TestCase):
@@ -499,7 +499,7 @@ class KodaQTypesTest(absltest.TestCase):
     )
 
     with self.subTest('success'):
-      _op(arolla.M.annotation.qtype(arolla.L.x, stream_qtype))  # pyrefly: ignore[not-callable]
+      _op(arolla.M.annotation.qtype(arolla.L.x, stream_qtype))
 
     with self.subTest('failure'):
       with self.assertRaisesRegex(
@@ -544,40 +544,40 @@ class KodaQTypesTest(absltest.TestCase):
     )
 
     with self.subTest('success'):
-      _generic_op(arolla.M.annotation.qtype(arolla.L.x, stream_int32))  # pyrefly: ignore[not-callable]
-      _generic_op(arolla.M.annotation.qtype(arolla.L.x, future_int32))  # pyrefly: ignore[not-callable]
-      _generic_op(arolla.M.annotation.qtype(arolla.L.x, stream_float32))  # pyrefly: ignore[not-callable]
-      _generic_op(arolla.M.annotation.qtype(arolla.L.x, future_float32))  # pyrefly: ignore[not-callable]
-      _specific_op(arolla.M.annotation.qtype(arolla.L.x, stream_int32))  # pyrefly: ignore[not-callable]
-      _specific_op(arolla.M.annotation.qtype(arolla.L.x, future_int32))  # pyrefly: ignore[not-callable]
+      _generic_op(arolla.M.annotation.qtype(arolla.L.x, stream_int32))
+      _generic_op(arolla.M.annotation.qtype(arolla.L.x, future_int32))
+      _generic_op(arolla.M.annotation.qtype(arolla.L.x, stream_float32))
+      _generic_op(arolla.M.annotation.qtype(arolla.L.x, future_float32))
+      _specific_op(arolla.M.annotation.qtype(arolla.L.x, stream_int32))
+      _specific_op(arolla.M.annotation.qtype(arolla.L.x, future_int32))
 
     with self.subTest('failure'):
       with self.assertRaisesRegex(
           ValueError,
           re.escape('expected a stream or a future, got x: DATA_SLICE'),
       ):
-        _generic_op(arolla.M.annotation.qtype(arolla.L.x, qtypes.DATA_SLICE))  # pyrefly: ignore[not-callable]
+        _generic_op(arolla.M.annotation.qtype(arolla.L.x, qtypes.DATA_SLICE))
       with self.assertRaisesRegex(
           ValueError,
           re.escape(
               'expected a stream or a future of INT32, got x: DATA_SLICE'
           ),
       ):
-        _specific_op(arolla.M.annotation.qtype(arolla.L.x, qtypes.DATA_SLICE))  # pyrefly: ignore[not-callable]
+        _specific_op(arolla.M.annotation.qtype(arolla.L.x, qtypes.DATA_SLICE))
       with self.assertRaisesRegex(
           ValueError,
           re.escape(
               'expected a stream or a future of INT32, got x: STREAM[FLOAT32]'
           ),
       ):
-        _specific_op(arolla.M.annotation.qtype(arolla.L.x, stream_float32))  # pyrefly: ignore[not-callable]
+        _specific_op(arolla.M.annotation.qtype(arolla.L.x, stream_float32))
       with self.assertRaisesRegex(
           ValueError,
           re.escape(
               'expected a stream or a future of INT32, got x: FUTURE[FLOAT32]'
           ),
       ):
-        _specific_op(arolla.M.annotation.qtype(arolla.L.x, future_float32))  # pyrefly: ignore[not-callable]
+        _specific_op(arolla.M.annotation.qtype(arolla.L.x, future_float32))
 
     # Make sure we can serialize operators using expect_stream_or_future.
     _ = arolla.s11n.dumps(_generic_op)

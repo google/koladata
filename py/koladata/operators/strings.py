@@ -32,7 +32,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-M = arolla.M | jagged_shape.M  # pyrefly: ignore[unsupported-operation]
+M = arolla.M | jagged_shape.M
 P = arolla.P
 constraints = arolla.optools.constraints
 
@@ -344,7 +344,7 @@ def _test_only_format_wrapper(fmt, arg_names, *args):  # pylint: disable=unused-
     'kd.strings.join',
     qtype_constraints=[
         (
-            M.qtype.get_field_count(P.args) > 0,  # pyrefly: ignore[missing-attribute]
+            M.qtype.get_field_count(P.args) > 0,
             'expected at least one argument',
         ),
         qtype_utils.expect_data_slice_args(P.args),
@@ -586,13 +586,13 @@ def regex_find_all(text, regex):  # pylint: disable=unused-argument
   )
   arolla_text = arolla_bridge.to_arolla_dense_array_text(text)
   arolla_regex = arolla_bridge.to_arolla_text(regex)
-  result_tuple = M.strings.findall_regex(arolla_text, arolla_regex)  # pyrefly: ignore[missing-attribute]
+  result_tuple = M.strings.findall_regex(arolla_text, arolla_regex)
   get_nth = arolla.abc.lookup_operator('core.get_nth')
   flat_res = get_nth(result_tuple, 0)
   value_edge = get_nth(result_tuple, 1)
   group_edge = get_nth(result_tuple, 2)
   shape = arolla_bridge.from_arolla_jagged_shape(
-      M.jagged.add_dims(  # pyrefly: ignore[missing-attribute]
+      M.jagged.add_dims(
           arolla_bridge.to_arolla_jagged_shape(
               jagged_shape_ops.get_shape(text)
           ),
@@ -682,7 +682,7 @@ def regex_replace_all(text, regex, replacement):
   text_da = arolla_bridge.to_arolla_dense_array_text(text_a)
   replacement_da = arolla_bridge.to_arolla_dense_array_text(replacement_a)
   regex_t = arolla_bridge.to_arolla_text(regex)
-  res_da = M.strings.replace_all_regex(text_da, regex_t, replacement_da)  # pyrefly: ignore[missing-attribute]
+  res_da = M.strings.replace_all_regex(text_da, regex_t, replacement_da)
   return (
       arolla_bridge.to_data_slice(res_da)
       .reshape(text_a.get_shape())

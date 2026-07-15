@@ -40,7 +40,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 from koladata.types import signature_utils
 
-M = arolla.M | derived_qtype.M  # pyrefly: ignore[unsupported-operation]
+M = arolla.M | derived_qtype.M
 P = arolla.P
 constraints = arolla.optools.constraints
 
@@ -52,7 +52,7 @@ get_eager_executor = arolla.abc.lookup_operator(
     'koda_internal.parallel.get_eager_executor'
 )
 
-EXECUTOR = M.qtype.qtype_of(get_eager_executor())  # pyrefly: ignore[missing-attribute]
+EXECUTOR = M.qtype.qtype_of(get_eager_executor())
 
 EMPTY_TUPLE = arolla.make_tuple_qtype()
 
@@ -208,7 +208,7 @@ def as_future(arg):  # pylint: disable=unused-argument
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.get_future_value_for_testing',
-    qtype_inference_expr=M.qtype.get_value_qtype(P.arg),  # pyrefly: ignore[missing-attribute]
+    qtype_inference_expr=M.qtype.get_value_qtype(P.arg),
     qtype_constraints=[
         qtype_utils.expect_future(P.arg),
     ],
@@ -221,11 +221,11 @@ def get_future_value_for_testing(arg):  # pylint: disable=unused-argument
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.unwrap_future_to_future',
-    qtype_inference_expr=M.qtype.get_value_qtype(P.arg),  # pyrefly: ignore[missing-attribute]
+    qtype_inference_expr=M.qtype.get_value_qtype(P.arg),
     qtype_constraints=[
         qtype_utils.expect_future(P.arg),
         (
-            is_future_qtype(M.qtype.get_value_qtype(P.arg)),  # pyrefly: ignore[missing-attribute]
+            is_future_qtype(M.qtype.get_value_qtype(P.arg)),
             (
                 'expected a future to a future, got'
                 f' {arolla.optools.constraints.name_type_msg(P.arg)}'
@@ -241,11 +241,11 @@ def unwrap_future_to_future(arg):  # pylint: disable=unused-argument
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.unwrap_future_to_stream',
-    qtype_inference_expr=M.qtype.get_value_qtype(P.arg),  # pyrefly: ignore[missing-attribute]
+    qtype_inference_expr=M.qtype.get_value_qtype(P.arg),
     qtype_constraints=[
         qtype_utils.expect_future(P.arg),
         (
-            is_stream_qtype(M.qtype.get_value_qtype(P.arg)),  # pyrefly: ignore[missing-attribute]
+            is_stream_qtype(M.qtype.get_value_qtype(P.arg)),
             (
                 'expected a future to a stream, got'
                 f' {arolla.optools.constraints.name_type_msg(P.arg)}'
@@ -270,35 +270,35 @@ def get_stream_qtype(value_qtype):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-_STREAM_CHAIN_QTYPE_INFERENCE_EXPR = M.qtype.conditional_qtype(  # pyrefly: ignore[missing-attribute]
+_STREAM_CHAIN_QTYPE_INFERENCE_EXPR = M.qtype.conditional_qtype(
     P.value_type_as == arolla.UNSPECIFIED,
-    M.qtype.conditional_qtype(  # pyrefly: ignore[missing-attribute]
+    M.qtype.conditional_qtype(
         P.streams == EMPTY_TUPLE,
         get_stream_qtype(qtypes.DATA_SLICE),
-        M.qtype.get_field_qtype(P.streams, 0),  # pyrefly: ignore[missing-attribute]
+        M.qtype.get_field_qtype(P.streams, 0),
     ),
     get_stream_qtype(P.value_type_as),
 )
 
 _STREAM_CHAIN_QTYPE_CONSTRAINTS = (
     (
-        M.seq.all(  # pyrefly: ignore[missing-attribute]
-            M.seq.map(  # pyrefly: ignore[missing-attribute]
+        M.seq.all(
+            M.seq.map(
                 is_stream_qtype,
-                M.qtype.get_field_qtypes(P.streams),  # pyrefly: ignore[missing-attribute]
+                M.qtype.get_field_qtypes(P.streams),
             )
         ),
         'all inputs must be streams',
     ),
     (
-        M.seq.all_equal(M.qtype.get_field_qtypes(P.streams)),  # pyrefly: ignore[missing-attribute]
+        M.seq.all_equal(M.qtype.get_field_qtypes(P.streams)),
         'all input streams must have the same value type',
     ),
     (
         (P.value_type_as == arolla.UNSPECIFIED)
         | (P.streams == EMPTY_TUPLE)
         | (
-            M.qtype.get_field_qtype(P.streams, 0)  # pyrefly: ignore[missing-attribute]
+            M.qtype.get_field_qtype(P.streams, 0)
             == get_stream_qtype(P.value_type_as)
         ),
         'input streams must be compatible with value_type_as',
@@ -369,11 +369,11 @@ def stream_interleave(*streams, value_type_as=arolla.unspecified()):
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_chain_from_stream',
-    qtype_inference_expr=M.qtype.get_value_qtype(P.stream_of_streams),  # pyrefly: ignore[missing-attribute]
+    qtype_inference_expr=M.qtype.get_value_qtype(P.stream_of_streams),
     qtype_constraints=[
         qtype_utils.expect_stream(P.stream_of_streams),
         (
-            is_stream_qtype(M.qtype.get_value_qtype(P.stream_of_streams)),  # pyrefly: ignore[missing-attribute]
+            is_stream_qtype(M.qtype.get_value_qtype(P.stream_of_streams)),
             (
                 'expected a stream of streams, got'
                 f' {constraints.name_type_msg(P.stream_of_streams)}'
@@ -412,11 +412,11 @@ def stream_chain_from_stream(stream_of_streams):
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_interleave_from_stream',
-    qtype_inference_expr=M.qtype.get_value_qtype(P.stream_of_streams),  # pyrefly: ignore[missing-attribute]
+    qtype_inference_expr=M.qtype.get_value_qtype(P.stream_of_streams),
     qtype_constraints=[
         qtype_utils.expect_stream(P.stream_of_streams),
         (
-            is_stream_qtype(M.qtype.get_value_qtype(P.stream_of_streams)),  # pyrefly: ignore[missing-attribute]
+            is_stream_qtype(M.qtype.get_value_qtype(P.stream_of_streams)),
             (
                 'expected a stream of streams, got'
                 f' {constraints.name_type_msg(P.stream_of_streams)}'
@@ -452,23 +452,23 @@ def stream_interleave_from_stream(stream_of_streams):
     'koda_internal.parallel.stream_make',
     qtype_constraints=[
         (
-            M.seq.all_equal(M.qtype.get_field_qtypes(P.items)),  # pyrefly: ignore[missing-attribute]
+            M.seq.all_equal(M.qtype.get_field_qtypes(P.items)),
             'all items must have the same type',
         ),
         (
             (P.value_type_as == arolla.UNSPECIFIED)
             | (P.items == EMPTY_TUPLE)
-            | (P.value_type_as == M.qtype.get_field_qtype(P.items, 0)),  # pyrefly: ignore[missing-attribute]
+            | (P.value_type_as == M.qtype.get_field_qtype(P.items, 0)),
             'items must be compatible with value_type_as',
         ),
     ],
     qtype_inference_expr=get_stream_qtype(
-        M.qtype.conditional_qtype(  # pyrefly: ignore[missing-attribute]
+        M.qtype.conditional_qtype(
             P.value_type_as == arolla.UNSPECIFIED,
-            M.qtype.conditional_qtype(  # pyrefly: ignore[missing-attribute]
+            M.qtype.conditional_qtype(
                 P.items == EMPTY_TUPLE,
                 qtypes.DATA_SLICE,
-                M.qtype.get_field_qtype(P.items, 0),  # pyrefly: ignore[missing-attribute]
+                M.qtype.get_field_qtype(P.items, 0),
             ),
             P.value_type_as,
         )
@@ -502,7 +502,7 @@ def stream_make(*items, value_type_as=arolla.unspecified()):
     qtype_constraints=[
         qtype_utils.expect_iterable(P.iterable),
     ],
-    qtype_inference_expr=get_stream_qtype(M.qtype.get_value_qtype(P.iterable)),  # pyrefly: ignore[missing-attribute]
+    qtype_inference_expr=get_stream_qtype(M.qtype.get_value_qtype(P.iterable)),
 )
 def stream_from_iterable(iterable):
   """Creates a stream from the given iterable.
@@ -536,24 +536,24 @@ def _internal_as_parallel(outer_arg, outer_self_op):
   return arolla.types.DispatchOperator(
       'arg, self_op',
       tuple_case=arolla.types.DispatchCase(
-          M.core.map_tuple(  # pyrefly: ignore[missing-attribute]
+          M.core.map_tuple(
               P.self_op,
               P.arg,
               P.self_op,
           ),
-          condition=M.qtype.is_tuple_qtype(P.arg),  # pyrefly: ignore[missing-attribute]
+          condition=M.qtype.is_tuple_qtype(P.arg),
       ),
       namedtuple_case=arolla.types.DispatchCase(
-          M.core.apply_varargs(  # pyrefly: ignore[missing-attribute]
-              M.namedtuple.make,  # pyrefly: ignore[missing-attribute]
-              M.qtype.get_field_names(M.qtype.qtype_of(P.arg)),  # pyrefly: ignore[missing-attribute]
-              M.core.map_tuple(  # pyrefly: ignore[missing-attribute]
+          M.core.apply_varargs(
+              M.namedtuple.make,
+              M.qtype.get_field_names(M.qtype.qtype_of(P.arg)),
+              M.core.map_tuple(
                   P.self_op,
-                  M.derived_qtype.upcast(M.qtype.qtype_of(P.arg), P.arg),  # pyrefly: ignore[missing-attribute]
+                  M.derived_qtype.upcast(M.qtype.qtype_of(P.arg), P.arg),
                   P.self_op,
               ),
           ),
-          condition=M.qtype.is_namedtuple_qtype(P.arg),  # pyrefly: ignore[missing-attribute]
+          condition=M.qtype.is_namedtuple_qtype(P.arg),
       ),
       iterable_case=arolla.types.DispatchCase(
           stream_from_iterable(P.arg),
@@ -620,9 +620,9 @@ def _internal_namedtuple_with_names_from(example_namedtuple, *args):
     field values.
   """
   args = arolla.optools.fix_trace_args(args)
-  return M.core.apply_varargs(  # pyrefly: ignore[missing-attribute]
-      M.namedtuple.make,  # pyrefly: ignore[missing-attribute]
-      M.qtype.get_field_names(M.qtype.qtype_of(example_namedtuple)),  # pyrefly: ignore[missing-attribute]
+  return M.core.apply_varargs(
+      M.namedtuple.make,
+      M.qtype.get_field_names(M.qtype.qtype_of(example_namedtuple)),
       args,
   )
 
@@ -646,14 +646,14 @@ def _nonrecursive_is_parallel_qtype(arg):
   return (
       (
           is_future_qtype(arg)
-          & ~M.qtype.is_tuple_qtype(M.qtype.get_value_qtype(arg))  # pyrefly: ignore[missing-attribute]
-          & ~M.qtype.is_namedtuple_qtype(M.qtype.get_value_qtype(arg))  # pyrefly: ignore[missing-attribute]
-          & (M.qtype.get_value_qtype(arg) != qtypes.NON_DETERMINISTIC_TOKEN)  # pyrefly: ignore[missing-attribute]
+          & ~M.qtype.is_tuple_qtype(M.qtype.get_value_qtype(arg))
+          & ~M.qtype.is_namedtuple_qtype(M.qtype.get_value_qtype(arg))
+          & (M.qtype.get_value_qtype(arg) != qtypes.NON_DETERMINISTIC_TOKEN)
       )
       | is_stream_qtype(arg)
       | (arg == qtypes.NON_DETERMINISTIC_TOKEN)
-      | M.qtype.is_tuple_qtype(arg)  # pyrefly: ignore[missing-attribute]
-      | M.qtype.is_namedtuple_qtype(arg)  # pyrefly: ignore[missing-attribute]
+      | M.qtype.is_tuple_qtype(arg)
+      | M.qtype.is_namedtuple_qtype(arg)
   )
 
 
@@ -681,33 +681,33 @@ def _internal_future_from_parallel(outer_arg, outer_executor, outer_self_op):
   return arolla.types.DispatchOperator(
       'arg, executor, self_op',
       tuple_case=arolla.types.DispatchCase(
-          M.core.apply_varargs(  # pyrefly: ignore[missing-attribute]
+          M.core.apply_varargs(
               async_eval,
               P.executor,
               tuple_ops.tuple_,
-              M.core.map_tuple(  # pyrefly: ignore[missing-attribute]
+              M.core.map_tuple(
                   P.self_op,
                   P.arg,
                   P.executor,
                   P.self_op,
               ),
           ),
-          condition=M.qtype.is_tuple_qtype(P.arg),  # pyrefly: ignore[missing-attribute]
+          condition=M.qtype.is_tuple_qtype(P.arg),
       ),
       namedtuple_case=arolla.types.DispatchCase(
-          M.core.apply_varargs(  # pyrefly: ignore[missing-attribute]
+          M.core.apply_varargs(
               async_eval,
               P.executor,
               _internal_namedtuple_with_names_from,
               P.arg,
-              M.core.map_tuple(  # pyrefly: ignore[missing-attribute]
+              M.core.map_tuple(
                   P.self_op,
-                  M.derived_qtype.upcast(M.qtype.qtype_of(P.arg), P.arg),  # pyrefly: ignore[missing-attribute]
+                  M.derived_qtype.upcast(M.qtype.qtype_of(P.arg), P.arg),
                   P.executor,
                   P.self_op,
               ),
           ),
-          condition=M.qtype.is_namedtuple_qtype(P.arg),  # pyrefly: ignore[missing-attribute]
+          condition=M.qtype.is_namedtuple_qtype(P.arg),
       ),
       non_deterministic_token_case=arolla.types.DispatchCase(
           as_future(P.arg),
@@ -754,15 +754,15 @@ def future_from_parallel(executor, arg):
     qtype_constraints=[
         qtype_utils.expect_future(P.future),
         (
-            M.qtype.is_tuple_qtype(M.qtype.get_value_qtype(P.future))  # pyrefly: ignore[missing-attribute]
-            | M.qtype.is_namedtuple_qtype(M.qtype.get_value_qtype(P.future)),  # pyrefly: ignore[missing-attribute]
+            M.qtype.is_tuple_qtype(M.qtype.get_value_qtype(P.future))
+            | M.qtype.is_namedtuple_qtype(M.qtype.get_value_qtype(P.future)),
             'input must be a future to a tuple or a namedtuple',
         ),
     ],
-    qtype_inference_expr=M.qtype.make_tuple_qtype(  # pyrefly: ignore[missing-attribute]
-        M.seq.map(  # pyrefly: ignore[missing-attribute]
+    qtype_inference_expr=M.qtype.make_tuple_qtype(
+        M.seq.map(
             get_future_qtype,
-            M.qtype.get_field_qtypes(M.qtype.get_value_qtype(P.future)),  # pyrefly: ignore[missing-attribute]
+            M.qtype.get_field_qtypes(M.qtype.get_value_qtype(P.future)),
         )
     ),
 )
@@ -784,22 +784,22 @@ def _internal_parallel_from_future(outer_arg, outer_executor, outer_self_op):
   return arolla.types.DispatchOperator(
       'arg, executor, self_op, new_non_deterministic_token',
       tuple_case=arolla.types.DispatchCase(
-          M.core.map_tuple(  # pyrefly: ignore[missing-attribute]
+          M.core.map_tuple(
               P.self_op,
               async_unpack_tuple(P.arg),
               P.executor,
               P.self_op,
               P.new_non_deterministic_token,
           ),
-          condition=M.qtype.is_tuple_qtype(M.qtype.get_value_qtype(P.arg)),  # pyrefly: ignore[missing-attribute]
+          condition=M.qtype.is_tuple_qtype(M.qtype.get_value_qtype(P.arg)),
       ),
       namedtuple_case=arolla.types.DispatchCase(
-          M.core.apply_varargs(  # pyrefly: ignore[missing-attribute]
-              M.namedtuple.make,  # pyrefly: ignore[missing-attribute]
-              M.qtype.get_field_names(  # pyrefly: ignore[missing-attribute]
-                  M.qtype.get_value_qtype(M.qtype.qtype_of(P.arg))  # pyrefly: ignore[missing-attribute]
+          M.core.apply_varargs(
+              M.namedtuple.make,
+              M.qtype.get_field_names(
+                  M.qtype.get_value_qtype(M.qtype.qtype_of(P.arg))
               ),
-              M.core.map_tuple(  # pyrefly: ignore[missing-attribute]
+              M.core.map_tuple(
                   P.self_op,
                   async_unpack_tuple(P.arg),
                   P.executor,
@@ -807,11 +807,11 @@ def _internal_parallel_from_future(outer_arg, outer_executor, outer_self_op):
                   P.new_non_deterministic_token,
               ),
           ),
-          condition=M.qtype.is_namedtuple_qtype(M.qtype.get_value_qtype(P.arg)),  # pyrefly: ignore[missing-attribute]
+          condition=M.qtype.is_namedtuple_qtype(M.qtype.get_value_qtype(P.arg)),
       ),
       non_deterministic_token_case=arolla.types.DispatchCase(
           P.new_non_deterministic_token,
-          condition=M.qtype.get_value_qtype(P.arg)  # pyrefly: ignore[missing-attribute]
+          condition=M.qtype.get_value_qtype(P.arg)
           == qtypes.NON_DETERMINISTIC_TOKEN,
       ),
       iterable_case=arolla.types.DispatchCase(
@@ -823,7 +823,7 @@ def _internal_parallel_from_future(outer_arg, outer_executor, outer_self_op):
               )
           ),
           condition=koda_internal_iterables.is_iterable_qtype(
-              M.qtype.get_value_qtype(P.arg)  # pyrefly: ignore[missing-attribute]
+              M.qtype.get_value_qtype(P.arg)
           ),
       ),
       default=P.arg,
@@ -1152,7 +1152,7 @@ def _async_transform_many(executor, config, fns):
         qtype_utils.expect_future(P.outer_arg),
         (
             _nonrecursive_is_parallel_qtype(
-                M.qtype.get_value_qtype(P.outer_arg)  # pyrefly: ignore[missing-attribute]
+                M.qtype.get_value_qtype(P.outer_arg)
             ),
             (
                 'input must be a future to a parallel type, got'
@@ -1168,42 +1168,42 @@ def _internal_unwrap_future_to_parallel(outer_arg, outer_self_op):
   return arolla.types.DispatchOperator(
       'arg, self_op, new_non_deterministic_token',
       tuple_case=arolla.types.DispatchCase(
-          M.core.map_tuple(  # pyrefly: ignore[missing-attribute]
+          M.core.map_tuple(
               P.self_op,
               async_unpack_tuple(P.arg),
               P.self_op,
               P.new_non_deterministic_token,
           ),
-          condition=M.qtype.is_tuple_qtype(M.qtype.get_value_qtype(P.arg)),  # pyrefly: ignore[missing-attribute]
+          condition=M.qtype.is_tuple_qtype(M.qtype.get_value_qtype(P.arg)),
       ),
       namedtuple_case=arolla.types.DispatchCase(
-          M.core.apply_varargs(  # pyrefly: ignore[missing-attribute]
-              M.namedtuple.make,  # pyrefly: ignore[missing-attribute]
-              M.qtype.get_field_names(  # pyrefly: ignore[missing-attribute]
-                  M.qtype.get_value_qtype(M.qtype.qtype_of(P.arg))  # pyrefly: ignore[missing-attribute]
+          M.core.apply_varargs(
+              M.namedtuple.make,
+              M.qtype.get_field_names(
+                  M.qtype.get_value_qtype(M.qtype.qtype_of(P.arg))
               ),
-              M.core.map_tuple(  # pyrefly: ignore[missing-attribute]
+              M.core.map_tuple(
                   P.self_op,
                   async_unpack_tuple(P.arg),
                   P.self_op,
                   P.new_non_deterministic_token,
               ),
           ),
-          condition=M.qtype.is_namedtuple_qtype(M.qtype.get_value_qtype(P.arg)),  # pyrefly: ignore[missing-attribute]
+          condition=M.qtype.is_namedtuple_qtype(M.qtype.get_value_qtype(P.arg)),
       ),
       non_deterministic_token_case=arolla.types.DispatchCase(
           P.new_non_deterministic_token,
           condition=(
-              M.qtype.get_value_qtype(P.arg) == qtypes.NON_DETERMINISTIC_TOKEN  # pyrefly: ignore[missing-attribute]
+              M.qtype.get_value_qtype(P.arg) == qtypes.NON_DETERMINISTIC_TOKEN
           ),
       ),
       future_case=arolla.types.DispatchCase(
           unwrap_future_to_future(P.arg),
-          condition=is_future_qtype(M.qtype.get_value_qtype(P.arg)),  # pyrefly: ignore[missing-attribute]
+          condition=is_future_qtype(M.qtype.get_value_qtype(P.arg)),
       ),
       stream_case=arolla.types.DispatchCase(
           unwrap_future_to_stream(P.arg),
-          condition=is_stream_qtype(M.qtype.get_value_qtype(P.arg)),  # pyrefly: ignore[missing-attribute]
+          condition=is_stream_qtype(M.qtype.get_value_qtype(P.arg)),
       ),
   )(outer_arg, outer_self_op, optools.unified_non_deterministic_arg())
 
@@ -1228,7 +1228,7 @@ def unwrap_future_to_parallel(arg):
     qtype_constraints=[
         qtype_utils.expect_future(P.future),
         (
-            arolla.M.qtype.is_namedtuple_qtype(P.source_location),  # pyrefly: ignore[missing-attribute]
+            arolla.M.qtype.is_namedtuple_qtype(P.source_location),
             'expected a named tuple, got source_location: '
             f'{constraints.name_type_msg(P.source_location)}',
         ),
@@ -1246,7 +1246,7 @@ def add_source_location_on_error_to_future(future, source_location):
     qtype_constraints=[
         qtype_utils.expect_stream(P.stream),
         (
-            arolla.M.qtype.is_namedtuple_qtype(P.source_location),  # pyrefly: ignore[missing-attribute]
+            arolla.M.qtype.is_namedtuple_qtype(P.source_location),
             'expected a named tuple, got source_location: '
             f'{constraints.name_type_msg(P.source_location)}',
         ),
@@ -1270,26 +1270,26 @@ def _internal_add_source_location_on_error_to_parallel(
   return arolla.types.DispatchOperator(
       'arg, source_location, self_op',
       tuple_case=arolla.types.DispatchCase(
-          M.core.map_tuple(  # pyrefly: ignore[missing-attribute]
+          M.core.map_tuple(
               P.self_op,
               P.arg,
               P.source_location,
               P.self_op,  # Compile-time recursion works.
           ),
-          condition=M.qtype.is_tuple_qtype(P.arg),  # pyrefly: ignore[missing-attribute]
+          condition=M.qtype.is_tuple_qtype(P.arg),
       ),
       namedtuple_case=arolla.types.DispatchCase(
-          M.core.apply_varargs(  # pyrefly: ignore[missing-attribute]
-              M.namedtuple.make,  # pyrefly: ignore[missing-attribute]
-              M.qtype.get_field_names(M.qtype.qtype_of(P.arg)),  # pyrefly: ignore[missing-attribute]
-              M.core.map_tuple(  # pyrefly: ignore[missing-attribute]
+          M.core.apply_varargs(
+              M.namedtuple.make,
+              M.qtype.get_field_names(M.qtype.qtype_of(P.arg)),
+              M.core.map_tuple(
                   P.self_op,
-                  M.derived_qtype.upcast(M.qtype.qtype_of(P.arg), P.arg),  # pyrefly: ignore[missing-attribute]
+                  M.derived_qtype.upcast(M.qtype.qtype_of(P.arg), P.arg),
                   P.source_location,
                   P.self_op,  # Compile-time recursion works.
               ),
           ),
-          condition=M.qtype.is_namedtuple_qtype(P.arg),  # pyrefly: ignore[missing-attribute]
+          condition=M.qtype.is_namedtuple_qtype(P.arg),
       ),
       future_case=arolla.types.DispatchCase(
           add_source_location_on_error_to_future(
@@ -1308,7 +1308,7 @@ def _internal_add_source_location_on_error_to_parallel(
       non_deterministic_token_case=arolla.types.DispatchCase(
           P.arg,
           condition=(
-              M.qtype.get_value_qtype(P.arg) == qtypes.NON_DETERMINISTIC_TOKEN  # pyrefly: ignore[missing-attribute]
+              M.qtype.get_value_qtype(P.arg) == qtypes.NON_DETERMINISTIC_TOKEN
           ),
       ),
   )(
@@ -1371,7 +1371,7 @@ def _parallel_call(
   return arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
       functor.call,
       transformed_fn,
-      args=M.core.concat_tuples(M.core.make_tuple(executor), args),  # pyrefly: ignore[missing-attribute]
+      args=M.core.concat_tuples(M.core.make_tuple(executor), args),
       return_type_as=return_type_as,
       kwargs=kwargs,
       **optools.unified_non_deterministic_kwarg(),
@@ -1420,7 +1420,7 @@ def parallel_call_fn_returning_stream(
     The parallel value containing the result of the call.
   """
   args, kwargs = arolla.optools.fix_trace_args_kwargs(args, kwargs)
-  return_type_as = M.core.default_if_unspecified(  # pyrefly: ignore[missing-attribute]
+  return_type_as = M.core.default_if_unspecified(
       return_type_as,
       stream_make(),
   )
@@ -2101,7 +2101,7 @@ def stream_for(
         qtype_utils.expect_executor(P.executor),
         qtype_utils.expect_data_slice(P.fn),
     ],
-    qtype_inference_expr=M.qtype.conditional_qtype(  # pyrefly: ignore[missing-attribute]
+    qtype_inference_expr=M.qtype.conditional_qtype(
         is_stream_qtype(P.return_type_as),
         P.return_type_as,
         get_stream_qtype(P.return_type_as),
@@ -2185,18 +2185,18 @@ def stream_await(arg):
   return arolla.types.DispatchOperator(
       'arg',
       stream_case=arolla.types.DispatchCase(
-          M.derived_qtype.downcast(  # pyrefly: ignore[missing-attribute]
-              M.derived_qtype.get_labeled_qtype(  # pyrefly: ignore[missing-attribute]
-                  M.qtype.qtype_of(P.arg), 'AWAIT'  # pyrefly: ignore[missing-attribute]
+          M.derived_qtype.downcast(
+              M.derived_qtype.get_labeled_qtype(
+                  M.qtype.qtype_of(P.arg), 'AWAIT'
               ),
               P.arg,
           ),
           condition=is_stream_qtype(P.arg),
       ),
       future_case=arolla.types.DispatchCase(
-          M.derived_qtype.downcast(  # pyrefly: ignore[missing-attribute]
-              M.derived_qtype.get_labeled_qtype(  # pyrefly: ignore[missing-attribute]
-                  M.qtype.qtype_of(P.arg), 'AWAIT'  # pyrefly: ignore[missing-attribute]
+          M.derived_qtype.downcast(
+              M.derived_qtype.get_labeled_qtype(
+                  M.qtype.qtype_of(P.arg), 'AWAIT'
               ),
               P.arg,
           ),
@@ -2214,7 +2214,7 @@ def stream_await(arg):
     qtype_constraints=[
         qtype_utils.expect_stream_or_future(P.stream_or_future),
     ],
-    qtype_inference_expr=M.qtype.get_value_qtype(P.stream_or_future),  # pyrefly: ignore[missing-attribute]
+    qtype_inference_expr=M.qtype.get_value_qtype(P.stream_or_future),
 )
 def sync_wait(stream_or_future):
   """Blocks until the given stream or future yields a single item.
@@ -2237,7 +2237,7 @@ def sync_wait(stream_or_future):
 @optools.as_backend_operator(
     'koda_internal.parallel.unsafe_blocking_wait',
     qtype_constraints=[qtype_utils.expect_stream_or_future(P.stream_or_future)],
-    qtype_inference_expr=M.qtype.get_value_qtype(P.stream_or_future),  # pyrefly: ignore[missing-attribute]
+    qtype_inference_expr=M.qtype.get_value_qtype(P.stream_or_future),
 )
 def unsafe_blocking_wait(stream_or_future):
   """Blocks until the given stream or future yields a single item.
@@ -2297,7 +2297,7 @@ def stream_from_1d_slice(slice_):
     qtype_constraints=[
         qtype_utils.expect_future(P.future),
     ],
-    qtype_inference_expr=get_stream_qtype(M.qtype.get_value_qtype(P.future)),  # pyrefly: ignore[missing-attribute]
+    qtype_inference_expr=get_stream_qtype(M.qtype.get_value_qtype(P.future)),
 )
 def stream_from_future(future):
   """Creates a stream from the given future. It has 1 element or an error."""
@@ -2310,7 +2310,7 @@ def stream_from_future(future):
     qtype_constraints=[
         qtype_utils.expect_stream(P.stream),
     ],
-    qtype_inference_expr=get_future_qtype(M.qtype.get_value_qtype(P.stream)),  # pyrefly: ignore[missing-attribute]
+    qtype_inference_expr=get_future_qtype(M.qtype.get_value_qtype(P.stream)),
 )
 def future_from_single_value_stream(stream):
   """Creates a future from the given stream.
@@ -2334,7 +2334,7 @@ def future_from_single_value_stream(stream):
     ],
     qtype_inference_expr=get_future_qtype(
         koda_internal_iterables.get_iterable_qtype(
-            M.qtype.get_value_qtype(P.stream)  # pyrefly: ignore[missing-attribute]
+            M.qtype.get_value_qtype(P.stream)
         )
     ),
 )
@@ -2377,8 +2377,8 @@ def _parallel_get_item(outer_executor, outer_x, outer_key):
       'executor, x, key',
       direct_case=arolla.types.DispatchCase(
           view_overloads.get_item(P.x, P.key),
-          condition=M.qtype.is_tuple_qtype(P.x)  # pyrefly: ignore[missing-attribute]
-          | M.qtype.is_namedtuple_qtype(P.x),  # pyrefly: ignore[missing-attribute]
+          condition=M.qtype.is_tuple_qtype(P.x)
+          | M.qtype.is_namedtuple_qtype(P.x),
       ),
       # Since we handled tuples above, the remaining cases are all working
       # on data slices, so we can use async_eval directly without
@@ -2403,7 +2403,7 @@ def _parallel_if_impl(
       cond,
       transformed_yes_fn,
       transformed_no_fn,
-      args=M.core.concat_tuples(M.core.make_tuple(executor), args),  # pyrefly: ignore[missing-attribute]
+      args=M.core.concat_tuples(M.core.make_tuple(executor), args),
       return_type_as=return_type_as,
       kwargs=kwargs,
       **optools.unified_non_deterministic_kwarg(),
@@ -2464,7 +2464,7 @@ def _parallel_switch_impl(
       case_keys,
       transformed_case_fns,
       return_type_as=return_type_as,
-      args=M.core.concat_tuples(M.core.make_tuple(executor), args),  # pyrefly: ignore[missing-attribute]
+      args=M.core.concat_tuples(M.core.make_tuple(executor), args),
       kwargs=kwargs,
       non_deterministic=optools.unified_non_deterministic_arg(),
   )
@@ -2560,7 +2560,7 @@ def _empty_streams_from_value_type_as(executor, value_type_as):
           tuple_ops.tuple_(),
           condition=is_future_qtype(P.inner_value_type_as)
           & (
-              M.qtype.get_value_qtype(P.inner_value_type_as)  # pyrefly: ignore[missing-attribute]
+              M.qtype.get_value_qtype(P.inner_value_type_as)
               == arolla.UNSPECIFIED
           ),
       ),
@@ -2585,7 +2585,7 @@ def _empty_streams_from_value_type_as(executor, value_type_as):
 )
 def _parallel_stream_chain(executor, streams, value_type_as):
   """The parallel version of iterables.chain."""
-  streams = M.core.concat_tuples(  # pyrefly: ignore[missing-attribute]
+  streams = M.core.concat_tuples(
       streams, _empty_streams_from_value_type_as(executor, value_type_as)
   )
   return arolla.abc.bind_op(
@@ -2606,7 +2606,7 @@ def _parallel_stream_chain(executor, streams, value_type_as):
 )
 def _parallel_stream_interleave(executor, streams, value_type_as):
   """The parallel version of iterables.interleave."""
-  streams = M.core.concat_tuples(  # pyrefly: ignore[missing-attribute]
+  streams = M.core.concat_tuples(
       streams, _empty_streams_from_value_type_as(executor, value_type_as)
   )
   return arolla.abc.bind_op(
@@ -2627,7 +2627,7 @@ def _parallel_stream_interleave(executor, streams, value_type_as):
 )
 def _parallel_stream_make(executor, items, value_type_as):
   """The parallel version of stream_make."""
-  item_streams = M.core.map_tuple(  # pyrefly: ignore[missing-attribute]
+  item_streams = M.core.map_tuple(
       _single_element_stream_from_parallel,
       items,
       executor,
@@ -2646,7 +2646,7 @@ def _parallel_stream_make(executor, items, value_type_as):
 )
 def _parallel_stream_make_unordered(executor, items, value_type_as):
   """The parallel version of iterables.make_unordered."""
-  item_streams = M.core.map_tuple(  # pyrefly: ignore[missing-attribute]
+  item_streams = M.core.map_tuple(
       _single_element_stream_from_parallel,
       items,
       executor,
@@ -2661,7 +2661,7 @@ def _create_as_parallel_wrapping_fn():
   I = input_container.InputContainer('I')  # pylint: disable=invalid-name
   return py_functors_base_py_ext.create_functor(
       introspection.pack_expr(
-          V.fn(V.executor, as_parallel(I.x), return_type_as=V.return_type_as)  # pyrefly: ignore[not-callable]
+          V.fn(V.executor, as_parallel(I.x), return_type_as=V.return_type_as)
       ),
       signature_utils.signature([
           signature_utils.parameter('x', kind_enum.POSITIONAL_ONLY),
@@ -2744,7 +2744,7 @@ def _create_second_argument_as_parallel_wrapping_fn():
   I = input_container.InputContainer('I')  # pylint: disable=invalid-name
   return py_functors_base_py_ext.create_functor(
       introspection.pack_expr(
-          V.fn(  # pyrefly: ignore[not-callable]
+          V.fn(
               V.executor, I.x, as_parallel(I.y), return_type_as=V.return_type_as
           )
       ),
@@ -2853,8 +2853,8 @@ def _create_loop_condition_wrapping_fn():
               arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
                   functor.call,
                   V.fn,
-                  args=M.core.concat_tuples(  # pyrefly: ignore[missing-attribute]
-                      M.core.make_tuple(V.executor), I.args  # pyrefly: ignore[missing-attribute]
+                  args=M.core.concat_tuples(
+                      M.core.make_tuple(V.executor), I.args
                   ),
                   kwargs=I.kwargs,
                   return_type_as=as_future(None),
@@ -2895,8 +2895,8 @@ def _create_while_body_wrapping_fn():
           arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
               functor.call_and_update_namedtuple,
               V.fn,
-              args=M.core.make_tuple(V.executor),  # pyrefly: ignore[missing-attribute]
-              namedtuple_to_update=M.namedtuple.union(  # pyrefly: ignore[missing-attribute]
+              args=M.core.make_tuple(V.executor),
+              namedtuple_to_update=M.namedtuple.union(
                   I.kwargs,
                   V.empty_yields_namedtuple,
               ),
@@ -2921,20 +2921,20 @@ def _empty_yields_namedtuple(outer_yields, outer_yields_interleaved):
   return arolla.types.DispatchOperator(
       'yields, yields_interleaved',
       yields_case=arolla.types.DispatchCase(
-          M.namedtuple.make(  # pyrefly: ignore[missing-attribute]
+          M.namedtuple.make(
               yields=empty_stream_like(P.yields),
           ),
           condition=(P.yields != get_future_qtype(arolla.UNSPECIFIED)),
       ),
       yields_interleaved_case=arolla.types.DispatchCase(
-          M.namedtuple.make(  # pyrefly: ignore[missing-attribute]
+          M.namedtuple.make(
               yields_interleaved=empty_stream_like(P.yields_interleaved),
           ),
           condition=(
               P.yields_interleaved != get_future_qtype(arolla.UNSPECIFIED)
           ),
       ),
-      default=arolla.M.namedtuple.make(),  # pyrefly: ignore[missing-attribute]
+      default=arolla.M.namedtuple.make(),
   )(outer_yields, outer_yields_interleaved)
 
 
@@ -3063,8 +3063,8 @@ def _create_for_body_wrapping_fn():
           arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
               functor.call_and_update_namedtuple,
               V.fn,
-              args=M.core.make_tuple(V.executor, as_parallel(I.x)),  # pyrefly: ignore[missing-attribute]
-              namedtuple_to_update=M.namedtuple.union(  # pyrefly: ignore[missing-attribute]
+              args=M.core.make_tuple(V.executor, as_parallel(I.x)),
+              namedtuple_to_update=M.namedtuple.union(
                   I.kwargs,
                   V.empty_yields_namedtuple,
               ),
@@ -3109,8 +3109,8 @@ def _create_for_finalize_wrapping_fn():
           arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
               functor.call_and_update_namedtuple,
               V.fn,
-              args=M.core.make_tuple(V.executor),  # pyrefly: ignore[missing-attribute]
-              namedtuple_to_update=M.namedtuple.union(  # pyrefly: ignore[missing-attribute]
+              args=M.core.make_tuple(V.executor),
+              namedtuple_to_update=M.namedtuple.union(
                   I.kwargs,
                   V.empty_yields_namedtuple,
               ),
@@ -3303,20 +3303,20 @@ def _create_pointwise_invoke_fn_template():
   # Note that "fn" is expected to be a "transformed to parallel" functor, so
   # its inputs must be futures and it returns a future.
   fn = slices.take(V.fn, I.idx)
-  args = M.core.map_tuple(slices.take, V.args, I.idx)  # pyrefly: ignore[missing-attribute]
-  args = M.core.map_tuple(as_future, args)  # pyrefly: ignore[missing-attribute]
-  kwargs = M.derived_qtype.upcast(M.qtype.qtype_of(V.kwargs), V.kwargs)  # pyrefly: ignore[missing-attribute]
-  kwargs = M.core.map_tuple(slices.take, kwargs, I.idx)  # pyrefly: ignore[missing-attribute]
-  kwargs = M.core.map_tuple(as_future, kwargs)  # pyrefly: ignore[missing-attribute]
-  kwargs = M.core.apply_varargs(  # pyrefly: ignore[missing-attribute]
-      M.namedtuple.make,  # pyrefly: ignore[missing-attribute]
-      M.qtype.get_field_names(M.qtype.qtype_of(V.kwargs)),  # pyrefly: ignore[missing-attribute]
+  args = M.core.map_tuple(slices.take, V.args, I.idx)
+  args = M.core.map_tuple(as_future, args)
+  kwargs = M.derived_qtype.upcast(M.qtype.qtype_of(V.kwargs), V.kwargs)
+  kwargs = M.core.map_tuple(slices.take, kwargs, I.idx)
+  kwargs = M.core.map_tuple(as_future, kwargs)
+  kwargs = M.core.apply_varargs(
+      M.namedtuple.make,
+      M.qtype.get_field_names(M.qtype.qtype_of(V.kwargs)),
       kwargs,
   )
   res = arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
       functor.call,
       fn,
-      args=M.core.concat_tuples(M.core.make_tuple(V.executor), args),  # pyrefly: ignore[missing-attribute]
+      args=M.core.concat_tuples(M.core.make_tuple(V.executor), args),
       return_type_as=as_future(None),
       kwargs=kwargs,
       **optools.unified_non_deterministic_kwarg(),
@@ -3370,28 +3370,28 @@ def _internal_parallel_stream_map(
     kwargs,
 ):
   """Implementation helper for _parallel_stream_map."""
-  kwargs_tuple = M.derived_qtype.upcast(M.qtype.qtype_of(kwargs), kwargs)  # pyrefly: ignore[missing-attribute]
-  aligned = M.core.apply_varargs(  # pyrefly: ignore[missing-attribute]
+  kwargs_tuple = M.derived_qtype.upcast(M.qtype.qtype_of(kwargs), kwargs)
+  aligned = M.core.apply_varargs(
       slices.align,
-      M.core.concat_tuples(  # pyrefly: ignore[missing-attribute]
-          M.core.make_tuple(transformed_fns), args, kwargs_tuple  # pyrefly: ignore[missing-attribute]
+      M.core.concat_tuples(
+          M.core.make_tuple(transformed_fns), args, kwargs_tuple
       ),
   )
-  aligned_has = M.core.map_tuple(masking.has, aligned)  # pyrefly: ignore[missing-attribute]
+  aligned_has = M.core.map_tuple(masking.has, aligned)
   transformed_fns = tuple_ops.get_nth(aligned, 0)
   mask_to_call = masking.cond(
       include_missing == slices.bool_(True),
       masking.has(transformed_fns),
-      M.core.reduce_tuple(masking.apply_mask, aligned_has),  # pyrefly: ignore[missing-attribute]
+      M.core.reduce_tuple(masking.apply_mask, aligned_has),
   )
   transformed_fns = transformed_fns.flatten()
-  aligned_args_kwargs = M.core.slice_tuple(aligned, 1, -1)  # pyrefly: ignore[missing-attribute]
-  args = M.core.slice_tuple(  # pyrefly: ignore[missing-attribute]
-      aligned_args_kwargs, 0, M.qtype.get_field_count(M.qtype.qtype_of(args))  # pyrefly: ignore[missing-attribute]
+  aligned_args_kwargs = M.core.slice_tuple(aligned, 1, -1)
+  args = M.core.slice_tuple(
+      aligned_args_kwargs, 0, M.qtype.get_field_count(M.qtype.qtype_of(args))
   )
-  kwargs_tuple = M.core.slice_tuple(  # pyrefly: ignore[missing-attribute]
+  kwargs_tuple = M.core.slice_tuple(
       aligned_args_kwargs,
-      M.qtype.get_field_count(M.qtype.qtype_of(args)),  # pyrefly: ignore[missing-attribute]
+      M.qtype.get_field_count(M.qtype.qtype_of(args)),
       -1,
   )
 
@@ -3399,9 +3399,9 @@ def _internal_parallel_stream_map(
   def flatten(x):
     return jagged_shape_ops.flatten(x)
 
-  args = M.core.map_tuple(flatten, args)  # pyrefly: ignore[missing-attribute]
-  kwargs_tuple = M.core.map_tuple(flatten, kwargs_tuple)  # pyrefly: ignore[missing-attribute]
-  kwargs = M.derived_qtype.downcast(M.qtype.qtype_of(kwargs), kwargs_tuple)  # pyrefly: ignore[missing-attribute]
+  args = M.core.map_tuple(flatten, args)
+  kwargs_tuple = M.core.map_tuple(flatten, kwargs_tuple)
+  kwargs = M.derived_qtype.downcast(M.qtype.qtype_of(kwargs), kwargs_tuple)
   indices = slices.index(mask_to_call.flatten()).select_present()
   indices_stream = stream_from_1d_slice(indices)
   invoke_fn = _create_pointwise_invoke_fn(

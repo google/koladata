@@ -659,7 +659,7 @@ class OptoolsTest(parameterized.TestCase):
         arolla.M.annotation.source_location(
             py_boxing.as_expr(1)
             + arolla.M.annotation.source_location(
-                py_boxing.as_expr(2) * py_boxing.as_expr(3),  # pyrefly: ignore[unsupported-operation]
+                py_boxing.as_expr(2) * py_boxing.as_expr(3),
                 arolla.namedtuple(
                     function_name='op',
                     file_name=

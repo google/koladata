@@ -57,11 +57,11 @@ def expect_data_slice(param) -> constraints.QTypeConstraint:
 def expect_data_slice_args(param) -> constraints.QTypeConstraint:
   """Returns a constraint that the argument is a tuple of DataSlice's."""
   return (
-      M.qtype.is_tuple_qtype(param)  # pyrefly: ignore[missing-attribute]
-      & M.seq.all(  # pyrefly: ignore[missing-attribute]
-          M.seq.map(  # pyrefly: ignore[missing-attribute]
+      M.qtype.is_tuple_qtype(param)
+      & M.seq.all(
+          M.seq.map(
               arolla.LambdaOperator(P.x == qtypes.DATA_SLICE),
-              M.qtype.get_field_qtypes(param),  # pyrefly: ignore[missing-attribute]
+              M.qtype.get_field_qtypes(param),
           )
       ),
       (
@@ -74,11 +74,11 @@ def expect_data_slice_args(param) -> constraints.QTypeConstraint:
 def expect_data_slice_kwargs(param) -> constraints.QTypeConstraint:
   """Returns a constraint that the argument is a namedtuple of DataSlice's."""
   return (
-      M.qtype.is_namedtuple_qtype(param)  # pyrefly: ignore[missing-attribute]
-      & M.seq.all(  # pyrefly: ignore[missing-attribute]
-          M.seq.map(  # pyrefly: ignore[missing-attribute]
+      M.qtype.is_namedtuple_qtype(param)
+      & M.seq.all(
+          M.seq.map(
               arolla.LambdaOperator(P.x == qtypes.DATA_SLICE),
-              M.qtype.get_field_qtypes(param),  # pyrefly: ignore[missing-attribute]
+              M.qtype.get_field_qtypes(param),
           )
       ),
       f'expected all keyword arguments to be DATA_SLICE, got'
@@ -106,11 +106,11 @@ def expect_data_bag(param) -> constraints.QTypeConstraint:
 def expect_data_bag_args(param) -> constraints.QTypeConstraint:
   """Returns a constraint that the argument is a tuple of DataBags."""
   return (
-      M.qtype.is_tuple_qtype(param)  # pyrefly: ignore[missing-attribute]
-      & M.seq.all(  # pyrefly: ignore[missing-attribute]
-          M.seq.map(  # pyrefly: ignore[missing-attribute]
+      M.qtype.is_tuple_qtype(param)
+      & M.seq.all(
+          M.seq.map(
               arolla.LambdaOperator(P.x == qtypes.DATA_BAG),
-              M.qtype.get_field_qtypes(param),  # pyrefly: ignore[missing-attribute]
+              M.qtype.get_field_qtypes(param),
           )
       ),
       (
@@ -200,19 +200,19 @@ def expect_tuple(
   """Returns a constraint that the argument is a tuple."""
   if not field_qtypes:
     return (
-        M.qtype.is_tuple_qtype(param),  # pyrefly: ignore[missing-attribute]
+        M.qtype.is_tuple_qtype(param),
         (
             'expected a tuple, got'
             f' {arolla.optools.constraints.name_type_msg(param)}'
         ),
     )
   expected_types_str = ', '.join(t.name for t in field_qtypes)
-  pred = M.qtype.is_tuple_qtype(param) & (  # pyrefly: ignore[missing-attribute]
-      M.seq.size(M.qtype.get_field_qtypes(param))  # pyrefly: ignore[missing-attribute]
+  pred = M.qtype.is_tuple_qtype(param) & (
+      M.seq.size(M.qtype.get_field_qtypes(param))
       == arolla.int64(len(field_qtypes))
   )
   for i, expected_qtype in enumerate(field_qtypes):
-    field_qtype = M.qtype.get_field_qtype(param, arolla.int64(i))  # pyrefly: ignore[missing-attribute]
+    field_qtype = M.qtype.get_field_qtype(param, arolla.int64(i))
     pred = pred & (field_qtype == expected_qtype)
 
   return (
@@ -227,7 +227,7 @@ def expect_tuple(
 def expect_namedtuple(param) -> constraints.QTypeConstraint:
   """Returns a constraint that the argument is a namedtuple."""
   return (
-      M.qtype.is_namedtuple_qtype(param),  # pyrefly: ignore[missing-attribute]
+      M.qtype.is_namedtuple_qtype(param),
       (
           'expected a namedtuple, got'
           f' {arolla.optools.constraints.name_type_msg(param)}'
@@ -239,7 +239,7 @@ def expect_executor(param) -> constraints.QTypeConstraint:
   """Returns a constraint that the argument is an Executor."""
   return (
       param
-      == M.qtype.qtype_of(  # pyrefly: ignore[missing-attribute]
+      == M.qtype.qtype_of(
           arolla.abc.bind_op('koda_internal.parallel.get_eager_executor')
       ),
       (
@@ -255,7 +255,7 @@ def expect_executor_or_unspecified(param) -> constraints.QTypeConstraint:
       (param == arolla.UNSPECIFIED)
       | (
           param
-          == M.qtype.qtype_of(  # pyrefly: ignore[missing-attribute]
+          == M.qtype.qtype_of(
               arolla.abc.bind_op('koda_internal.parallel.get_eager_executor')
           )
       ),

@@ -23,7 +23,7 @@ from koladata.operators import optools
 from koladata.types import schema_constants
 
 
-M = arolla.M | derived_qtype.M | objects.M  # pyrefly: ignore[unsupported-operation]
+M = arolla.M | derived_qtype.M | objects.M
 P = arolla.P
 INT64 = schema_constants.INT64
 constraints = arolla.optools.constraints
@@ -44,7 +44,7 @@ optools.set_namespace_docstring('kd.extension_types', __doc__)
 )
 def _wrap(obj, qtype):
   """Wraps the `obj` into an extension type with the provided `qtype`."""
-  return M.derived_qtype.downcast(qtype, obj)  # pyrefly: ignore[missing-attribute]
+  return M.derived_qtype.downcast(qtype, obj)
 
 
 # Lambda operator without qtype_constraints to support `M.annotation.qtype` to
@@ -54,14 +54,14 @@ def _wrap(obj, qtype):
     'kd.extension_types.wrap', view=view.BaseKodaView
 )  # Provided by the QType.
 def wrap(obj, qtype):
-  return M.annotation.qtype(_wrap(obj, qtype), qtype)  # pyrefly: ignore[not-callable]
+  return M.annotation.qtype(_wrap(obj, qtype), qtype)
 
 
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.extension_types.unwrap',
     qtype_constraints=[(
-        (M.qtype.decay_derived_qtype(P.ext) == objects.OBJECT)  # pyrefly: ignore[missing-attribute]
+        (M.qtype.decay_derived_qtype(P.ext) == objects.OBJECT)
         & (P.ext != objects.OBJECT),
         (
             'expected an extension type qtype, got'
@@ -72,7 +72,7 @@ def wrap(obj, qtype):
 )
 def unwrap(ext):
   """Unwraps the extension type `ext` into an arolla::Object."""
-  return M.derived_qtype.upcast(M.qtype.qtype_of(ext), ext)  # pyrefly: ignore[missing-attribute]
+  return M.derived_qtype.upcast(M.qtype.qtype_of(ext), ext)
 
 
 @optools.add_to_registry(via_cc_operator_package=True)
@@ -97,7 +97,7 @@ def make(qtype, prototype=arolla.unspecified(), /, **attrs):
     **attrs: attributes of the extension type.
   """
   attrs = arolla.optools.fix_trace_kwargs(attrs)
-  obj = M.objects.make_object(prototype, attrs)  # pyrefly: ignore[missing-attribute]
+  obj = M.objects.make_object(prototype, attrs)
   return wrap(obj, qtype)
 
 
@@ -110,12 +110,12 @@ def with_attrs(ext, /, **attrs):
   attrs = arolla.optools.fix_trace_kwargs(attrs)
   # NOTE: Using Arolla operators for performance reasons. The following snippet
   # adds ~50ns to the runtime, while using Koda primitives adds ~1us.
-  ext = M.core.with_assertion(  # pyrefly: ignore[missing-attribute]
+  ext = M.core.with_assertion(
       ext,
-      ~M.objects.has_object_attr(unwrap(ext), '_is_null_marker'),  # pyrefly: ignore[missing-attribute]
+      ~M.objects.has_object_attr(unwrap(ext), '_is_null_marker'),
       'expected a non-null extension type',
   )
-  return arolla.abc.bind_op(make, M.qtype.qtype_of(ext), unwrap(ext), attrs)  # pyrefly: ignore[missing-attribute]
+  return arolla.abc.bind_op(make, M.qtype.qtype_of(ext), unwrap(ext), attrs)
 
 
 # Consider asserting that `ext` is not null. Note that this adds ~50ns overhead
@@ -127,7 +127,7 @@ def with_attrs(ext, /, **attrs):
 def get_attr(ext, attr, qtype):
   """Returns the attribute of `ext` with name `attr` and type `qtype`."""
   attr = arolla_bridge.to_arolla_text(attr)
-  return M.objects.get_object_attr(unwrap(ext), attr, qtype)  # pyrefly: ignore[missing-attribute]
+  return M.objects.get_object_attr(unwrap(ext), attr, qtype)
 
 
 @optools.add_to_registry(via_cc_operator_package=True)
@@ -136,7 +136,7 @@ def has_attr(ext, attr):
   """Returns present iff `attr` is an attribute of `ext`."""
   attr = arolla_bridge.to_arolla_text(attr)
   return arolla_bridge.to_data_slice(
-      M.objects.has_object_attr(unwrap(ext), attr)  # pyrefly: ignore[missing-attribute]
+      M.objects.has_object_attr(unwrap(ext), attr)
   )
 
 
@@ -172,4 +172,4 @@ def is_null(ext):
 def get_attr_qtype(ext, attr):
   """Returns the qtype of the `attr`, or NOTHING if the `attr` is missing."""
   attr = arolla_bridge.to_arolla_text(attr)
-  return M.objects.get_object_attr_qtype(unwrap(ext), attr)  # pyrefly: ignore[missing-attribute]
+  return M.objects.get_object_attr_qtype(unwrap(ext), attr)

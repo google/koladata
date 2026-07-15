@@ -120,7 +120,7 @@ def args_kwargs_repr(args, kwargs, return_type_as, tokens) -> str | None:
     return_type_as: The return_type_as expr.
     tokens: The repr tokens for the node that uses these args and kwargs.
   """
-  if args.op == arolla.M.core.make_tuple:  # pyrefly: ignore[missing-attribute]
+  if args.op == arolla.M.core.make_tuple:
     # make_tuple node
     args_repr = ', '.join([tokens[arg].text for arg in args.node_deps])
   elif not isinstance(
@@ -134,7 +134,7 @@ def args_kwargs_repr(args, kwargs, return_type_as, tokens) -> str | None:
 
   if kwargs.op in _KD_NAMEDTUPLE_OPS:
     kwargs = kwargs.node_deps[0]
-  if kwargs.op == arolla.M.namedtuple.make:  # pyrefly: ignore[missing-attribute]
+  if kwargs.op == arolla.M.namedtuple.make:
     # namedtuple.make node
     # The first node_dep is a coma separated string of kwarg names.
     kwarg_names = (
@@ -155,7 +155,6 @@ def args_kwargs_repr(args, kwargs, return_type_as, tokens) -> str | None:
     # We can get the kwarg names from the qtype.
     kwarg_names = arolla.types.get_namedtuple_field_names(kwargs.qtype)
     kwargs_repr = ', '.join([
-        # pyrefly: ignore[missing-attribute]
         f'{name}='
         f'{repr(arolla.eval(arolla.M.namedtuple.get_field(kwargs, name)))}'
         for name in kwarg_names

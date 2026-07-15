@@ -23,7 +23,7 @@ from koladata.operators import view_overloads as _
 from koladata.types import qtypes as _qtypes
 from koladata.types import schema_constants as _schema_constants
 
-_M = _arolla.M | _jagged_shape.M  # pyrefly: ignore[unsupported-operation]
+_M = _arolla.M | _jagged_shape.M
 _P = _arolla.P
 _MASK = _schema_constants.MASK
 _constraints = _arolla.optools.constraints

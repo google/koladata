@@ -58,19 +58,19 @@ def make(*items, value_type_as=arolla.unspecified()):
   seq = arolla.types.DispatchOperator(
       'items, value_type_as',
       empty_items_unspecified_value_type_as_case=arolla.types.DispatchCase(
-          M.seq.slice(M.seq.make(data_slice.DataSlice.from_vals(None)), 0, 0),  # pyrefly: ignore[missing-attribute]
-          condition=(M.qtype.get_field_count(P.items) == 0)  # pyrefly: ignore[missing-attribute]
+          M.seq.slice(M.seq.make(data_slice.DataSlice.from_vals(None)), 0, 0),
+          condition=(M.qtype.get_field_count(P.items) == 0)
           & (P.value_type_as == arolla.UNSPECIFIED),
       ),
       unspecified_value_type_as_case=arolla.types.DispatchCase(
-          M.core.apply_varargs(M.seq.make, P.items),  # pyrefly: ignore[missing-attribute]
-          condition=(M.qtype.get_field_count(P.items) > 0)  # pyrefly: ignore[missing-attribute]
+          M.core.apply_varargs(M.seq.make, P.items),
+          condition=(M.qtype.get_field_count(P.items) > 0)
           & (P.value_type_as == arolla.UNSPECIFIED),
       ),
       # We add value_type_as to the sequence and then remove it via seq.slice,
       # so that it is properly handled in type deduction and validation logic.
-      default=M.seq.slice(  # pyrefly: ignore[missing-attribute]
-          M.core.apply_varargs(M.seq.make, P.value_type_as, P.items),  # pyrefly: ignore[missing-attribute]
+      default=M.seq.slice(
+          M.core.apply_varargs(M.seq.make, P.value_type_as, P.items),
           1,
           arolla.int64(2**63 - 1),
       ),
@@ -124,26 +124,26 @@ def _iterable_type_matches_value_type(iterable_type, value_type):
 
 _ITERABLES_CHAIN_QTYPE_CONSTRAINTS = (
     (
-        arolla.M.seq.all(  # pyrefly: ignore[missing-attribute]
-            arolla.M.seq.map(  # pyrefly: ignore[missing-attribute]
+        arolla.M.seq.all(
+            arolla.M.seq.map(
                 koda_internal_iterables.is_iterable_qtype,
-                arolla.M.qtype.get_field_qtypes(P.iterables),  # pyrefly: ignore[missing-attribute]
+                arolla.M.qtype.get_field_qtypes(P.iterables),
             )
         ),
         'all inputs must be iterables',
     ),
     (
-        arolla.M.seq.all_equal(arolla.M.qtype.get_field_qtypes(P.iterables)),  # pyrefly: ignore[missing-attribute]
+        arolla.M.seq.all_equal(arolla.M.qtype.get_field_qtypes(P.iterables)),
         'all given iterables must have the same value type',
     ),
     (
-        arolla.M.seq.all(  # pyrefly: ignore[missing-attribute]
-            arolla.M.seq.map(  # pyrefly: ignore[missing-attribute]
+        arolla.M.seq.all(
+            arolla.M.seq.map(
                 _iterable_type_matches_value_type,
-                arolla.M.qtype.get_field_qtypes(P.iterables),  # pyrefly: ignore[missing-attribute]
-                arolla.M.seq.repeat(  # pyrefly: ignore[missing-attribute]
+                arolla.M.qtype.get_field_qtypes(P.iterables),
+                arolla.M.seq.repeat(
                     P.value_type_as,
-                    arolla.M.qtype.get_field_count(P.iterables),  # pyrefly: ignore[missing-attribute]
+                    arolla.M.qtype.get_field_count(P.iterables),
                 ),
             )
         ),
@@ -181,15 +181,15 @@ def chain(*iterables, value_type_as=arolla.unspecified()):
       'iterables, value_type_as',
       empty_iterables_case=arolla.types.DispatchCase(
           make(value_type_as=P.value_type_as),
-          condition=(M.qtype.get_field_count(P.iterables) == 0),  # pyrefly: ignore[missing-attribute]
+          condition=(M.qtype.get_field_count(P.iterables) == 0),
       ),
       # The compatibility of value_type_as with the iterables was checked
       # in qtype_constraints.
       default=koda_internal_iterables.from_sequence(
           koda_internal_iterables.sequence_chain(
-              M.seq.map(  # pyrefly: ignore[missing-attribute]
+              M.seq.map(
                   koda_internal_iterables.to_sequence,
-                  M.core.apply_varargs(M.seq.make, P.iterables),  # pyrefly: ignore[missing-attribute]
+                  M.core.apply_varargs(M.seq.make, P.iterables),
               )
           )
       ),
@@ -230,16 +230,16 @@ def interleave(*iterables, value_type_as=arolla.unspecified()):
       'iterables, value_type_as, non_deterministic',
       empty_iterables_case=arolla.types.DispatchCase(
           make(value_type_as=P.value_type_as),
-          condition=(M.qtype.get_field_count(P.iterables) == 0),  # pyrefly: ignore[missing-attribute]
+          condition=(M.qtype.get_field_count(P.iterables) == 0),
       ),
       # The compatibility of value_type_as with the iterables was checked
       # in qtype_constraints.
       default=koda_internal_iterables.from_sequence(
           arolla.abc.bind_op(
               koda_internal_iterables.sequence_interleave,
-              M.seq.map(  # pyrefly: ignore[missing-attribute]
+              M.seq.map(
                   koda_internal_iterables.to_sequence,
-                  M.core.apply_varargs(M.seq.make, P.iterables),  # pyrefly: ignore[missing-attribute]
+                  M.core.apply_varargs(M.seq.make, P.iterables),
               ),
               P.non_deterministic,
           )
@@ -254,7 +254,7 @@ def interleave(*iterables, value_type_as=arolla.unspecified()):
     qtype_constraints=[
         qtype_utils.expect_iterable(P.items),
         (
-            M.qtype.get_value_qtype(P.items) == qtypes.DATA_SLICE,  # pyrefly: ignore[missing-attribute]
+            M.qtype.get_value_qtype(P.items) == qtypes.DATA_SLICE,
             (
                 'expected an iterable of DATA_SLICE, got'
                 f' {arolla.optools.constraints.name_type_msg(P.items)}'
@@ -290,7 +290,7 @@ def reduce_concat(items, initial_value, ndim=1):  # pylint: disable=unused-argum
     qtype_constraints=[
         qtype_utils.expect_iterable(P.items),
         (
-            M.qtype.get_value_qtype(P.items) == qtypes.DATA_BAG,  # pyrefly: ignore[missing-attribute]
+            M.qtype.get_value_qtype(P.items) == qtypes.DATA_BAG,
             (
                 'expected an iterable of DATA_BAG, got'
                 f' {arolla.optools.constraints.name_type_msg(P.items)}'

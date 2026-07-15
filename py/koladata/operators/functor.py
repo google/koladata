@@ -1138,7 +1138,7 @@ def _create_for_iteration_body_fn():
   returns = arolla.M.namedtuple.union(
       new_variables,
       arolla.M.namedtuple.make(
-          _koda_internal_step=I['_koda_internal_step'] + 1,  # pyrefly: ignore[unsupported-operation]
+          _koda_internal_step=I['_koda_internal_step'] + 1,
       ),
   )
   return py_functors_base_py_ext.create_functor(
