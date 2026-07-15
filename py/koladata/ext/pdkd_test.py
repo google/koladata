@@ -26,47 +26,47 @@ S = kd.S
 class PdkdTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (pd.DataFrame({'x': [1, 2, 3]}), kd.int64([1, 2, 3])),  # pyrefly: ignore[missing-attribute]
+      (pd.DataFrame({'x': [1, 2, 3]}), kd.int64([1, 2, 3])),
       (
           pd.DataFrame({'x': pd.Series([1, pd.NA, 3], dtype=pd.Int32Dtype())}),
-          kd.int32([1, None, 3]),  # pyrefly: ignore[missing-attribute]
+          kd.int32([1, None, 3]),
       ),
       (
           pd.DataFrame({'x': pd.Series([1, pd.NA, 3], dtype=pd.Int64Dtype())}),
-          kd.int64([1, None, 3]),  # pyrefly: ignore[missing-attribute]
+          kd.int64([1, None, 3]),
       ),
       (
           # object dtypes stay as objects.
           pd.DataFrame({'x': pd.Series([1, pd.NA, 3], dtype='object')}),
-          kd.slice([1, None, 3], kd.OBJECT),  # pyrefly: ignore[missing-attribute]
+          kd.slice([1, None, 3], kd.OBJECT),
       ),
       (
           pd.DataFrame(
               {'x': pd.Series([1.0, pd.NA, 3.0], dtype=pd.Float32Dtype())}
           ),
-          kd.float32([1.0, None, 3.0]),  # pyrefly: ignore[missing-attribute]
+          kd.float32([1.0, None, 3.0]),
       ),
       (
           # Numpy-style missing values are also supported.
           pd.DataFrame({'x': [1.0, float('nan'), 3.0]}),
-          kd.float64([1.0, None, 3.0]),  # pyrefly: ignore[missing-attribute]
+          kd.float64([1.0, None, 3.0]),
       ),
       (
           # When it's abused for incompatible types, the output is OBJECT
           # (since the input is object).
           pd.DataFrame({'x': ['a', float('nan')]}),
-          kd.slice(['a', None], kd.OBJECT),  # pyrefly: ignore[missing-attribute]
+          kd.slice(['a', None], kd.OBJECT),
       ),
       (
           pd.DataFrame(
               {'x': pd.Series(['a', pd.NA, 'c'], dtype=pd.StringDtype())}
           ),
-          kd.str(['a', None, 'c']),  # pyrefly: ignore[missing-attribute]
+          kd.str(['a', None, 'c']),
       ),
       (
           # Mixed data stays mixed.
           pd.DataFrame({'x': pd.Series([1.0, 2, pd.NA], dtype='object')}),
-          kd.slice([1.0, 2, None], kd.OBJECT),  # pyrefly: ignore[missing-attribute]
+          kd.slice([1.0, 2, None], kd.OBJECT),
       ),
   )
   def test_from_dataframe_primitive_df(self, df, expected_ds):
@@ -74,26 +74,26 @@ class PdkdTest(parameterized.TestCase):
     kd.testing.assert_equal(ds.x.no_bag(), expected_ds)
 
   @parameterized.parameters(
-      (pd.Series([1, 2, 3]), kd.int64([1, 2, 3])),  # pyrefly: ignore[missing-attribute]
+      (pd.Series([1, 2, 3]), kd.int64([1, 2, 3])),
       (
           pd.Series([1, pd.NA, 3], dtype=pd.Int32Dtype()),
-          kd.int32([1, None, 3]),  # pyrefly: ignore[missing-attribute]
+          kd.int32([1, None, 3]),
       ),
       (
           pd.Series([1.0, pd.NA, 3.0], dtype=pd.Float32Dtype()),
-          kd.float32([1.0, None, 3.0]),  # pyrefly: ignore[missing-attribute]
+          kd.float32([1.0, None, 3.0]),
       ),
       (
           pd.Series([1.0, float('nan'), 3.0]),
-          kd.float64([1.0, None, 3.0]),  # pyrefly: ignore[missing-attribute]
+          kd.float64([1.0, None, 3.0]),
       ),
       (
           pd.Series(['a', pd.NA, 'c'], dtype=pd.StringDtype()),
-          kd.str(['a', None, 'c']),  # pyrefly: ignore[missing-attribute]
+          kd.str(['a', None, 'c']),
       ),
       (
           pd.Series([1.0, 2, pd.NA], dtype='object'),
-          kd.slice([1.0, 2, None], kd.OBJECT),  # pyrefly: ignore[missing-attribute]
+          kd.slice([1.0, 2, None], kd.OBJECT),
       ),
   )
   def test_from_series_primitives(self, series, expected_ds):
@@ -106,7 +106,7 @@ class PdkdTest(parameterized.TestCase):
     ds = pdkd.from_series(series)
     kd.testing.assert_equal(
         ds.no_bag(),
-        kd.int64([[1, 2], [3], [], [4, 5]]),  # pyrefly: ignore[missing-attribute]
+        kd.int64([[1, 2], [3], [], [4, 5]]),
     )
 
   def test_from_dataframe_multidimensional_int_df(self):
@@ -115,7 +115,7 @@ class PdkdTest(parameterized.TestCase):
     ds = pdkd.from_dataframe(df)
     kd.testing.assert_equal(
         ds.x.no_bag(),
-        kd.float64([[1, 2], [3], [], [None, 5]]),  # pyrefly: ignore[missing-attribute]
+        kd.float64([[1, 2], [3], [], [None, 5]]),
     )
 
   def test_from_dataframe_non_primitive_df(self):
@@ -128,9 +128,9 @@ class PdkdTest(parameterized.TestCase):
     self.assertNotEqual(ds.get_schema(), kd.OBJECT)
     kd.testing.assert_equal(
         ds.get_attr('self_').no_bag(),
-        kd.slice(['$1', '$2', '$3']),  # pyrefly: ignore[missing-attribute]
+        kd.slice(['$1', '$2', '$3']),
     )
-    kd.testing.assert_equal(ds.x.no_bag(), kd.int64([1, 2, 3]))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(ds.x.no_bag(), kd.int64([1, 2, 3]))
 
   def test_from_dataframe_non_primitive_df_with_as_obj(self):
     df = pd.DataFrame({
@@ -142,9 +142,9 @@ class PdkdTest(parameterized.TestCase):
     self.assertEqual(ds.get_schema(), kd.OBJECT)
     kd.testing.assert_equal(
         ds.get_attr('self_').no_bag(),
-        kd.slice(['$1', '$2', '$3']),  # pyrefly: ignore[missing-attribute]
+        kd.slice(['$1', '$2', '$3']),
     )
-    kd.testing.assert_equal(ds.x.no_bag(), kd.int64([1, 2, 3]))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equal(ds.x.no_bag(), kd.int64([1, 2, 3]))
 
   def test_from_dataframe_non_primitive_df_with_as_obj_object_df(self):
     df = pd.DataFrame({'x': np.array([{1: 2}, {3: 4}], dtype=object)})
@@ -152,11 +152,11 @@ class PdkdTest(parameterized.TestCase):
     self.maxDiff = None
     kd.testing.assert_equal(
         ds.x.get_keys().no_bag(),
-        kd.slice([[1], [3]], schema=kd.OBJECT),  # pyrefly: ignore[missing-attribute]
+        kd.slice([[1], [3]], schema=kd.OBJECT),
     )
     kd.testing.assert_equal(
         ds.x.get_values().no_bag(),
-        kd.slice([[2], [4]], schema=kd.OBJECT),  # pyrefly: ignore[missing-attribute]
+        kd.slice([[2], [4]], schema=kd.OBJECT),
     )
 
   def test_from_dataframe_non_primitive_df_with_as_obj_empty_df(self):
@@ -164,27 +164,27 @@ class PdkdTest(parameterized.TestCase):
       _ = pdkd.from_dataframe(pd.DataFrame())
 
   @parameterized.parameters(
-      (kd.slice([1, 2, 3]), [1, 2, 3], pd.Int32Dtype()),  # pyrefly: ignore[missing-attribute]
+      (kd.slice([1, 2, 3]), [1, 2, 3], pd.Int32Dtype()),
       # OBJECTs are narrowed if possible.
-      (kd.slice([1, 2, 3], kd.OBJECT), [1, 2, 3], pd.Int32Dtype()),  # pyrefly: ignore[missing-attribute]
+      (kd.slice([1, 2, 3], kd.OBJECT), [1, 2, 3], pd.Int32Dtype()),
       # Bags are dropped / ignored for primitives.
-      (kd.slice([1, 2, 3]).with_bag(kd.bag()), [1, 2, 3], pd.Int32Dtype()),  # pyrefly: ignore[missing-attribute]
+      (kd.slice([1, 2, 3]).with_bag(kd.bag()), [1, 2, 3], pd.Int32Dtype()),
       # Missing values are represented as pd.NA.
-      (kd.slice([1, 2, None]), [1, 2, pd.NA], pd.Int32Dtype()),  # pyrefly: ignore[missing-attribute]
+      (kd.slice([1, 2, None]), [1, 2, pd.NA], pd.Int32Dtype()),
       # Mixed slices have dtype=object (holding python values).
-      (kd.slice([1, 2.0, None], kd.OBJECT), [1, 2.0, pd.NA], 'object'),  # pyrefly: ignore[missing-attribute]
+      (kd.slice([1, 2.0, None], kd.OBJECT), [1, 2.0, pd.NA], 'object'),
       # Other primitives.
-      (kd.slice([1, 2, None], kd.INT64), [1, 2, pd.NA], pd.Int64Dtype()),  # pyrefly: ignore[missing-attribute]
-      (kd.slice([1.0, 2.0, None]), [1.0, 2.0, pd.NA], pd.Float32Dtype()),  # pyrefly: ignore[missing-attribute]
+      (kd.slice([1, 2, None], kd.INT64), [1, 2, pd.NA], pd.Int64Dtype()),
+      (kd.slice([1.0, 2.0, None]), [1.0, 2.0, pd.NA], pd.Float32Dtype()),
       (
-          kd.slice([1.0, 2.0, None], kd.FLOAT64),  # pyrefly: ignore[missing-attribute]
+          kd.slice([1.0, 2.0, None], kd.FLOAT64),
           [1.0, 2.0, pd.NA],
           pd.Float64Dtype(),
       ),
-      (kd.slice([True, False, None]), [True, False, pd.NA], pd.BooleanDtype()),  # pyrefly: ignore[missing-attribute]
-      (kd.slice([kd.present, kd.missing]), [True, pd.NA], pd.BooleanDtype()),  # pyrefly: ignore[missing-attribute]
-      (kd.slice(['abc', None]), ['abc', pd.NA], pd.StringDtype()),  # pyrefly: ignore[missing-attribute]
-      (kd.slice([b'abc', None]), [b'abc', pd.NA], 'object'),  # pyrefly: ignore[missing-attribute]
+      (kd.slice([True, False, None]), [True, False, pd.NA], pd.BooleanDtype()),
+      (kd.slice([kd.present, kd.missing]), [True, pd.NA], pd.BooleanDtype()),
+      (kd.slice(['abc', None]), ['abc', pd.NA], pd.StringDtype()),
+      (kd.slice([b'abc', None]), [b'abc', pd.NA], 'object'),
   )
   def test_to_dataframe_primitives(self, ds, expected_values, expected_dtype):
     df = pdkd.to_dataframe(ds)
@@ -196,21 +196,21 @@ class PdkdTest(parameterized.TestCase):
   def test_to_dataframe_primitive_ds_alias(self):
     self.assertIs(pdkd.df, pdkd.to_dataframe)
 
-    ds = kd.slice([1, 2, 3])  # pyrefly: ignore[missing-attribute]
+    ds = kd.slice([1, 2, 3])
     df = pdkd.df(ds)
     self.assertNotIsInstance(df.index, pd.DataFrame)
     self.assertCountEqual(df.columns, ['self_'])
     self.assertEqual(list(df['self_']), [1, 2, 3])
 
   def test_to_dataframe_int_data_item(self):
-    ds = kd.item(1)  # pyrefly: ignore[missing-attribute]
+    ds = kd.item(1)
     df = pdkd.to_dataframe(ds)
     self.assertNotIsInstance(df.index, pd.DataFrame)
     self.assertCountEqual(df.columns, ['self_'])
     self.assertEqual(list(df['self_']), [1])
 
   def test_to_dataframe_multi_dimensional_int_ds(self):
-    ds = kd.slice([[1, 2], [3], [], [4, 5]])  # pyrefly: ignore[missing-attribute]
+    ds = kd.slice([[1, 2], [3], [], [4, 5]])
     df = pdkd.to_dataframe(ds)
     self.assertCountEqual(df.columns, ['self_'])
     self.assertEqual(list(df['self_']), [1, 2, 3, 4, 5])
@@ -219,25 +219,25 @@ class PdkdTest(parameterized.TestCase):
     self.assertEqual(list(df.index.get_level_values(1)), [0, 1, 0, 0, 1])
 
   def test_to_dataframe_list_ds(self):
-    l1 = kd.list()  # pyrefly: ignore[missing-attribute]
-    l2 = kd.list()  # pyrefly: ignore[missing-attribute]
-    l3 = kd.list()  # pyrefly: ignore[missing-attribute]
-    ds = kd.slice([l1, l2, l3])  # pyrefly: ignore[missing-attribute]
+    l1 = kd.list()
+    l2 = kd.list()
+    l3 = kd.list()
+    ds = kd.slice([l1, l2, l3])
     df = pdkd.to_dataframe(ds)
     self.assertCountEqual(df.columns, ['self_'])
     self.assertEqual(list(df['self_']), ds.internal_as_py())
 
   def test_to_dataframe_dict_ds(self):
-    d1 = kd.dict()  # pyrefly: ignore[missing-attribute]
-    d2 = kd.dict()  # pyrefly: ignore[missing-attribute]
-    d3 = kd.dict()  # pyrefly: ignore[missing-attribute]
-    ds = kd.slice([d1, d2, d3])  # pyrefly: ignore[missing-attribute]
+    d1 = kd.dict()
+    d2 = kd.dict()
+    d3 = kd.dict()
+    ds = kd.slice([d1, d2, d3])
     df = pdkd.to_dataframe(ds)
     self.assertCountEqual(df.columns, ['self_'])
     self.assertEqual(list(df['self_']), ds.internal_as_py())
 
   def test_to_dataframe_entity_ds(self):
-    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))  # pyrefly: ignore[missing-attribute]
+    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))
     df = pdkd.to_dataframe(ds)
     self.assertCountEqual(df.columns, ['x', 'y'])
     self.assertEqual(list(df['x']), [1, 2, 3])
@@ -248,13 +248,13 @@ class PdkdTest(parameterized.TestCase):
     self.assertEqual(list(df['self_']), ds.internal_as_py())
 
   def test_to_dataframe_entity_ds_with_attrs(self):
-    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))  # pyrefly: ignore[missing-attribute]
+    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))
     df = pdkd.to_dataframe(ds, cols=['x'])
     self.assertCountEqual(df.columns, ['x'])
     self.assertEqual(list(df['x']), [1, 2, 3])
 
   def test_to_dataframe_obj_ds(self):
-    ds = kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))  # pyrefly: ignore[missing-attribute]
+    ds = kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))
     df = pdkd.to_dataframe(ds)
     self.assertCountEqual(df.columns, ['x', 'y'])
     self.assertEqual(list(df['x']), [1, 2, 3])
@@ -265,21 +265,21 @@ class PdkdTest(parameterized.TestCase):
     self.assertEqual(list(df['self_']), ds.internal_as_py())
 
   def test_to_dataframe_obj_ds_with_different_attrs_int(self):
-    ds = kd.slice([kd.obj(x=1, y='a'), kd.obj(x=2), kd.obj(y='c')])  # pyrefly: ignore[missing-attribute]
+    ds = kd.slice([kd.obj(x=1, y='a'), kd.obj(x=2), kd.obj(y='c')])
     df = pdkd.to_dataframe(ds)
     self.assertCountEqual(df.columns, ['x', 'y'])
     self.assertEqual(list(df['x']), [1, 2, pd.NA])
     self.assertEqual(list(df['y']), ['a', pd.NA, 'c'])
 
   def test_to_dataframe_obj_ds_with_different_attrs_float(self):
-    ds = kd.slice([kd.obj(x=1.0, y='a'), kd.obj(x=2.0), kd.obj(y='c')])  # pyrefly: ignore[missing-attribute]
+    ds = kd.slice([kd.obj(x=1.0, y='a'), kd.obj(x=2.0), kd.obj(y='c')])
     df = pdkd.to_dataframe(ds)
     self.assertCountEqual(df.columns, ['x', 'y'])
     self.assertEqual(list(df['x']), [1.0, 2.0, pd.NA])
     self.assertEqual(list(df['y']), ['a', pd.NA, 'c'])
 
   def test_to_dataframe_mixed_obj_ds(self):
-    ds = kd.slice([1, None, kd.obj(x=2), kd.obj(kd.list()), kd.obj(kd.dict())])  # pyrefly: ignore[missing-attribute]
+    ds = kd.slice([1, None, kd.obj(x=2), kd.obj(kd.list()), kd.obj(kd.dict())])
     df = pdkd.to_dataframe(ds)
     self.assertCountEqual(df.columns, ['self_'])
     expected = ds.internal_as_py()
@@ -287,7 +287,7 @@ class PdkdTest(parameterized.TestCase):
     self.assertEqual(list(df['self_']), expected)
 
   def test_to_dataframe_obj_ds_with_different_attrs_and_cols(self):
-    ds = kd.slice([kd.obj(x=1, y='a'), kd.obj(x=2), kd.obj(x=3, y='c')])  # pyrefly: ignore[missing-attribute]
+    ds = kd.slice([kd.obj(x=1, y='a'), kd.obj(x=2), kd.obj(x=3, y='c')])
     df = pdkd.to_dataframe(ds, cols=['x', S.get_attr('y', default=None)])
     expected_optional_column = (
         "kd.get_attr(S, DataItem('y', schema: STRING), DataItem(None,"
@@ -317,13 +317,13 @@ class PdkdTest(parameterized.TestCase):
       _ = pdkd.to_dataframe(ds, cols=['z'])
 
   def test_to_dataframe_entity_ds_without_db(self):
-    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c'])).no_bag()  # pyrefly: ignore[missing-attribute]
+    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c'])).no_bag()
     df = pdkd.to_dataframe(ds)
     self.assertCountEqual(df.columns, ['self_'])
     self.assertEqual(list(df['self_']), ds.internal_as_py())
 
   def test_to_dataframe_use_expr_as_columns(self):
-    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))  # pyrefly: ignore[missing-attribute]
+    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
     df = pdkd.to_dataframe(ds, cols=[S.x, 'y', S.x + S.y])
     self.assertCountEqual(df.columns, ['S.x', 'y', 'S.x + S.y'])
     self.assertEqual(list(df['S.x']), [1, 2, 3])
@@ -331,7 +331,7 @@ class PdkdTest(parameterized.TestCase):
     self.assertEqual(list(df['S.x + S.y']), [5, 7, 9])
 
   def test_to_dataframe_use_named_expr_as_columns(self):
-    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))  # pyrefly: ignore[missing-attribute]
+    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
     df = pdkd.to_dataframe(
         ds, cols=[S.x.with_name('my_x'), (S.x + S.y).with_name('my_sum')]
     )
@@ -340,7 +340,7 @@ class PdkdTest(parameterized.TestCase):
     self.assertEqual(list(df['my_sum']), [5, 7, 9])
 
   def test_to_dataframe_use_dict_as_columns(self):
-    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))  # pyrefly: ignore[missing-attribute]
+    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
     df = pdkd.to_dataframe(
         ds, cols={'my_x': S.x, 'my_sum': S.x + S.y, 'my_y': 'y'}
     )
@@ -350,9 +350,9 @@ class PdkdTest(parameterized.TestCase):
     self.assertEqual(list(df['my_sum']), [5, 7, 9])
 
   def test_to_dataframe_broadcast_to_common_shape(self):
-    ds = kd.new(  # pyrefly: ignore[missing-attribute]
-        x=kd.slice([1, 2, 3]),  # pyrefly: ignore[missing-attribute]
-        y=kd.implode(kd.new(z=kd.slice([[4, 5], [], [6]]))),  # pyrefly: ignore[missing-attribute]
+    ds = kd.new(
+        x=kd.slice([1, 2, 3]),
+        y=kd.implode(kd.new(z=kd.slice([[4, 5], [], [6]]))),
     )
     df = pdkd.to_dataframe(ds, cols=[S.x, S.y[:].z])
     self.assertCountEqual(df.columns, ['S.x', 'S.y[:].z'])
@@ -364,7 +364,7 @@ class PdkdTest(parameterized.TestCase):
     self.assertEqual(list(df.index.get_level_values(1)), [0, 1, 0])
 
   def test_to_dataframe_invalid_attr(self):
-    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))  # pyrefly: ignore[missing-attribute]
+    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))
     with self.assertRaisesWithPredicateMatch(
         ValueError,
         arolla.testing.any_cause_message_regex("the attribute 'z' is missing"),
@@ -372,19 +372,19 @@ class PdkdTest(parameterized.TestCase):
       _ = pdkd.to_dataframe(ds, cols=['z'])
 
   def test_to_dataframe_invalid_column(self):
-    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))  # pyrefly: ignore[missing-attribute]
+    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))
     with self.assertRaisesRegex(ValueError, 'Unsupported attr type'):
       _ = pdkd.to_dataframe(ds, cols=[1])  # pyrefly: ignore[bad-argument-type]
 
   def test_to_dataframe_invalid_expr(self):
-    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))  # pyrefly: ignore[missing-attribute]
+    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))
     with self.assertRaisesRegex(ValueError, 'Cannot evaluate S.z on DataSlice'):
       _ = pdkd.to_dataframe(ds, cols=[S.z])
 
   def test_to_dataframe_broadcast_to_common_shape_error(self):
-    ds = kd.new(  # pyrefly: ignore[missing-attribute]
-        x=kd.implode(kd.new(z=kd.slice([[4], [5], [6]]))),  # pyrefly: ignore[missing-attribute]
-        y=kd.implode(kd.new(z=kd.slice([[4, 5], [], [6]]))),  # pyrefly: ignore[missing-attribute]
+    ds = kd.new(
+        x=kd.implode(kd.new(z=kd.slice([[4], [5], [6]]))),
+        y=kd.implode(kd.new(z=kd.slice([[4, 5], [], [6]]))),
     )
     with self.assertRaisesRegex(
         ValueError, 'All columns must have compatible shapes'
@@ -392,40 +392,40 @@ class PdkdTest(parameterized.TestCase):
       _ = pdkd.to_dataframe(ds, cols=[S.x[:].z, S.y[:].z])
 
   def test_to_dataframe_specify_columns_with_include_self(self):
-    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))  # pyrefly: ignore[missing-attribute]
+    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))
     with self.assertRaisesRegex(ValueError, 'Cannot set `include_self`'):
       _ = pdkd.to_dataframe(ds, cols=['a'], include_self=True)
 
   def test_object_roundtrip_preserves_type(self):
-    ds = kd.slice([kd.float64(1.0), kd.int64(1)], kd.OBJECT)  # pyrefly: ignore[missing-attribute]
+    ds = kd.slice([kd.float64(1.0), kd.int64(1)], kd.OBJECT)
     df = pdkd.to_dataframe(ds)
     res = pdkd.from_dataframe(df)
     # TODO: Make `res.self_.no_bag() == ds`.
     kd.testing.assert_equal(
-        res.self_.no_bag(), kd.slice([kd.float32(1.0), kd.int32(1)], kd.OBJECT)  # pyrefly: ignore[missing-attribute]
+        res.self_.no_bag(), kd.slice([kd.float32(1.0), kd.int32(1)], kd.OBJECT)
     )
 
   def test_to_series_primitives(self):
-    ds = kd.slice([1, 2, 3])  # pyrefly: ignore[missing-attribute]
+    ds = kd.slice([1, 2, 3])
     series = pdkd.to_series(ds)
     self.assertIsInstance(series, pd.Series)
     self.assertEqual(series.name, 'self_')
     self.assertEqual(list(series), [1, 2, 3])
 
   def test_to_series_multi_dimensional(self):
-    ds = kd.slice([[1, 2], [3], [], [4, 5]])  # pyrefly: ignore[missing-attribute]
+    ds = kd.slice([[1, 2], [3], [], [4, 5]])
     series = pdkd.to_series(ds)
     self.assertEqual(list(series), [1, 2, 3, 4, 5])
     self.assertIsInstance(series.index, pd.MultiIndex)
 
   def test_to_series_with_col(self):
-    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))  # pyrefly: ignore[missing-attribute]
+    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))
     series = pdkd.to_series(ds, col='x')
     self.assertEqual(series.name, 'x')
     self.assertEqual(list(series), [1, 2, 3])
 
   def test_to_series_all_none_object(self):
-    ds = kd.slice([None, None], kd.OBJECT).with_bag(kd.bag())  # pyrefly: ignore[missing-attribute]
+    ds = kd.slice([None, None], kd.OBJECT).with_bag(kd.bag())
     series = pdkd.to_series(ds)
     self.assertIsInstance(series, pd.Series)
     self.assertEqual(series.name, 'self_')
@@ -433,7 +433,7 @@ class PdkdTest(parameterized.TestCase):
     self.assertTrue(series.isna().all())
 
   def test_to_series_multiple_cols_error(self):
-    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))  # pyrefly: ignore[missing-attribute]
+    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))
     with self.assertRaisesRegex(
         ValueError, 'to_series requires exactly one column'
     ):

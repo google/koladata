@@ -20,7 +20,7 @@ MaybeEval = functools.MaybeEval
 
 
 S = kd.S
-kdf = kd.functor  # pyrefly: ignore[missing-attribute]
+kdf = kd.functor
 
 
 class FunctoolsTest(absltest.TestCase):
@@ -30,38 +30,38 @@ class FunctoolsTest(absltest.TestCase):
     with self.subTest('simple'):
       self.assertIsNone(MaybeEval(None))
       kd.testing.assert_equal(
-          MaybeEval(kd.slice([1, 2, 3])), kd.slice([1, 2, 3])  # pyrefly: ignore[missing-attribute]
+          MaybeEval(kd.slice([1, 2, 3])), kd.slice([1, 2, 3])
       )
       kd.testing.assert_equal(
-          MaybeEval(S.x + S.y, root=kd.obj(x=1, y=2)).no_bag(), kd.item(3)  # pyrefly: ignore[missing-attribute]
+          MaybeEval(S.x + S.y, root=kd.obj(x=1, y=2)).no_bag(), kd.item(3)
       )
       kd.testing.assert_equal(
-          MaybeEval(kd.fn(S.x + S.y), kd.obj(x=1, y=2)).no_bag(), kd.item(3)  # pyrefly: ignore[missing-attribute]
+          MaybeEval(kd.fn(S.x + S.y), kd.obj(x=1, y=2)).no_bag(), kd.item(3)
       )
       kd.testing.assert_equal(
-          MaybeEval(lambda s: s.x + s.y, kd.obj(x=1, y=2)).no_bag(), kd.item(3)  # pyrefly: ignore[missing-attribute]
+          MaybeEval(lambda s: s.x + s.y, kd.obj(x=1, y=2)).no_bag(), kd.item(3)
       )
 
     with self.subTest('list'):
       self.assertEqual(MaybeEval([1, 2, 3]), [1, 2, 3])
       self.assertEqual(
-          MaybeEval([S.x + S.y, 2, [S.x]], root=kd.obj(x=1, y=2)),  # pyrefly: ignore[missing-attribute]
-          [kd.item(3), 2, [kd.item(1)]],  # pyrefly: ignore[missing-attribute]
+          MaybeEval([S.x + S.y, 2, [S.x]], root=kd.obj(x=1, y=2)),
+          [kd.item(3), 2, [kd.item(1)]],
       )
 
     with self.subTest('tuple'):
       self.assertEqual(
-          MaybeEval((S.x + S.y, 2, S.x), root=kd.obj(x=1, y=2)),  # pyrefly: ignore[missing-attribute]
-          (kd.item(3), 2, kd.item(1)),  # pyrefly: ignore[missing-attribute]
+          MaybeEval((S.x + S.y, 2, S.x), root=kd.obj(x=1, y=2)),
+          (kd.item(3), 2, kd.item(1)),
       )
 
     with self.subTest('dict'):
       d = MaybeEval(
-          {'a': S.x, 'b': kd.slice([3, 2, 1])},  # pyrefly: ignore[missing-attribute]
-          root=kd.obj(x=kd.slice([1, 2, 3])),  # pyrefly: ignore[missing-attribute]
+          {'a': S.x, 'b': kd.slice([3, 2, 1])},
+          root=kd.obj(x=kd.slice([1, 2, 3])),
       )
-      kd.testing.assert_equal(d['a'].no_bag(), kd.slice([1, 2, 3]))  # pyrefly: ignore[missing-attribute]
-      kd.testing.assert_equal(d['b'].no_bag(), kd.slice([3, 2, 1]))  # pyrefly: ignore[missing-attribute]
+      kd.testing.assert_equal(d['a'].no_bag(), kd.slice([1, 2, 3]))
+      kd.testing.assert_equal(d['b'].no_bag(), kd.slice([3, 2, 1]))
 
 
 if __name__ == '__main__':

@@ -21,7 +21,7 @@ from typing import Any, Callable
 from arolla import arolla
 from koladata import kd
 
-kdf = kd.functor  # pyrefly: ignore[missing-attribute]
+kdf = kd.functor
 
 
 def MaybeEval(x: Any, root: kd.types.DataSlice | None = None) -> Any:
@@ -32,7 +32,7 @@ def MaybeEval(x: Any, root: kd.types.DataSlice | None = None) -> Any:
     return tuple(MaybeEval(y, root=root) for y in x)
   elif isinstance(x, dict):
     return {k: MaybeEval(v, root=root) for k, v in x.items()}
-  elif kd.is_fn(x) or isinstance(x, py_types.FunctionType):  # pyrefly: ignore[missing-attribute]
+  elif kd.is_fn(x) or isinstance(x, py_types.FunctionType):
     return x(root)
   if isinstance(x, arolla.Expr):
     return x.eval(root)

@@ -31,7 +31,7 @@ from koladata.types import schema_constants
 
 
 kde = kd.lazy
-kdf = kd.functor  # pyrefly: ignore[missing-attribute]
+kdf = kd.functor
 I = kd.I
 
 
@@ -63,12 +63,12 @@ class TracingTest(absltest.TestCase):
     testing.assert_equal(e.node_deps[0].node_deps[0].node_deps[0], I.x + I.y)
 
   def test_ops(self):
-    e = tracing.trace(lambda x: kd.sum(x))  # pylint: disable=unnecessary-lambda  # pyrefly: ignore[missing-attribute]
+    e = tracing.trace(lambda x: kd.sum(x))  # pylint: disable=unnecessary-lambda
     testing.assert_equal(e.op, arolla.M.annotation.source_location)
     testing.assert_equal(e.node_deps[0], kde.sum(I.x))
 
   def test_ops_in_namespace(self):
-    e = tracing.trace(lambda x: kd.math.abs(x))  # pylint: disable=unnecessary-lambda  # pyrefly: ignore[missing-attribute]
+    e = tracing.trace(lambda x: kd.math.abs(x))  # pylint: disable=unnecessary-lambda
     testing.assert_equal(e.op, arolla.M.annotation.source_location)
     testing.assert_equal(e.node_deps[0], kde.math.abs(I.x))
 
@@ -83,17 +83,17 @@ class TracingTest(absltest.TestCase):
     self.assertEqual(e.eval(), kd.OBJECT)
 
   def test_fstr(self):
-    e = tracing.trace(lambda x: kd.fstr(f'{x:s}'))  # pylint: disable=unnecessary-lambda  # pyrefly: ignore[missing-attribute]
+    e = tracing.trace(lambda x: kd.fstr(f'{x:s}'))  # pylint: disable=unnecessary-lambda
     testing.assert_traced_exprs_equal(e, kde.fstr(f'{I.x:s}'))
 
   def test_kd_constants_in_slice(self):
-    e = tracing.trace(lambda: kd.slice([1, 2], kd.FLOAT32))  # pyrefly: ignore[missing-attribute]
+    e = tracing.trace(lambda: kd.slice([1, 2], kd.FLOAT32))
     self.assertIsInstance(e, arolla.Expr)
     self.assertEqual(e.eval().get_schema(), kd.FLOAT32)
 
   def test_obj_from_dict_with_itemid(self):
-    o = kd.dict()  # pyrefly: ignore[missing-attribute]
-    e = tracing.trace(lambda: kd.obj(kd.dict({1: 2}, itemid=o.get_itemid())))  # pyrefly: ignore[missing-attribute]
+    o = kd.dict()
+    e = tracing.trace(lambda: kd.obj(kd.dict({1: 2}, itemid=o.get_itemid())))
     self.assertIsInstance(e, arolla.Expr)
     self.assertEqual(e.eval()[1], 2)
     self.assertEqual(e.eval().get_schema(), kd.OBJECT)
@@ -164,45 +164,45 @@ class TracingTest(absltest.TestCase):
       tracing.trace(my_fn)
 
   def test_names(self):
-    fn = lambda x, y, z: kd.with_name(x + y, 'foo') + z  # pyrefly: ignore[missing-attribute]
-    self.assertEqual(fn(x=kd.item(1), y=kd.item(2), z=kd.item(3)), 6)  # pyrefly: ignore[missing-attribute]
+    fn = lambda x, y, z: kd.with_name(x + y, 'foo') + z
+    self.assertEqual(fn(x=kd.item(1), y=kd.item(2), z=kd.item(3)), 6)
     e = tracing.trace(fn)
-    self.assertEqual(e.eval(x=kd.item(1), y=kd.item(2), z=kd.item(3)), 6)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(e.eval(x=kd.item(1), y=kd.item(2), z=kd.item(3)), 6)
     self.assertIn('foo = ', str(e))
     self.assertEqual(
-        kd.expr.sub_by_name(e, foo=kd.expr.as_expr(4)).eval(z=kd.item(3)), 7  # pyrefly: ignore[missing-attribute]
+        kd.expr.sub_by_name(e, foo=kd.expr.as_expr(4)).eval(z=kd.item(3)), 7
     )
 
     fn = lambda x, y, z: (x + y).with_name('foo') + z
-    self.assertEqual(fn(x=kd.item(1), y=kd.item(2), z=kd.item(3)), 6)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(fn(x=kd.item(1), y=kd.item(2), z=kd.item(3)), 6)
     e = tracing.trace(fn)
-    self.assertEqual(e.eval(x=kd.item(1), y=kd.item(2), z=kd.item(3)), 6)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(e.eval(x=kd.item(1), y=kd.item(2), z=kd.item(3)), 6)
     self.assertIn('foo = ', str(e))
     self.assertEqual(
-        kd.expr.sub_by_name(e, foo=kd.expr.as_expr(4)).eval(z=kd.item(3)), 7  # pyrefly: ignore[missing-attribute]
+        kd.expr.sub_by_name(e, foo=kd.expr.as_expr(4)).eval(z=kd.item(3)), 7
     )
 
   def test_functor_call(self):
     fn = kdf.expr_fn(I.x + I.y)
     self.assertEqual(
-        tracing.trace(lambda a, b: kd.call(fn, x=a, y=b)).eval(a=1, b=2), 3  # pyrefly: ignore[missing-attribute]
+        tracing.trace(lambda a, b: kd.call(fn, x=a, y=b)).eval(a=1, b=2), 3
     )
     self.assertEqual(tracing.trace(lambda a, b: fn(x=a, y=b)).eval(a=1, b=2), 3)
 
   def test_databag_methods(self):
-    x = kd.obj(z=1)  # pyrefly: ignore[missing-attribute]
+    x = kd.obj(z=1)
 
     def get_update(a):
-      upd = kd.bag()  # pyrefly: ignore[missing-attribute]
-      upd <<= kd.attrs(a, y=2)  # pyrefly: ignore[missing-attribute]
+      upd = kd.bag()
+      upd <<= kd.attrs(a, y=2)
       return upd
 
     self.assertEqual(x.updated(get_update(x)).y, 2)
     self.assertEqual(x.updated(tracing.trace(get_update).eval(a=x)).y, 2)
 
     def apply_update(a):
-      upd = kd.bag()  # pyrefly: ignore[missing-attribute]
-      upd <<= kd.attrs(a, y=2)  # pyrefly: ignore[missing-attribute]
+      upd = kd.bag()
+      upd <<= kd.attrs(a, y=2)
       return a.enriched(upd)
 
     self.assertEqual(apply_update(x).y, 2)
@@ -211,21 +211,21 @@ class TracingTest(absltest.TestCase):
   def test_fstr_eval(self):
 
     def format_greeting(x):
-      return kd.fstr(f'{x.greeting:s} {kd.strings.upper(x.name):s}')  # pyrefly: ignore[missing-attribute]
+      return kd.fstr(f'{x.greeting:s} {kd.strings.upper(x.name):s}')
 
     self.assertEqual(
-        format_greeting(x=kd.obj(greeting='Hello', name='World')).to_py(),  # pyrefly: ignore[missing-attribute]
+        format_greeting(x=kd.obj(greeting='Hello', name='World')).to_py(),
         'Hello WORLD',
     )
     self.assertEqual(
         tracing.trace(format_greeting)
-        .eval(x=kd.obj(greeting='Hello', name='World'))  # pyrefly: ignore[missing-attribute]
+        .eval(x=kd.obj(greeting='Hello', name='World'))
         .to_py(),
         'Hello WORLD',
     )
 
   def test_literal_dict_get_item_tracing(self):
-    d = kd.dict({1: 2})  # pyrefly: ignore[missing-attribute]
+    d = kd.dict({1: 2})
     def f(x):
       return d[x]
 
@@ -236,7 +236,7 @@ class TracingTest(absltest.TestCase):
     self.assertTrue(view.has_koda_view(tracing.trace(f)))
 
   def test_literal_list_get_item_tracing(self):
-    l = kd.list()  # pyrefly: ignore[missing-attribute]
+    l = kd.list()
     def f(x):
       return l[x]
 
@@ -252,7 +252,7 @@ class TracingTest(absltest.TestCase):
       return x
 
     testing.assert_traced_exprs_equal(
-        tracing.trace(fn).eval(x=kd.slice(1)), kd.slice(1)  # pyrefly: ignore[bad-argument-type, missing-attribute]
+        tracing.trace(fn).eval(x=kd.slice(1)), kd.slice(1)  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_extra_input_in_expr_error(self):
@@ -275,7 +275,7 @@ class TracingTest(absltest.TestCase):
       def baz(x):  # pylint: disable=unused-argument
         return y
 
-      return kd.functor.expr_fn(tracing.trace(baz))(y)  # pyrefly: ignore[missing-attribute]
+      return kd.functor.expr_fn(tracing.trace(baz))(y)
 
     with self.assertRaisesWithPredicateMatch(
         ValueError,

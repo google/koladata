@@ -24,7 +24,7 @@ from koladata.testing import testing
 kde = kd.lazy
 I = kd.I
 V = kd.V
-kdf = kd.functor  # pyrefly: ignore[missing-attribute]
+kdf = kd.functor
 
 
 class ExprContainerTest(absltest.TestCase):

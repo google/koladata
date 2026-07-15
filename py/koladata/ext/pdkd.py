@@ -34,7 +34,7 @@ def _to_slice(series: pd.Series) -> kd.types.DataSlice:
   else:
     values_ds = npkd.from_array(values_np)
   mask_ds = npkd.from_array(present.to_numpy()) == kd.bool(True)  # pyrefly: ignore[missing-attribute]
-  return kd.reverse_select(values_ds, mask_ds)  # pyrefly: ignore[missing-attribute]
+  return kd.reverse_select(values_ds, mask_ds)
 
 
 def from_dataframe(
@@ -125,7 +125,7 @@ def _flat_ds_to_series(ds: kd.types.DataSlice) -> pd.Series:
   if dtype in _PD_FROM_KD:
     # Fast path through arolla conversion for compatible types.
     if dtype == kd.MASK:
-      ds = kd.cond(ds, True, None)  # pyrefly: ignore[missing-attribute]
+      ds = kd.cond(ds, True, None)
     indices, values = numpy_conversion.as_numpy_array_with_indices(
         ds.internal_as_dense_array()
     )
@@ -187,7 +187,7 @@ def _prepare_cols(
       cols = kd.dir(ds)
       if include_self or not cols:
         cols.append('self_')
-    elif schema == kd.OBJECT and kd.is_entity(ds):  # pyrefly: ignore[missing-attribute]
+    elif schema == kd.OBJECT and kd.is_entity(ds):
       cols = kd.dir(ds, intersection=False)
       get_attr_fn = kdi.maybe
       if include_self or not cols:

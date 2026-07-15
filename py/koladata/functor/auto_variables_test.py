@@ -43,7 +43,7 @@ pack_expr = introspection.pack_expr
 class AutoVariablesTest(absltest.TestCase):
 
   def test_nested_names(self):
-    x = kde.with_name(kde.with_name(I.x, 'foo'), 'bar')  # pyrefly: ignore[missing-attribute]
+    x = kde.with_name(kde.with_name(I.x, 'foo'), 'bar')
     fn = functor_factories.expr_fn(x, auto_variables=True)
     testing.assert_equal(fn(x=1), ds(1))
     testing.assert_equal(introspection.unpack_expr(fn.returns), V.bar)
@@ -53,9 +53,9 @@ class AutoVariablesTest(absltest.TestCase):
   def test_existing_variables(self):
     x = ds([1, -2, 3, -4])
     y = ds([2, -2, -3, -4])
-    shared = kde.with_name(x, 'foo')  # pyrefly: ignore[missing-attribute]
+    shared = kde.with_name(x, 'foo')
     fn = functor_factories.expr_fn(
-        shared + kde.with_name(y, 'foo') + V.foo,  # pyrefly: ignore[missing-attribute]
+        shared + kde.with_name(y, 'foo') + V.foo,
         foo=V.foo_1[:] + shared,
         foo_1=fns.list([4, 5, -1, 7]),
         auto_variables=True,
@@ -78,7 +78,7 @@ class AutoVariablesTest(absltest.TestCase):
 
   def test_does_not_lose_cast(self):
     fn = functor_factories.expr_fn(
-        kde.slice(kdi.slice([1, 2, 3]), schema_constants.INT64),  # pyrefly: ignore[missing-attribute]
+        kde.slice(kdi.slice([1, 2, 3]), schema_constants.INT64),
         auto_variables=True,
     )
     testing.assert_equal(fn().no_bag(), ds([1, 2, 3], schema_constants.INT64))
@@ -91,14 +91,14 @@ class AutoVariablesTest(absltest.TestCase):
       eval_count += 1
       return x
 
-    base = kde.py.apply_py(my_op, I.x)  # pyrefly: ignore[missing-attribute]
+    base = kde.py.apply_py(my_op, I.x)
     expr = (base + 1).with_name('foo') + (base + 2).with_name('bar')
     fn = functor_factories.expr_fn(expr, auto_variables=True)
     testing.assert_equal(fn(x=1), ds(5))
     self.assertEqual(eval_count, 1)
 
   def test_dont_create_spurious_variables(self):
-    base = I.x * I.x  # pyrefly: ignore[unsupported-operation]
+    base = I.x * I.x
     expr = (base + 1) + (base + 2)
     fn = functor_factories.expr_fn(expr, auto_variables=True)
     testing.assert_equal(fn(x=1), ds(5))
@@ -107,8 +107,8 @@ class AutoVariablesTest(absltest.TestCase):
     self.assertCountEqual(attrs.dir(fn), ['__signature__', 'returns'])
 
   def test_dont_create_too_many_variables(self):
-    base = (I.x + 1) * 2  # pyrefly: ignore[unsupported-operation]
-    expr = (base + 1).with_name('foo') + (base + 2).with_name('bar')  # pyrefly: ignore[missing-attribute]
+    base = (I.x + 1) * 2
+    expr = (base + 1).with_name('foo') + (base + 2).with_name('bar')
     fn = functor_factories.expr_fn(expr, auto_variables=True)
     testing.assert_equal(fn(x=1), ds(11))
     # This should create just one auxiliary variable, for "base".
@@ -132,15 +132,15 @@ class AutoVariablesTest(absltest.TestCase):
       eval_count += 1
       return x
 
-    base = kde.py.apply_py(my_op, I.x)  # pyrefly: ignore[missing-attribute]
+    base = kde.py.apply_py(my_op, I.x)
     fn = functor_factories.expr_fn(
-        V.v1 + V.v2, v1=base + 1, v2=base + 2, auto_variables=True  # pyrefly: ignore[unsupported-operation]
+        V.v1 + V.v2, v1=base + 1, v2=base + 2, auto_variables=True
     )
     testing.assert_equal(fn(x=1), ds(5))
     self.assertEqual(eval_count, 1)
 
     fn = functor_factories.expr_fn(
-        V.v1 + V.v2, v1=base, v2=base, auto_variables=True  # pyrefly: ignore[unsupported-operation]
+        V.v1 + V.v2, v1=base, v2=base, auto_variables=True
     )
     testing.assert_equal(fn(x=1), ds(2))
     self.assertEqual(eval_count, 2)
@@ -158,11 +158,11 @@ class AutoVariablesTest(absltest.TestCase):
     testing.assert_equal(fn.get_attr('_aux_0')[:].no_bag(), ds([1, 2, 3]))
     testing.assert_equal(
         introspection.unpack_expr(fn.foo),
-        kde.explode(V._aux_0, ndim=1),  # pyrefly: ignore[missing-attribute]
+        kde.explode(V._aux_0, ndim=1),
     )
     testing.assert_equal(
         introspection.unpack_expr(fn.bar),
-        kde.explode(V._aux_0, ndim=1),  # pyrefly: ignore[missing-attribute]
+        kde.explode(V._aux_0, ndim=1),
     )
 
   def test_shared_literal(self):
@@ -179,11 +179,11 @@ class AutoVariablesTest(absltest.TestCase):
     testing.assert_equal(fn.get_attr('_aux_0')[:].no_bag(), ds([1, 2, 3]))
     testing.assert_equal(
         introspection.unpack_expr(fn.foo),
-        kde.explode(V._aux_0, ndim=1) + 1,  # pyrefly: ignore[missing-attribute]
+        kde.explode(V._aux_0, ndim=1) + 1,
     )
     testing.assert_equal(
         introspection.unpack_expr(fn.bar),
-        kde.explode(V._aux_0, ndim=1) + 2,  # pyrefly: ignore[missing-attribute]
+        kde.explode(V._aux_0, ndim=1) + 2,
     )
 
   def test_shared_literal_used_in_shared_node(self):
@@ -200,18 +200,18 @@ class AutoVariablesTest(absltest.TestCase):
     testing.assert_equal(fn.get_attr('_aux_0')[:].no_bag(), ds([1, 2, 3]))
     testing.assert_equal(
         introspection.unpack_expr(fn.get_attr('_aux_1')),
-        kde.explode(V._aux_0, ndim=1) + 1,  # pyrefly: ignore[missing-attribute]
+        kde.explode(V._aux_0, ndim=1) + 1,
     )
     testing.assert_equal(introspection.unpack_expr(fn.foo), V._aux_1)
     testing.assert_equal(
         introspection.unpack_expr(fn.bar),
-        kde.explode(V._aux_0, ndim=1),  # pyrefly: ignore[missing-attribute]
+        kde.explode(V._aux_0, ndim=1),
     )
 
   def test_literal_with_source_location(self):
     fn = functor_factories.expr_fn(
-        arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
-            kde.item(57),  # pyrefly: ignore[missing-attribute]
+        arolla.M.annotation.source_location(
+            kde.item(57),
             arolla.namedtuple(
                 function_name='test',
                 file_name='test.py',
@@ -229,7 +229,7 @@ class AutoVariablesTest(absltest.TestCase):
     )
     # Source location annotations disappear for literals.
     testing.assert_equal(fn.foo.no_bag(), ds(57))
-    testing.assert_equal(introspection.unpack_expr(fn.returns), V.foo * I.x)  # pyrefly: ignore[unsupported-operation]
+    testing.assert_equal(introspection.unpack_expr(fn.returns), V.foo * I.x)
 
   def test_extracts_single_object_without_bag(self):
     obj = kd.obj(bar=1).no_bag()
@@ -240,7 +240,7 @@ class AutoVariablesTest(absltest.TestCase):
 
   def test_two_uses_of_input(self):
     fn = functor_factories.expr_fn(
-        V.foo + V.bar,  # pyrefly: ignore[unsupported-operation]
+        V.foo + V.bar,
         foo=I.x,
         bar=I.x,
         auto_variables=True,
@@ -253,7 +253,7 @@ class AutoVariablesTest(absltest.TestCase):
 
   def test_two_uses_of_number(self):
     fn = functor_factories.expr_fn(
-        V.foo + V.bar,  # pyrefly: ignore[unsupported-operation]
+        V.foo + V.bar,
         foo=py_boxing.literal(ds(57)),
         bar=py_boxing.literal(ds(57)),
         auto_variables=True,
@@ -274,10 +274,10 @@ class AutoVariablesTest(absltest.TestCase):
       eval_count += 1
       return x
 
-    expr = I.x + 1  # pyrefly: ignore[unsupported-operation]
-    expr = kde.py.apply_py(my_op, expr)  # pyrefly: ignore[missing-attribute]
+    expr = I.x + 1
+    expr = kde.py.apply_py(my_op, expr)
     expr = (expr + 1).with_name('foo') + (expr + 2).with_name('bar')
-    expr = kde.py.apply_py(my_op, expr)  # pyrefly: ignore[missing-attribute]
+    expr = kde.py.apply_py(my_op, expr)
     expr = (expr + 1).with_name('baz') + (expr + 2).with_name('qux')
     fn = functor_factories.expr_fn(expr, auto_variables=True)
     testing.assert_equal(fn(x=1), ds(17))
@@ -297,8 +297,8 @@ class AutoVariablesTest(absltest.TestCase):
     )
 
   def test_extract_extra_nodes(self):
-    base = (I.x + 1) * 2  # pyrefly: ignore[unsupported-operation]
-    expr = (base + 1).with_name('foo') + (base + 2)  # pyrefly: ignore[missing-attribute]
+    base = (I.x + 1) * 2
+    expr = (base + 1).with_name('foo') + (base + 2)
 
     fn = functor_factories.expr_fn(expr, auto_variables=False)
     testing.assert_equal(fn(x=1), ds(11))
@@ -311,11 +311,11 @@ class AutoVariablesTest(absltest.TestCase):
     )
     # `base` is extracted because used in both `foo` and `returns`
     testing.assert_equal(
-        introspection.unpack_expr(fn0.get_attr('_aux_0')), base  # pyrefly: ignore[bad-argument-type]
+        introspection.unpack_expr(fn0.get_attr('_aux_0')), base
     )
-    testing.assert_equal(introspection.unpack_expr(fn0.foo), V._aux_0 + 1)  # pyrefly: ignore[bad-argument-type, unsupported-operation]
+    testing.assert_equal(introspection.unpack_expr(fn0.foo), V._aux_0 + 1)
 
-    fn1 = _py_functors_py_ext.auto_variables(fn0, [base.fingerprint])  # pyrefly: ignore[missing-attribute]
+    fn1 = _py_functors_py_ext.auto_variables(fn0, [base.fingerprint])
     testing.assert_equal(fn1(x=1), ds(11))
     self.assertCountEqual(
         attrs.dir(fn1), ['__signature__', 'returns', '_aux_0', '_aux_1', 'foo']
@@ -324,13 +324,13 @@ class AutoVariablesTest(absltest.TestCase):
         introspection.unpack_expr(fn1.get_attr('_aux_0')), V._aux_1
     )
     testing.assert_equal(
-        introspection.unpack_expr(fn1.get_attr('_aux_1')), base  # pyrefly: ignore[bad-argument-type]
+        introspection.unpack_expr(fn1.get_attr('_aux_1')), base
     )
-    testing.assert_equal(introspection.unpack_expr(fn1.foo), V._aux_0 + 1)  # pyrefly: ignore[bad-argument-type, unsupported-operation]
+    testing.assert_equal(introspection.unpack_expr(fn1.foo), V._aux_0 + 1)
 
     # Extract also `base+2`
     fn2 = _py_functors_py_ext.auto_variables(
-        fn, [base.fingerprint, (base + 2).fingerprint]  # pyrefly: ignore[missing-attribute]
+        fn, [base.fingerprint, (base + 2).fingerprint]
     )
     testing.assert_equal(fn2(x=1), ds(11))
     self.assertCountEqual(
@@ -338,13 +338,13 @@ class AutoVariablesTest(absltest.TestCase):
         ['__signature__', 'returns', '_aux_0', '_aux_1', 'foo'],
     )
     testing.assert_equal(
-        introspection.unpack_expr(fn2.get_attr('_aux_0')), base  # pyrefly: ignore[bad-argument-type]
+        introspection.unpack_expr(fn2.get_attr('_aux_0')), base
     )
     testing.assert_equal(
         introspection.unpack_expr(fn2.get_attr('_aux_1')),
-        V._aux_0 + 2,  # pyrefly: ignore[bad-argument-type, unsupported-operation]
+        V._aux_0 + 2,
     )
-    testing.assert_equal(introspection.unpack_expr(fn2.foo), V._aux_0 + 1)  # pyrefly: ignore[bad-argument-type, unsupported-operation]
+    testing.assert_equal(introspection.unpack_expr(fn2.foo), V._aux_0 + 1)
 
     # Extract input and literal
     literal_1 = py_boxing.literal(ds(1))
@@ -362,11 +362,11 @@ class AutoVariablesTest(absltest.TestCase):
     )
     testing.assert_equal(
         introspection.unpack_expr(fn3.get_attr('_aux_2')),
-        (V._aux_0 + V._aux_1) * 2,  # pyrefly: ignore[unsupported-operation]
+        (V._aux_0 + V._aux_1) * 2,
     )
     testing.assert_equal(
         introspection.unpack_expr(fn3.foo),
-        V._aux_2 + V._aux_1,  # pyrefly: ignore[unsupported-operation]
+        V._aux_2 + V._aux_1,
     )
 
   def test_extract_extra_nodes_literal_slice(self):
@@ -376,7 +376,7 @@ class AutoVariablesTest(absltest.TestCase):
         auto_variables=False,
     )
     res = _py_functors_py_ext.auto_variables(fn, [literal_1.fingerprint])
-    testing.assert_equal(introspection.unpack_expr(res.returns), I.x + V._aux_1)  # pyrefly: ignore[unsupported-operation]
+    testing.assert_equal(introspection.unpack_expr(res.returns), I.x + V._aux_1)
 
   def test_extract_extra_nodes_named_literal_slice(self):
     literal_1 = py_boxing.literal(ds([1, 2, 3])).with_name('foo')
@@ -385,7 +385,7 @@ class AutoVariablesTest(absltest.TestCase):
         auto_variables=False,
     )
     res = _py_functors_py_ext.auto_variables(fn, [literal_1.fingerprint])
-    testing.assert_equal(introspection.unpack_expr(res.returns), I.x + V._aux_1)  # pyrefly: ignore[unsupported-operation]
+    testing.assert_equal(introspection.unpack_expr(res.returns), I.x + V._aux_1)
 
   def test_extract_extra_nodes_no_useless_aux_variables_for_literal(self):
     literal_expr = py_boxing.literal(fns.new(x=1, y=2))
@@ -399,8 +399,8 @@ class AutoVariablesTest(absltest.TestCase):
     )
 
   def test_extract_extra_nodes_literal_with_source_location(self):
-    expr = arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
-        kde.item(57),  # pyrefly: ignore[missing-attribute]
+    expr = arolla.M.annotation.source_location(
+        kde.item(57),
         arolla.namedtuple(
             function_name='test',
             file_name='test.py',
@@ -412,40 +412,40 @@ class AutoVariablesTest(absltest.TestCase):
     fn = functor_factories.expr_fn(expr * I.x, auto_variables=False)
     res = _py_functors_py_ext.auto_variables(fn, [expr.fingerprint])
     testing.assert_equal(res(x=2), ds(114))
-    testing.assert_equal(introspection.unpack_expr(res.returns), V._aux_0 * I.x)  # pyrefly: ignore[unsupported-operation]
+    testing.assert_equal(introspection.unpack_expr(res.returns), V._aux_0 * I.x)
 
   def test_extract_extra_nodes_kd_slice(self):
-    expr = kde.slice(57)  # pyrefly: ignore[missing-attribute]
+    expr = kde.slice(57)
     fn = functor_factories.expr_fn(expr * I.x, auto_variables=False)
     res = _py_functors_py_ext.auto_variables(fn, [expr.fingerprint])
     testing.assert_equal(res(x=2), ds(114))
-    testing.assert_equal(introspection.unpack_expr(res.returns), V._aux_0 * I.x)  # pyrefly: ignore[unsupported-operation]
+    testing.assert_equal(introspection.unpack_expr(res.returns), V._aux_0 * I.x)
 
   def test_extract_extra_nodes_kd_item(self):
-    expr = kde.item(57)  # pyrefly: ignore[missing-attribute]
+    expr = kde.item(57)
     fn = functor_factories.expr_fn(expr * I.x, auto_variables=False)
     res = _py_functors_py_ext.auto_variables(fn, [expr.fingerprint])
     testing.assert_equal(res(x=2), ds(114))
-    testing.assert_equal(introspection.unpack_expr(res.returns), V._aux_0 * I.x)  # pyrefly: ignore[unsupported-operation]
+    testing.assert_equal(introspection.unpack_expr(res.returns), V._aux_0 * I.x)
 
   def test_extract_extra_nodes_already_existing_variable(self):
     fn = functor_factories.expr_fn(
-        V.x * (I.x + 1), x=I.x + 1, auto_variables=False  # pyrefly: ignore[unsupported-operation]
+        V.x * (I.x + 1), x=I.x + 1, auto_variables=False
     )
-    res = _py_functors_py_ext.auto_variables(fn, [(I.x + 1).fingerprint])  # pyrefly: ignore[missing-attribute, unsupported-operation]
-    testing.assert_equal(introspection.unpack_expr(res.returns), V.x * V._aux_0)  # pyrefly: ignore[unsupported-operation]
+    res = _py_functors_py_ext.auto_variables(fn, [(I.x + 1).fingerprint])
+    testing.assert_equal(introspection.unpack_expr(res.returns), V.x * V._aux_0)
     testing.assert_equal(introspection.unpack_expr(res.x), V._aux_0)
     testing.assert_equal(
-        introspection.unpack_expr(res.get_attr('_aux_0')), I.x + 1  # pyrefly: ignore[bad-argument-type, unsupported-operation]
+        introspection.unpack_expr(res.get_attr('_aux_0')), I.x + 1
     )
     self.assertCountEqual(
         attrs.dir(res), ['__signature__', 'returns', 'x', '_aux_0']
     )
 
   def test_extract_extra_nodes_input_as_already_existing_variable(self):
-    fn = functor_factories.expr_fn(V.x * I.x, x=I.x, auto_variables=False)  # pyrefly: ignore[unsupported-operation]
+    fn = functor_factories.expr_fn(V.x * I.x, x=I.x, auto_variables=False)
     res = _py_functors_py_ext.auto_variables(fn, [I.x.fingerprint])
-    testing.assert_equal(introspection.unpack_expr(res.returns), V.x * V._aux_0)  # pyrefly: ignore[unsupported-operation]
+    testing.assert_equal(introspection.unpack_expr(res.returns), V.x * V._aux_0)
     testing.assert_equal(introspection.unpack_expr(res.x), V._aux_0)
     testing.assert_equal(introspection.unpack_expr(res.get_attr('_aux_0')), I.x)
     self.assertCountEqual(
@@ -456,22 +456,22 @@ class AutoVariablesTest(absltest.TestCase):
 class GetVariableEvaluationOrderTest(absltest.TestCase):
 
   def test_basic(self):
-    fn = functor_factories.expr_fn(I.x + 1)  # pyrefly: ignore[unsupported-operation]
+    fn = functor_factories.expr_fn(I.x + 1)
     eval_order = _py_functors_py_ext.get_variable_evaluation_order(fn)
     self.assertEqual(eval_order, ['returns'])
 
   def test_linear(self):
-    fn = functor_factories.expr_fn(V.a + 1, a=I.x * 2)  # pyrefly: ignore[unsupported-operation]
+    fn = functor_factories.expr_fn(V.a + 1, a=I.x * 2)
     eval_order = _py_functors_py_ext.get_variable_evaluation_order(fn)
     self.assertEqual(eval_order, ['a', 'returns'])
 
   def test_dag(self):
-    fn = functor_factories.expr_fn(V.a + V.b, a=V.c + 1, b=V.c + 2, c=I.x * 2)  # pyrefly: ignore[unsupported-operation]
+    fn = functor_factories.expr_fn(V.a + V.b, a=V.c + 1, b=V.c + 2, c=I.x * 2)
     eval_order = _py_functors_py_ext.get_variable_evaluation_order(fn)
     self.assertEqual(eval_order, ['c', 'a', 'b', 'returns'])
 
   def test_non_expr_variable(self):
-    fn = functor_factories.expr_fn(V.a + 1, a=57)  # pyrefly: ignore[unsupported-operation]
+    fn = functor_factories.expr_fn(V.a + 1, a=57)
     eval_order = _py_functors_py_ext.get_variable_evaluation_order(fn)
     self.assertEqual(eval_order, ['a', 'returns'])
 

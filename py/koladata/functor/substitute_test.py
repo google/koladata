@@ -130,8 +130,8 @@ class SubByItemidTest(absltest.TestCase):
 
   def test_comment1(self):
     f = functor_factories.trace_py_fn(
-        lambda: user_facing_kd.with_name(1, 'x')  # pyrefly: ignore[missing-attribute]
-        + user_facing_kd.with_name(2, 'y')  # pyrefly: ignore[missing-attribute]
+        lambda: user_facing_kd.with_name(1, 'x')
+        + user_facing_kd.with_name(2, 'y')
     )
     f1 = substitute.sub(f, {1: 100})
     f2 = substitute.sub(f, {2: 200})
@@ -142,11 +142,11 @@ class SubByItemidTest(absltest.TestCase):
   def test_comment2(self):
     @tracing_decorator.TraceAsFnDecorator()
     def g(x):
-      return x + user_facing_kd.with_name(1, 'p')  # pyrefly: ignore[missing-attribute]
+      return x + user_facing_kd.with_name(1, 'p')
 
     @functor_factories.trace_py_fn
     def f(x):
-      return g(x) * user_facing_kd.with_name(1, 'q')  # pyrefly: ignore[missing-attribute]
+      return g(x) * user_facing_kd.with_name(1, 'q')
 
     f_new = substitute.sub(f, {f.g.p: 10})
     self.assertEqual(f(1), 2)
@@ -154,7 +154,7 @@ class SubByItemidTest(absltest.TestCase):
 
   def test_sub_by_value_on_primitives(self):
     f = functor_factories.trace_py_fn(
-        lambda y: user_facing_kd.with_name(1, 'x') + y  # pyrefly: ignore[missing-attribute]
+        lambda y: user_facing_kd.with_name(1, 'x') + y
     )
     f_new = substitute.sub(f, dict({1: 5}))
     self.assertEqual(f(1), 2)
@@ -163,7 +163,7 @@ class SubByItemidTest(absltest.TestCase):
   def test_sub_by_value_on_primitives_different_schema(self):
     f = functor_factories.trace_py_fn(
         # x is a FLOAT32, it should not match the INT32 1 in the replacement.
-        lambda y: user_facing_kd.with_name(1.0, 'x') + y  # pyrefly: ignore[missing-attribute]
+        lambda y: user_facing_kd.with_name(1.0, 'x') + y
     )
     f_new = substitute.sub(f, dict({1: 5}))
     self.assertEqual(f(1), 2)
@@ -171,7 +171,7 @@ class SubByItemidTest(absltest.TestCase):
 
   def test_sub_by_value_on_raw_primitives_as_keys(self):
     f = functor_factories.trace_py_fn(
-        lambda y: user_facing_kd.with_name(1, 'x') + y  # pyrefly: ignore[missing-attribute]
+        lambda y: user_facing_kd.with_name(1, 'x') + y
     )
     # will replace every instance of kd.int32(1) with kd.int32(5).
     f_new = substitute.sub(f, dict({1: 5}))
@@ -180,8 +180,8 @@ class SubByItemidTest(absltest.TestCase):
 
   def test_sub_by_value_variables_with_repeated_primitive_vals(self):
     f = functor_factories.trace_py_fn(
-        lambda y: (user_facing_kd.with_name(1, 'x') + y)  # pyrefly: ignore[missing-attribute]
-        * user_facing_kd.with_name(1, 'z')  # pyrefly: ignore[missing-attribute]
+        lambda y: (user_facing_kd.with_name(1, 'x') + y)
+        * user_facing_kd.with_name(1, 'z')
     )
     f_new = substitute.sub(f, dict({1: 5}))
     self.assertEqual(f(1), 2)
@@ -190,9 +190,9 @@ class SubByItemidTest(absltest.TestCase):
   def test_slices_as_replaced_values_with_slice(self):
     @functor_factories.trace_py_fn
     def f():
-      v = user_facing_kd.slice(['foo', 'bar', 'baz']).with_name('v')  # pyrefly: ignore[missing-attribute]
-      sep = user_facing_kd.str('_')  # pyrefly: ignore[missing-attribute]
-      return user_facing_kd.strings.agg_join(v, sep)  # pyrefly: ignore[missing-attribute]
+      v = user_facing_kd.slice(['foo', 'bar', 'baz']).with_name('v')
+      sep = user_facing_kd.str('_')
+      return user_facing_kd.strings.agg_join(v, sep)
 
     with self.assertRaisesRegex(
         ValueError, 'replacement values must be scalars'
@@ -201,16 +201,16 @@ class SubByItemidTest(absltest.TestCase):
       # with another slice, we would get a dimension mismatch when trying to do
       # node.with_attrs(**subvars) since the shape of the functor will no longer
       # be a scalar.
-      substitute.sub(f, dict({f.v: user_facing_kd.slice(['qux'])}))  # pyrefly: ignore[missing-attribute]
+      substitute.sub(f, dict({f.v: user_facing_kd.slice(['qux'])}))
 
   def test_slices_as_replaced_values_with_scalar(self):
     @functor_factories.trace_py_fn
     def f():
-      v = user_facing_kd.slice(['foo', 'bar', 'baz']).with_name('v')  # pyrefly: ignore[missing-attribute]
-      sep = user_facing_kd.str('_')  # pyrefly: ignore[missing-attribute]
-      return user_facing_kd.strings.agg_join(v, sep)  # pyrefly: ignore[missing-attribute]
+      v = user_facing_kd.slice(['foo', 'bar', 'baz']).with_name('v')
+      sep = user_facing_kd.str('_')
+      return user_facing_kd.strings.agg_join(v, sep)
 
-    f_new = substitute.sub(f, dict({f.v: user_facing_kd.str('qux')}))  # pyrefly: ignore[missing-attribute]
+    f_new = substitute.sub(f, dict({f.v: user_facing_kd.str('qux')}))
     self.assertEqual(f(), 'foo_bar_baz')
     with self.assertRaises(ValueError):
       # We replaced a slice (that is actually a list, after tracing) with other
@@ -221,9 +221,9 @@ class SubByItemidTest(absltest.TestCase):
   def test_functor_has_other_attrs_that_are_slices(self):
     @functor_factories.trace_py_fn
     def f():
-      v = user_facing_kd.slice(['foo', 'bar', 'baz'])  # pyrefly: ignore[missing-attribute]
-      sep = user_facing_kd.with_name('_', 'sep')  # pyrefly: ignore[missing-attribute]
-      return user_facing_kd.strings.agg_join(v, sep)  # pyrefly: ignore[missing-attribute]
+      v = user_facing_kd.slice(['foo', 'bar', 'baz'])
+      sep = user_facing_kd.with_name('_', 'sep')
+      return user_facing_kd.strings.agg_join(v, sep)
 
     f_new = substitute.sub(f, dict({'_': '#'}))
     self.assertEqual(f(), 'foo_bar_baz')
@@ -336,7 +336,7 @@ class SubByNameTest(absltest.TestCase):
 
   def test_sub_by_name_variables(self):
     f = functor_factories.trace_py_fn(
-        lambda y: user_facing_kd.with_name(1, 'x') + y  # pyrefly: ignore[missing-attribute]
+        lambda y: user_facing_kd.with_name(1, 'x') + y
     )
     f_new = substitute.sub_by_name(f, {'x': 5})
 
@@ -345,14 +345,14 @@ class SubByNameTest(absltest.TestCase):
 
   def test_sub_by_name_empty_variables(self):
     f = functor_factories.trace_py_fn(
-        lambda y: user_facing_kd.with_name(None, 'x') + y  # pyrefly: ignore[missing-attribute]
+        lambda y: user_facing_kd.with_name(None, 'x') + y
     )
     f_new = substitute.sub_by_name(f, {'x': 5})
     self.assertEqual(f_new(1), 6)
 
   def test_repeated_subs(self):
     f = functor_factories.trace_py_fn(
-        lambda y: user_facing_kd.with_name(1, 'x') + y  # pyrefly: ignore[missing-attribute]
+        lambda y: user_facing_kd.with_name(1, 'x') + y
     )
     f1 = substitute.sub_by_name(f, {'x': 5})
     f2 = substitute.sub_by_name(f1, {'x': 10})
@@ -365,7 +365,7 @@ class SubByNameTest(absltest.TestCase):
 
   def test_disallow_sub_expr_with_another_expr(self):
     f = functor_factories.trace_py_fn(
-        lambda y: user_facing_kd.with_name(1, 'x') + y  # pyrefly: ignore[missing-attribute]
+        lambda y: user_facing_kd.with_name(1, 'x') + y
     )
     with self.assertRaises(TypeError):
       # All values passed as replacement must be eager values.
@@ -387,7 +387,7 @@ class SubByNameTest(absltest.TestCase):
   def test_functor_structure_remains_the_same(self):
     @tracing_decorator.TraceAsFnDecorator()
     def f(x):
-      return x + user_facing_kd.with_name(42, 'var_1')  # pyrefly: ignore[missing-attribute]
+      return x + user_facing_kd.with_name(42, 'var_1')
 
     f1 = functor_factories.trace_py_fn(f)
     f2 = substitute.sub_by_name(f1, dict(var_1=3.14))
@@ -404,27 +404,27 @@ class SubByNameTest(absltest.TestCase):
         introspection.unpack_expr(f3.returns), V._f_result
     )
     testing.assert_traced_exprs_equal(
-        introspection.unpack_expr(f1.f.returns), I.x + V.var_1  # pyrefly: ignore[unsupported-operation]
+        introspection.unpack_expr(f1.f.returns), I.x + V.var_1
     )
     testing.assert_traced_exprs_equal(
-        introspection.unpack_expr(f2.f.returns), I.x + V.var_1  # pyrefly: ignore[unsupported-operation]
+        introspection.unpack_expr(f2.f.returns), I.x + V.var_1
     )
     testing.assert_traced_exprs_equal(
-        introspection.unpack_expr(f3.f.returns), I.x + V.var_1  # pyrefly: ignore[unsupported-operation]
+        introspection.unpack_expr(f3.f.returns), I.x + V.var_1
     )
 
   def test_vars_inside_exprs_are_not_replaced(self):
     @functor_factories.trace_py_fn
     def f():
-      bar = user_facing_kd.with_name(1, 'bar')  # pyrefly: ignore[missing-attribute]
-      baz = user_facing_kd.with_name(bar, 'baz')  # pyrefly: ignore[missing-attribute]
-      foo = user_facing_kd.with_name(baz, 'foo')  # pyrefly: ignore[missing-attribute]
+      bar = user_facing_kd.with_name(1, 'bar')
+      baz = user_facing_kd.with_name(bar, 'baz')
+      foo = user_facing_kd.with_name(baz, 'foo')
       return foo + 1
 
     f_new = substitute.sub_by_name(f, dict(bar=100))
     self.assertEqual(f(), 2)
     self.assertEqual(f_new(), 101)
-    testing.assert_equivalent(f_new.bar, user_facing_kd.int32(100))  # pyrefly: ignore[missing-attribute]
+    testing.assert_equivalent(f_new.bar, user_facing_kd.int32(100))
     testing.assert_traced_exprs_equal(
         introspection.unpack_expr(f_new.baz), V.bar
     )
@@ -432,25 +432,25 @@ class SubByNameTest(absltest.TestCase):
         introspection.unpack_expr(f_new.foo), V.baz
     )
     testing.assert_traced_exprs_equal(
-        introspection.unpack_expr(f_new.returns), V.foo + 1  # pyrefly: ignore[bad-argument-type, unsupported-operation]
+        introspection.unpack_expr(f_new.returns), V.foo + 1
     )
 
   def test_functor_structure_remains_the_same_no_trace_as_fn(self):
     @functor_factories.fn
     def f(x):
-      return x + user_facing_kd.with_name(None, 'var_1')  # pyrefly: ignore[missing-attribute]
+      return x + user_facing_kd.with_name(None, 'var_1')
 
     f1 = substitute.sub_by_name(f, dict(var_1=42))
     f2 = substitute.sub_by_name(f1, dict(var_1=3.14))
     f3 = substitute.sub_by_name(f2, dict(var_1=2.718))
     testing.assert_traced_exprs_equal(
-        introspection.unpack_expr(f1.returns), I.x + V.var_1  # pyrefly: ignore[unsupported-operation]
+        introspection.unpack_expr(f1.returns), I.x + V.var_1
     )
     testing.assert_traced_exprs_equal(
-        introspection.unpack_expr(f2.returns), I.x + V.var_1  # pyrefly: ignore[unsupported-operation]
+        introspection.unpack_expr(f2.returns), I.x + V.var_1
     )
     testing.assert_traced_exprs_equal(
-        introspection.unpack_expr(f3.returns), I.x + V.var_1  # pyrefly: ignore[unsupported-operation]
+        introspection.unpack_expr(f3.returns), I.x + V.var_1
     )
     testing.assert_allclose(
         data_slice.from_vals([f1(1), f2(1), f3(1)]),
@@ -462,7 +462,7 @@ class SubByNameTest(absltest.TestCase):
 
       @functor_factories.trace_py_fn
       def f(y):
-        x = user_facing_kd.with_name(1, 'x')  # pyrefly: ignore[missing-attribute]
+        x = user_facing_kd.with_name(1, 'x')
         return x + y
 
       print(f)
@@ -492,7 +492,7 @@ class SubByNameTest(absltest.TestCase):
   def test_sub_var_by_name_in_nested_functor(self):
     @tracing_decorator.TraceAsFnDecorator()
     def f(x):
-      return x + user_facing_kd.with_name(10000, 'y')  # pyrefly: ignore[missing-attribute]
+      return x + user_facing_kd.with_name(10000, 'y')
 
     f_fn = functor_factories.trace_py_fn(f)
     f_sub = substitute.sub_by_name(f_fn, {'y': 1})
@@ -825,20 +825,20 @@ class SubByNameTest(absltest.TestCase):
         )
 
   def test_sub_by_name_variable_name_collision(self):
-    power = user_facing_kd.int32(2)  # pyrefly: ignore[missing-attribute]
-    another_power = user_facing_kd.int32(7)  # pyrefly: ignore[missing-attribute]
+    power = user_facing_kd.int32(2)
+    another_power = user_facing_kd.int32(7)
 
     @functor_factories.trace_py_fn
     def branch_a(x):
-      return x ** user_facing_kd.with_name(power, 'power')  # pyrefly: ignore[missing-attribute]
+      return x ** user_facing_kd.with_name(power, 'power')
 
     @functor_factories.trace_py_fn
     def branch_b(x):
-      return x ** user_facing_kd.with_name(power, 'power')  # pyrefly: ignore[missing-attribute]
+      return x ** user_facing_kd.with_name(power, 'power')
 
     @functor_factories.trace_py_fn
     def branch_c(x):
-      return x ** user_facing_kd.with_name(another_power, 'power')  # pyrefly: ignore[missing-attribute]
+      return x ** user_facing_kd.with_name(another_power, 'power')
 
     with self.subTest('ok, same variable on both branches'):
 

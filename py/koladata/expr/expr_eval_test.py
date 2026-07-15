@@ -70,7 +70,7 @@ class PyExprEvalTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, re.escape('kd.eval() has missing inputs for: [I.x, I.z]')
     ):
-      py_expr_eval.eval_expr(I.x + I.y + I.z, y=arolla.int32(1))  # pyrefly: ignore[unsupported-operation]
+      py_expr_eval.eval_expr(I.x + I.y + I.z, y=arolla.int32(1))
 
   def test_transformation_cache(self):
     # Sanity check that the transformation cache is working. Without, this test
@@ -78,7 +78,7 @@ class PyExprEvalTest(absltest.TestCase):
     expr = I.x
     x = ds(1)
     for _ in range(10000):
-      expr = arolla.M.annotation.qtype(expr, x.qtype)  # pyrefly: ignore[not-callable]
+      expr = arolla.M.annotation.qtype(expr, x.qtype)
     for _ in range(10000):
       py_expr_eval.eval_expr(expr, x=x)
 
@@ -88,7 +88,7 @@ class ExprEval(absltest.TestCase):
   def test_eval(self):
     x = ds([1, 2, 3])
     y = ds([0, -1, 3])
-    expr = I.x + I.y  # pyrefly: ignore[unsupported-operation]
+    expr = I.x + I.y
     testing.assert_equal(expr_eval.eval(expr, x=x, y=y), ds([1, 1, 6]))
 
   def test_eval_with_decayed_input_error(self):
@@ -104,7 +104,7 @@ class ExprEval(absltest.TestCase):
             ' expression has placeholders: [x, y]'
         ),
     ):
-      expr_eval.eval(arolla.P.x + arolla.P.y)  # pyrefly: ignore[unsupported-operation]
+      expr_eval.eval(arolla.P.x + arolla.P.y)
 
   def test_has_leaves_error(self):
     with self.assertRaisesRegex(
@@ -114,10 +114,10 @@ class ExprEval(absltest.TestCase):
             ' expression has leaves: [x, ...]'
         ),
     ):
-      expr_eval.eval(arolla.L.x + arolla.L.y)  # pyrefly: ignore[unsupported-operation]
+      expr_eval.eval(arolla.L.x + arolla.L.y)
 
   def test_missing_input_error(self):
-    expr = I.x + I.y  # pyrefly: ignore[unsupported-operation]
+    expr = I.x + I.y
     with self.assertRaisesRegex(
         ValueError,
         re.escape('kd.eval() has missing inputs for: [I.y]'),
@@ -167,7 +167,7 @@ class ExprEval(absltest.TestCase):
         'failed to construct a QValue from the provided input containing an'
         ' Expr',
     ):
-      expr_eval.eval(I.x, x=I.x + I.y)  # pyrefly: ignore[unsupported-operation]
+      expr_eval.eval(I.x, x=I.x + I.y)
 
   def test_not_evaluable_py_type_error(self):
     # Should never be possible to eval.
@@ -261,7 +261,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     )
 
   def test_cancellation(self):
-    expr = arolla.M.core._identity_with_cancel(I.x, 'cancelled')  # pyrefly: ignore[missing-attribute]
+    expr = arolla.M.core._identity_with_cancel(I.x, 'cancelled')
     x = ds([1, 2, 3])
     with self.assertRaisesRegex(ValueError, re.escape('cancelled')):
       expr_eval.eval(expr, x=x)
