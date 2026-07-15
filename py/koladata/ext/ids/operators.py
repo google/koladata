@@ -59,7 +59,7 @@ def auto_id(name):
   Returns:
     Tuple that can be used as description of an AUTO_ID attribute.
   """
-  metadata_schema = kd.schema.named_schema(kd.strings.join('__AUTO_ID__', name))  # pyrefly: ignore[missing-attribute]
+  metadata_schema = kd.schema.named_schema(kd.strings.join('__AUTO_ID__', name))
   str_schema = kd.STRING
   return M.core.make_tuple(metadata_schema, str_schema)
 
@@ -83,8 +83,8 @@ def auto_reference(namespace):
   Returns:
     Tuple that can be used as description of an auto_reference attribute.
   """
-  metadata_schema = kd.schema.named_schema(  # pyrefly: ignore[missing-attribute]
-      kd.strings.join('__AUTO_REFERENCE__', namespace)  # pyrefly: ignore[missing-attribute]
+  metadata_schema = kd.schema.named_schema(
+      kd.strings.join('__AUTO_REFERENCE__', namespace)
   )
   str_schema = kd.STRING
   return M.core.make_tuple(metadata_schema, str_schema)
@@ -104,8 +104,8 @@ def auto_reference_list(auto_schema_tuple):
   metadata_schema = _get_metadata_schema(auto_schema_tuple)
   actual_schema = _get_actual_schema(auto_schema_tuple)
   return M.core.make_tuple(
-      kd.schema.list_schema(metadata_schema),  # pyrefly: ignore[missing-attribute]
-      kd.schema.list_schema(actual_schema),  # pyrefly: ignore[missing-attribute]
+      kd.schema.list_schema(metadata_schema),
+      kd.schema.list_schema(actual_schema),
   )
 
 

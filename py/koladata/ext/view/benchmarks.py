@@ -172,29 +172,29 @@ def _example_computation_kd_no_py_vectorized(
   data = datas[:]
   item = data.items[:]
   item &= item.attr1 != 'Skip'
-  item = kd.group_by(item, item.attr1)  # pyrefly: ignore[missing-attribute]
+  item = kd.group_by(item, item.attr1)
   details = item.details
   combined = (
       (details.attr4 & (details.attr3 == 'Type4'))
       | (details.attr5 & (details.attr3 == 'Type5'))
       | details.attr6
   )
-  item = kd.group_by(item, combined).take(0)  # pyrefly: ignore[missing-attribute]
-  attr1 = kd.collapse(item.attr1)  # pyrefly: ignore[missing-attribute]
+  item = kd.group_by(item, combined).take(0)
+  attr1 = kd.collapse(item.attr1)
   grouped = item.implode()
   info = data.extra_info[:]
-  attr7_dict = kd.dict(info.attr1, info.attr7)  # pyrefly: ignore[missing-attribute]
+  attr7_dict = kd.dict(info.attr1, info.attr7)
   index = (
       attr7_dict[attr1]
       | (101 & (attr1 == 'Special1'))
       | (102 & (attr1 == 'Special2'))
       | -1
   )
-  item_groups = kd.new(  # pyrefly: ignore[missing-attribute]
+  item_groups = kd.new(
       schema=GROUP_SCHEMA, attr1=attr1, index=index, items=grouped
   )
   item_groups = item_groups.select(item_groups.index >= 0)
-  item_groups = kd.sort(item_groups, item_groups.index)  # pyrefly: ignore[missing-attribute]
+  item_groups = kd.sort(item_groups, item_groups.index)
   return item_groups
 
 
@@ -219,15 +219,15 @@ def _example_computation_kd_no_py_single_bag_vectorized(
   data = datas[:]
   item = data.items[:]
   item &= item.attr1 != 'Skip'
-  item = kd.group_by(item, item.attr1)  # pyrefly: ignore[missing-attribute]
+  item = kd.group_by(item, item.attr1)
   details = item.details
   combined = (
       (details.attr4 & (details.attr3 == 'Type4'))
       | (details.attr5 & (details.attr3 == 'Type5'))
       | details.attr6
   )
-  item = kd.group_by(item, combined).take(0)  # pyrefly: ignore[missing-attribute]
-  attr1 = kd.collapse(item.attr1)  # pyrefly: ignore[missing-attribute]
+  item = kd.group_by(item, combined).take(0)
+  attr1 = kd.collapse(item.attr1)
   grouped = bag.implode(item)
   info = data.extra_info[:]
   attr7_dict = bag.dict(info.attr1, info.attr7)
@@ -241,7 +241,7 @@ def _example_computation_kd_no_py_single_bag_vectorized(
       schema=GROUP_SCHEMA, attr1=attr1, index=index, items=grouped
   )
   item_groups = item_groups.select(item_groups.index >= 0)
-  item_groups = kd.sort(item_groups, item_groups.index)  # pyrefly: ignore[missing-attribute]
+  item_groups = kd.sort(item_groups, item_groups.index)
   return item_groups
 
 

@@ -26,12 +26,12 @@ from koladata.type_checking import type_checking
 from koladata.types import data_slice
 
 ds = data_slice.DataSlice.from_vals
-kdf = kd.functor  # pyrefly: ignore[missing-attribute]
-Person = kd.schema.new_schema(age=kd.INT32, name=kd.STRING)  # pyrefly: ignore[missing-attribute]
-Person_named = kd.schema.named_schema(  # pyrefly: ignore[missing-attribute]
+kdf = kd.functor
+Person = kd.schema.new_schema(age=kd.INT32, name=kd.STRING)
+Person_named = kd.schema.named_schema(
     'Person', age=kd.INT32, first_name=kd.STRING
 )
-UuPerson = kd.schema.uu_schema(age=kd.INT32, name=kd.STRING)  # pyrefly: ignore[missing-attribute]
+UuPerson = kd.schema.uu_schema(age=kd.INT32, name=kd.STRING)
 
 
 ERROR_CASES = (
@@ -56,7 +56,7 @@ ERROR_CASES = (
     (
         '_entity_schema',
         Person,
-        kd.new(age=30, name='Alice'),  # pyrefly: ignore[missing-attribute]
+        kd.new(age=30, name='Alice'),
         (
             '{decorator}: type mismatch for {parameter}; expected'
             r' type ENTITY\(age=INT32, name=STRING\) with id .*, got'
@@ -66,7 +66,7 @@ ERROR_CASES = (
     (
         '_named_schema',
         Person_named,
-        kd.new(age=30, name='Alice'),  # pyrefly: ignore[missing-attribute]
+        kd.new(age=30, name='Alice'),
         (
             '{decorator}: type mismatch for {parameter}; expected'
             r' type Person, got ENTITY\(age=INT32, name=STRING\) with id .*'
@@ -75,7 +75,7 @@ ERROR_CASES = (
     (
         '_from_proto_schema',
         kd.schema_from_proto(test_pb2.MessageA),
-        kd.new(some_string='hello', some_float=123.4),  # pyrefly: ignore[missing-attribute]
+        kd.new(some_string='hello', some_float=123.4),
         (
             '{decorator}: type mismatch for {parameter}; expected'
             r' type FromProto\[koladata.functions.testing.MessageA\], got'
@@ -85,7 +85,7 @@ ERROR_CASES = (
     (
         '_uu_entity_schema',
         UuPerson,
-        kd.uu(age=30.0, name='Alice'),  # pyrefly: ignore[missing-attribute]
+        kd.uu(age=30.0, name='Alice'),
         (
             '{decorator}: type mismatch for {parameter}; expected'
             r' type ENTITY\(age=INT32, name=STRING\) with id .*, got'
@@ -94,8 +94,8 @@ ERROR_CASES = (
     ),
     (
         '_list_schema',
-        kd.list_schema(kd.INT32),  # pyrefly: ignore[missing-attribute]
-        kd.list([1.0, 2, 3]),  # pyrefly: ignore[missing-attribute]
+        kd.list_schema(kd.INT32),
+        kd.list([1.0, 2, 3]),
         (
             '{decorator}: type mismatch for {parameter}; expected'
             r' type LIST\[INT32\] with id .*,'
@@ -118,7 +118,7 @@ ERROR_CASES = (
         type_checking.duck_type(
             a=type_checking.duck_type(),
         ),
-        kd.new(b=ds([1, 2, 3])),  # pyrefly: ignore[missing-attribute]
+        kd.new(b=ds([1, 2, 3])),
         (
             '{decorator}: expected {parameter} to have attribute `a`;'
             r' no attribute `a` on {parameter}=ENTITY\(b=INT32\)'
@@ -131,7 +131,7 @@ ERROR_CASES = (
             name=kd.STRING,
             address=kd.STRING,
         ),
-        kd.new(age=30, name='John', schema=Person),  # pyrefly: ignore[missing-attribute]
+        kd.new(age=30, name='John', schema=Person),
         (
             '{decorator}: expected {parameter} to have attribute `address`;'
             r' no attribute `address` on {parameter}=ENTITY\(age=INT32,'
@@ -145,7 +145,7 @@ ERROR_CASES = (
             name=kd.STRING,
             address=kd.STRING,
         ),
-        kd.new(age=30, name='John', schema=Person_named),  # pyrefly: ignore[missing-attribute]
+        kd.new(age=30, name='John', schema=Person_named),
         (
             '{decorator}: expected {parameter} to have attribute `address`;'
             r' no attribute `address` on {parameter}=Person$'
@@ -156,7 +156,7 @@ ERROR_CASES = (
         type_checking.duck_type(
             a=kd.INT32,
         ),
-        kd.new(a='hello'),  # pyrefly: ignore[missing-attribute]
+        kd.new(a='hello'),
         (
             r'{decorator}: type mismatch for {parameter}\.a; expected type'
             ' INT32, got STRING'
@@ -167,7 +167,7 @@ ERROR_CASES = (
         type_checking.duck_type(
             a=kd.INT32,
         ),
-        kd.new(b=1),  # pyrefly: ignore[missing-attribute]
+        kd.new(b=1),
         (
             '{decorator}: expected {parameter} to have attribute `a`;'
             r' no attribute `a` on {parameter}=ENTITY\(b=INT32\)'
@@ -178,7 +178,7 @@ ERROR_CASES = (
         type_checking.duck_type(
             a=type_checking.duck_type(aa=kd.INT32),
         ),
-        kd.new(a=kd.new(b=1)),  # pyrefly: ignore[missing-attribute]
+        kd.new(a=kd.new(b=1)),
         (
             r'{decorator}: expected {parameter}\.a to have attribute `aa`;'
             r' no attribute `aa` on {parameter}\.a=ENTITY\(b=INT32\)'
@@ -189,7 +189,7 @@ ERROR_CASES = (
         type_checking.duck_type(
             a=type_checking.duck_type(aa=kd.INT32),
         ),
-        kd.new(a=kd.new(aa='hello')),  # pyrefly: ignore[missing-attribute]
+        kd.new(a=kd.new(aa='hello')),
         (
             r'{decorator}: type mismatch for {parameter}\.a\.aa; expected type'
             ' INT32, got STRING'
@@ -200,7 +200,7 @@ ERROR_CASES = (
         type_checking.duck_type(
             a=kd.INT32,
         ),
-        kd.obj(a=1),  # pyrefly: ignore[missing-attribute]
+        kd.obj(a=1),
         (
             '{decorator}: expected {parameter} to have attribute `a`;'
             ' no attribute `a` on {parameter}=OBJECT'
@@ -209,7 +209,7 @@ ERROR_CASES = (
     (
         '_duck_list',
         type_checking.duck_list(type_checking.duck_type(a=kd.INT32)),
-        kd.list([kd.uu(b=1), kd.uu(b=1)]),  # pyrefly: ignore[missing-attribute]
+        kd.list([kd.uu(b=1), kd.uu(b=1)]),
         (
             r'{decorator}: expected {parameter}\.get_items\(\) to have'
             r' attribute `a`;'
@@ -222,7 +222,7 @@ ERROR_CASES = (
             key_constraint=type_checking.duck_type(a=kd.INT32),
             value_constraint=type_checking.duck_type(a=kd.INT32),
         ),
-        kd.dict({kd.uu(b=1): kd.uu(a=1)}),  # pyrefly: ignore[missing-attribute]
+        kd.dict({kd.uu(b=1): kd.uu(a=1)}),
         (
             r'{decorator}: expected {parameter}\.get_keys\(\) to have'
             r' attribute `a`; no attribute `a` on'
@@ -235,7 +235,7 @@ ERROR_CASES = (
             key_constraint=type_checking.duck_type(a=kd.INT32),
             value_constraint=type_checking.duck_type(a=kd.INT32),
         ),
-        kd.dict({kd.uu(a=1): kd.uu(b=1)}),  # pyrefly: ignore[missing-attribute]
+        kd.dict({kd.uu(a=1): kd.uu(b=1)}),
         (
             r'{decorator}: expected {parameter}\.get_values\(\) to have'
             r' attribute `a`; no attribute `a` on'
@@ -260,7 +260,7 @@ EAGER_ERROR_CASES = (
     (
         '_object_with_tip',
         Person,
-        kd.obj(age=30.0, name='Alice'),  # pyrefly: ignore[missing-attribute]
+        kd.obj(age=30.0, name='Alice'),
         (
             '{decorator}: type mismatch for {parameter}; expected'
             r' type ENTITY\(age=INT32, name=STRING\) with id .*, got'
@@ -280,7 +280,7 @@ EAGER_ERROR_CASES = (
         type_checking.duck_type(
             a=kd.INT32,
         ),
-        kd.obj(a=1),  # pyrefly: ignore[missing-attribute]
+        kd.obj(a=1),
         (
             '{decorator}: expected {parameter} to have attribute `a`; no'
             ' attribute `a` on {parameter}=OBJECT\n\nIt seems you ran a type'
@@ -314,22 +314,22 @@ OK_CASES = (
     (
         '_entity_schema',
         Person,
-        kd.new(age=30, name='John', schema=Person),  # pyrefly: ignore[missing-attribute]
+        kd.new(age=30, name='John', schema=Person),
     ),
     (
         '_named_entity_schema',
         Person_named,
-        kd.new(age=30, name='John', schema=Person_named),  # pyrefly: ignore[missing-attribute]
+        kd.new(age=30, name='John', schema=Person_named),
     ),
     (
         '_uu_entity_schema',
         UuPerson,
-        kd.uu(age=30, name='John'),  # pyrefly: ignore[missing-attribute]
+        kd.uu(age=30, name='John'),
     ),
     (
         '_list_schema',
-        kd.list_schema(kd.INT32),  # pyrefly: ignore[missing-attribute]
-        kd.list([1, 2, 3]),  # pyrefly: ignore[missing-attribute]
+        kd.list_schema(kd.INT32),
+        kd.list([1, 2, 3]),
     ),
     (
         '_empty_duck_type_matches_string',
@@ -344,21 +344,21 @@ OK_CASES = (
     (
         '_empty_duck_type_matches_entity',
         type_checking.duck_type(),
-        kd.new(),  # pyrefly: ignore[missing-attribute]
+        kd.new(),
     ),
     (
         '_nested_duck_type',
         type_checking.duck_type(
             a=type_checking.duck_type(),
         ),
-        kd.new(a=1),  # pyrefly: ignore[missing-attribute]
+        kd.new(a=1),
     ),
     (
         '_schema_nested_in_duck_type',
         type_checking.duck_type(
             a=kd.INT32,
         ),
-        kd.new(a=1),  # pyrefly: ignore[missing-attribute]
+        kd.new(a=1),
     ),
     (
         '_deeply_nested_duck_type',
@@ -367,12 +367,12 @@ OK_CASES = (
                 aa=kd.INT32,
             ),
         ),
-        kd.new(a=kd.new(aa=1)),  # pyrefly: ignore[missing-attribute]
+        kd.new(a=kd.new(aa=1)),
     ),
     (
         '_duck_list',
         type_checking.duck_list(type_checking.duck_type(a=kd.INT32)),
-        kd.list([kd.uu(a=1), kd.uu(a=1)]),  # pyrefly: ignore[missing-attribute]
+        kd.list([kd.uu(a=1), kd.uu(a=1)]),
     ),
     (
         '_duck_dict',
@@ -380,7 +380,7 @@ OK_CASES = (
             key_constraint=type_checking.duck_type(a=kd.INT32),
             value_constraint=type_checking.duck_type(a=kd.INT32),
         ),
-        kd.dict({kd.uu(a=1): kd.uu(a=1)}),  # pyrefly: ignore[missing-attribute]
+        kd.dict({kd.uu(a=1): kd.uu(a=1)}),
     ),
     (
         '_partial_match',
@@ -388,7 +388,7 @@ OK_CASES = (
             a=kd.INT32,
             b=kd.INT32,
         ),
-        kd.new(a=1, b=2, c=3),  # pyrefly: ignore[missing-attribute]
+        kd.new(a=1, b=2, c=3),
     ),
     (
         '_functor',
@@ -539,19 +539,19 @@ class TypeCheckingTest(parameterized.TestCase):
       _ = f(ds([1.0, 2, 3]))
 
   def test_query_doc_example(self):
-    doc = kd.schema.named_schema('Doc', doc_id=kd.INT64, score=kd.FLOAT32)  # pyrefly: ignore[missing-attribute]
+    doc = kd.schema.named_schema('Doc', doc_id=kd.INT64, score=kd.FLOAT32)
 
-    query = kd.schema.named_schema('Query', docs=kd.list_schema(doc))  # pyrefly: ignore[missing-attribute]
+    query = kd.schema.named_schema('Query', docs=kd.list_schema(doc))
 
     @type_checking.check_inputs(query=query)
     @type_checking.check_output(doc)
     def get_docs(query):
       return query.docs[:]
 
-    q = kd.new(  # pyrefly: ignore[missing-attribute]
+    q = kd.new(
         docs=[
-            kd.new(doc_id=1, score=0.5, schema=doc),  # pyrefly: ignore[missing-attribute]
-            kd.new(doc_id=2, score=0.7, schema=doc),  # pyrefly: ignore[missing-attribute]
+            kd.new(doc_id=1, score=0.5, schema=doc),
+            kd.new(doc_id=2, score=0.7, schema=doc),
         ],
         schema=query,
     )
@@ -570,7 +570,7 @@ class TypeCheckingTest(parameterized.TestCase):
     @type_checking.check_inputs(hours=kd.INT32, minutes=kd.INT32)
     @type_checking.check_output(kd.STRING)
     def timestamp(hours, minutes):
-      return kd.str(hours) + ':' + kd.str(minutes)  # pyrefly: ignore[missing-attribute]
+      return kd.str(hours) + ':' + kd.str(minutes)
 
     testing.assert_equal(
         timestamp(ds([10, 10, 10]), ds([15, 30, 45])),
@@ -655,7 +655,7 @@ class TypeCheckingTest(parameterized.TestCase):
         'kd.check_output: expected DataItem/DataSlice output, got <class'
         " 'int'>",
     ):
-      _ = f(kd.int32(1))  # pyrefly: ignore[missing-attribute]
+      _ = f(kd.int32(1))
 
   def test_check_inputs_preserves_docstring(self):
     def f(x):
@@ -734,7 +734,7 @@ class TypeCheckingTest(parameterized.TestCase):
 
     @optools.as_lambda_operator('kd.schema.get_repr')
     def get_repr(x):  # pylint: disable=unused-argument
-      return kde_operators.kde.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
+      return kde_operators.kde.assertion.with_assertion(
           'fake repr',
           kd.missing,
           '`kd.schema.get_repr` should not have been called',
@@ -798,7 +798,7 @@ class TypeCheckingTest(parameterized.TestCase):
         return ds('b')
 
     def f():
-      return choose(kd.bool(True) == kd.bool(True))  # pyrefly: ignore[missing-attribute]
+      return choose(kd.bool(True) == kd.bool(True))
 
     with self.assertRaisesRegex(
         TypeError,
@@ -816,7 +816,7 @@ class TypeCheckingTest(parameterized.TestCase):
         return ds('b')
 
     def f():
-      return choose(kd.int32(3) + kd.int32(3))  # pyrefly: ignore[missing-attribute]
+      return choose(kd.int32(3) + kd.int32(3))
 
     with self.assertRaisesRegex(
         TypeError,
@@ -848,7 +848,7 @@ class TypeCheckingTest(parameterized.TestCase):
 
     @type_checking.check_inputs(f=type_checking.functor(signature=sig))
     def call_f(f, x):
-      return kd.call(f, x)  # pyrefly: ignore[missing-attribute]
+      return kd.call(f, x)
 
     # When tracing, if checking the signature of f but f is unknown at tracing
     # time, we add a lazy check at evaluation
@@ -890,7 +890,7 @@ class TypeCheckingTest(parameterized.TestCase):
         )
     )
     def call_f(f, x):
-      return kd.call(f, x)  # pyrefly: ignore[missing-attribute]
+      return kd.call(f, x)
 
     with self.assertRaisesWithLiteralMatch(
         TypeError,

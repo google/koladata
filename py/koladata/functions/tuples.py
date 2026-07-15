@@ -22,10 +22,10 @@ from koladata.types import data_item
 from koladata.types import data_slice as _  # pylint: disable=unused-import
 from koladata.types import py_boxing
 
-M = arolla.M | derived_qtype.M  # pyrefly: ignore[unsupported-operation]
+M = arolla.M | derived_qtype.M
 
-_DECAY_DERIVED_VALUE_EXPR = M.derived_qtype.upcast(  # pyrefly: ignore[missing-attribute]
-    M.qtype.qtype_of(arolla.L.x), arolla.L.x  # pyrefly: ignore[missing-attribute]
+_DECAY_DERIVED_VALUE_EXPR = M.derived_qtype.upcast(
+    M.qtype.qtype_of(arolla.L.x), arolla.L.x
 )
 
 

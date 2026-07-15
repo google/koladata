@@ -52,7 +52,7 @@ def add_fake_for_test(x, y):
 )
 def agg_sum_fake_for_test(x):
   flat_res = arolla.abc.invoke_op(
-      M.math.sum,  # pyrefly: ignore[missing-attribute]
+      M.math.sum,
       (x.internal_as_arolla_value(), x.get_shape()[-1]),
   )
   return data_slice.DataSlice.from_vals(flat_res).reshape(x.get_shape()[:-1])
@@ -64,7 +64,7 @@ def agg_sum_fake_for_test(x):
 )
 def cum_count_fake_for_test(x):
   flat_res = arolla.abc.invoke_op(
-      M.array.cum_count,  # pyrefly: ignore[missing-attribute]
+      M.array.cum_count,
       (x.internal_as_arolla_value(), x.get_shape()[-1]),
   )
   return data_slice.DataSlice.from_vals(flat_res).reshape(x.get_shape())
@@ -97,7 +97,7 @@ class KodaTestEvalTest(parameterized.TestCase):
     koda_test_eval._get_eager_koda_op.cache_clear()
 
   def test_eval_simple(self):
-    expr = M.math.add(L.x, L.y)  # pyrefly: ignore[missing-attribute]
+    expr = M.math.add(L.x, L.y)
     x = arolla.dense_array([1, 2, 3])
     y = arolla.dense_array([4, 5, 6])
     arolla.testing.assert_qvalue_allequal(
@@ -122,17 +122,17 @@ class KodaTestEvalTest(parameterized.TestCase):
         ValueError, 'placeholders are not supported'
     ):
       _ = koda_test_eval.eager_eval(
-          M.annotation.qtype(arolla.P.x, arolla.FLOAT32)  # pyrefly: ignore[not-callable]
+          M.annotation.qtype(arolla.P.x, arolla.FLOAT32)
       )
 
   def test_missing_annotated_input(self):
     with self.assertRaisesWithLiteralMatch(ValueError, 'missing input for L.x'):
-      _ = koda_test_eval.eager_eval(M.annotation.qtype(L.x, arolla.FLOAT32))  # pyrefly: ignore[not-callable]
+      _ = koda_test_eval.eager_eval(M.annotation.qtype(L.x, arolla.FLOAT32))
 
   def test_annotations_are_stripped(self):
-    expr = M.math.add(  # pyrefly: ignore[missing-attribute]
-        M.annotation.qtype(L.x, arolla.DENSE_ARRAY_INT32),  # pyrefly: ignore[not-callable]
-        M.annotation.qtype(L.y, arolla.DENSE_ARRAY_INT32),  # pyrefly: ignore[not-callable]
+    expr = M.math.add(
+        M.annotation.qtype(L.x, arolla.DENSE_ARRAY_INT32),
+        M.annotation.qtype(L.y, arolla.DENSE_ARRAY_INT32),
     )
     x = arolla.dense_array([1, 2, 3])
     y = arolla.dense_array([4, 5, 6])
@@ -155,14 +155,14 @@ class KodaTestEvalTest(parameterized.TestCase):
 
   @mock.patch.object(arolla, 'eval', autospec=True)
   def test_arolla_eval_not_called(self, arolla_eval_mock):
-    expr = M.math.add(  # pyrefly: ignore[missing-attribute]
+    expr = M.math.add(
         arolla.dense_array([1, 2, 3]), arolla.dense_array([4, 5, 6])
     )
     _ = koda_test_eval.eager_eval(expr)
     arolla_eval_mock.assert_not_called()
 
   def test_koda_error_is_converted_to_arolla_error(self):
-    expr = M.math.add(L.x, L.y)  # pyrefly: ignore[missing-attribute]
+    expr = M.math.add(L.x, L.y)
     x = arolla.optional_int32(2**30 + 1)
     y = arolla.optional_int32(4)
 
@@ -170,7 +170,7 @@ class KodaTestEvalTest(parameterized.TestCase):
       _ = koda_test_eval.eager_eval(expr, x=x, y=y)
 
   def test_op_translation_is_used(self):
-    expr = M.math.add(L.x, L.y)  # pyrefly: ignore[missing-attribute]
+    expr = M.math.add(L.x, L.y)
     x = arolla.dense_array([1, 2, 3])
     y = arolla.dense_array([4, 5, 6])
     mock_add = mock.MagicMock(
@@ -189,7 +189,7 @@ class KodaTestEvalTest(parameterized.TestCase):
     arolla.testing.assert_qvalue_allequal(y_arg.internal_as_dense_array(), y)
 
   def test_kd_op_mapping_flag(self):
-    expr = (L.x - L.y) * L.x  # pyrefly: ignore[unsupported-operation]
+    expr = (L.x - L.y) * L.x
     x = arolla.dense_array([1, 2, 3])
     y = arolla.dense_array([4, 5, 6])
     with flagsaver.flagsaver(
@@ -203,7 +203,7 @@ class KodaTestEvalTest(parameterized.TestCase):
       )
 
   def test_kd_op_mapping_duplicate_arolla_op(self):
-    expr = M.math.add(  # pyrefly: ignore[missing-attribute]
+    expr = M.math.add(
         arolla.dense_array([1, 2, 3]), arolla.dense_array([4, 5, 6])
     )
     with flagsaver.flagsaver(
@@ -215,7 +215,7 @@ class KodaTestEvalTest(parameterized.TestCase):
         _ = koda_test_eval.eager_eval(expr)
 
   def test_kd_op_mapping_invalid_form(self):
-    expr = M.math.add(  # pyrefly: ignore[missing-attribute]
+    expr = M.math.add(
         arolla.dense_array([1, 2, 3]), arolla.dense_array([4, 5, 6])
     )
     with flagsaver.flagsaver(extra_flags=['kd_op_mapping:math.add::add']):
@@ -236,7 +236,7 @@ class KodaTestEvalTest(parameterized.TestCase):
         re.escape('inconsistent annotation.qtype(expr: INT32, qtype=FLOAT32)'),
     ):
       _ = koda_test_eval.eager_eval(
-          M.annotation.qtype(L.x, arolla.FLOAT32), x=1  # pyrefly: ignore[not-callable]
+          M.annotation.qtype(L.x, arolla.FLOAT32), x=1
       )
 
   def test_output_qtype_casting(self):
@@ -253,7 +253,7 @@ class KodaTestEvalTest(parameterized.TestCase):
     arolla.testing.assert_qvalue_allequal(implicit_koda_output, arolla.int32(3))
     # Optional.
     arolla.testing.assert_qvalue_allequal(
-        koda_test_eval.eager_eval(M.math.add(x, y)), arolla.optional_int32(3)  # pyrefly: ignore[missing-attribute]
+        koda_test_eval.eager_eval(M.math.add(x, y)), arolla.optional_int32(3)
     )
 
   @parameterized.parameters(
@@ -268,7 +268,7 @@ class KodaTestEvalTest(parameterized.TestCase):
       (arolla.dense_array([1, 2, 3]), arolla.unspecified()),
   )
   def test_eval_agg_into_op(self, x, into_edge):
-    expr = M.math.sum(L.x, into=into_edge)  # pyrefly: ignore[missing-attribute]
+    expr = M.math.sum(L.x, into=into_edge)
     arolla.testing.assert_qvalue_allequal(
         koda_test_eval.eager_eval(expr, x=x), arolla.eval(expr, x=x)
     )
@@ -285,7 +285,7 @@ class KodaTestEvalTest(parameterized.TestCase):
       (arolla.dense_array([1, 2, 3]), arolla.unspecified()),
   )
   def test_eval_agg_over_op(self, x, over_edge):
-    expr = M.array.cum_count(L.x, over=over_edge)  # pyrefly: ignore[missing-attribute]
+    expr = M.array.cum_count(L.x, over=over_edge)
     arolla.testing.assert_qvalue_allequal(
         koda_test_eval.eager_eval(expr, x=x), arolla.eval(expr, x=x)
     )
@@ -299,7 +299,7 @@ class KodaTestEvalTest(parameterized.TestCase):
 
     x = arolla.array([1, 2, 3])
     over_edge = arolla.types.ArrayToScalarEdge(3)
-    expr = M.array.cum_count(L.x, over=over_edge)  # pyrefly: ignore[missing-attribute]
+    expr = M.array.cum_count(L.x, over=over_edge)
     with flagsaver.flagsaver(
         extra_flags=['kd_op_mapping:array.cum_count:cum_count_incorrect_impl']
     ):
@@ -318,7 +318,7 @@ class KodaTestEvalTest(parameterized.TestCase):
       if tie_breaker.qtype != arolla.UNSPECIFIED:
         tie_breaker = tie_breaker.internal_as_arolla_value()
       flat_res = arolla.abc.invoke_op(
-          M.array.ordinal_rank,  # pyrefly: ignore[missing-attribute]
+          M.array.ordinal_rank,
           (
               x.internal_as_arolla_value(),
               tie_breaker,
@@ -339,7 +339,7 @@ class KodaTestEvalTest(parameterized.TestCase):
             'kd_op_mapping:array.ordinal_rank:fake_ordinal_rank',
         ]
     ):
-      expr = M.array.ordinal_rank(L.x, L.tie_breaker, over=over_edge)  # pyrefly: ignore[missing-attribute]
+      expr = M.array.ordinal_rank(L.x, L.tie_breaker, over=over_edge)
       arolla.testing.assert_qvalue_allequal(
           koda_test_eval.eager_eval(expr, x=x, tie_breaker=tie_breaker),
           arolla.eval(expr, x=x, tie_breaker=tie_breaker),
@@ -360,7 +360,7 @@ class KodaTestEvalTest(parameterized.TestCase):
     )
     def fake_correlation(x, y):
       flat_res = arolla.abc.invoke_op(
-          M.math.correlation,  # pyrefly: ignore[missing-attribute]
+          M.math.correlation,
           (
               x.internal_as_arolla_value(),
               y.internal_as_arolla_value(),
@@ -380,7 +380,7 @@ class KodaTestEvalTest(parameterized.TestCase):
             'kd_op_mapping:math.correlation:fake_correlation',
         ]
     ):
-      expr = M.math.correlation(L.x, L.y, into=into_edge)  # pyrefly: ignore[missing-attribute]
+      expr = M.math.correlation(L.x, L.y, into=into_edge)
       arolla.testing.assert_qvalue_allequal(
           koda_test_eval.eager_eval(expr, x=x, y=y),
           arolla.eval(expr, x=x, y=y),
@@ -404,7 +404,7 @@ class KodaTestEvalTest(parameterized.TestCase):
             'kd_op_mapping:arolla_simple_add_for_test:simple_add_for_test',
         ]
     ):
-      expr = M.arolla_simple_add_for_test(L.x, L.y)  # pyrefly: ignore[not-callable]
+      expr = M.arolla_simple_add_for_test(L.x, L.y)
 
       arolla.testing.assert_qvalue_allequal(
           koda_test_eval.eager_eval(
@@ -434,7 +434,7 @@ class KodaTestEvalTest(parameterized.TestCase):
             'kd_op_mapping:arolla_simple_add_for_test:another_simple_add_for_test',
         ]
     ):
-      expr = M.arolla_simple_add_for_test(L.x, L.y)  # pyrefly: ignore[not-callable]
+      expr = M.arolla_simple_add_for_test(L.x, L.y)
 
       arolla.testing.assert_qvalue_allequal(
           koda_test_eval.eager_eval(

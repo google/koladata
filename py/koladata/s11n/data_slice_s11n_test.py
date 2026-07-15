@@ -202,30 +202,30 @@ class DataSliceS11NTest(codec_test_case.S11nCodecTestCase):
       kd_testing.assert_equal(res, value)
 
   def test_obj_one_allocation(self):
-    value = kd.obj(x=kd.slice(list(range(1000))))  # pyrefly: ignore[missing-attribute]
+    value = kd.obj(x=kd.slice(list(range(1000))))
     data = arolla.s11n.dumps(value)
     res = arolla.s11n.loads(data)
     kd.testing.assert_equivalent(res, value)
 
   def test_obj_different_allocations(self):
-    valuex = kd.obj(x=kd.slice(list(range(1000))))  # pyrefly: ignore[missing-attribute]
-    valuey = kd.obj(y=kd.slice(list(range(1000))))  # pyrefly: ignore[missing-attribute]
+    valuex = kd.obj(x=kd.slice(list(range(1000))))
+    valuey = kd.obj(y=kd.slice(list(range(1000))))
     value = (valuex & (valuex.x % 2 == 0)) | (valuey & (valuey.y % 2 == 0))
     data = arolla.s11n.dumps(value)
     res = arolla.s11n.loads(data)
     kd.testing.assert_equivalent(res, value)
 
   def test_removed_value_single_object(self):
-    x = kd.obj().with_attrs(a=None)  # pyrefly: ignore[missing-attribute]
+    x = kd.obj().with_attrs(a=None)
     x_deserialized = kd.loads(kd.dumps(x))
-    kd.testing.assert_equivalent(x.a.with_bag(None), kd.slice(None))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equivalent(x.a.with_bag(None), kd.slice(None))
     kd.testing.assert_equivalent(
-        x_deserialized.a.with_bag(None), kd.slice(None)  # pyrefly: ignore[missing-attribute]
+        x_deserialized.a.with_bag(None), kd.slice(None)
     )
     # Verifying that value is actually removed.
-    z = x_deserialized.enriched(kd.attrs(x, a=1))  # pyrefly: ignore[missing-attribute]
+    z = x_deserialized.enriched(kd.attrs(x, a=1))
     kd.testing.assert_equivalent(
-        z.a.with_bag(None), kd.slice(None)  # pyrefly: ignore[missing-attribute]
+        z.a.with_bag(None), kd.slice(None)
     )
 
   def test_correct_case(self):
@@ -553,7 +553,7 @@ class DataSliceS11NTest(codec_test_case.S11nCodecTestCase):
         arolla.s11n.loads(container_proto.SerializeToString())
 
   def test_memory_usage(self):
-    a = kd.obj_shaped_as(kd.item(1).repeat(int(1e6))).with_attrs(x=1)  # pyrefly: ignore[missing-attribute]
+    a = kd.obj_shaped_as(kd.item(1).repeat(int(1e6))).with_attrs(x=1)
     b = a.S[0].extract()
     # `b` is a single ObjectId from a big allocation. Here we test that we
     # serialize the allocation in sparse form (1 ObjectId + value) rather than

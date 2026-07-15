@@ -37,12 +37,12 @@ class PyFunctorsBaseTest(absltest.TestCase):
         ),
     ])
     fn = py_functors_base_py_ext.create_functor(
-        introspection.pack_expr(I.x + V.foo),  # pyrefly: ignore[unsupported-operation]
+        introspection.pack_expr(I.x + V.foo),
         signature,
         foo=introspection.pack_expr(I.y),
         bar=v,
     )
-    self.assertEqual(fn.returns, introspection.pack_expr(I.x + V.foo))  # pyrefly: ignore[unsupported-operation]
+    self.assertEqual(fn.returns, introspection.pack_expr(I.x + V.foo))
     self.assertEqual(fn.get_attr('__signature__'), signature)
     self.assertEqual(
         fn.get_attr('__signature__').parameters[:].name.to_py(), ['x', 'y']
