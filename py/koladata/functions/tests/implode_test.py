@@ -64,7 +64,7 @@ class ImplodeTest(parameterized.TestCase):
     testing.assert_equivalent(result, expected)
 
   def test_itemid(self):
-    itemid = kde.allocation.new_listid_shaped_as(ds([1, 1])).eval()  # pyrefly: ignore[missing-attribute]
+    itemid = kde.allocation.new_listid_shaped_as(ds([1, 1])).eval()
     x = object_factories.implode(ds([['a', 'b'], ['c']]), ndim=1, itemid=itemid)
     testing.assert_equal(x[:].no_bag(), ds([['a', 'b'], ['c']]).no_bag())
     testing.assert_equal(x.no_bag().get_itemid(), itemid)

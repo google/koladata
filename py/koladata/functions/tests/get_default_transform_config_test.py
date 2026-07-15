@@ -104,9 +104,9 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
       ),
       (
           'koda_tuple',
-          lambda x, y: user_facing_kd.tuple(x, y),  # pylint: disable=unnecessary-lambda  # pyrefly: ignore[missing-attribute]
-          lambda x: user_facing_kd.tuples.get_nth(x, 0),  # pyrefly: ignore[missing-attribute]
-          lambda x: user_facing_kd.tuples.get_nth(x, 1),  # pyrefly: ignore[missing-attribute]
+          lambda x, y: user_facing_kd.tuple(x, y),  # pylint: disable=unnecessary-lambda
+          lambda x: user_facing_kd.tuples.get_nth(x, 0),
+          lambda x: user_facing_kd.tuples.get_nth(x, 1),
       ),
       ('python_tuple', lambda x, y: (x, y), lambda x: x[0], lambda x: x[1]),
       (
@@ -117,13 +117,13 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
       ),
       (
           'koda_namedtuple',
-          lambda x, y: user_facing_kd.namedtuple(a=x, b=y),  # pyrefly: ignore[missing-attribute]
-          lambda x: user_facing_kd.tuples.get_namedtuple_field(x, 'a'),  # pyrefly: ignore[missing-attribute]
-          lambda x: user_facing_kd.tuples.get_namedtuple_field(x, 'b'),  # pyrefly: ignore[missing-attribute]
+          lambda x, y: user_facing_kd.namedtuple(a=x, b=y),
+          lambda x: user_facing_kd.tuples.get_namedtuple_field(x, 'a'),
+          lambda x: user_facing_kd.tuples.get_namedtuple_field(x, 'b'),
       ),
       (
           'koda_namedtuple_with_python_access',
-          lambda x, y: user_facing_kd.namedtuple(a=x, b=y),  # pyrefly: ignore[missing-attribute]
+          lambda x, y: user_facing_kd.namedtuple(a=x, b=y),
           lambda x: x['a'],
           lambda x: x['b'],
       ),
@@ -258,7 +258,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     barrier = threading.Barrier(2)
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_x(x):
       barrier.wait()
@@ -273,7 +273,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
       return wait_and_return_x(x + 3) + wait_and_return_x(x + 4)
 
     fn = functor_factories.trace_py_fn(
-        lambda x: user_facing_kd.if_(  # pyrefly: ignore[missing-attribute]
+        lambda x: user_facing_kd.if_(
             branch_to_use, do_two_things, do_other_two_things, x
         )
     )
@@ -293,10 +293,10 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
   def test_if_on_bags(self):
     fn = functor_factories.trace_py_fn(
-        lambda x, y: user_facing_kd.if_(  # pyrefly: ignore[missing-attribute]
+        lambda x, y: user_facing_kd.if_(
             x,
-            lambda z: user_facing_kd.attrs(z, foo=1),  # pyrefly: ignore[missing-attribute]
-            lambda z: user_facing_kd.attrs(z, foo=2),  # pyrefly: ignore[missing-attribute]
+            lambda z: user_facing_kd.attrs(z, foo=1),
+            lambda z: user_facing_kd.attrs(z, foo=2),
             y,
             return_type_as=data_bag.DataBag,
         )
@@ -331,7 +331,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     barrier = threading.Barrier(2)
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_x(x):
       barrier.wait()
@@ -348,7 +348,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
     @functor_factories.trace_py_fn
     def fn(x):
-      return user_facing_kd.switch(  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.switch(
           branch_to_use,
           {
               'a': case_a,
@@ -375,21 +375,21 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     e3 = threading.Event()
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_1():
       self.assertTrue(e1.wait(timeout=5.0))
       return 1
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_2():
       self.assertTrue(e2.wait(timeout=5.0))
       return 2
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_3():
       self.assertTrue(e3.wait(timeout=5.0))
@@ -431,21 +431,21 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     e3 = threading.Event()
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_1():
       self.assertTrue(e1.wait(timeout=5.0))
       return 1
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_2():
       self.assertTrue(e2.wait(timeout=5.0))
       return 2
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_3():
       self.assertTrue(e3.wait(timeout=5.0))
@@ -581,28 +581,28 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     e4 = threading.Event()
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_1():
       self.assertTrue(e1.wait(timeout=5.0))
       return 1
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_2():
       self.assertTrue(e2.wait(timeout=5.0))
       return 2
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_3():
       self.assertTrue(e3.wait(timeout=5.0))
       return 3
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_4():
       self.assertTrue(e4.wait(timeout=5.0))
@@ -650,28 +650,28 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     e4 = threading.Event()
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_1():
       self.assertTrue(e1.wait(timeout=5.0))
       return 1
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_2():
       self.assertTrue(e2.wait(timeout=5.0))
       return 2
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_3():
       self.assertTrue(e3.wait(timeout=5.0))
       return 3
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_4():
       self.assertTrue(e4.wait(timeout=5.0))
@@ -743,38 +743,38 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     e3 = threading.Event()
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_1():
       self.assertTrue(e1.wait(timeout=5.0))
       return 1
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_2():
       self.assertTrue(e2.wait(timeout=5.0))
       return 2
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_3():
       self.assertTrue(e3.wait(timeout=5.0))
       return 3
 
     def f(x):
-      return user_facing_kd.if_(  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.if_(
           x == 1,
-          lambda: user_facing_kd.iterables.make(wait_and_return_1()),  # pyrefly: ignore[missing-attribute]
-          lambda: user_facing_kd.iterables.make(  # pyrefly: ignore[missing-attribute]
+          lambda: user_facing_kd.iterables.make(wait_and_return_1()),
+          lambda: user_facing_kd.iterables.make(
               wait_and_return_2(), wait_and_return_3()
           ),
-          return_type_as=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
+          return_type_as=user_facing_kd.iterables.make(),
       )
 
     def g(x):
-      return user_facing_kd.functor.flat_map_chain(x, f)  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.functor.flat_map_chain(x, f)
 
     transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), g
@@ -819,38 +819,38 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     e3 = threading.Event()
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_1():
       self.assertTrue(e1.wait(timeout=5.0))
       return 1
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_2():
       self.assertTrue(e2.wait(timeout=5.0))
       return 2
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_3():
       self.assertTrue(e3.wait(timeout=5.0))
       return 3
 
     def f(x):
-      return user_facing_kd.if_(  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.if_(
           x == 1,
-          lambda: user_facing_kd.iterables.make(wait_and_return_1()),  # pyrefly: ignore[missing-attribute]
-          lambda: user_facing_kd.iterables.make(  # pyrefly: ignore[missing-attribute]
+          lambda: user_facing_kd.iterables.make(wait_and_return_1()),
+          lambda: user_facing_kd.iterables.make(
               wait_and_return_2(), wait_and_return_3()
           ),
-          return_type_as=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
+          return_type_as=user_facing_kd.iterables.make(),
       )
 
     def g(x):
-      return user_facing_kd.functor.flat_map_interleaved(x, f)  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.functor.flat_map_interleaved(x, f)
 
     transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), g
@@ -898,7 +898,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
       return x * 10 + y
 
     def g(x, initial):
-      return user_facing_kd.functor.reduce(f, x, initial)  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.functor.reduce(f, x, initial)
 
     transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), g
@@ -919,7 +919,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
       return (x[1], x[0] * 10 + y)
 
     def g(x, initial):
-      return user_facing_kd.functor.reduce(f, x, initial)  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.functor.reduce(f, x, initial)
 
     config = parallel_fns.get_default_transform_config()
     transformed_fn = kde_internal.parallel.transform(config, g)
@@ -941,7 +941,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
   def test_reduce_concat(self):
     def g(x, initial):
-      return user_facing_kd.iterables.reduce_concat(x, initial)  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.iterables.reduce_concat(x, initial)
 
     transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), g
@@ -959,7 +959,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
   def test_reduce_concat_ndim(self):
     def g(x, initial, ndim):
-      return user_facing_kd.iterables.reduce_concat(x, initial, ndim=ndim)  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.iterables.reduce_concat(x, initial, ndim=ndim)
 
     transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), g
@@ -978,7 +978,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
   def test_reduce_updated_bag(self):
     def g(x, initial):
-      return user_facing_kd.iterables.reduce_updated_bag(x, initial)  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.iterables.reduce_updated_bag(x, initial)
 
     transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), g
@@ -1003,9 +1003,9 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
   def test_while_returns(self):
     factorial = functor_factories.trace_py_fn(
-        lambda n: user_facing_kd.functor.while_(  # pyrefly: ignore[missing-attribute]
+        lambda n: user_facing_kd.functor.while_(
             lambda n, returns: n > 0,
-            lambda n, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+            lambda n, returns: user_facing_kd.namedtuple(
                 returns=returns * n,
                 n=n - 1,
             ),
@@ -1028,16 +1028,16 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
   def test_while_yields(self):
     factorial = functor_factories.trace_py_fn(
-        lambda n: user_facing_kd.functor.while_(  # pyrefly: ignore[missing-attribute]
+        lambda n: user_facing_kd.functor.while_(
             lambda n, res: n > 0,
-            lambda n, res: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
-                yields=user_facing_kd.iterables.make(res * n),  # pyrefly: ignore[missing-attribute]
+            lambda n, res: user_facing_kd.namedtuple(
+                yields=user_facing_kd.iterables.make(res * n),
                 n=n - 1,
                 res=res * n,
             ),
             n=n,
             res=1,
-            yields=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
+            yields=user_facing_kd.iterables.make(),
         )
     )
     transformed_fn = kde_internal.parallel.transform(
@@ -1056,16 +1056,16 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
   def test_while_yields_interleaved(self):
     factorial = functor_factories.trace_py_fn(
-        lambda n: user_facing_kd.functor.while_(  # pyrefly: ignore[missing-attribute]
+        lambda n: user_facing_kd.functor.while_(
             lambda n, res: n > 0,
-            lambda n, res: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
-                yields_interleaved=user_facing_kd.iterables.make(res * n),  # pyrefly: ignore[missing-attribute]
+            lambda n, res: user_facing_kd.namedtuple(
+                yields_interleaved=user_facing_kd.iterables.make(res * n),
                 n=n - 1,
                 res=res * n,
             ),
             n=n,
             res=1,
-            yields_interleaved=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
+            yields_interleaved=user_facing_kd.iterables.make(),
         )
     )
     transformed_fn = kde_internal.parallel.transform(
@@ -1088,45 +1088,45 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     e3 = threading.Event()
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_1():
       self.assertTrue(e1.wait(timeout=5.0))
       return 1
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_2():
       self.assertTrue(e2.wait(timeout=5.0))
       return 2
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_3():
       self.assertTrue(e3.wait(timeout=5.0))
       return 3
 
     def body(i):
-      return user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
-          yields=user_facing_kd.if_(  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.namedtuple(
+          yields=user_facing_kd.if_(
               i == 1,
-              lambda: user_facing_kd.iterables.make(wait_and_return_1()),  # pyrefly: ignore[missing-attribute]
-              lambda: user_facing_kd.iterables.make(  # pyrefly: ignore[missing-attribute]
+              lambda: user_facing_kd.iterables.make(wait_and_return_1()),
+              lambda: user_facing_kd.iterables.make(
                   wait_and_return_2(), wait_and_return_3()
               ),
-              return_type_as=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
+              return_type_as=user_facing_kd.iterables.make(),
           ),
           i=i + 1,
       )
 
     def g():
-      return user_facing_kd.functor.while_(  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.functor.while_(
           lambda i: i <= 2,
           body,
           i=1,
-          yields=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
+          yields=user_facing_kd.iterables.make(),
       )
 
     transformed_fn = kde_internal.parallel.transform(
@@ -1163,45 +1163,45 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     e3 = threading.Event()
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_1():
       self.assertTrue(e1.wait(timeout=5.0))
       return 1
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_2():
       self.assertTrue(e2.wait(timeout=5.0))
       return 2
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_3():
       self.assertTrue(e3.wait(timeout=5.0))
       return 3
 
     def body(i):
-      return user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
-          yields_interleaved=user_facing_kd.if_(  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.namedtuple(
+          yields_interleaved=user_facing_kd.if_(
               i == 1,
-              lambda: user_facing_kd.iterables.make(wait_and_return_1()),  # pyrefly: ignore[missing-attribute]
-              lambda: user_facing_kd.iterables.make(  # pyrefly: ignore[missing-attribute]
+              lambda: user_facing_kd.iterables.make(wait_and_return_1()),
+              lambda: user_facing_kd.iterables.make(
                   wait_and_return_2(), wait_and_return_3()
               ),
-              return_type_as=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
+              return_type_as=user_facing_kd.iterables.make(),
           ),
           i=i + 1,
       )
 
     def g():
-      return user_facing_kd.functor.while_(  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.functor.while_(
           lambda i: i <= 2,
           body,
           i=1,
-          yields_interleaved=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
+          yields_interleaved=user_facing_kd.iterables.make(),
       )
 
     transformed_fn = kde_internal.parallel.transform(
@@ -1238,9 +1238,9 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
   def test_for_returns(self):
     factorial = functor_factories.trace_py_fn(
-        lambda vals: user_facing_kd.functor.for_(  # pyrefly: ignore[missing-attribute]
+        lambda vals: user_facing_kd.functor.for_(
             vals,
-            lambda n, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+            lambda n, returns: user_facing_kd.namedtuple(
                 returns=returns * n,
             ),
             returns=1,
@@ -1261,14 +1261,14 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
   def test_for_yields(self):
     factorial = functor_factories.trace_py_fn(
-        lambda vals: user_facing_kd.functor.for_(  # pyrefly: ignore[missing-attribute]
+        lambda vals: user_facing_kd.functor.for_(
             vals,
-            lambda n, res: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
-                yields=user_facing_kd.iterables.make(res * n),  # pyrefly: ignore[missing-attribute]
+            lambda n, res: user_facing_kd.namedtuple(
+                yields=user_facing_kd.iterables.make(res * n),
                 res=res * n,
             ),
             res=1,
-            yields=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
+            yields=user_facing_kd.iterables.make(),
         )
     )
     transformed_fn = kde_internal.parallel.transform(
@@ -1287,14 +1287,14 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
   def test_for_yields_interleaved(self):
     factorial = functor_factories.trace_py_fn(
-        lambda vals: user_facing_kd.functor.for_(  # pyrefly: ignore[missing-attribute]
+        lambda vals: user_facing_kd.functor.for_(
             vals,
-            lambda n, res: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
-                yields_interleaved=user_facing_kd.iterables.make(res * n),  # pyrefly: ignore[missing-attribute]
+            lambda n, res: user_facing_kd.namedtuple(
+                yields_interleaved=user_facing_kd.iterables.make(res * n),
                 res=res * n,
             ),
             res=1,
-            yields_interleaved=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
+            yields_interleaved=user_facing_kd.iterables.make(),
         )
     )
     transformed_fn = kde_internal.parallel.transform(
@@ -1317,43 +1317,43 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     e3 = threading.Event()
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_1():
       self.assertTrue(e1.wait(timeout=5.0))
       return 1
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_2():
       self.assertTrue(e2.wait(timeout=5.0))
       return 2
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_3():
       self.assertTrue(e3.wait(timeout=5.0))
       return 3
 
     def body(i):
-      return user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
-          yields=user_facing_kd.if_(  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.namedtuple(
+          yields=user_facing_kd.if_(
               i == 1,
-              lambda: user_facing_kd.iterables.make(wait_and_return_1()),  # pyrefly: ignore[missing-attribute]
-              lambda: user_facing_kd.iterables.make(  # pyrefly: ignore[missing-attribute]
+              lambda: user_facing_kd.iterables.make(wait_and_return_1()),
+              lambda: user_facing_kd.iterables.make(
                   wait_and_return_2(), wait_and_return_3()
               ),
-              return_type_as=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
+              return_type_as=user_facing_kd.iterables.make(),
           ),
       )
 
     def g():
-      return user_facing_kd.functor.for_(  # pyrefly: ignore[missing-attribute]
-          user_facing_kd.iterables.make(1, 2),  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.functor.for_(
+          user_facing_kd.iterables.make(1, 2),
           body,
-          yields=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
+          yields=user_facing_kd.iterables.make(),
       )
 
     transformed_fn = kde_internal.parallel.transform(
@@ -1390,43 +1390,43 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     e3 = threading.Event()
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_1():
       self.assertTrue(e1.wait(timeout=5.0))
       return 1
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_2():
       self.assertTrue(e2.wait(timeout=5.0))
       return 2
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_and_return_3():
       self.assertTrue(e3.wait(timeout=5.0))
       return 3
 
     def body(i):
-      return user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
-          yields_interleaved=user_facing_kd.if_(  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.namedtuple(
+          yields_interleaved=user_facing_kd.if_(
               i == 1,
-              lambda: user_facing_kd.iterables.make(wait_and_return_1()),  # pyrefly: ignore[missing-attribute]
-              lambda: user_facing_kd.iterables.make(  # pyrefly: ignore[missing-attribute]
+              lambda: user_facing_kd.iterables.make(wait_and_return_1()),
+              lambda: user_facing_kd.iterables.make(
                   wait_and_return_2(), wait_and_return_3()
               ),
-              return_type_as=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
+              return_type_as=user_facing_kd.iterables.make(),
           ),
       )
 
     def g():
-      return user_facing_kd.functor.for_(  # pyrefly: ignore[missing-attribute]
-          user_facing_kd.iterables.make(1, 2),  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.functor.for_(
+          user_facing_kd.iterables.make(1, 2),
           body,
-          yields_interleaved=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
+          yields_interleaved=user_facing_kd.iterables.make(),
       )
 
     transformed_fn = kde_internal.parallel.transform(
@@ -1464,13 +1464,13 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
   @parameterized.parameters('yields', 'yields_interleaved')
   def test_for_yields_no_yield_statement(self, yield_mode):
     factorial = functor_factories.trace_py_fn(
-        lambda vals: user_facing_kd.functor.for_(  # pyrefly: ignore[missing-attribute]
+        lambda vals: user_facing_kd.functor.for_(
             vals,
-            lambda n, res: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+            lambda n, res: user_facing_kd.namedtuple(
                 res=res * n,
             ),
             res=1,
-            **{yield_mode: user_facing_kd.iterables.make(2, 3)},  # pyrefly: ignore[missing-attribute]
+            **{yield_mode: user_facing_kd.iterables.make(2, 3)},
         )
     )
     transformed_fn = kde_internal.parallel.transform(
@@ -1489,12 +1489,12 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
   def test_for_returns_finalize_fn(self):
     factorial = functor_factories.trace_py_fn(
-        lambda vals: user_facing_kd.functor.for_(  # pyrefly: ignore[missing-attribute]
+        lambda vals: user_facing_kd.functor.for_(
             vals,
-            lambda n, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+            lambda n, returns: user_facing_kd.namedtuple(
                 returns=returns + n,
             ),
-            finalize_fn=lambda returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+            finalize_fn=lambda returns: user_facing_kd.namedtuple(
                 returns=-returns,
             ),
             returns=0,
@@ -1516,13 +1516,13 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
   @parameterized.parameters('yields', 'yields_interleaved')
   def test_for_yields_finalize_fn(self, yield_mode):
     factorial = functor_factories.trace_py_fn(
-        lambda vals: user_facing_kd.functor.for_(  # pyrefly: ignore[missing-attribute]
+        lambda vals: user_facing_kd.functor.for_(
             vals,
-            lambda n: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
-            finalize_fn=lambda: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
-                **{yield_mode: user_facing_kd.iterables.make(2, 3)}  # pyrefly: ignore[missing-attribute]
+            lambda n: user_facing_kd.namedtuple(),
+            finalize_fn=lambda: user_facing_kd.namedtuple(
+                **{yield_mode: user_facing_kd.iterables.make(2, 3)}
             ),
-            **{yield_mode: user_facing_kd.iterables.make()},  # pyrefly: ignore[missing-attribute]
+            **{yield_mode: user_facing_kd.iterables.make()},
         )
     )
     transformed_fn = kde_internal.parallel.transform(
@@ -1541,9 +1541,9 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
   def test_for_returns_condition_fn(self):
     factorial = functor_factories.trace_py_fn(
-        lambda vals: user_facing_kd.functor.for_(  # pyrefly: ignore[missing-attribute]
+        lambda vals: user_facing_kd.functor.for_(
             vals,
-            lambda n, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+            lambda n, returns: user_facing_kd.namedtuple(
                 returns=returns + n,
             ),
             condition_fn=lambda returns: returns < 5,
@@ -1566,15 +1566,15 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
   @parameterized.parameters('yields', 'yields_interleaved')
   def test_for_yields_condition_fn(self, yield_mode):
     factorial = functor_factories.trace_py_fn(
-        lambda vals: user_facing_kd.functor.for_(  # pyrefly: ignore[missing-attribute]
+        lambda vals: user_facing_kd.functor.for_(
             vals,
-            lambda n, last_n: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+            lambda n, last_n: user_facing_kd.namedtuple(
                 last_n=n,
-                **{yield_mode: user_facing_kd.iterables.make(n)},  # pyrefly: ignore[missing-attribute]
+                **{yield_mode: user_facing_kd.iterables.make(n)},
             ),
             condition_fn=lambda last_n: last_n < 1,
             last_n=0,
-            **{yield_mode: user_facing_kd.iterables.make()},  # pyrefly: ignore[missing-attribute]
+            **{yield_mode: user_facing_kd.iterables.make()},
         )
     )
     transformed_fn = kde_internal.parallel.transform(
@@ -1592,7 +1592,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     )
 
   def test_map_simple_positional(self):
-    f = lambda x: user_facing_kd.functor.map(  # pyrefly: ignore[missing-attribute]
+    f = lambda x: user_facing_kd.functor.map(
         ((lambda x: x + 1) & (x >= 3)) | (lambda x: x - 1),
         x=x,
     )
@@ -1607,7 +1607,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     y = ds([[7, 8], [9, 10], [11, 12]])
     testing.assert_equal(
         _parallel_eval(
-            lambda x, y: user_facing_kd.functor.map(f, a=x, b=y),  # pyrefly: ignore[missing-attribute]
+            lambda x, y: user_facing_kd.functor.map(f, a=x, b=y),
             x=x,
             y=y,
         ),
@@ -1620,7 +1620,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     y = ds(2)
     testing.assert_equal(
         _parallel_eval(
-            lambda x, y: user_facing_kd.functor.map(f, x=x, y=y),  # pyrefly: ignore[missing-attribute]
+            lambda x, y: user_facing_kd.functor.map(f, x=x, y=y),
             x=x,
             y=y,
         ),
@@ -1633,7 +1633,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     y = ds(2)
     testing.assert_equal(
         _parallel_eval(
-            lambda x, y: user_facing_kd.functor.map(f, x=x, y=y),  # pyrefly: ignore[missing-attribute]
+            lambda x, y: user_facing_kd.functor.map(f, x=x, y=y),
             x=x,
             y=y,
         ),
@@ -1641,7 +1641,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     )
     testing.assert_equal(
         _parallel_eval(
-            lambda x, y: user_facing_kd.functor.map(f, x=y, y=x),  # pyrefly: ignore[missing-attribute]
+            lambda x, y: user_facing_kd.functor.map(f, x=y, y=x),
             x=y,
             y=x,
         ),
@@ -1649,7 +1649,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     )
     testing.assert_equal(
         _parallel_eval(
-            lambda x, y: user_facing_kd.functor.map(  # pyrefly: ignore[missing-attribute]
+            lambda x, y: user_facing_kd.functor.map(
                 x=x, y=y, include_missing=False, fn=f
             ),
             x=x,
@@ -1659,7 +1659,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     )
     testing.assert_equal(
         _parallel_eval(
-            lambda x, y: user_facing_kd.functor.map(  # pyrefly: ignore[missing-attribute]
+            lambda x, y: user_facing_kd.functor.map(
                 x=x, y=y, include_missing=True, fn=f
             ),
             x=x,
@@ -1674,7 +1674,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     y = ds(2)
     testing.assert_equal(
         _parallel_eval(
-            lambda x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),  # pyrefly: ignore[missing-attribute]
+            lambda x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),
             x=x,
             y=y,
         ),
@@ -1689,7 +1689,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     x = ds([[1, 2], [3]])
     f = functor_factories.fn(f, use_tracing=False)
     testing.assert_equal(
-        _parallel_eval(lambda x: user_facing_kd.functor.map(fn=f, x=x), x=x),  # pyrefly: ignore[missing-attribute]
+        _parallel_eval(lambda x: user_facing_kd.functor.map(fn=f, x=x), x=x),
         ds([[2, 3], [4]]),
     )
 
@@ -1699,7 +1699,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     x = ds([1, 2, 3, 4])
     testing.assert_equal(
         _parallel_eval(
-            lambda x, f1, f2: user_facing_kd.functor.map(  # pyrefly: ignore[missing-attribute]
+            lambda x, f1, f2: user_facing_kd.functor.map(
                 fn=f1 & (x >= 3) | f2, x=x
             ),
             x=x,
@@ -1715,7 +1715,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     x = ds([1, 2, 3, 4])
     testing.assert_equal(
         _parallel_eval(
-            lambda f, x: user_facing_kd.functor.map(fn=f & (x >= 3), x=x),  # pyrefly: ignore[missing-attribute]
+            lambda f, x: user_facing_kd.functor.map(fn=f & (x >= 3), x=x),
             f=f,
             x=x,
             allow_runtime_transforms=True,
@@ -1728,7 +1728,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     x = ds([1, 2, 3, 4])
     testing.assert_equal(
         _parallel_eval(
-            lambda x: user_facing_kd.functor.map(  # pyrefly: ignore[missing-attribute]
+            lambda x: user_facing_kd.functor.map(
                 fn=f, x=x, include_missing=True
             ),
             x=x & (x >= 3),
@@ -1737,7 +1737,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     )
     testing.assert_equal(
         _parallel_eval(
-            lambda x: user_facing_kd.functor.map(  # pyrefly: ignore[missing-attribute]
+            lambda x: user_facing_kd.functor.map(
                 fn=f, x=x, include_missing=False
             ),
             x=x & (x >= 3),
@@ -1746,7 +1746,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     )
     testing.assert_equal(
         _parallel_eval(
-            lambda x: user_facing_kd.functor.map(fn=f, x=x),  # pyrefly: ignore[missing-attribute]
+            lambda x: user_facing_kd.functor.map(fn=f, x=x),
             x=x & (x >= 3),
         ),
         ds([None, None, 4, 5]),
@@ -1756,14 +1756,14 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     f = functor_factories.fn(lambda x: x + 1)
     testing.assert_equal(
         _parallel_eval(
-            lambda x: user_facing_kd.functor.map(fn=f, x=x),  # pyrefly: ignore[missing-attribute]
+            lambda x: user_facing_kd.functor.map(fn=f, x=x),
             x=ds([]),
         ),
         ds([]),
     )
     testing.assert_equal(
         _parallel_eval(
-            lambda x: user_facing_kd.functor.map(fn=f, x=x),  # pyrefly: ignore[missing-attribute]
+            lambda x: user_facing_kd.functor.map(fn=f, x=x),
             x=ds([None]),
         ),
         ds([None]),
@@ -1780,7 +1780,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     # a literal functor to be transformed at compile time.
     testing.assert_equal(
         _parallel_eval(
-            lambda x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),  # pyrefly: ignore[missing-attribute]
+            lambda x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),
             x=x,
             y=y,
             allow_runtime_transforms=True,
@@ -1791,7 +1791,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     f = ds([f1, None])
     testing.assert_equal(
         _parallel_eval(
-            lambda x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),  # pyrefly: ignore[missing-attribute]
+            lambda x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),
             x=x,
             y=y,
             allow_runtime_transforms=True,
@@ -1802,7 +1802,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     # Even with include_missing=True, the missing functor is not called.
     testing.assert_equal(
         _parallel_eval(
-            lambda x, y: user_facing_kd.functor.map(  # pyrefly: ignore[missing-attribute]
+            lambda x, y: user_facing_kd.functor.map(
                 include_missing=True, fn=f, x=x, y=y
             ),
             x=x,
@@ -1822,11 +1822,11 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
         ValueError,
         re.escape('the functor in kd.map must evaluate to a DataItem'),
     ):
-      _ = _parallel_eval(lambda x: user_facing_kd.functor.map(fn=f, x=x), x=x)  # pyrefly: ignore[missing-attribute]
+      _ = _parallel_eval(lambda x: user_facing_kd.functor.map(fn=f, x=x), x=x)
 
   def test_map_return_bag(self):
     def f(unused_x):
-      return user_facing_kd.bag()  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.bag()
 
     x = ds([1, 2, 3])
     f = functor_factories.fn(f)
@@ -1839,16 +1839,16 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
         ),
     ):
       _ = _parallel_eval(
-          lambda x: user_facing_kd.functor.map(fn=f, unused_x=x),  # pyrefly: ignore[missing-attribute]
+          lambda x: user_facing_kd.functor.map(fn=f, unused_x=x),
           x=x,
       )
 
   def test_map_adoption(self):
-    f = functor_factories.fn(lambda x: user_facing_kd.obj(x=x + 1))  # pyrefly: ignore[missing-attribute]
+    f = functor_factories.fn(lambda x: user_facing_kd.obj(x=x + 1))
     x = ds([1, 2, 3])
     testing.assert_equal(
         _parallel_eval(
-            lambda x: user_facing_kd.functor.map(fn=f, x=x), x=x  # pyrefly: ignore[missing-attribute]
+            lambda x: user_facing_kd.functor.map(fn=f, x=x), x=x
         ).x.no_bag(),
         ds([2, 3, 4]),
     )
@@ -1866,7 +1866,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
         ),
     ):
       _ = _parallel_eval(
-          lambda x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),  # pyrefly: ignore[missing-attribute]
+          lambda x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),
           x=x,
           y=y,
           allow_runtime_transforms=True,
@@ -1879,7 +1879,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     x = fns.new(foo=ds([1, 2]), bar=ds(['3', '4']))
     testing.assert_equal(
         _parallel_eval(
-            lambda x: user_facing_kd.functor.map(fn=f, x=x),  # pyrefly: ignore[missing-attribute]
+            lambda x: user_facing_kd.functor.map(fn=f, x=x),
             x=x,
             allow_runtime_transforms=True,
         ),
@@ -1889,13 +1889,13 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     y = fns.new(foo=fns.new(a=ds([1, 2])), bar=fns.new(a=ds([3, 4])))
     with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
       _ = _parallel_eval(
-          lambda x: user_facing_kd.functor.map(fn=f, x=x),  # pyrefly: ignore[missing-attribute]
+          lambda x: user_facing_kd.functor.map(fn=f, x=x),
           x=y,
           allow_runtime_transforms=True,
       )
 
   def test_map_cancellable(self):
-    expr = lambda x: user_facing_kd.functor.map(  # pyrefly: ignore[missing-attribute]
+    expr = lambda x: user_facing_kd.functor.map(
         functor_factories.expr_fn(
             arolla.M.core._identity_with_cancel(I.self, 'cancelled')
         ),
@@ -1910,7 +1910,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
         ValueError, 'expected DATA_SLICE, got fns: INT32'
     ):
       _parallel_eval(
-          lambda f: user_facing_kd.functor.map(fn=f),  # pyrefly: ignore[missing-attribute]
+          lambda f: user_facing_kd.functor.map(fn=f),
           f=arolla.int32(1),
           allow_runtime_transforms=True,
       )
@@ -1938,7 +1938,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     ])
     testing.assert_equal(
         _parallel_eval(
-            lambda: user_facing_kd.functor.map(fn=fs),  # pyrefly: ignore[missing-attribute]
+            lambda: user_facing_kd.functor.map(fn=fs),
             allow_runtime_transforms=True,
         ),
         ds([1, 2]),
@@ -1949,15 +1949,15 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     barrier = threading.Barrier(2)
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn,  # pyrefly: ignore[bad-argument-type]
-        return_type_as=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
+        functor_factory=functor_factories.py_fn,
+        return_type_as=user_facing_kd.iterables.make(),
     )
     def tokenize(s):
       barrier.wait()
-      return user_facing_kd.iterables.make(*s.to_py().split())  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.iterables.make(*s.to_py().split())
 
     f = functor_factories.trace_py_fn(
-        lambda seq: user_facing_kd.functor.flat_map_chain(seq, tokenize)  # pyrefly: ignore[missing-attribute]
+        lambda seq: user_facing_kd.functor.flat_map_chain(seq, tokenize)
     )
     transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), f
@@ -1973,7 +1973,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     )
 
   def test_iterable_from_1d_slice(self):
-    f = functor_factories.fn(lambda x: user_facing_kd.iterables.from_1d_slice(x))  # pylint: disable=unnecessary-lambda  # pyrefly: ignore[missing-attribute]
+    f = functor_factories.fn(lambda x: user_facing_kd.iterables.from_1d_slice(x))  # pylint: disable=unnecessary-lambda
     transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), f
     )
@@ -1994,7 +1994,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
       return a + b
 
     def add_fixed(a):
-      b = user_facing_kd.slice([1, 2, 3])  # pyrefly: ignore[missing-attribute]
+      b = user_facing_kd.slice([1, 2, 3])
       return add(a, b)
 
     f = functor_factories.fn(add_fixed, auto_variables=False)
@@ -2016,7 +2016,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
   def test_stream_with_assertion(self):
 
     def f(value, cond):
-      return user_facing_kd.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.assertion.with_assertion(
           value,
           cond,
           'Test assertion triggered',
@@ -2060,7 +2060,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
       return ds(1)
 
     def f(cond):
-      return user_facing_kd.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.assertion.with_assertion(
           wait_and_return_1(),
           cond,
           'Test assertion triggered',
@@ -2086,10 +2086,10 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
   def test_with_assertion_and_args(self):
     def f(value, cond, x, y):
-      return user_facing_kd.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
+      return user_facing_kd.assertion.with_assertion(
           value,
           cond,
-          lambda x, y: user_facing_kd.fstr(  # pyrefly: ignore[missing-attribute]
+          lambda x, y: user_facing_kd.fstr(
               f'Test assertion triggered: x={x:s}, y={y:s}'
           ),
           x,
@@ -2121,7 +2121,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     # to be True.
     testing.assert_equal(
         _parallel_eval(
-            lambda fn, x, y: user_facing_kd.functor.call_fn_normally_when_parallel(  # pylint: disable=unnecessary-lambda  # pyrefly: ignore[missing-attribute]
+            lambda fn, x, y: user_facing_kd.functor.call_fn_normally_when_parallel(  # pylint: disable=unnecessary-lambda
                 fn, x, y
             ),
             fn,

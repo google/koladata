@@ -44,8 +44,8 @@ class CallMultithreadedTest(absltest.TestCase):
 
   def test_call_simple(self):
     fn = functor_factories.expr_fn(
-        returns=I.x + V.foo,  # pyrefly: ignore[unsupported-operation]
-        foo=I.y * I.x,  # pyrefly: ignore[unsupported-operation]
+        returns=I.x + V.foo,
+        foo=I.y * I.x,
     )
     testing.assert_equal(parallel.call_multithreaded(fn, x=2, y=3), ds(8))
     # Unused inputs are ignored with the "default" signature.
@@ -62,7 +62,7 @@ class CallMultithreadedTest(absltest.TestCase):
 
   def test_call_explicit_signature(self):
     fn = functor_factories.expr_fn(
-        returns=I.x + V.foo,  # pyrefly: ignore[unsupported-operation]
+        returns=I.x + V.foo,
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
@@ -110,7 +110,7 @@ class CallMultithreadedTest(absltest.TestCase):
 
   def test_var_positional(self):
     fn = functor_factories.expr_fn(
-        returns=kde.tuples.get_nth(I.x, 1),  # pyrefly: ignore[missing-attribute]
+        returns=kde.tuples.get_nth(I.x, 1),
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.VAR_POSITIONAL
@@ -121,7 +121,7 @@ class CallMultithreadedTest(absltest.TestCase):
 
   def test_var_keyword(self):
     fn = functor_factories.expr_fn(
-        returns=arolla.M.namedtuple.get_field(I.x, 'y'),  # pyrefly: ignore[missing-attribute]
+        returns=arolla.M.namedtuple.get_field(I.x, 'y'),
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.VAR_KEYWORD
@@ -177,7 +177,7 @@ class CallMultithreadedTest(absltest.TestCase):
       _ = parallel.call_multithreaded(fn, fns.new(bar=57))
 
   def test_call_non_dataslice_inputs(self):
-    fn = functor_factories.expr_fn(kde.tuples.get_nth(I.x, 1))  # pyrefly: ignore[missing-attribute]
+    fn = functor_factories.expr_fn(kde.tuples.get_nth(I.x, 1))
     testing.assert_equal(
         parallel.call_multithreaded(fn, x=arolla.tuple(ds(1), ds(2), ds(3))),
         ds(2),
@@ -203,10 +203,10 @@ class CallMultithreadedTest(absltest.TestCase):
     testing.assert_equal(res, obj.get_bag())
 
   def test_call_with_functor_as_input(self):
-    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
+    fn = functor_factories.expr_fn(I.x + I.y)
     testing.assert_equal(
         parallel.call_multithreaded(
-            functor_factories.expr_fn(kde.functor.call(I.func, x=I.u, y=I.v)),  # pyrefly: ignore[missing-attribute]
+            functor_factories.expr_fn(kde.functor.call(I.func, x=I.u, y=I.v)),
             func=fn,
             u=2,
             v=3,
@@ -215,11 +215,11 @@ class CallMultithreadedTest(absltest.TestCase):
     )
 
   def test_call_with_computed_functor(self):
-    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
+    fn = functor_factories.expr_fn(I.x + I.y)
     testing.assert_equal(
         parallel.call_multithreaded(
             functor_factories.expr_fn(
-                kde.functor.call(I.my_functors.fn, x=I.u, y=I.v)  # pyrefly: ignore[missing-attribute]
+                kde.functor.call(I.my_functors.fn, x=I.u, y=I.v)
             ),
             my_functors=fns.new(fn=fn),
             u=2,
@@ -246,21 +246,21 @@ class CallMultithreadedTest(absltest.TestCase):
 
     @tracing_decorator.TraceAsFnDecorator()
     def f1(x):
-      x = user_facing_kd.apply_py(  # pyrefly: ignore[missing-attribute]
+      x = user_facing_kd.apply_py(
           functools.partial(wait_for_barrier_and_return_x, second_barrier), x
       ).with_name('wait')
       return x
 
     @tracing_decorator.TraceAsFnDecorator()
     def f2(x):
-      x = user_facing_kd.apply_py(  # pyrefly: ignore[missing-attribute]
+      x = user_facing_kd.apply_py(
           functools.partial(wait_for_barrier_and_return_x, second_barrier), x
       ).with_name('wait')
       return x
 
     @tracing_decorator.TraceAsFnDecorator()
     def f3(x):
-      x = user_facing_kd.apply_py(  # pyrefly: ignore[missing-attribute]
+      x = user_facing_kd.apply_py(
           functools.partial(wait_for_barrier_and_return_x, first_barrier), x
       ).with_name('wait')
       y = f1(x)
@@ -269,7 +269,7 @@ class CallMultithreadedTest(absltest.TestCase):
 
     @tracing_decorator.TraceAsFnDecorator()
     def f4(x):
-      x = user_facing_kd.apply_py(  # pyrefly: ignore[missing-attribute]
+      x = user_facing_kd.apply_py(
           functools.partial(wait_for_barrier_and_return_x, first_barrier), x
       ).with_name('wait')
       return x
@@ -290,7 +290,7 @@ class CallMultithreadedTest(absltest.TestCase):
     second_barrier = threading.Barrier(2)
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
+        functor_factory=functor_factories.py_fn
     )
     def wait_for_cancellation(_: Any):
       first_barrier.wait(timeout=5.0)
@@ -314,7 +314,7 @@ class CallMultithreadedTest(absltest.TestCase):
       )
 
   def test_iterable_return_value(self):
-    fn = functor_factories.expr_fn(kde.iterables.make(I.x))  # pyrefly: ignore[missing-attribute]
+    fn = functor_factories.expr_fn(kde.iterables.make(I.x))
     # TODO: Make this error mention yield_multithreaded.
     with self.assertRaisesRegex(
         ValueError,
@@ -324,12 +324,12 @@ class CallMultithreadedTest(absltest.TestCase):
       _ = parallel.call_multithreaded(
           fn,
           x=1,
-          return_type_as=kde.iterables.make().eval(),  # pyrefly: ignore[missing-attribute]
+          return_type_as=kde.iterables.make().eval(),
       )
 
   def test_structured_return_value(self):
     fn = functor_factories.expr_fn(
-        kde.tuples.tuple(I.x, kde.tuples.namedtuple(y=I.y, z=I.z))  # pyrefly: ignore[missing-attribute]
+        kde.tuples.tuple(I.x, kde.tuples.namedtuple(y=I.y, z=I.z))
     )
     res = parallel.call_multithreaded(
         fn,

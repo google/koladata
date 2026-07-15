@@ -95,8 +95,8 @@ class DictLikeTest(parameterized.TestCase):
     )
 
   def test_adopt_schema(self):
-    dict_schema = kde.dict_schema(  # pyrefly: ignore[missing-attribute]
-        schema_constants.STRING, kde.uu_schema(a=schema_constants.INT32)  # pyrefly: ignore[missing-attribute]
+    dict_schema = kde.dict_schema(
+        schema_constants.STRING, kde.uu_schema(a=schema_constants.INT32)
     ).eval()
     dct = fns.dict_like(ds([None, 0]), schema=dict_schema)
 
@@ -105,7 +105,7 @@ class DictLikeTest(parameterized.TestCase):
     )
 
   def test_itemid_dataitem(self):
-    itemid = expr_eval.eval(kde.allocation.new_dictid())  # pyrefly: ignore[missing-attribute]
+    itemid = expr_eval.eval(kde.allocation.new_dictid())
 
     with self.subTest('present DataItem and present itemid'):
       x = fns.dict_like(ds(1), 'a', 42, itemid=itemid)
@@ -130,9 +130,9 @@ class DictLikeTest(parameterized.TestCase):
         _ = fns.dict_like(ds(1), 'a', 42, itemid=(itemid & None))
 
   def test_itemid_dataslice(self):
-    id1 = expr_eval.eval(kde.allocation.new_dictid())  # pyrefly: ignore[missing-attribute]
-    id2 = expr_eval.eval(kde.allocation.new_dictid())  # pyrefly: ignore[missing-attribute]
-    id3 = expr_eval.eval(kde.allocation.new_dictid())  # pyrefly: ignore[missing-attribute]
+    id1 = expr_eval.eval(kde.allocation.new_dictid())
+    id2 = expr_eval.eval(kde.allocation.new_dictid())
+    id3 = expr_eval.eval(kde.allocation.new_dictid())
 
     with self.subTest('full DataSlice and full itemid'):
       x = fns.dict_like(ds([1, 1, 1]), 'a', 42, itemid=ds([id1, id2, id3]))
@@ -295,7 +295,7 @@ class DictLikeTest(parameterized.TestCase):
           values=None,
           key_schema=None,
           value_schema=None,
-          schema=kde.dict_schema(  # pyrefly: ignore[missing-attribute]
+          schema=kde.dict_schema(
               key_schema=schema_constants.INT32,
               value_schema=schema_constants.OBJECT,
           ).eval(),
@@ -308,7 +308,7 @@ class DictLikeTest(parameterized.TestCase):
           values=ds([[1, 2], [3]]),
           key_schema=None,
           value_schema=None,
-          schema=kde.dict_schema(  # pyrefly: ignore[missing-attribute]
+          schema=kde.dict_schema(
               key_schema=schema_constants.INT64,
               value_schema=schema_constants.OBJECT,
           ).eval(),
@@ -346,7 +346,7 @@ class DictLikeTest(parameterized.TestCase):
 
   def test_schema_arg_error(self):
     mask_and_shape = ds([[1, None], [3]])
-    dict_schema = kde.dict_schema(  # pyrefly: ignore[missing-attribute]
+    dict_schema = kde.dict_schema(
         key_schema=schema_constants.INT64, value_schema=schema_constants.OBJECT
     ).eval()
     with self.assertRaisesRegex(

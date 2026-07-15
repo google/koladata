@@ -117,8 +117,8 @@ class ListLikeTest(parameterized.TestCase):
     )
 
   def test_adopt_schema(self):
-    list_schema = kde.list_schema(  # pyrefly: ignore[missing-attribute]
-        kde.uu_schema(a=schema_constants.INT32)  # pyrefly: ignore[missing-attribute]
+    list_schema = kde.list_schema(
+        kde.uu_schema(a=schema_constants.INT32)
     ).eval()
     lst = fns.list_like(ds([None, 0]), schema=list_schema)
 
@@ -131,7 +131,7 @@ class ListLikeTest(parameterized.TestCase):
         fns.list_like(
             ds([1, 2.0]), [1, 2.0], item_schema=schema_constants.OBJECT
         )[:].no_bag(),
-        kd.implode(  # pyrefly: ignore[missing-attribute]
+        kd.implode(
             data_slice.DataSlice.from_vals(
                 [[1], [2.0]], schema_constants.OBJECT
             ),
@@ -141,9 +141,9 @@ class ListLikeTest(parameterized.TestCase):
         fns.list_like(
             ds([1, 2.0]),
             [1, 2.0],
-            schema=kde.list_schema(schema_constants.OBJECT).eval(),  # pyrefly: ignore[missing-attribute]
+            schema=kde.list_schema(schema_constants.OBJECT).eval(),
         )[:].no_bag(),
-        kd.implode(  # pyrefly: ignore[missing-attribute]
+        kd.implode(
             data_slice.DataSlice.from_vals(
                 [[1], [2.0]], schema_constants.OBJECT
             ),
@@ -151,7 +151,7 @@ class ListLikeTest(parameterized.TestCase):
     )
 
   def test_itemid_dataitem(self):
-    itemid = expr_eval.eval(kde.allocation.new_listid())  # pyrefly: ignore[missing-attribute]
+    itemid = expr_eval.eval(kde.allocation.new_listid())
     input_arg = ds(['a'])
 
     with self.subTest('present DataItem and present itemid'):
@@ -177,9 +177,9 @@ class ListLikeTest(parameterized.TestCase):
         _ = fns.list_like(ds(1), input_arg, itemid=(itemid & None))
 
   def test_itemid_dataslice(self):
-    id1 = expr_eval.eval(kde.allocation.new_listid())  # pyrefly: ignore[missing-attribute]
-    id2 = expr_eval.eval(kde.allocation.new_listid())  # pyrefly: ignore[missing-attribute]
-    id3 = expr_eval.eval(kde.allocation.new_listid())  # pyrefly: ignore[missing-attribute]
+    id1 = expr_eval.eval(kde.allocation.new_listid())
+    id2 = expr_eval.eval(kde.allocation.new_listid())
+    id3 = expr_eval.eval(kde.allocation.new_listid())
     input_arg = ds([['a'], ['b'], ['c']])
 
     with self.subTest('full DataSlice and full itemid'):
@@ -321,13 +321,13 @@ class ListLikeTest(parameterized.TestCase):
       (
           None,
           None,
-          kde.list_schema(item_schema=schema_constants.INT64).eval(),  # pyrefly: ignore[missing-attribute]
+          kde.list_schema(item_schema=schema_constants.INT64).eval(),
           schema_constants.INT64,
       ),
       (
           [[1, 2], [3]],
           None,
-          kde.list_schema(item_schema=schema_constants.INT64).eval(),  # pyrefly: ignore[missing-attribute]
+          kde.list_schema(item_schema=schema_constants.INT64).eval(),
           schema_constants.INT64,
       ),
   )
@@ -348,7 +348,7 @@ class ListLikeTest(parameterized.TestCase):
 
   def test_schema_arg_error(self):
     mask_and_shape = ds([[1, None], [3]])
-    list_schema = kde.list_schema(item_schema=schema_constants.INT64).eval()  # pyrefly: ignore[missing-attribute]
+    list_schema = kde.list_schema(item_schema=schema_constants.INT64).eval()
     with self.assertRaisesRegex(
         ValueError, 'either a list schema or item schema, but not both'
     ):

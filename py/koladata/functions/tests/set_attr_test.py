@@ -166,8 +166,8 @@ Assigned schema for 'xyz': STRING"""),
 
   def test_merging_with_fallbacks(self):
     x = kd.mutable_bag().obj()
-    y = kd.new(bar='foo')  # pyrefly: ignore[missing-attribute]
-    z = y.with_bag(kd.bag()).with_attrs(bar=2, baz=5)  # pyrefly: ignore[missing-attribute]
+    y = kd.new(bar='foo')
+    z = y.with_bag(kd.bag()).with_attrs(bar=2, baz=5)
     x.foo = y.enriched(z.get_bag())
     testing.assert_equal(x.foo.bar.no_bag(), ds('foo'))
     testing.assert_equal(x.foo.baz.no_bag(), ds(5))

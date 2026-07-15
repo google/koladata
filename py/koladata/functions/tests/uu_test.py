@@ -82,11 +82,11 @@ class UuTest(absltest.TestCase):
   def test_schema_arg(self):
     x = fns.uu(
         a=ds([3.14], schema_constants.FLOAT32),
-        schema=kde.uu_schema(a=schema_constants.FLOAT64).eval(),  # pyrefly: ignore[missing-attribute]
+        schema=kde.uu_schema(a=schema_constants.FLOAT64).eval(),
     )
     testing.assert_equal(
         x.get_schema(),
-        kde.uu_schema(a=schema_constants.FLOAT64).eval().with_bag(x.get_bag()),  # pyrefly: ignore[missing-attribute]
+        kde.uu_schema(a=schema_constants.FLOAT64).eval().with_bag(x.get_bag()),
     )
     testing.assert_equal(
         x.a.get_schema(), schema_constants.FLOAT64.with_bag(x.get_bag())
@@ -100,7 +100,7 @@ class UuTest(absltest.TestCase):
   def test_overwrite_schema_arg(self):
     x = fns.uu(
         a=ds([3.14], schema_constants.FLOAT32),
-        schema=kde.uu_schema(a=schema_constants.FLOAT64).eval(),  # pyrefly: ignore[missing-attribute]
+        schema=kde.uu_schema(a=schema_constants.FLOAT64).eval(),
         overwrite_schema=True,
     )
     testing.assert_equal(
@@ -111,7 +111,7 @@ class UuTest(absltest.TestCase):
     )
 
   def test_schema_arg_overwrite_schema_overwriting(self):
-    schema = kde.uu_schema(a=schema_constants.INT32).eval()  # pyrefly: ignore[missing-attribute]
+    schema = kde.uu_schema(a=schema_constants.INT32).eval()
     x = fns.uu(a='xyz', schema=schema, overwrite_schema=True)
     testing.assert_equal(x.a, ds('xyz').with_bag(x.get_bag()))
 

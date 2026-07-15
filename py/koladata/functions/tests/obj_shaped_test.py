@@ -99,7 +99,7 @@ class ObjShapedTest(absltest.TestCase):
 
   def test_itemid(self):
     itemid = expr_eval.eval(
-        kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]]))  # pyrefly: ignore[missing-attribute]
+        kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]]))
     )
     x = fns.obj_shaped(itemid.get_shape(), a=42, itemid=itemid)
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))

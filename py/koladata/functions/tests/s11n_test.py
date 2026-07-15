@@ -81,14 +81,14 @@ class DumpsLoadsTest(parameterized.TestCase):
       s11n.loads(b'foo')
 
   def test_dumps_fails_on_expr(self):
-    fn = M.math.add(L.x, L.y)  # pyrefly: ignore[missing-attribute]
+    fn = M.math.add(L.x, L.y)
     with self.assertRaisesRegex(
         ValueError, 'expected a DataSlice, DataBag, JaggedShape,.* got.*Expr'
     ):
       s11n.dumps(fn)
 
   def test_loads_fails_on_expr(self):
-    fn = M.math.add(L.x, L.y)  # pyrefly: ignore[missing-attribute]
+    fn = M.math.add(L.x, L.y)
     dumped_bytes = arolla.s11n.riegeli_dumps(fn)
     with self.assertRaisesRegex(
         ValueError, 'expected a DataSlice, DataBag, JaggedShape,.* got.*Expr'
@@ -120,12 +120,12 @@ class DumpsLoadsTest(parameterized.TestCase):
   def test_dumps_preserves_immutability(self):
     bag = db()
     objs = bag.obj(a=ds([1, 2, 3] * 10))
-    loaded = s11n.loads(s11n.dumps(kd.freeze_bag(objs)))  # pyrefly: ignore[missing-attribute]
+    loaded = s11n.loads(s11n.dumps(kd.freeze_bag(objs)))
     testing.assert_equivalent(loaded.get_bag(), objs.get_bag())
     self.assertFalse(loaded.is_mutable())
 
   def test_dumps_with_riegeli_options(self):
-    input_slice = kd.range(1_000_000)  # pyrefly: ignore[missing-attribute]
+    input_slice = kd.range(1_000_000)
     dumped_bytes_brotli = s11n.dumps(input_slice, riegeli_options='brotli')
     dumped_bytes_uncompressed = s11n.dumps(
         input_slice, riegeli_options='uncompressed'
@@ -133,7 +133,7 @@ class DumpsLoadsTest(parameterized.TestCase):
     self.assertLess(len(dumped_bytes_brotli), len(dumped_bytes_uncompressed))
 
   def test_dumps_defaults_to_snappy(self):
-    input_slice = kd.range(1_000_000)  # pyrefly: ignore[missing-attribute]
+    input_slice = kd.range(1_000_000)
     dumped_bytes = s11n.dumps(input_slice)
     self.assertEqual(
         dumped_bytes, s11n.dumps(input_slice, riegeli_options='snappy')
@@ -143,7 +143,7 @@ class DumpsLoadsTest(parameterized.TestCase):
   # to make sure we faithfully propagate the empty string options to the
   # underlying code.
   def test_dumps_empty_string_options_are_not_snappy(self):
-    input_slice = kd.range(1_000_000)  # pyrefly: ignore[missing-attribute]
+    input_slice = kd.range(1_000_000)
     dumped_bytes = s11n.dumps(input_slice, riegeli_options='')
     self.assertNotEqual(
         dumped_bytes, s11n.dumps(input_slice, riegeli_options='snappy')
@@ -203,7 +203,7 @@ class ExperimentalSaferLoadsTest(parameterized.TestCase):
         s11n.experimental_safer_loads(dumped_bytes)
     with self.subTest('multiple_values'):
       dumped_bytes = arolla.s11n.riegeli_dumps_many(
-          values=[kd.item(1), kd.item(2)], exprs=[]  # pyrefly: ignore[missing-attribute]
+          values=[kd.item(1), kd.item(2)], exprs=[]
       )
       with self.assertRaisesRegex(
           ValueError,
@@ -215,7 +215,7 @@ class ExperimentalSaferLoadsTest(parameterized.TestCase):
         s11n.experimental_safer_loads(dumped_bytes)
     with self.subTest('mixed_values_and_exprs'):
       dumped_bytes = arolla.s11n.riegeli_dumps_many(
-          values=[kd.item(1)], exprs=[L.x]  # pyrefly: ignore[missing-attribute]
+          values=[kd.item(1)], exprs=[L.x]
       )
       with self.assertRaisesRegex(
           ValueError,

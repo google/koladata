@@ -53,14 +53,14 @@ class ListTest(parameterized.TestCase):
 
   def test_list_with_uuid(self):
     testing.assert_equal(
-        fns.list(itemid=kd.uuid_for_list(seed='seed', a=ds(1))).no_bag(),  # pyrefly: ignore[missing-attribute]
-        fns.list(itemid=kd.uuid_for_list(seed='seed', a=ds(1))).no_bag(),  # pyrefly: ignore[missing-attribute]
+        fns.list(itemid=kd.uuid_for_list(seed='seed', a=ds(1))).no_bag(),
+        fns.list(itemid=kd.uuid_for_list(seed='seed', a=ds(1))).no_bag(),
     )
 
   def test_list_preserves_mixed_types(self):
     testing.assert_equal(
         fns.list([1, 2.0], item_schema=schema_constants.OBJECT)[:].no_bag(),
-        kd.implode(  # pyrefly: ignore[missing-attribute]
+        kd.implode(
             data_slice.DataSlice.from_vals([1, 2.0], schema_constants.OBJECT),
         )[:].no_bag(),
     )
@@ -69,7 +69,7 @@ class ListTest(parameterized.TestCase):
             [1, 2.0],
             schema=kde.list_schema(schema_constants.OBJECT).eval(),
         )[:].no_bag(),
-        kd.implode(  # pyrefly: ignore[missing-attribute]
+        kd.implode(
             data_slice.DataSlice.from_vals([1, 2.0], schema_constants.OBJECT),
         )[:].no_bag(),
     )
@@ -185,8 +185,8 @@ class ListTest(parameterized.TestCase):
       (
           [[[1, 2], [3]], [[4, 5], [6]]],
           None,
-          kd.list_schema(kd.list_schema(kd.list_schema(kd.FLOAT32))),  # pyrefly: ignore[missing-attribute]
-          kd.list_schema(kd.list_schema(kd.FLOAT32)).no_bag(),  # pyrefly: ignore[missing-attribute]
+          kd.list_schema(kd.list_schema(kd.list_schema(kd.FLOAT32))),
+          kd.list_schema(kd.list_schema(kd.FLOAT32)).no_bag(),
       ),
   )
   def test_schema(self, items, item_schema, schema, expected_item_schema):
@@ -199,15 +199,15 @@ class ListTest(parameterized.TestCase):
     )
 
   def test_nested_list_schema_from_lists(self):
-    lsts = kd.list(  # pyrefly: ignore[missing-attribute]
-        [kd.list([1, 2]), kd.list([3])], item_schema=kd.list_schema(kd.INT32)  # pyrefly: ignore[missing-attribute]
+    lsts = kd.list(
+        [kd.list([1, 2]), kd.list([3])], item_schema=kd.list_schema(kd.INT32)
     )
     self.assertEqual(
         lsts.get_schema().no_bag(),
-        kd.list_schema(kd.list_schema(kd.INT32)).no_bag(),  # pyrefly: ignore[missing-attribute]
+        kd.list_schema(kd.list_schema(kd.INT32)).no_bag(),
     )
-    testing.assert_equal(lsts[:].S[0][:].no_bag(), kd.slice([1, 2]))  # pyrefly: ignore[missing-attribute]
-    testing.assert_equal(lsts[:].S[1][:].no_bag(), kd.slice([3]))  # pyrefly: ignore[missing-attribute]
+    testing.assert_equal(lsts[:].S[0][:].no_bag(), kd.slice([1, 2]))
+    testing.assert_equal(lsts[:].S[1][:].no_bag(), kd.slice([3]))
 
   def test_schema_arg_error(self):
     list_schema = kde.list_schema(item_schema=schema_constants.INT64).eval()
@@ -259,7 +259,7 @@ Assigned schema for list items: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}"
         ValueError,
         r"""schema can only be 0-rank schema slice, got: rank\(1\)""",
     ):
-      _ = fns.list([1, 3.14], item_schema=kd.slice([kd.OBJECT]))  # pyrefly: ignore[missing-attribute]
+      _ = fns.list([1, 3.14], item_schema=kd.slice([kd.OBJECT]))
 
     with self.assertRaisesRegex(
         ValueError,

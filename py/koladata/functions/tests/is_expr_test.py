@@ -30,8 +30,8 @@ kde = kde_operators.kde
 class IsExprTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (kde.math.subtract(arolla.L.L1, arolla.L.L2),),  # pyrefly: ignore[missing-attribute]
-      (arolla.quote(kde.math.subtract(arolla.L.L1, arolla.L.L2)).unquote(),),  # pyrefly: ignore[missing-attribute]
+      (kde.math.subtract(arolla.L.L1, arolla.L.L2),),
+      (arolla.quote(kde.math.subtract(arolla.L.L1, arolla.L.L2)).unquote(),),
   )
   def test_is_expr(self, param):
     testing.assert_equal(predicates.is_expr(param), mask_constants.present)
@@ -41,7 +41,7 @@ class IsExprTest(parameterized.TestCase):
       ([1, 2, 3],),
       (None,),
       ({1: 2, 2: 3},),
-      (arolla.quote(kde.math.subtract(arolla.L.L1, arolla.L.L2)),),  # pyrefly: ignore[missing-attribute]
+      (arolla.quote(kde.math.subtract(arolla.L.L1, arolla.L.L2)),),
       (ds(1),),
       (fns.obj(),),
       (fns.obj(a=1, b=2),),
@@ -50,7 +50,7 @@ class IsExprTest(parameterized.TestCase):
       (fns.list(),),
       (fns.dict(),),
       (ds(schema_constants.ITEMID),),
-      (ds(arolla.quote(kde.math.subtract(arolla.L.L1, arolla.L.L2))),),  # pyrefly: ignore[missing-attribute]
+      (ds(arolla.quote(kde.math.subtract(arolla.L.L1, arolla.L.L2))),),
   )
   def test_is_not_expr(self, param):
     testing.assert_equal(predicates.is_expr(param), mask_constants.missing)
