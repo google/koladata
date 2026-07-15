@@ -45,8 +45,8 @@ kde_internal = kde_operators.internal
 py_fn = functor_factories.py_fn
 expr_fn = functor_factories.expr_fn
 
-default_executor = expr_eval.eval(kde_internal.parallel.get_default_executor())  # pyrefly: ignore[missing-attribute]
-eager_executor = expr_eval.eval(kde_internal.parallel.get_eager_executor())  # pyrefly: ignore[missing-attribute]
+default_executor = expr_eval.eval(kde_internal.parallel.get_default_executor())
+eager_executor = expr_eval.eval(kde_internal.parallel.get_eager_executor())
 
 
 def stream_make(*args, **kwargs):
@@ -88,12 +88,12 @@ def _stream_while_returns(
     returns,
     **state,
 ):
-  return kde_internal.parallel._stream_while_returns(  # pyrefly: ignore[missing-attribute]
+  return kde_internal.parallel._stream_while_returns(
       executor,
       py_boxing.as_qvalue_or_expr(condition_fn),
       py_boxing.as_qvalue_or_expr(body_fn),
       py_boxing.as_qvalue_or_expr(returns),
-      M.namedtuple.make(  # pyrefly: ignore[missing-attribute]
+      M.namedtuple.make(
           **{k: py_boxing.as_qvalue_or_expr(v) for k, v in state.items()}
       ),
       optools.unified_non_deterministic_arg(),
@@ -108,7 +108,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
 
   def test_eval(self):
     condition_fn = expr_fn(I.n <= 3)
-    body_fn = expr_fn(M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1))  # pyrefly: ignore[missing-attribute, unsupported-operation]
+    body_fn = expr_fn(M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1))
     res = expr_eval.eval(
         _stream_while_returns(
             eager_executor, condition_fn, body_fn, returns=100, n=1
@@ -123,7 +123,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
       del unused
       return delayed_stream_make(n <= 3)
 
-    body_fn = expr_fn(M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1))  # pyrefly: ignore[missing-attribute, unsupported-operation]
+    body_fn = expr_fn(M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1))
     res = expr_eval.eval(
         _stream_while_returns(
             default_executor,
@@ -179,7 +179,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
 
   def test_eval_body_without_returns(self):
     condition_fn = expr_fn(I.n <= 3)
-    body_fn = expr_fn(M.namedtuple.make(n=I.n + 1))  # pyrefly: ignore[missing-attribute, unsupported-operation]
+    body_fn = expr_fn(M.namedtuple.make(n=I.n + 1))
     res = expr_eval.eval(
         _stream_while_returns(
             eager_executor, condition_fn, body_fn, returns=-1, n=0
@@ -212,7 +212,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
   ):
     condition_fn = expr_fn(I.condition)
     body_fn = expr_fn(
-        M.namedtuple.make(  # pyrefly: ignore[missing-attribute]
+        M.namedtuple.make(
             returns=ds(1),
             condition=I.condition_1,
         )
@@ -231,7 +231,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
 
   def test_error_condition_unsupported_values(self):
     condition_fn = expr_fn(I.condition)
-    body_fn = expr_fn(M.namedtuple.make(never_happens=1))  # pyrefly: ignore[missing-attribute]
+    body_fn = expr_fn(M.namedtuple.make(never_happens=1))
     expr = _stream_while_returns(
         eager_executor, condition_fn, body_fn, returns=0, condition=I.condition
     )
@@ -256,7 +256,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
     def condition_fn(**unused):
       raise NotImplementedError('Boom!')
 
-    body_fn = expr_fn(M.namedtuple.make(never_happens=1))  # pyrefly: ignore[missing-attribute]
+    body_fn = expr_fn(M.namedtuple.make(never_happens=1))
     expr = _stream_while_returns(
         eager_executor, py_fn(condition_fn), body_fn, returns=0
     )
@@ -270,7 +270,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
       writer.close(NotImplementedError('Boom!'))
       return result
 
-    body_fn = expr_fn(M.namedtuple.make(never_happens=1))  # pyrefly: ignore[missing-attribute]
+    body_fn = expr_fn(M.namedtuple.make(never_happens=1))
     expr = _stream_while_returns(
         eager_executor,
         py_fn(condition_fn, return_type_as=stream_make()),
@@ -285,7 +285,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
       del unused
       return stream_make()
 
-    body_fn = expr_fn(M.namedtuple.make(never_happens=1))  # pyrefly: ignore[missing-attribute]
+    body_fn = expr_fn(M.namedtuple.make(never_happens=1))
     expr = _stream_while_returns(
         eager_executor,
         py_fn(condition_fn, return_type_as=stream_make()),
@@ -299,7 +299,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
 
   def test_error_bad_condition_fn(self):
     condition_fn = ds(None)
-    body_fn = expr_fn(M.namedtuple.make(never_happens=1))  # pyrefly: ignore[missing-attribute]
+    body_fn = expr_fn(M.namedtuple.make(never_happens=1))
     res = expr_eval.eval(
         _stream_while_returns(eager_executor, condition_fn, body_fn, returns=0)
     )  # no error
@@ -315,7 +315,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
 
   def test_error_body_wrong_result_type(self):
     condition_fn = expr_fn(I.returns <= 3)
-    body_fn = expr_fn(I.returns + 1)  # pyrefly: ignore[unsupported-operation]
+    body_fn = expr_fn(I.returns + 1)
     res = expr_eval.eval(
         _stream_while_returns(eager_executor, condition_fn, body_fn, returns=0)
     )  # no error
@@ -331,7 +331,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
 
   def test_error_body_unknown_field_in_result(self):
     condition_fn = expr_fn(I.returns <= 3)
-    body_fn = expr_fn(M.namedtuple.make(x=1))  # pyrefly: ignore[missing-attribute]
+    body_fn = expr_fn(M.namedtuple.make(x=1))
     res = expr_eval.eval(
         _stream_while_returns(eager_executor, condition_fn, body_fn, returns=0)
     )  # no error
@@ -346,7 +346,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
 
   def test_error_body_wrong_field_type_in_result(self):
     condition_fn = expr_fn(I.returns <= 3)
-    body_fn = expr_fn(M.namedtuple.make(returns=1))  # pyrefly: ignore[missing-attribute]
+    body_fn = expr_fn(M.namedtuple.make(returns=1))
     res = expr_eval.eval(
         _stream_while_returns(eager_executor, condition_fn, body_fn, returns=0)
     )  # no error
@@ -391,8 +391,8 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
 
   @arolla.abc.add_default_cancellation_context
   def test_cancellation_in_condition(self):
-    condition_fn = expr_fn(M.core._identity_with_cancel(I.n <= 3))  # pyrefly: ignore[missing-attribute]
-    body_fn = expr_fn(M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1))  # pyrefly: ignore[missing-attribute, unsupported-operation]
+    condition_fn = expr_fn(M.core._identity_with_cancel(I.n <= 3))
+    body_fn = expr_fn(M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1))
     with self.assertRaisesRegex(ValueError, re.escape('[CANCELLED]')):
       expr_eval.eval(
           _stream_while_returns(
@@ -404,8 +404,8 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
   def test_cancellation_in_body(self):
     condition_fn = expr_fn(I.n <= 3)
     body_fn = expr_fn(
-        M.core._identity_with_cancel(  # pyrefly: ignore[missing-attribute]
-            M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1)  # pyrefly: ignore[missing-attribute, unsupported-operation]
+        M.core._identity_with_cancel(
+            M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1)
         )
     )
     with self.assertRaisesRegex(ValueError, re.escape('[CANCELLED]')):
@@ -427,7 +427,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
         ),
         executor=eager_executor,
         condition_fn=expr_fn(arolla.literal(ds(arolla.missing()))),
-        body_fn=expr_fn(M.namedtuple.make()),  # pyrefly: ignore[missing-attribute]
+        body_fn=expr_fn(M.namedtuple.make()),
         returns=1,
     )
     self.assertNotEqual(stream_1.fingerprint, stream_2.fingerprint)

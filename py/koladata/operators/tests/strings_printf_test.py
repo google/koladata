@@ -122,14 +122,14 @@ class StringsFormatTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.strings.printf,  # pyrefly: ignore[missing-attribute]
+        kde.strings.printf,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         max_arity=3,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.strings.printf(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.strings.printf(I.x)))
 
 
 if __name__ == '__main__':

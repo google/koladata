@@ -46,7 +46,7 @@ def _bag_fn(f):
 class MapReduceUpdateTest(parameterized.TestCase):
 
   def test_simple(self):
-    fn = _bag_fn(lambda x: user_facing_kd.attrs(x, y=x.a + 1))  # pyrefly: ignore[missing-attribute]
+    fn = _bag_fn(lambda x: user_facing_kd.attrs(x, y=x.a + 1))
     x = fns.new(a=ds([1, 2, 3]))
     update_bag = kd.functor.map_reduce_update(fn, x=x)
     self.assertIsInstance(update_bag, data_bag.DataBag)
@@ -56,14 +56,14 @@ class MapReduceUpdateTest(parameterized.TestCase):
   def test_lambda(self):
     x = fns.new(a=ds([1, 2]))
     update_bag = kd.functor.map_reduce_update(
-        lambda x: user_facing_kd.attrs(x, y=x.a * 2), x=x  # pyrefly: ignore[missing-attribute]
+        lambda x: user_facing_kd.attrs(x, y=x.a * 2), x=x
     )
     self.assertIsInstance(update_bag, data_bag.DataBag)
     x_updated = x.updated(update_bag)
     testing.assert_equal(x_updated.y.no_bag(), ds([2, 4]))
 
   def test_item(self):
-    fn = _bag_fn(lambda x: user_facing_kd.attrs(x, y=x.a + 10))  # pyrefly: ignore[missing-attribute]
+    fn = _bag_fn(lambda x: user_facing_kd.attrs(x, y=x.a + 10))
     x = fns.new(a=5)
     update_bag = kd.functor.map_reduce_update(fn, x=x)
     self.assertIsInstance(update_bag, data_bag.DataBag)
@@ -71,7 +71,7 @@ class MapReduceUpdateTest(parameterized.TestCase):
     testing.assert_equal(x_updated.y.no_bag(), ds(15))
 
   def test_include_missing(self):
-    fn = _bag_fn(lambda x: user_facing_kd.attrs(x, y=1))  # pyrefly: ignore[missing-attribute]
+    fn = _bag_fn(lambda x: user_facing_kd.attrs(x, y=1))
     x = fns.new(a=ds([1, None]))
     update_bag = kd.functor.map_reduce_update(fn, x=x, include_missing=False)
     x_updated = x.updated(update_bag)
@@ -86,15 +86,15 @@ class MapReduceUpdateTest(parameterized.TestCase):
     self.assertEqual(repr(update_bag), 'DataBag(null)')
 
   def test_empty_input(self):
-    fn = _bag_fn(lambda x: user_facing_kd.attrs(x, y=x.a + 1))  # pyrefly: ignore[missing-attribute]
+    fn = _bag_fn(lambda x: user_facing_kd.attrs(x, y=x.a + 1))
     x = fns.new(a=ds([], schema=user_facing_kd.INT32))
     update_bag = kd.functor.map_reduce_update(fn, x=x)
     # Empty input produces a null DataBag.
     self.assertEqual(repr(update_bag), 'DataBag(null)')
 
   def test_different_shapes(self):
-    fn1 = _bag_fn(lambda x: user_facing_kd.attrs(x, y=x.a + 1))  # pyrefly: ignore[missing-attribute]
-    fn2 = _bag_fn(lambda x: user_facing_kd.attrs(x, y=x.a * 10))  # pyrefly: ignore[missing-attribute]
+    fn1 = _bag_fn(lambda x: user_facing_kd.attrs(x, y=x.a + 1))
+    fn2 = _bag_fn(lambda x: user_facing_kd.attrs(x, y=x.a * 10))
     x = fns.new(a=ds([3, 5]))
     update_bag = kd.functor.map_reduce_update(ds([fn1, fn2]), x=x)
     x_updated = x.updated(update_bag)
@@ -102,7 +102,7 @@ class MapReduceUpdateTest(parameterized.TestCase):
 
   def test_return_non_databag_error(self):
     # map_reduce_update requires functor to return DataBag, not DataSlice.
-    fn = kdf.fn(I.x + 1)  # pyrefly: ignore[unsupported-operation]
+    fn = kdf.fn(I.x + 1)
     x = ds([1, 2, 3])
     with self.assertRaisesRegex(
         ValueError,
@@ -114,7 +114,7 @@ class MapReduceUpdateTest(parameterized.TestCase):
       _ = kd.functor.map_reduce_update(fn, x=x)
 
   def test_incompatible_shapes(self):
-    fn = _bag_fn(lambda x: user_facing_kd.attrs(x, y=1))  # pyrefly: ignore[missing-attribute]
+    fn = _bag_fn(lambda x: user_facing_kd.attrs(x, y=1))
     fn = ds([fn, fn])
     x = fns.new(a=ds([1, 2, 3]))
     with self.assertRaisesRegex(
@@ -129,10 +129,10 @@ class MapReduceUpdateTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, re.escape('expected a functor DATA_SLICE, got fn: INT32')
     ):
-      kde.functor.map_reduce_update(arolla.int32(1))  # pyrefly: ignore[missing-attribute]
+      kde.functor.map_reduce_update(arolla.int32(1))
 
   def test_multiple_kwargs(self):
-    fn = _bag_fn(lambda x, y: user_facing_kd.attrs(x, z=x.a + y))  # pyrefly: ignore[missing-attribute]
+    fn = _bag_fn(lambda x, y: user_facing_kd.attrs(x, z=x.a + y))
     x = fns.new(a=ds([1, 2]))
     y = ds([10, 20])
     update_bag = kd.functor.map_reduce_update(fn, x=x, y=y)
@@ -144,9 +144,9 @@ class MapReduceUpdateTest(parameterized.TestCase):
     x = fns.new(child=child)
     # A functor can return an update to no longer reachable attributes.
     fn = _bag_fn(
-        lambda x: user_facing_kd.bags.updated(  # pyrefly: ignore[missing-attribute]
-            user_facing_kd.attrs(x, child=None),  # pyrefly: ignore[missing-attribute]
-            user_facing_kd.attrs(x.child, extra=x.child.val + 100),  # pyrefly: ignore[missing-attribute]
+        lambda x: user_facing_kd.bags.updated(
+            user_facing_kd.attrs(x, child=None),
+            user_facing_kd.attrs(x.child, extra=x.child.val + 100),
         )
     )
     update_bag = kd.functor.map_reduce_update(fn, x=x)
@@ -164,7 +164,7 @@ class MapReduceUpdateTest(parameterized.TestCase):
     child = fns.new(val=42)
     x = fns.new(child=ds([child, child]))
     fn = _bag_fn(
-        lambda x: user_facing_kd.attrs(x.child, extra=x.child.val + x.idx)  # pyrefly: ignore[missing-attribute]
+        lambda x: user_facing_kd.attrs(x.child, extra=x.child.val + x.idx)
     )
     x = x.with_attrs(idx=ds([1, 2]))
     with self.assertRaisesRegex(
@@ -175,19 +175,19 @@ class MapReduceUpdateTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.functor.map_reduce_update(I.fn, I.x))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde.functor.map_reduce_update(I.fn, I.x))
     )
 
   def test_alias(self):
     self.assertTrue(
         optools.equiv_to_op(
-            kde.functor.map_reduce_update, kde.map_reduce_update  # pyrefly: ignore[missing-attribute]
+            kde.functor.map_reduce_update, kde.map_reduce_update
         )
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.functor.map_reduce_update(I.fn, x=I.x, y=I.y)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.functor.map_reduce_update(I.fn, x=I.x, y=I.y)),
         'kd.functor.map_reduce_update(I.fn,'
         ' include_missing=DataItem(False, schema: BOOLEAN),'
         ' x=I.x, y=I.y)',

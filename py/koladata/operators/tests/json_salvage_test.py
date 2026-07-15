@@ -27,7 +27,7 @@ from koladata.types import schema_constants
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
-kd = eager_op_utils.operators_container(top_level_arolla_container=kde)  # pyrefly: ignore[bad-argument-type]
+kd = eager_op_utils.operators_container(top_level_arolla_container=kde)
 
 
 # Primary behavior tests for the underlying code are in
@@ -137,7 +137,7 @@ class JsonSalvageTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.json.salvage(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.json.salvage(I.x)))
 
 
 if __name__ == '__main__':

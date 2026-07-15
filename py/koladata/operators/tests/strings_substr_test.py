@@ -251,9 +251,9 @@ class StringsSubstrTest(parameterized.TestCase):
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.strings.substr('hello', 1, 3),  # pyrefly: ignore[missing-attribute]
+        kde.strings.substr('hello', 1, 3),
         arolla.abc.bind_op(
-            kde.strings.substr,  # pyrefly: ignore[missing-attribute]
+            kde.strings.substr,
             literal_operator.literal(data_slice.DataSlice.from_vals('hello')),
             literal_operator.literal(data_slice.DataSlice.from_vals(1)),
             literal_operator.literal(data_slice.DataSlice.from_vals(3)),
@@ -262,7 +262,7 @@ class StringsSubstrTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.strings.substr,  # pyrefly: ignore[missing-attribute]
+        kde.strings.substr,
         QTYPES,
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
@@ -281,13 +281,13 @@ class StringsSubstrTest(parameterized.TestCase):
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.strings.substr(I.x, I.start, I.end)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.strings.substr(I.x, I.start, I.end)),
         'kd.strings.substr(I.x, I.start, I.end)',
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.strings.substr(I.x)))  # pyrefly: ignore[missing-attribute]
-    self.assertTrue(view.has_koda_view(kde.strings.substr(I.x, I.start)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.strings.substr(I.x)))
+    self.assertTrue(view.has_koda_view(kde.strings.substr(I.x, I.start)))
 
 
 if __name__ == '__main__':

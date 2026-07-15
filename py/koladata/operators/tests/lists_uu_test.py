@@ -90,13 +90,13 @@ class ListsUuTest(parameterized.TestCase):
     )
 
   def test_determinism(self):
-    expr = kde.lists.uu([2, 3, 7])  # pyrefly: ignore[missing-attribute]
+    expr = kde.lists.uu([2, 3, 7])
     res_1 = expr.eval()
     res_2 = expr.eval()
     testing.assert_equal(res_1, res_2)
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.lists.uu, kde.uulist))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.lists.uu, kde.uulist))
 
 
 if __name__ == '__main__':

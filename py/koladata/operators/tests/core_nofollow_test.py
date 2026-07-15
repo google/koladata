@@ -42,9 +42,9 @@ DATA_SLICE = qtypes.DATA_SLICE
 class CoreNofollowTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (kde.core.nofollow,),  # pyrefly: ignore[missing-attribute]
-      (kde.schema.nofollow_schema,),  # pyrefly: ignore[missing-attribute]
-      (kde.schema.get_nofollowed_schema,),  # pyrefly: ignore[missing-attribute]
+      (kde.core.nofollow,),
+      (kde.schema.nofollow_schema,),
+      (kde.schema.get_nofollowed_schema,),
   )
   def test_qtype_signatures(self, op):
     arolla.testing.assert_qtype_signatures(
@@ -110,19 +110,19 @@ class CoreNofollowTest(parameterized.TestCase):
       kd.follow(ds([1, 2, 3], schema_constants.OBJECT))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.nofollow(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.nofollow(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.nofollow, kde.nofollow))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.core.nofollow, kde.nofollow))
     self.assertTrue(
-        optools.equiv_to_op(kde.schema.nofollow_schema, kde.nofollow_schema)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.schema.nofollow_schema, kde.nofollow_schema)
     )
     self.assertTrue(
         optools.equiv_to_op(
-            kde.schema.get_nofollowed_schema, kde.get_nofollowed_schema  # pyrefly: ignore[missing-attribute]
+            kde.schema.get_nofollowed_schema, kde.get_nofollowed_schema
         )
     )
-    self.assertTrue(optools.equiv_to_op(kde.core.follow, kde.follow))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.core.follow, kde.follow))
 
 
 if __name__ == '__main__':

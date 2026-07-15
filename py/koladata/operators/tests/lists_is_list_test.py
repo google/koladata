@@ -92,16 +92,16 @@ class ListsIsListTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.lists.is_list,  # pyrefly: ignore[missing-attribute]
+        kde.lists.is_list,
         QTYPES,
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.lists.is_list(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.lists.is_list(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.lists.is_list, kde.is_list))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.lists.is_list, kde.is_list))
 
 
 if __name__ == '__main__':

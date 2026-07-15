@@ -63,12 +63,12 @@ class IterablesFrom1DSliceTest(absltest.TestCase):
   def test_qtype_signatures(self):
     sequence_of_slice = arolla.types.make_sequence_qtype(qtypes.DATA_SLICE)
     iterable_of_slice = expr_eval.eval(
-        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE)  # pyrefly: ignore[missing-attribute]
+        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE)
     )
     self.assertEqual(
         frozenset(
             arolla.testing.detect_qtype_signatures(
-                kde.iterables.from_1d_slice,  # pyrefly: ignore[missing-attribute]
+                kde.iterables.from_1d_slice,
                 possible_qtypes=[
                     qtypes.DATA_SLICE,
                     qtypes.DATA_BAG,
@@ -82,7 +82,7 @@ class IterablesFrom1DSliceTest(absltest.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.iterables.from_1d_slice(I.arg)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.iterables.from_1d_slice(I.arg)))
 
 
 if __name__ == '__main__':

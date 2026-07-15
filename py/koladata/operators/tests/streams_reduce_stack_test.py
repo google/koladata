@@ -20,7 +20,7 @@ from koladata.expr import view
 from koladata.testing import testing
 
 I = kd.I
-ds = kd.slice  # pyrefly: ignore[missing-attribute]
+ds = kd.slice
 kde = kd.lazy
 
 
@@ -79,7 +79,7 @@ class StreamsReduceStackTest(absltest.TestCase):
   def test_data_bag_adoption(self):
     [res] = (
         kde.streams.reduce_stack(
-            kde.streams.make(kd.obj(x=1), kd.obj(x=2)), kd.obj(x=3)  # pyrefly: ignore[missing-attribute]
+            kde.streams.make(kd.obj(x=1), kd.obj(x=2)), kd.obj(x=3)
         )
         .eval()
         .read_all(timeout=1)

@@ -41,14 +41,14 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
     fn = lambda x: x + 1 if x is not None else 0
     val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
 
-    res = expr_eval.eval(kde.py.map_py_on_selected(fn, val > 2, val))  # pyrefly: ignore[missing-attribute]
+    res = expr_eval.eval(kde.py.map_py_on_selected(fn, val > 2, val))
     testing.assert_equal(
         res.no_bag(),
         ds([[None, None, None, 5], [None, None], [8, 9, 10]]),
     )
 
     res = expr_eval.eval(
-        kde.py.map_py_on_selected(fn, kde.masking.has_not(val) | (val > 2), val)  # pyrefly: ignore[missing-attribute]
+        kde.py.map_py_on_selected(fn, kde.masking.has_not(val) | (val > 2), val)
     )
     testing.assert_equal(
         res.no_bag(), ds([[None, None, 0, 5], [0, 0], [8, 9, 10]])
@@ -59,7 +59,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
     val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
     cond = ds([mask_constants.present, None, mask_constants.present])
 
-    res = expr_eval.eval(kde.py.map_py_on_selected(fn, cond, val))  # pyrefly: ignore[missing-attribute]
+    res = expr_eval.eval(kde.py.map_py_on_selected(fn, cond, val))
     testing.assert_equal(
         res.no_bag(), ds([[2, 3, 0, 5], [None, None], [8, 9, 10]])
     )
@@ -72,13 +72,13 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
     cond = ds([[]], schema_constants.MASK)
 
     with self.subTest("no_schema"):
-      res = expr_eval.eval(kde.py.map_py_on_selected(my_fn, cond, val))  # pyrefly: ignore[missing-attribute]
+      res = expr_eval.eval(kde.py.map_py_on_selected(my_fn, cond, val))
       testing.assert_equal(res.no_bag(), ds([[]]))
       self.assertFalse(res.has_bag())
 
     with self.subTest("schema=FLOAT32"):
       res = expr_eval.eval(
-          kde.py.map_py_on_selected(  # pyrefly: ignore[missing-attribute]
+          kde.py.map_py_on_selected(
               my_fn, cond, val, schema=schema_constants.FLOAT32
           )
       )
@@ -87,7 +87,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
 
     with self.subTest("schema=OBJECT"):
       res = expr_eval.eval(
-          kde.py.map_py_on_selected(  # pyrefly: ignore[missing-attribute]
+          kde.py.map_py_on_selected(
               my_fn, cond, val, schema=schema_constants.OBJECT
           )
       )
@@ -102,7 +102,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
     cond = ds([None], schema_constants.MASK)
 
     with self.subTest("no_schema"):
-      res = expr_eval.eval(kde.py.map_py_on_selected(my_fn, cond, val))  # pyrefly: ignore[missing-attribute]
+      res = expr_eval.eval(kde.py.map_py_on_selected(my_fn, cond, val))
       testing.assert_equal(
           res.no_bag(), ds([[None]], schema=schema_constants.NONE)
       )
@@ -110,7 +110,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
 
     with self.subTest("schema=FLOAT32"):
       res = expr_eval.eval(
-          kde.py.map_py_on_selected(  # pyrefly: ignore[missing-attribute]
+          kde.py.map_py_on_selected(
               my_fn, cond, val, schema=schema_constants.FLOAT32
           )
       )
@@ -119,7 +119,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
 
     with self.subTest("schema=OBJECT"):
       res = expr_eval.eval(
-          kde.py.map_py_on_selected(  # pyrefly: ignore[missing-attribute]
+          kde.py.map_py_on_selected(
               my_fn, cond, val, schema=schema_constants.OBJECT
           )
       )
@@ -135,7 +135,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
             "expected a mask, got cond: INT32"
         ),
     ):
-      expr_eval.eval(kde.py.map_py_on_selected(fn, val, val))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.py.map_py_on_selected(fn, val, val))
 
   def test_error_no_inputs(self):
     fn = lambda _: None
@@ -146,7 +146,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
             "expected at least one input DataSlice, got none"
         ),
     ):
-      expr_eval.eval(kde.py.map_py_on_selected(fn, cond))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.py.map_py_on_selected(fn, cond))
 
   def test_error_higher_dimension_cond(self):
     fn = lambda _: None
@@ -158,7 +158,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
             " `kwargs`"
         ),
     ):
-      expr_eval.eval(kde.py.map_py_on_selected(fn, val.repeat(1) > 2, val))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.py.map_py_on_selected(fn, val.repeat(1) > 2, val))
 
   def test_dict_as_obj(self):
     fn = lambda x: {"a": x, "b": x + 1}
@@ -166,7 +166,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
     cond = val > 2
 
     res = expr_eval.eval(
-        kde.py.map_py_on_selected(fn, cond, val, dict_as_obj=True)  # pyrefly: ignore[missing-attribute]
+        kde.py.map_py_on_selected(fn, cond, val, dict_as_obj=True)
     )
     # Only items where cond is present are processed.
     self.assertFalse(res.is_dict())
@@ -175,17 +175,17 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.py.map_py_on_selected(I.fn, I.cond, I.arg))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde.py.map_py_on_selected(I.fn, I.cond, I.arg))
     )
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.py.map_py_on_selected, kde.map_py_on_selected)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.py.map_py_on_selected, kde.map_py_on_selected)
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.py.map_py_on_selected(I.fn, I.cond, I.x, a=I.a)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.py.map_py_on_selected(I.fn, I.cond, I.x, a=I.a)),
         "kd.py.map_py_on_selected(I.fn, I.cond, I.x, schema=DataItem(None,"
         " schema: NONE), max_threads=DataItem(1, schema: INT32),"
         " dict_as_obj=DataItem(False, schema: BOOLEAN),"

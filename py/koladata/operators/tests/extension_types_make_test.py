@@ -33,7 +33,7 @@ kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 bag = data_bag.DataBag.empty
 
-M = arolla.M | objects.M  # pyrefly: ignore[unsupported-operation]
+M = arolla.M | objects.M
 
 
 @extension_types.extension_type()
@@ -48,17 +48,17 @@ A_qtype = extension_type_registry.get_extension_qtype(A)
 class ExtensionTypesMakeTest(parameterized.TestCase):
 
   def test_make_empty(self):
-    result = expr_eval.eval(kde.extension_types.make(A_qtype))  # pyrefly: ignore[missing-attribute]
+    result = expr_eval.eval(kde.extension_types.make(A_qtype))
     expected = expr_eval.eval(
-        kde.extension_types.wrap(objects.Object(), A_qtype)  # pyrefly: ignore[missing-attribute]
+        kde.extension_types.wrap(objects.Object(), A_qtype)
     )
     testing.assert_equal(result, expected)
 
   def test_make_no_prototype(self):
     db = bag()
-    result = expr_eval.eval(kde.extension_types.make(A_qtype, x=1, y=db))  # pyrefly: ignore[missing-attribute]
+    result = expr_eval.eval(kde.extension_types.make(A_qtype, x=1, y=db))
     expected = expr_eval.eval(
-        kde.extension_types.wrap(objects.Object(x=ds(1), y=db), A_qtype)  # pyrefly: ignore[missing-attribute]
+        kde.extension_types.wrap(objects.Object(x=ds(1), y=db), A_qtype)
     )
     testing.assert_equal(result, expected)
 
@@ -66,10 +66,10 @@ class ExtensionTypesMakeTest(parameterized.TestCase):
     prototype = objects.Object(a=arolla.int32(1))
     db = bag()
     result = expr_eval.eval(
-        kde.extension_types.make(A_qtype, prototype, x=1, y=db)  # pyrefly: ignore[missing-attribute]
+        kde.extension_types.make(A_qtype, prototype, x=1, y=db)
     )
     expected = expr_eval.eval(
-        kde.extension_types.wrap(  # pyrefly: ignore[missing-attribute]
+        kde.extension_types.wrap(
             objects.Object(prototype, x=ds(1), y=db), A_qtype
         )
     )
@@ -79,15 +79,15 @@ class ExtensionTypesMakeTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, re.escape("expected OBJECT, got prototype: DATA_SLICE")
     ):
-      kde.extension_types.make(A_qtype, ds(1))  # pyrefly: ignore[missing-attribute]
+      kde.extension_types.make(A_qtype, ds(1))
 
   def test_view(self):
-    self.assertFalse(view.has_koda_view(kde.extension_types.make(A_qtype)))  # pyrefly: ignore[missing-attribute]
+    self.assertFalse(view.has_koda_view(kde.extension_types.make(A_qtype)))
     # Has the view of the ext QType.
-    self.assertTrue(hasattr(kde.extension_types.make(A_qtype), "x"))  # pyrefly: ignore[missing-attribute]
-    self.assertFalse(hasattr(kde.extension_types.make(A_qtype), "z"))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(hasattr(kde.extension_types.make(A_qtype), "x"))
+    self.assertFalse(hasattr(kde.extension_types.make(A_qtype), "z"))
     self.assertTrue(
-        hasattr(kde.extension_types.make(A_qtype, x=I.x, y=I.y), "x")  # pyrefly: ignore[missing-attribute]
+        hasattr(kde.extension_types.make(A_qtype, x=I.x, y=I.y), "x")
     )
 
 

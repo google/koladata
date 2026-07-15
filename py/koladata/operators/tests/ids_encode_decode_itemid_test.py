@@ -81,21 +81,21 @@ class IdsEncodeDecodeItemIdTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.ids.encode_itemid,  # pyrefly: ignore[missing-attribute]
+        kde.ids.encode_itemid,
         [(DATA_SLICE, DATA_SLICE)],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.ids.encode_itemid(I.ds)))  # pyrefly: ignore[missing-attribute]
-    self.assertTrue(view.has_koda_view(kde.ids.decode_itemid(I.ds)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.ids.encode_itemid(I.ds)))
+    self.assertTrue(view.has_koda_view(kde.ids.decode_itemid(I.ds)))
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.ids.encode_itemid, kde.encode_itemid)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.ids.encode_itemid, kde.encode_itemid)
     )
     self.assertTrue(
-        optools.equiv_to_op(kde.ids.decode_itemid, kde.decode_itemid)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.ids.decode_itemid, kde.decode_itemid)
     )
 
 

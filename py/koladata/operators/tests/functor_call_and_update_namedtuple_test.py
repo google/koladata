@@ -37,7 +37,7 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
 
   def test_simple(self):
     fn = functor_factories.expr_fn(
-        returns=kde.namedtuple(x=I.x * 2),  # pyrefly: ignore[missing-attribute, unsupported-operation]
+        returns=kde.namedtuple(x=I.x * 2),
     )
     testing.assert_equal(
         kd.functor.call_and_update_namedtuple(
@@ -54,7 +54,7 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
     )
 
   def test_empty_return(self):
-    fn = functor_factories.expr_fn(returns=kde.namedtuple())  # pyrefly: ignore[missing-attribute]
+    fn = functor_factories.expr_fn(returns=kde.namedtuple())
     testing.assert_equal(
         kd.functor.call_and_update_namedtuple(
             fn, namedtuple_to_update=kd.namedtuple(x=1, y=2)
@@ -63,7 +63,7 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
     )
 
   def test_empty_return_empty_to_update(self):
-    fn = functor_factories.expr_fn(returns=kde.namedtuple())  # pyrefly: ignore[missing-attribute]
+    fn = functor_factories.expr_fn(returns=kde.namedtuple())
     testing.assert_equal(
         kd.functor.call_and_update_namedtuple(
             fn, namedtuple_to_update=kd.namedtuple()
@@ -72,7 +72,7 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
     )
 
   def test_full_return(self):
-    fn = functor_factories.expr_fn(returns=kde.namedtuple(y=3, x=5))  # pyrefly: ignore[missing-attribute]
+    fn = functor_factories.expr_fn(returns=kde.namedtuple(y=3, x=5))
     testing.assert_equal(
         kd.functor.call_and_update_namedtuple(
             fn, namedtuple_to_update=kd.namedtuple(x=1, y=2)
@@ -81,7 +81,7 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
     )
 
   def test_non_named_tuple_returned(self):
-    fn = functor_factories.expr_fn(returns=kde.tuple(I.x * 2))  # pyrefly: ignore[missing-attribute, unsupported-operation]
+    fn = functor_factories.expr_fn(returns=kde.tuple(I.x * 2))
     with self.assertRaisesRegex(
         ValueError,
         'the functor must return a namedtuple, but it returned'
@@ -92,7 +92,7 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
       )
 
   def test_non_named_tuple_to_update(self):
-    fn = functor_factories.expr_fn(returns=kde.namedtuple(x=I.x * 2))  # pyrefly: ignore[missing-attribute, unsupported-operation]
+    fn = functor_factories.expr_fn(returns=kde.namedtuple(x=I.x * 2))
     with self.assertRaisesRegex(
         ValueError,
         'expected a namedtuple, got namedtuple_to_update:'
@@ -103,7 +103,7 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
       )
 
   def test_unknown_field_returned(self):
-    fn = functor_factories.expr_fn(returns=kde.namedtuple(z=I.x * 2))  # pyrefly: ignore[missing-attribute, unsupported-operation]
+    fn = functor_factories.expr_fn(returns=kde.namedtuple(z=I.x * 2))
     with self.assertRaisesRegex(
         ValueError,
         'the functor returned a namedtuple with field `z`, but the original'
@@ -115,7 +115,7 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
 
   def test_wrong_type_returned(self):
     fn = functor_factories.expr_fn(
-        returns=kde.namedtuple(x=data_bag.DataBag.empty())  # pyrefly: ignore[missing-attribute]
+        returns=kde.namedtuple(x=data_bag.DataBag.empty())
     )
     with self.assertRaisesRegex(
         ValueError,
@@ -129,7 +129,7 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
   def test_databag_values(self):
     x = fns.new()
     fn = functor_factories.expr_fn(
-        returns=kde.namedtuple(a=kde.attrs(I.x, foo=1)),  # pyrefly: ignore[missing-attribute]
+        returns=kde.namedtuple(a=kde.attrs(I.x, foo=1)),
     )
     res = kd.functor.call_and_update_namedtuple(
         fn,
@@ -142,7 +142,7 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
     testing.assert_equal(x.updated(res['b']).foo.no_bag(), ds(3))
 
   def test_non_determinism(self):
-    fn = functor_factories.expr_fn(returns=kde.namedtuple(a=kde.new()))  # pyrefly: ignore[missing-attribute]
+    fn = functor_factories.expr_fn(returns=kde.namedtuple(a=kde.new()))
     res = kd.tuples.tuple(
         kd.functor.call_and_update_namedtuple(
             fn, namedtuple_to_update=kd.namedtuple(a=0)
@@ -156,14 +156,14 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
     )
 
   def test_cancellable(self):
-    expr = kde.functor.call_and_update_namedtuple(  # pyrefly: ignore[missing-attribute]
+    expr = kde.functor.call_and_update_namedtuple(
         functor_factories.expr_fn(
-            kde.namedtuple(  # pyrefly: ignore[missing-attribute]
-                a=arolla.M.core._identity_with_cancel(I.self, 'cancelled')  # pyrefly: ignore[missing-attribute]
+            kde.namedtuple(
+                a=arolla.M.core._identity_with_cancel(I.self, 'cancelled')
             )
         ),
         x=I.x,
-        namedtuple_to_update=kde.namedtuple(a=0),  # pyrefly: ignore[missing-attribute]
+        namedtuple_to_update=kde.namedtuple(a=0),
     )
     x = ds([1, 2, 3])
     with self.assertRaisesRegex(ValueError, re.escape('cancelled')):
@@ -173,15 +173,15 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'expected a functor DATA_SLICE, got fn: INT32'
     ):
-      kde.functor.call_and_update_namedtuple(  # pyrefly: ignore[missing-attribute]
-          arolla.int32(1), namedtuple_to_update=kde.namedtuple()  # pyrefly: ignore[missing-attribute]
+      kde.functor.call_and_update_namedtuple(
+          arolla.int32(1), namedtuple_to_update=kde.namedtuple()
       )
 
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde.functor.call_and_update_namedtuple(  # pyrefly: ignore[missing-attribute]
-                I.fn, namedtuple_to_update=kde.namedtuple()  # pyrefly: ignore[missing-attribute]
+            kde.functor.call_and_update_namedtuple(
+                I.fn, namedtuple_to_update=kde.namedtuple()
             )
         )
     )
@@ -189,7 +189,7 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(
-            kde.functor.call_and_update_namedtuple(  # pyrefly: ignore[missing-attribute]
+            kde.functor.call_and_update_namedtuple(
                 I.fn, I.x, namedtuple_to_update=I.y, a=I.z
             )
         ),

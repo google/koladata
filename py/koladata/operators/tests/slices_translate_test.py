@@ -181,7 +181,7 @@ class SlicesTranslateTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.slices.translate,  # pyrefly: ignore[missing-attribute]
+        kde.slices.translate,
         QTYPES,
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
@@ -189,12 +189,12 @@ class SlicesTranslateTest(parameterized.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde.slices.translate(I.keys_to, I.keys_from, I.values_from)  # pyrefly: ignore[missing-attribute]
+            kde.slices.translate(I.keys_to, I.keys_from, I.values_from)
         )
     )
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.slices.translate, kde.translate))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.slices.translate, kde.translate))
 
 
 if __name__ == '__main__':

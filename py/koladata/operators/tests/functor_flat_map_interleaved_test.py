@@ -39,16 +39,16 @@ class FlatMapInterleavedTest(absltest.TestCase):
 
     expr = kde.functor.flat_map_interleaved(I.input_seq, I.fn)
 
-    res = expr.eval(input_seq=user_facing_kd.iterables.make(1, 1), fn=py_fn)  # pyrefly: ignore[missing-attribute]
+    res = expr.eval(input_seq=user_facing_kd.iterables.make(1, 1), fn=py_fn)
 
-    testing.assert_equal(res, user_facing_kd.iterables.make(1, 1, 1, 1))  # pyrefly: ignore[missing-attribute]
+    testing.assert_equal(res, user_facing_kd.iterables.make(1, 1, 1, 1))
 
   def test_flat_map_interleaved_keeps_order_within_functor_output(self):
     py_fn = lambda x: kde.iterables.make(x, 2 * x, 3 * x)
 
     expr = kde.functor.flat_map_interleaved(I.input_seq, I.fn)
 
-    res = expr.eval(input_seq=user_facing_kd.iterables.make(1, 10), fn=py_fn)  # pyrefly: ignore[missing-attribute]
+    res = expr.eval(input_seq=user_facing_kd.iterables.make(1, 10), fn=py_fn)
 
     res_list = [x.to_py() for x in res]
 
@@ -57,7 +57,7 @@ class FlatMapInterleavedTest(absltest.TestCase):
     self.assertContainsSubsequence(res_list, [10, 20, 30])
 
   def test_flat_map_interleaved_with_return_type_as(self):
-    py_fn = lambda x: user_facing_kd.iterables.make(x, 2 * x)  # pyrefly: ignore[missing-attribute]
+    py_fn = lambda x: user_facing_kd.iterables.make(x, 2 * x)
 
     expr = kde.functor.flat_map_interleaved(
         I.input_seq,
@@ -74,18 +74,18 @@ class FlatMapInterleavedTest(absltest.TestCase):
     self.assertContainsSubsequence(res_list, [4, 8])
 
   def test_flat_map_interleaved_with_data_bag(self):
-    obj = user_facing_kd.new(a=1)  # pyrefly: ignore[missing-attribute]
-    db1 = user_facing_kd.attrs(obj, a=2)  # pyrefly: ignore[missing-attribute]
-    db2 = user_facing_kd.attrs(obj, a=3)  # pyrefly: ignore[missing-attribute]
+    obj = user_facing_kd.new(a=1)
+    db1 = user_facing_kd.attrs(obj, a=2)
+    db2 = user_facing_kd.attrs(obj, a=3)
 
     def py_fn(x):
-      return kde.iterables.make(x, user_facing_kd.attrs(obj, b=obj.a + 5))  # pyrefly: ignore[missing-attribute]
+      return kde.iterables.make(x, user_facing_kd.attrs(obj, b=obj.a + 5))
 
     expr = kde.functor.flat_map_interleaved(
         I.input_seq, I.fn, value_type_as=data_bag.DataBag
     )
 
-    res = expr.eval(input_seq=user_facing_kd.iterables.make(db1, db2), fn=py_fn)  # pyrefly: ignore[missing-attribute]
+    res = expr.eval(input_seq=user_facing_kd.iterables.make(db1, db2), fn=py_fn)
 
     res = expr_eval.eval(
         kde_internal.iterables.to_sequence(I.input_seq), input_seq=res
@@ -102,18 +102,18 @@ class FlatMapInterleavedTest(absltest.TestCase):
     )
 
   def test_flat_map_interleaved_with_data_bag_input_as_data_slice(self):
-    obj = user_facing_kd.new(a=1, b=2)  # pyrefly: ignore[missing-attribute]
+    obj = user_facing_kd.new(a=1, b=2)
 
     def py_fn(x):
       return kde.iterables.make(
-          user_facing_kd.attrs(x, a=x.a + 1), user_facing_kd.attrs(x, b=x.b + 5)  # pyrefly: ignore[missing-attribute]
+          user_facing_kd.attrs(x, a=x.a + 1), user_facing_kd.attrs(x, b=x.b + 5)
       )
 
     expr = kde.functor.flat_map_interleaved(
         I.input_seq, I.fn, value_type_as=data_bag.DataBag
     )
 
-    res = expr.eval(input_seq=user_facing_kd.iterables.make(obj, obj), fn=py_fn)  # pyrefly: ignore[missing-attribute]
+    res = expr.eval(input_seq=user_facing_kd.iterables.make(obj, obj), fn=py_fn)
 
     res = expr_eval.eval(
         kde_internal.iterables.to_sequence(I.input_seq), input_seq=res
@@ -130,7 +130,7 @@ class FlatMapInterleavedTest(absltest.TestCase):
     )
 
   def test_flat_map_interleaved_wrong_return_type_as(self):
-    py_fn = lambda x: user_facing_kd.iterables.make(x, 2 * x)  # pyrefly: ignore[missing-attribute]
+    py_fn = lambda x: user_facing_kd.iterables.make(x, 2 * x)
 
     expr = kde.functor.flat_map_interleaved(
         I.input_seq,
@@ -146,35 +146,35 @@ class FlatMapInterleavedTest(absltest.TestCase):
       _ = expr.eval(input_seq=iterable_qvalue.Iterable(*range(2, 5)), fn=py_fn)
 
   def test_flat_map_interleaved_empty_iterable(self):
-    py_fn = lambda x: user_facing_kd.iterables.make(x, 2 * x)  # pyrefly: ignore[missing-attribute]
+    py_fn = lambda x: user_facing_kd.iterables.make(x, 2 * x)
 
     expr = kde.functor.flat_map_interleaved(
         I.input_seq,
         I.fn,
     )
 
-    res = expr.eval(input_seq=user_facing_kd.iterables.make(), fn=py_fn)  # pyrefly: ignore[missing-attribute]
+    res = expr.eval(input_seq=user_facing_kd.iterables.make(), fn=py_fn)
 
-    testing.assert_equal(res, user_facing_kd.iterables.make())  # pyrefly: ignore[missing-attribute]
+    testing.assert_equal(res, user_facing_kd.iterables.make())
 
   def test_flat_map_interleaved_fn_returns_empty_iterable(self):
-    py_fn = lambda x: user_facing_kd.iterables.make()  # pyrefly: ignore[missing-attribute]
+    py_fn = lambda x: user_facing_kd.iterables.make()
 
     expr = kde.functor.flat_map_interleaved(
         I.input_seq,
         I.fn,
     )
 
-    res = expr.eval(input_seq=user_facing_kd.iterables.make(1, 2, 3), fn=py_fn)  # pyrefly: ignore[missing-attribute]
+    res = expr.eval(input_seq=user_facing_kd.iterables.make(1, 2, 3), fn=py_fn)
 
-    testing.assert_equal(res, user_facing_kd.iterables.make())  # pyrefly: ignore[missing-attribute]
+    testing.assert_equal(res, user_facing_kd.iterables.make())
 
   def test_non_iterable(self):
     with self.assertRaisesRegex(
         ValueError,
         'expected an iterable type, got iterable: DATA_SLICE',
     ):
-      py_fn = lambda x: user_facing_kd.iterables.make(x, 2 * x)  # pyrefly: ignore[missing-attribute]
+      py_fn = lambda x: user_facing_kd.iterables.make(x, 2 * x)
 
       expr = kde.functor.flat_map_interleaved(I.input_seq, I.fn)
       _ = expr.eval(input_seq=kde.slice([1, 2, 3]).eval(), fn=py_fn)
@@ -187,7 +187,7 @@ class FlatMapInterleavedTest(absltest.TestCase):
       expr = kde.functor.flat_map_interleaved(I.input_seq, I.fn)
       _ = expr.eval(
           input_seq=iterable_qvalue.Iterable(*range(2, 5)),
-          fn=user_facing_kd.iterables.make(1, 2, 3),  # pyrefly: ignore[missing-attribute]
+          fn=user_facing_kd.iterables.make(1, 2, 3),
       )
 
   def test_fn_does_not_return_iterable(self):

@@ -107,19 +107,19 @@ class DictsWithDictUpdateTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.dicts.with_dict_update,  # pyrefly: ignore[missing-attribute]
+        kde.dicts.with_dict_update,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.dicts.with_dict_update(I.x, I.keys, I.attrs))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde.dicts.with_dict_update(I.x, I.keys, I.attrs))
     )
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.dicts.with_dict_update, kde.with_dict_update)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.dicts.with_dict_update, kde.with_dict_update)
     )
 
 

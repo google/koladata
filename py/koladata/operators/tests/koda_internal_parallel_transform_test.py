@@ -182,7 +182,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
       )
 
     fn = functor_factories.trace_py_fn(
-        lambda x, y: user_facing_kd.iterables.chain(x, y)  # pylint: disable=unnecessary-lambda  # pyrefly: ignore[missing-attribute]
+        lambda x, y: user_facing_kd.iterables.chain(x, y)  # pylint: disable=unnecessary-lambda
     )
     executor = expr_eval.eval(kde_internal.parallel.get_eager_executor())
     config = expr_eval.eval(
@@ -441,7 +441,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
       return arolla.tuple(y, x)
 
     fn = functor_factories.trace_py_fn(
-        lambda x, y: user_facing_kd.tuple(x, y)  # pylint: disable=unnecessary-lambda  # pyrefly: ignore[missing-attribute]
+        lambda x, y: user_facing_kd.tuple(x, y)  # pylint: disable=unnecessary-lambda
     )
     config = expr_eval.eval(
         kde_internal.parallel.create_transform_config(

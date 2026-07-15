@@ -47,8 +47,8 @@ class FunctorCallTest(parameterized.TestCase):
 
   def test_call_simple(self):
     fn = functor_factories.expr_fn(
-        returns=I.x + V.foo,  # pyrefly: ignore[unsupported-operation]
-        foo=I.y * I.x,  # pyrefly: ignore[unsupported-operation]
+        returns=I.x + V.foo,
+        foo=I.y * I.x,
     )
     testing.assert_equal(kd.call(fn, x=2, y=3), ds(8))
     # Unused inputs are ignored with the "default" signature.
@@ -63,7 +63,7 @@ class FunctorCallTest(parameterized.TestCase):
 
   def test_call_explicit_signature(self):
     fn = functor_factories.expr_fn(
-        returns=I.x + V.foo,  # pyrefly: ignore[unsupported-operation]
+        returns=I.x + V.foo,
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
@@ -111,7 +111,7 @@ class FunctorCallTest(parameterized.TestCase):
 
   def test_var_positional(self):
     fn = functor_factories.expr_fn(
-        returns=kde.tuples.get_nth(I.x, 1),  # pyrefly: ignore[missing-attribute]
+        returns=kde.tuples.get_nth(I.x, 1),
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.VAR_POSITIONAL
@@ -122,7 +122,7 @@ class FunctorCallTest(parameterized.TestCase):
 
   def test_var_keyword(self):
     fn = functor_factories.expr_fn(
-        returns=arolla.M.namedtuple.get_field(I.x, 'y'),  # pyrefly: ignore[missing-attribute]
+        returns=arolla.M.namedtuple.get_field(I.x, 'y'),
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.VAR_KEYWORD
@@ -163,7 +163,7 @@ class FunctorCallTest(parameterized.TestCase):
 
   def test_call_eval_error(self):
     fn = functor_factories.expr_fn(
-        returns=arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
+        returns=arolla.M.annotation.source_location(
             I.x.foo,
             arolla.namedtuple(
                 function_name='test_function',
@@ -184,7 +184,7 @@ class FunctorCallTest(parameterized.TestCase):
         ds(57),
     )
     try:
-      expr_eval.eval(kde.call(fn, fns.new(bar=57)))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.call(fn, fns.new(bar=57)))
     except ValueError as e:
       ex = e
 
@@ -194,7 +194,7 @@ class FunctorCallTest(parameterized.TestCase):
     self.assertIn('py/koladata/expr/expr_eval.py', tb)
 
   def test_call_non_dataslice_inputs(self):
-    fn = functor_factories.expr_fn(kde.tuples.get_nth(I.x, 1))  # pyrefly: ignore[missing-attribute]
+    fn = functor_factories.expr_fn(kde.tuples.get_nth(I.x, 1))
     testing.assert_equal(
         kd.call(fn, x=arolla.tuple(ds(1), ds(2), ds(3))), ds(2)
     )
@@ -240,16 +240,16 @@ class FunctorCallTest(parameterized.TestCase):
     )
 
   def test_call_with_functor_as_input(self):
-    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
+    fn = functor_factories.expr_fn(I.x + I.y)
     testing.assert_equal(
-        expr_eval.eval(kde.call(I.fn, x=I.u, y=I.v), fn=fn, u=2, v=3), ds(5)  # pyrefly: ignore[missing-attribute]
+        expr_eval.eval(kde.call(I.fn, x=I.u, y=I.v), fn=fn, u=2, v=3), ds(5)
     )
 
   def test_call_with_computed_functor(self):
-    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
+    fn = functor_factories.expr_fn(I.x + I.y)
     testing.assert_equal(
         expr_eval.eval(
-            kde.call(I.my_functors.fn, x=I.u, y=I.v),  # pyrefly: ignore[missing-attribute]
+            kde.call(I.my_functors.fn, x=I.u, y=I.v),
             my_functors=fns.new(fn=fn),
             u=2,
             v=3,
@@ -259,32 +259,32 @@ class FunctorCallTest(parameterized.TestCase):
 
   def test_qtype_deduction_without_fn(self):
     testing.assert_equal(
-        kde.call(I.fn, x=I.u, y=I.v).qtype,  # pyrefly: ignore[missing-attribute]
+        kde.call(I.fn, x=I.u, y=I.v).qtype,
         qtypes.DATA_SLICE,
     )
     testing.assert_equal(
-        kde.call(I.fn, x=I.u, y=I.v, return_type_as=kde.tuple(5, 7)).qtype,  # pyrefly: ignore[missing-attribute]
+        kde.call(I.fn, x=I.u, y=I.v, return_type_as=kde.tuple(5, 7)).qtype,
         arolla.make_tuple_qtype(qtypes.DATA_SLICE, qtypes.DATA_SLICE),
     )
 
   def test_non_determinism(self):
-    fn = functor_factories.fn(kde.new(a=42, schema='new'))  # pyrefly: ignore[missing-attribute]
+    fn = functor_factories.fn(kde.new(a=42, schema='new'))
 
-    expr = kde.tuple(kde.call(fn), kde.call(fn))  # pyrefly: ignore[missing-attribute]
+    expr = kde.tuple(kde.call(fn), kde.call(fn))
     res = expr_eval.eval(expr)
     self.assertNotEqual(res[0].no_bag(), res[1].no_bag())
     testing.assert_equal(res[0].a.no_bag(), res[1].a.no_bag())
 
-    expr = kde.call(fn, x=ds(None))  # pyrefly: ignore[missing-attribute]
+    expr = kde.call(fn, x=ds(None))
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
     self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
     testing.assert_equal(res_1.a.no_bag(), res_2.a.no_bag())
 
   def test_cancellable(self):
-    expr = kde.call(  # pyrefly: ignore[missing-attribute]
+    expr = kde.call(
         functor_factories.expr_fn(
-            arolla.M.core._identity_with_cancel(I.self, 'cancelled')  # pyrefly: ignore[missing-attribute]
+            arolla.M.core._identity_with_cancel(I.self, 'cancelled')
         ),
         x=I.x,
     )
@@ -296,53 +296,53 @@ class FunctorCallTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'expected a functor DATA_SLICE, got fn: INT32'
     ):
-      kde.functor.call(arolla.int32(1)).eval()  # pyrefly: ignore[missing-attribute]
+      kde.functor.call(arolla.int32(1)).eval()
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.call(I.fn)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.call(I.fn)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.functor.call, kde.call))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.functor.call, kde.call))
 
   @parameterized.parameters(
-      (kde.functor.call(I.fn), 'I.fn()'),  # pyrefly: ignore[missing-attribute]
-      (kde.functor.call(I.fn, I.x), 'I.fn(I.x)'),  # pyrefly: ignore[missing-attribute]
+      (kde.functor.call(I.fn), 'I.fn()'),
+      (kde.functor.call(I.fn, I.x), 'I.fn(I.x)'),
       (
-          kde.functor.call(I.fn, ds(1)),  # pyrefly: ignore[missing-attribute]
+          kde.functor.call(I.fn, ds(1)),
           'I.fn(DataItem(1, schema: INT32))',
       ),
       (
-          kde.functor.call(I.fn, I.x, ds(1)),  # pyrefly: ignore[missing-attribute]
+          kde.functor.call(I.fn, I.x, ds(1)),
           'I.fn(I.x, DataItem(1, schema: INT32))',
       ),
       (
-          kde.functor.call(I.fn, I.x, return_type_as=I.y),  # pyrefly: ignore[missing-attribute]
+          kde.functor.call(I.fn, I.x, return_type_as=I.y),
           'I.fn(I.x, return_type_as=I.y)',
       ),
-      (kde.functor.call(I.fn, a=I.x), 'I.fn(a=I.x)'),  # pyrefly: ignore[missing-attribute]
-      (kde.functor.call(I.fn, a=ds(1)), 'I.fn(a=DataItem(1, schema: INT32))'),  # pyrefly: ignore[missing-attribute]
+      (kde.functor.call(I.fn, a=I.x), 'I.fn(a=I.x)'),
+      (kde.functor.call(I.fn, a=ds(1)), 'I.fn(a=DataItem(1, schema: INT32))'),
       (
-          kde.functor.call(I.fn, return_type_as=I.y, a=ds(1)),  # pyrefly: ignore[missing-attribute]
+          kde.functor.call(I.fn, return_type_as=I.y, a=ds(1)),
           'I.fn(a=DataItem(1, schema: INT32), return_type_as=I.y)',
       ),
       (
-          kde.functor.call(I.fn, a=I.x, b=ds(1)),  # pyrefly: ignore[missing-attribute]
+          kde.functor.call(I.fn, a=I.x, b=ds(1)),
           'I.fn(a=I.x, b=DataItem(1, schema: INT32))',
       ),
       (
-          kde.functor.call(I.fn, I.x, I.y, a=I.z),  # pyrefly: ignore[missing-attribute]
+          kde.functor.call(I.fn, I.x, I.y, a=I.z),
           'I.fn(I.x, I.y, a=I.z)',
       ),
       (
-          kde.functor.call(I.fn, I.x, I.y, a=I.z, return_type_as=I.w),  # pyrefly: ignore[missing-attribute]
+          kde.functor.call(I.fn, I.x, I.y, a=I.z, return_type_as=I.w),
           'I.fn(I.x, I.y, a=I.z, return_type_as=I.w)',
       ),
       (
-          kde.functor.call(I.fn, I.x, I.y, a=I.z, return_type_as=I.w, b=I.v),  # pyrefly: ignore[missing-attribute]
+          kde.functor.call(I.fn, I.x, I.y, a=I.z, return_type_as=I.w, b=I.v),
           'I.fn(I.x, I.y, a=I.z, b=I.v, return_type_as=I.w)',
       ),
       (
-          kde.functor.call(  # pyrefly: ignore[missing-attribute]
+          kde.functor.call(
               functor_factories.trace_py_fn(lambda x: x + 1), ds(1)
           ),
           (
@@ -359,9 +359,9 @@ class FunctorCallTest(parameterized.TestCase):
       # Test fallbacks to default repr
       (
           arolla.abc.bind_op(
-              kde.functor.call,  # pyrefly: ignore[missing-attribute]
-              arolla.M.core.concat_tuples(  # pyrefly: ignore[missing-attribute]
-                  arolla.M.core.make_tuple(I.x), arolla.M.core.make_tuple(I.y)  # pyrefly: ignore[missing-attribute]
+              kde.functor.call,
+              arolla.M.core.concat_tuples(
+                  arolla.M.core.make_tuple(I.x), arolla.M.core.make_tuple(I.y)
               ),
               _non_deterministic_token=py_boxing.NON_DETERMINISTIC_TOKEN_LEAF,
           ),
@@ -373,8 +373,8 @@ class FunctorCallTest(parameterized.TestCase):
       ),
       (
           arolla.abc.bind_op(
-              kde.functor.call,  # pyrefly: ignore[missing-attribute]
-              arolla.M.core.make_tuple(I.x),  # pyrefly: ignore[missing-attribute]
+              kde.functor.call,
+              arolla.M.core.make_tuple(I.x),
               ds(1),
               ds(2),
               _non_deterministic_token=py_boxing.NON_DETERMINISTIC_TOKEN_LEAF,

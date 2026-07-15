@@ -33,7 +33,7 @@ bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 kde_internal = kde_operators.internal
 kd_internal = eager_op_utils.operators_container(
-    top_level_arolla_container=kde_internal  # pyrefly: ignore[bad-argument-type]
+    top_level_arolla_container=kde_internal
 )
 
 
@@ -90,14 +90,14 @@ class KodaToArollaDenseArrayTextTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde_internal.to_arolla_dense_array_text,  # pyrefly: ignore[missing-attribute]
+        kde_internal.to_arolla_dense_array_text,
         [(qtypes.DATA_SLICE, arolla.DENSE_ARRAY_TEXT)],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
     self.assertFalse(
-        view.has_koda_view(kde_internal.to_arolla_dense_array_text(I.x))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde_internal.to_arolla_dense_array_text(I.x))
     )
 
 

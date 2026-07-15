@@ -173,14 +173,14 @@ class KodaUuSchemaTest(parameterized.TestCase):
       _ = kde.schema.uu_schema(a=schema_constants.INT32, b=arolla.unspecified())
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.uu_schema(I.seed)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.schema.uu_schema(I.seed)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.schema.uu_schema, kde.uu_schema))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.schema.uu_schema, kde.uu_schema))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.schema.uu_schema(a=I.a)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.schema.uu_schema(a=I.a)),
         "kd.schema.uu_schema(DataItem('', schema: STRING), a=I.a)",
     )
 

@@ -56,7 +56,7 @@ class ShapesFromArollaShapeTest(parameterized.TestCase):
   )
   def test_eval(self, shape, expected_res):
     res = expr_eval.eval(
-        kde_internal.from_arolla_jagged_shape(I.shape), shape=shape  # pyrefly: ignore[missing-attribute]
+        kde_internal.from_arolla_jagged_shape(I.shape), shape=shape
     )
     testing.assert_equal(res, expected_res)
 
@@ -66,13 +66,13 @@ class ShapesFromArollaShapeTest(parameterized.TestCase):
         'expected JAGGED_DENSE_ARRAY_SHAPE, got shape: JAGGED_ARRAY_SHAPE',
     ):
       expr_eval.eval(
-          kde_internal.from_arolla_jagged_shape(I.shape),  # pyrefly: ignore[missing-attribute]
+          kde_internal.from_arolla_jagged_shape(I.shape),
           shape=create_array_shape(),
       )
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde_internal.from_arolla_jagged_shape,  # pyrefly: ignore[missing-attribute]
+        kde_internal.from_arolla_jagged_shape,
         (
             (
                 arolla_jagged_shape.JAGGED_DENSE_ARRAY_SHAPE,
@@ -85,7 +85,7 @@ class ShapesFromArollaShapeTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde_internal.from_arolla_jagged_shape(I.x))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde_internal.from_arolla_jagged_shape(I.x))
     )
 
 

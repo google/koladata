@@ -185,20 +185,20 @@ class CoreWithAttrTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.with_attr,  # pyrefly: ignore[missing-attribute]
+        kde.core.with_attr,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.with_attr(I.x, I.a, I.y)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.core.with_attr(I.x, I.a, I.y)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.with_attr, kde.with_attr))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.core.with_attr, kde.with_attr))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.with_attr(I.x, I.a, I.y)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.core.with_attr(I.x, I.a, I.y)),
         'kd.core.with_attr(I.x, I.a, I.y, DataItem(False, schema: BOOLEAN))',
     )
 

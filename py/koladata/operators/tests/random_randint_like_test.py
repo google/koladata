@@ -159,7 +159,7 @@ class RandomRandintLikeTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     # Limit the allowed qtypes and a random QType to speed up the test.
     arolla.testing.assert_qtype_signatures(
-        kde.random.randint_like,  # pyrefly: ignore[missing-attribute]
+        kde.random.randint_like,
         QTYPES,
         possible_qtypes=(  # pyrefly: ignore[bad-argument-type]
             arolla.UNSPECIFIED,
@@ -170,7 +170,7 @@ class RandomRandintLikeTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.random.randint_like(I.x, I.low, I.high, I.seed))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde.random.randint_like(I.x, I.low, I.high, I.seed))
     )
 
 

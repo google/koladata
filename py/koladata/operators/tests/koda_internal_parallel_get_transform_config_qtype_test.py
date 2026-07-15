@@ -23,19 +23,19 @@ kde_internal = kde_operators.internal
 class KodaInternalParallelGetTransformConfigQTypeTest(absltest.TestCase):
 
   def test_eval(self):
-    qtype = arolla.eval(kde_internal.parallel.get_transform_config_qtype())  # pyrefly: ignore[missing-attribute]
+    qtype = arolla.eval(kde_internal.parallel.get_transform_config_qtype())
     self.assertEqual(qtype.qtype, arolla.QTYPE)
     self.assertEqual(qtype.name, 'PARALLEL_TRANSFORM_CONFIG')
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde_internal.parallel.get_transform_config_qtype,  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_transform_config_qtype,
         [(arolla.QTYPE,)],
     )
 
   def test_view(self):
     self.assertFalse(
-        view.has_koda_view(kde_internal.parallel.get_transform_config_qtype())  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde_internal.parallel.get_transform_config_qtype())
     )
 
 

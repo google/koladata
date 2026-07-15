@@ -178,11 +178,11 @@ class IterablesInterleaveTest(absltest.TestCase):
       _ = kd.iterables.interleave(ds(1))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.iterables.interleave()))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.iterables.interleave()))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.iterables.interleave(I.a, I.b)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.iterables.interleave(I.a, I.b)),
         'kd.iterables.interleave(I.a, I.b, value_type_as=unspecified)',
     )
 

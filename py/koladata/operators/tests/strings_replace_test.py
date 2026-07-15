@@ -223,7 +223,7 @@ class StringsReplaceTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.strings.replace,  # pyrefly: ignore[missing-attribute]
+        kde.strings.replace,
         QTYPES,
         # Limit the allowed qtypes to speed up the test.
         possible_qtypes=(
@@ -235,7 +235,7 @@ class StringsReplaceTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.strings.replace(I.a, I.b, I.c)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.strings.replace(I.a, I.b, I.c)))
 
 
 if __name__ == '__main__':

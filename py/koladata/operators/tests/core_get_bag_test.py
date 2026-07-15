@@ -51,16 +51,16 @@ class CoreGetBagTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.get_bag,  # pyrefly: ignore[missing-attribute]
+        kde.core.get_bag,
         [(qtypes.DATA_SLICE, qtypes.DATA_BAG)],
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.get_bag(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.core.get_bag(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.get_bag, kde.get_bag))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.core.get_bag, kde.get_bag))
 
 
 if __name__ == '__main__':

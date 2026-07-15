@@ -25,7 +25,7 @@ from koladata.types import qtypes
 
 ds = data_slice.DataSlice.from_vals
 I = input_container.InputContainer('I')
-koda_internal_functor = kde_operators.internal.functor  # pyrefly: ignore[missing-attribute]
+koda_internal_functor = kde_operators.internal.functor
 
 
 class KodaInternalFunctorPackAsLiteralTest(absltest.TestCase):

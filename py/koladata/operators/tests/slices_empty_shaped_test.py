@@ -138,7 +138,7 @@ class SlicesEmptyShapedTest(parameterized.TestCase):
 
     with self.subTest('None shape'):
       with self.assertRaisesRegex(ValueError, 'expected JAGGED_SHAPE'):
-        kde.empty_shaped(None)  # pyrefly: ignore[missing-attribute]
+        kde.empty_shaped(None)
 
     with self.subTest('None schema'):
       with self.assertRaisesRegex(
@@ -148,7 +148,7 @@ class SlicesEmptyShapedTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.slices.empty_shaped,  # pyrefly: ignore[missing-attribute]
+        kde.slices.empty_shaped,
         [
             (qtypes.JAGGED_SHAPE, qtypes.DATA_SLICE),
             (qtypes.JAGGED_SHAPE, qtypes.DATA_SLICE, qtypes.DATA_SLICE),
@@ -157,11 +157,11 @@ class SlicesEmptyShapedTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.empty_shaped(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.slices.empty_shaped(I.x, I.y)))
 
   def test_aliases(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.slices.empty_shaped, kde.empty_shaped)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.slices.empty_shaped, kde.empty_shaped)
     )
 
 

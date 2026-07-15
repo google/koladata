@@ -121,13 +121,13 @@ class DictsUuTest(parameterized.TestCase):
   def test_determinism(self):
     keys = ds([2, 3]).freeze_bag()
     values = ds([3, 7]).freeze_bag()
-    expr = kde.dicts.uu(I.keys, I.values)  # pyrefly: ignore[missing-attribute]
+    expr = kde.dicts.uu(I.keys, I.values)
     res_1 = expr.eval(keys=keys, values=values)
     res_2 = expr.eval(keys=keys, values=values)
     testing.assert_equivalent(res_1, res_2, ids_equality=True)
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.dicts.uu, kde.uudict))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.dicts.uu, kde.uudict))
 
 
 if __name__ == '__main__':

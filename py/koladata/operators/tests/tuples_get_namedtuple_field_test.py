@@ -52,14 +52,14 @@ class TuplesGetNamedtupleFieldTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, namedtuple, field, expected):
-    result = expr_eval.eval(kde.tuples.get_namedtuple_field(namedtuple, field))  # pyrefly: ignore[missing-attribute]
+    result = expr_eval.eval(kde.tuples.get_namedtuple_field(namedtuple, field))
     view_result = expr_eval.eval(view_overloads.get_item(namedtuple, field))
     testing.assert_equal(result, expected)
     testing.assert_equal(view_result, expected)
 
   def test_eval_non_literal_namedtuple(self):
     result = expr_eval.eval(
-        kde.tuples.get_namedtuple_field(I.namedtuple, 'x'),  # pyrefly: ignore[missing-attribute]
+        kde.tuples.get_namedtuple_field(I.namedtuple, 'x'),
         namedtuple=arolla.namedtuple(x=ds(1), y=ds(2), z=ds(3)),
     )
     testing.assert_equal(result, ds(1))
@@ -67,7 +67,7 @@ class TuplesGetNamedtupleFieldTest(parameterized.TestCase):
   def test_non_literal_field_error(self):
     with self.assertRaisesRegex(ValueError, 'field_name must be literal'):
       expr_eval.eval(
-          kde.tuples.get_namedtuple_field(  # pyrefly: ignore[missing-attribute]
+          kde.tuples.get_namedtuple_field(
               arolla.namedtuple(x=ds(1)), I.field_name
           ),
           field_name=ds('x'),
@@ -79,12 +79,12 @@ class TuplesGetNamedtupleFieldTest(parameterized.TestCase):
         re.escape("field_name='y' is not found in namedtuple<x=DATA_SLICE>"),
     ):
       expr_eval.eval(
-          kde.tuples.get_namedtuple_field(arolla.namedtuple(x=ds(1)), 'y')  # pyrefly: ignore[missing-attribute]
+          kde.tuples.get_namedtuple_field(arolla.namedtuple(x=ds(1)), 'y')
       )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.tuples.get_namedtuple_field(I.x, 'x'))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde.tuples.get_namedtuple_field(I.x, 'x'))
     )
 
 

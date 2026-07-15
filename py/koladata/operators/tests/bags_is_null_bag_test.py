@@ -48,16 +48,16 @@ class BagsIsNullBagTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.bags.is_null_bag,  # pyrefly: ignore[missing-attribute]
+        kde.bags.is_null_bag,
         [(qtypes.DATA_BAG, qtypes.DATA_SLICE)],
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.bags.is_null_bag(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.bags.is_null_bag(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.bags.is_null_bag, kde.is_null_bag))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.bags.is_null_bag, kde.is_null_bag))
 
 
 if __name__ == '__main__':

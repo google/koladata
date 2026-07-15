@@ -32,13 +32,13 @@ kde = kde_operators.kde
 class AnnotationWithNameTest(parameterized.TestCase):
 
   def test_basic(self):
-    expr = kde.annotation.with_name(I.x, 'foo')  # pyrefly: ignore[missing-attribute]
+    expr = kde.annotation.with_name(I.x, 'foo')
     self.assertEqual(expr.eval(x=1), 1)
     self.assertIn('foo =', str(expr))
     self.assertEqual(introspection.get_name(expr), 'foo')
 
   def test_proper_boxing(self):
-    expr = kde.annotation.with_name(1, 'foo')  # pyrefly: ignore[missing-attribute]
+    expr = kde.annotation.with_name(1, 'foo')
     self.assertEqual(expr.eval().qtype, qtypes.DATA_SLICE)
     self.assertEqual(expr.eval(), 1)
 
@@ -46,11 +46,11 @@ class AnnotationWithNameTest(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         ValueError, 'expected a TEXT literal, got name: BYTES'
     ):
-      kde.annotation.with_name(1, b'bar')  # pyrefly: ignore[missing-attribute]
+      kde.annotation.with_name(1, b'bar')
 
-  @parameterized.parameters(kde.annotation.with_name, kde.with_name)  # pyrefly: ignore[missing-attribute]
+  @parameterized.parameters(kde.annotation.with_name, kde.with_name)
   def test_tuple_unpacking(self, with_name):
-    expr = kde.tuple(I.x, I.y)  # pyrefly: ignore[missing-attribute]
+    expr = kde.tuple(I.x, I.y)
     wrapped = with_name(expr, 'foo')
 
     x, y = wrapped
@@ -60,11 +60,11 @@ class AnnotationWithNameTest(parameterized.TestCase):
     testing.assert_equal(y.eval(x=x_val, y=y_val), y_val)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.annotation.with_name(I.x, 'foo')))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.annotation.with_name(I.x, 'foo')))
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.annotation.with_name, kde.with_name)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.annotation.with_name, kde.with_name)
     )
 
 

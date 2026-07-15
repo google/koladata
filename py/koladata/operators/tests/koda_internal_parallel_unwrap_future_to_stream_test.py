@@ -76,7 +76,7 @@ class KodaInternalParallelUnwrapFutureToStreamTest(absltest.TestCase):
     res = expr_eval.eval(
         expr,
         stream=expr_eval.eval(kde_internal.parallel.stream_make(1, 2, 3)),
-        body=lambda x: user_facing_kd.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
+        body=lambda x: user_facing_kd.assertion.with_assertion(
             x, x % 2 == 1, 'Must be odd'
         ),
         value_type_as=data_slice.DataSlice,

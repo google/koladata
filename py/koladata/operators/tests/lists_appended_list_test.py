@@ -100,9 +100,9 @@ class KodaAppendedListTest(parameterized.TestCase):
     # Evaluating different identical exprs.
     x = db.list([1, 2]).freeze_bag()
     append = ds([3]).freeze_bag()
-    expr = kde.tuple(  # pyrefly: ignore[missing-attribute]
-        kde.lists.appended_list(x, append),  # pyrefly: ignore[missing-attribute]
-        kde.lists.appended_list(x, append),  # pyrefly: ignore[missing-attribute]
+    expr = kde.tuple(
+        kde.lists.appended_list(x, append),
+        kde.lists.appended_list(x, append),
     )
     self.assertNotEqual(
         expr.node_deps[0].fingerprint, expr.node_deps[1].fingerprint
@@ -111,7 +111,7 @@ class KodaAppendedListTest(parameterized.TestCase):
     self.assertNotEqual(res[0].no_bag(), res[1].no_bag())
 
     # Evaluating same expr twice.
-    expr = kde.lists.appended_list(x, append)  # pyrefly: ignore[missing-attribute]
+    expr = kde.lists.appended_list(x, append)
     res_1 = expr.eval()
     res_2 = expr.eval()
     self.assertNotEqual(
@@ -174,11 +174,11 @@ The cause is the values of attribute 'a' are different: 1 vs 2""",
       _ = kd.lists.appended_list(lst, e)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.lists.appended_list(I.x, I.append)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.lists.appended_list(I.x, I.append)))
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.lists.appended_list, kde.appended_list)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.lists.appended_list, kde.appended_list)
     )
 
 

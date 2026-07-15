@@ -33,7 +33,7 @@ class KodaInternalParallelGetStreamQTypeTest(parameterized.TestCase):
   )
   def test_eval(self, value_qtype):
     stream_qtype = arolla.eval(
-        kde_internal.parallel.get_stream_qtype(arolla.L.arg),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_stream_qtype(arolla.L.arg),
         arg=value_qtype,
     )
     self.assertEqual(stream_qtype.name, f'STREAM[{value_qtype.name}]')
@@ -41,13 +41,13 @@ class KodaInternalParallelGetStreamQTypeTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde_internal.parallel.get_stream_qtype,  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_stream_qtype,
         [(arolla.QTYPE, arolla.QTYPE)],
     )
 
   def test_view(self):
     self.assertFalse(
-        view.has_koda_view(kde_internal.parallel.get_stream_qtype(I.x))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde_internal.parallel.get_stream_qtype(I.x))
     )
 
 

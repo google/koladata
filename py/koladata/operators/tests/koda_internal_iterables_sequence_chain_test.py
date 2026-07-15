@@ -27,8 +27,8 @@ class IterablesInternalSequenceChainTest(absltest.TestCase):
 
   def test_chain(self):
     res = expr_eval.eval(
-        kde_internal.iterables.sequence_chain(  # pyrefly: ignore[missing-attribute]
-            arolla.M.seq.make(arolla.M.seq.make(1, 2), arolla.M.seq.make(3))  # pyrefly: ignore[missing-attribute]
+        kde_internal.iterables.sequence_chain(
+            arolla.M.seq.make(arolla.M.seq.make(1, 2), arolla.M.seq.make(3))
         )
     )
     self.assertIsInstance(res, arolla.types.Sequence)
@@ -41,16 +41,16 @@ class IterablesInternalSequenceChainTest(absltest.TestCase):
 
   def test_chain_empty(self):
     res = expr_eval.eval(
-        kde_internal.iterables.sequence_chain(  # pyrefly: ignore[missing-attribute]
-            arolla.M.seq.slice(arolla.M.seq.make(arolla.M.seq.make(1)), 0, 0)  # pyrefly: ignore[missing-attribute]
+        kde_internal.iterables.sequence_chain(
+            arolla.M.seq.slice(arolla.M.seq.make(arolla.M.seq.make(1)), 0, 0)
         )
     )
     self.assertEmpty(list(res))
 
   def test_chain_with_only_empty_sequence(self):
     res = expr_eval.eval(
-        kde_internal.iterables.sequence_chain(  # pyrefly: ignore[missing-attribute]
-            arolla.M.seq.make(arolla.M.seq.slice(arolla.M.seq.make(1), 0, 0))  # pyrefly: ignore[missing-attribute]
+        kde_internal.iterables.sequence_chain(
+            arolla.M.seq.make(arolla.M.seq.slice(arolla.M.seq.make(1), 0, 0))
         )
     )
     self.assertIsInstance(res, arolla.types.Sequence)
@@ -61,7 +61,7 @@ class IterablesInternalSequenceChainTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'expected a sequence type, got sequences: DATA_SLICE'
     ):
-      _ = expr_eval.eval(kde_internal.iterables.sequence_chain(1))  # pyrefly: ignore[missing-attribute]
+      _ = expr_eval.eval(kde_internal.iterables.sequence_chain(1))
 
   def test_non_sequence_of_sequences_arg(self):
     with self.assertRaisesRegex(
@@ -69,14 +69,14 @@ class IterablesInternalSequenceChainTest(absltest.TestCase):
         'expected a sequence of sequences',
     ):
       _ = expr_eval.eval(
-          kde_internal.iterables.sequence_chain(arolla.M.seq.make(1))  # pyrefly: ignore[missing-attribute]
+          kde_internal.iterables.sequence_chain(arolla.M.seq.make(1))
       )
 
   def test_view(self):
     self.assertFalse(
         view.has_koda_view(
-            kde_internal.iterables.sequence_chain(  # pyrefly: ignore[missing-attribute]
-                arolla.M.seq.make(arolla.M.seq.make(1, 2))  # pyrefly: ignore[missing-attribute]
+            kde_internal.iterables.sequence_chain(
+                arolla.M.seq.make(arolla.M.seq.make(1, 2))
             )
         )
     )

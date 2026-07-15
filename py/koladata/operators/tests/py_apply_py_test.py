@@ -152,14 +152,14 @@ class PyApplyPyTest(parameterized.TestCase):
   # def test_qtype_signatures(self): ...
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.py.apply_py(I.fn, I.cond)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.py.apply_py(I.fn, I.cond)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.py.apply_py, kde.apply_py))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.py.apply_py, kde.apply_py))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.py.apply_py(I.fn, I.x, a=I.a)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.py.apply_py(I.fn, I.x, a=I.a)),
         'kd.py.apply_py(I.fn, I.x, return_type_as=unspecified, a=I.a)',
     )
 

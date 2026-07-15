@@ -149,17 +149,17 @@ class SchemaWithSchemaTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.schema.with_schema,  # pyrefly: ignore[missing-attribute]
+        kde.schema.with_schema,
         [(DATA_SLICE, DATA_SLICE, DATA_SLICE)],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.with_schema(I.x, I.schema)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.schema.with_schema(I.x, I.schema)))
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.schema.with_schema, kde.with_schema)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.schema.with_schema, kde.with_schema)
     )
 
 

@@ -31,9 +31,9 @@ from koladata.types import qtypes
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
-kd = eager_op_utils.operators_container(top_level_arolla_container=kde)  # pyrefly: ignore[bad-argument-type]
+kd = eager_op_utils.operators_container(top_level_arolla_container=kde)
 kd_internal = eager_op_utils.operators_container(
-    top_level_arolla_container=kde_operators.internal  # pyrefly: ignore[bad-argument-type]
+    top_level_arolla_container=kde_operators.internal
 )
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -52,7 +52,7 @@ class JsonStreamSelectNonemptyObjectsTest(parameterized.TestCase):
     executor = kd_internal.parallel.get_default_executor()
     result = parallel_fns.transform(
         functor_factories.expr_fn(
-            returns=kde.json_stream.select_nonempty_objects(I.x)  # pyrefly: ignore[missing-attribute]
+            returns=kde.json_stream.select_nonempty_objects(I.x)
         ),
     )(
         executor,
@@ -86,7 +86,7 @@ class JsonStreamSelectNonemptyObjectsTest(parameterized.TestCase):
     stream, _ = stream_clib.Stream.new(DATA_SLICE)
     result_stream = parallel_fns.transform(
         functor_factories.expr_fn(
-            returns=kde.json_stream.select_nonempty_objects(I.x)  # pyrefly: ignore[missing-attribute]
+            returns=kde.json_stream.select_nonempty_objects(I.x)
         ),
     )(
         kd_internal.parallel.get_default_executor(),
@@ -102,7 +102,7 @@ class JsonStreamSelectNonemptyObjectsTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.json_stream.select_nonempty_objects(I.x))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde.json_stream.select_nonempty_objects(I.x))
     )
 
 

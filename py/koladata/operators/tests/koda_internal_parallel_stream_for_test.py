@@ -76,7 +76,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, other, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+        lambda item, other, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
         returns=1,
@@ -91,7 +91,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+        lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
         condition_fn=lambda returns: returns < 10,
@@ -109,7 +109,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+        lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
         condition_fn=py_fn(condition_fn, return_type_as=condition_fn(ds(0))),
@@ -124,10 +124,10 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+        lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
-        finalize_fn=lambda returns: user_facing_kd.namedtuple(returns=-returns),  # pyrefly: ignore[missing-attribute]
+        finalize_fn=lambda returns: user_facing_kd.namedtuple(returns=-returns),
         returns=1,
     )
     [returns] = product.eval(
@@ -139,10 +139,10 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+        lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
-        finalize_fn=lambda returns: user_facing_kd.namedtuple(returns=-returns),  # pyrefly: ignore[missing-attribute]
+        finalize_fn=lambda returns: user_facing_kd.namedtuple(returns=-returns),
         returns=1,
     )
     [returns] = product.eval(input_seq=delayed_stream_make()).read_all(
@@ -154,7 +154,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+        lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
         condition_fn=lambda returns: returns < 0,
@@ -169,10 +169,10 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+        lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
-        finalize_fn=lambda returns: user_facing_kd.namedtuple(returns=-returns),  # pyrefly: ignore[missing-attribute]
+        finalize_fn=lambda returns: user_facing_kd.namedtuple(returns=-returns),
         condition_fn=lambda returns: returns < 120,
         returns=1,
     )
@@ -185,7 +185,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, other, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+        lambda item, other, returns: user_facing_kd.namedtuple(
             other=other * item,
         ),
         returns=1,
@@ -200,7 +200,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, res: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+        lambda item, res: user_facing_kd.namedtuple(
             yields=kde_internal.parallel.stream_make(res * item),
             res=res * item,
         ),
@@ -218,7 +218,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, res: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+        lambda item, res: user_facing_kd.namedtuple(
             yields_interleaved=kde_internal.parallel.stream_make(res * item),
             res=res * item,
         ),
@@ -236,11 +236,11 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, count: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+        lambda item, count: user_facing_kd.namedtuple(
             yields=kde_internal.parallel.stream_make(item),
             count=count + 1,
         ),
-        finalize_fn=lambda count: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+        finalize_fn=lambda count: user_facing_kd.namedtuple(
             yields=kde_internal.parallel.stream_make(-1)
         ),
         condition_fn=lambda count: (count < 3),
@@ -264,7 +264,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, res: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+        lambda item, res: user_facing_kd.namedtuple(
             res=res * item,
         ),
         res=1,
@@ -281,7 +281,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, res: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+        lambda item, res: user_facing_kd.namedtuple(
             res=res * item,
         ),
         res=1,
@@ -359,18 +359,18 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     many_attrs = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, root, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
-            returns=user_facing_kd.enriched_bag(  # pyrefly: ignore[missing-attribute]
+        lambda item, root, returns: user_facing_kd.namedtuple(
+            returns=user_facing_kd.enriched_bag(
                 returns,
-                user_facing_kd.attr(  # pyrefly: ignore[missing-attribute]
-                    root, user_facing_kd.fstr(f'x{item:s}'), item  # pyrefly: ignore[missing-attribute]
+                user_facing_kd.attr(
+                    root, user_facing_kd.fstr(f'x{item:s}'), item
                 ),
             ),
         ),
-        returns=user_facing_kd.bag(),  # pyrefly: ignore[missing-attribute]
+        returns=user_facing_kd.bag(),
         root=I.root,
     )
-    root = user_facing_kd.new()  # pyrefly: ignore[missing-attribute]
+    root = user_facing_kd.new()
     [returns] = many_attrs.eval(
         input_seq=delayed_stream_make(*range(1, 4)), root=root
     ).read_all(timeout=1)
@@ -383,17 +383,17 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     many_attrs = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, root: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+        lambda item, root: user_facing_kd.namedtuple(
             yields=kde_internal.parallel.stream_make(
-                user_facing_kd.attr(  # pyrefly: ignore[missing-attribute]
-                    root, user_facing_kd.fstr(f'x{item:s}'), item  # pyrefly: ignore[missing-attribute]
+                user_facing_kd.attr(
+                    root, user_facing_kd.fstr(f'x{item:s}'), item
                 ),
             ),
         ),
-        yields=delayed_stream_make(user_facing_kd.bag()),  # pyrefly: ignore[missing-attribute]
+        yields=delayed_stream_make(user_facing_kd.bag()),
         root=I.root,
     )
-    root = user_facing_kd.new()  # pyrefly: ignore[missing-attribute]
+    root = user_facing_kd.new()
     self.assertEqual(
         root.updated(
             *many_attrs.eval(
@@ -414,7 +414,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
       _ = kde_internal.parallel.stream_for(
           kde_internal.parallel.get_default_executor(),
           I.input_seq,
-          lambda item: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
+          lambda item: user_facing_kd.namedtuple(),
       )
 
   def test_return_and_yield(self):
@@ -428,7 +428,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
       _ = kde_internal.parallel.stream_for(
           kde_internal.parallel.get_default_executor(),
           I.input_seq,
-          lambda item: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
+          lambda item: user_facing_kd.namedtuple(),
           returns=1,
           yields=delayed_stream_make(),
       )
@@ -437,7 +437,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     loop_expr = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(
             yields=delayed_stream_make()
         ),
         returns=1,
@@ -457,8 +457,8 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     loop_expr = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
-        finalize_fn=lambda **unused_kwargs: user_facing_kd.namedtuple(foo=1),  # pyrefly: ignore[missing-attribute]
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(),
+        finalize_fn=lambda **unused_kwargs: user_facing_kd.namedtuple(foo=1),
         returns=1,
     )
     with self.assertRaisesRegex(
@@ -476,8 +476,8 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     loop_expr = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
-            returns=user_facing_kd.tuple(1, 2)  # pyrefly: ignore[missing-attribute]
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(
+            returns=user_facing_kd.tuple(1, 2)
         ),
         returns=1,
     )
@@ -497,9 +497,9 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     loop_expr = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(
             yields_interleaved=kde_internal.parallel.stream_make(
-                user_facing_kd.bag()  # pyrefly: ignore[missing-attribute]
+                user_facing_kd.bag()
             )
         ),
         yields_interleaved=kde_internal.parallel.stream_make(),
@@ -540,7 +540,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     loop_expr = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(),
         condition_fn=lambda **unused_kwargs: 1,
         returns=1,
     )
@@ -559,8 +559,8 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     loop_expr = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
-        condition_fn=lambda **unused_kwargs: user_facing_kd.slice(  # pyrefly: ignore[missing-attribute]
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(),
+        condition_fn=lambda **unused_kwargs: user_facing_kd.slice(
             [mask_constants.missing]
         ),
         returns=1,
@@ -584,7 +584,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
       _ = kde_internal.parallel.stream_for(
           kde_internal.parallel.get_default_executor(),
           kde.slice([1, 2, 3]),
-          lambda item: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
+          lambda item: user_facing_kd.namedtuple(),
           returns=1,
       )
 
@@ -623,7 +623,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
       _ = kde_internal.parallel.stream_for(
           kde_internal.parallel.get_default_executor(),
           I.input_seq,
-          lambda item, **unused_kwargs: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
+          lambda item, **unused_kwargs: user_facing_kd.namedtuple(),
           condition_fn=kde.namedtuple(),
           returns=1,
       )
@@ -632,7 +632,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     loop_expr = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(),
         condition_fn=mask_constants.present,
         returns=1,
     )
@@ -652,7 +652,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
       _ = kde_internal.parallel.stream_for(
           kde_internal.parallel.get_default_executor(),
           I.input_seq,
-          lambda item: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
+          lambda item: user_facing_kd.namedtuple(),
           finalize_fn=kde.namedtuple(),
           returns=1,
       )
@@ -661,7 +661,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     loop_expr = kde_internal.parallel.stream_for(
         kde_internal.parallel.get_default_executor(),
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(),
         finalize_fn=mask_constants.present,
         returns=1,
     )

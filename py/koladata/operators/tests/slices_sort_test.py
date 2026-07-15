@@ -171,7 +171,7 @@ class SlicesSortTest(parameterized.TestCase):
     # Limit the allowed qtypes and a random QType to speed up the test.
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.sort,  # pyrefly: ignore[missing-attribute]
+            kde.slices.sort,
             possible_qtypes=(
                 arolla.UNSPECIFIED,
                 qtypes.DATA_SLICE,
@@ -182,10 +182,10 @@ class SlicesSortTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.sort(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.slices.sort(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.slices.sort, kde.sort))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.slices.sort, kde.sort))
 
 
 if __name__ == '__main__':

@@ -55,9 +55,9 @@ class KodaInternalParallelStreamStringFromJsonTest(absltest.TestCase):
     }
 
     for f, expected in test_cases.items():
-      expr = kde_internal.parallel.stream_string_from_json(  # pyrefly: ignore[missing-attribute]
-          kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-          kde_internal.parallel.stream_from_1d_slice(I.arg),  # pyrefly: ignore[missing-attribute]
+      expr = kde_internal.parallel.stream_string_from_json(
+          kde_internal.parallel.get_default_executor(),
+          kde_internal.parallel.stream_from_1d_slice(I.arg),
           ds(f),
       )
       res = expr.eval(arg=ds(tokenize(data)))
@@ -68,9 +68,9 @@ class KodaInternalParallelStreamStringFromJsonTest(absltest.TestCase):
       self.assertEqual(res_str, expected)
 
   def test_not_found(self):
-    expr = kde_internal.parallel.stream_string_from_json(  # pyrefly: ignore[missing-attribute]
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        kde_internal.parallel.stream_from_1d_slice(I.arg),  # pyrefly: ignore[missing-attribute]
+    expr = kde_internal.parallel.stream_string_from_json(
+        kde_internal.parallel.get_default_executor(),
+        kde_internal.parallel.stream_from_1d_slice(I.arg),
         ds('$.a'),
     )
 
@@ -82,9 +82,9 @@ class KodaInternalParallelStreamStringFromJsonTest(absltest.TestCase):
 
   def test_errors(self):
     # Input not a string stream
-    expr = kde_internal.parallel.stream_string_from_json(  # pyrefly: ignore[missing-attribute]
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        kde_internal.parallel.stream_from_1d_slice(I.arg),  # pyrefly: ignore[missing-attribute]
+    expr = kde_internal.parallel.stream_string_from_json(
+        kde_internal.parallel.get_default_executor(),
+        kde_internal.parallel.stream_from_1d_slice(I.arg),
         ds('$.a'),
     )
     # kde_internal.parallel.stream_from_1d_slice(I.arg) where arg is not strings

@@ -42,10 +42,10 @@ class ListsListTest(parameterized.TestCase):
       ([1, 2, 3.0], ds([1, 2, 3.0])),
       ([[1, 2], [3, 4, 5]], ds(db.list([db.list([1, 2]), db.list([3, 4, 5])]))),
       (((1, 2), (3, 4, 5)), ds(db.list([db.list([1, 2]), db.list([3, 4, 5])]))),
-      (kde.slice([1, 2, 3]), ds([1, 2, 3])),  # pyrefly: ignore[missing-attribute]
+      (kde.slice([1, 2, 3]), ds([1, 2, 3])),
   )
   def test_eval(self, items, expected_items):
-    res = expr_eval.eval(kde.lists.new(items))  # pyrefly: ignore[missing-attribute]
+    res = expr_eval.eval(kde.lists.new(items))
     testing.assert_equal(
         res.explode(-1).no_bag(), expected_items.explode(-1).no_bag()
     )
@@ -60,7 +60,7 @@ class ListsListTest(parameterized.TestCase):
 
   def test_eval_expr_argument(self):
     res = expr_eval.eval(
-        kde.lists.new([[I.x0, I.x1], [I.x2]]), x0=0, x1=1, x2=2  # pyrefly: ignore[missing-attribute]
+        kde.lists.new([[I.x0, I.x1], [I.x2]]), x0=0, x1=1, x2=2
     )
     testing.assert_equal(res.explode(-1).no_bag(), ds([[0, 1], [2]]))
 
@@ -170,28 +170,28 @@ class ListsListTest(parameterized.TestCase):
 
   def test_schema_as_expr(self):
     res = expr_eval.eval(
-        kde.lists.new(I.items, item_schema=I.schema),  # pyrefly: ignore[missing-attribute]
+        kde.lists.new(I.items, item_schema=I.schema),
         items=ds([1, 2, 3]),
         schema=schema_constants.INT64,
     )
     testing.assert_equal(res[:].no_bag(), ds([1, 2, 3], schema_constants.INT64))
 
     res = expr_eval.eval(
-        kde.lists.new([1, 2, 3], item_schema=I.schema),  # pyrefly: ignore[missing-attribute]
+        kde.lists.new([1, 2, 3], item_schema=I.schema),
         schema=schema_constants.INT64,
     )
     testing.assert_equal(res[:].no_bag(), ds([1, 2, 3], schema_constants.INT64))
 
     res = expr_eval.eval(
-        kde.lists.new(I.items, schema=I.schema),  # pyrefly: ignore[missing-attribute]
+        kde.lists.new(I.items, schema=I.schema),
         items=ds([1, 2, 3]),
-        schema=kde.list_schema(item_schema=schema_constants.INT64).eval(),  # pyrefly: ignore[missing-attribute]
+        schema=kde.list_schema(item_schema=schema_constants.INT64).eval(),
     )
     testing.assert_equal(res[:].no_bag(), ds([1, 2, 3], schema_constants.INT64))
 
     res = expr_eval.eval(
-        kde.lists.new([1, 2, 3], schema=I.schema),  # pyrefly: ignore[missing-attribute]
-        schema=kde.list_schema(item_schema=schema_constants.INT64).eval(),  # pyrefly: ignore[missing-attribute]
+        kde.lists.new([1, 2, 3], schema=I.schema),
+        schema=kde.list_schema(item_schema=schema_constants.INT64).eval(),
     )
     testing.assert_equal(res[:].no_bag(), ds([1, 2, 3], schema_constants.INT64))
 
@@ -200,7 +200,7 @@ class ListsListTest(parameterized.TestCase):
         ValueError,
         'kd.list takes a Python list rather than DataSlice as an input',
     ):
-      _ = expr_eval.eval(kde.lists.new(ds([1, 2, 3])))  # pyrefly: ignore[missing-attribute]
+      _ = expr_eval.eval(kde.lists.new(ds([1, 2, 3])))
 
   def test_cast_error_item_schema(self):
     x = [mask_constants.missing, mask_constants.present]
@@ -249,7 +249,7 @@ class ListsListTest(parameterized.TestCase):
         'the schema for list items is incompatible',
     ):
       _ = expr_eval.eval(
-          kde.lists.new(x, item_schema=schema_constants.INT64), x=2.1  # pyrefly: ignore[missing-attribute]
+          kde.lists.new(x, item_schema=schema_constants.INT64), x=2.1
       )
 
   def test_returns_frozen_bag(self):
@@ -257,11 +257,11 @@ class ListsListTest(parameterized.TestCase):
     self.assertFalse(res.get_bag().is_mutable())
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.lists.new, kde.list))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.lists.new, kde.list))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.lists.new(I.x)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.lists.new(I.x)),
         'kd.lists.new(I.x, unspecified, unspecified, unspecified)',
     )
 

@@ -34,7 +34,7 @@ class KodaInternalParallelStreamFrom1DSliceTest(absltest.TestCase):
 
   def test_basic(self):
     a = fns.new(x=ds([1, 2, 3]))
-    res = kde_internal.parallel.stream_from_1d_slice(I.arg).eval(arg=a)  # pyrefly: ignore[missing-attribute]
+    res = kde_internal.parallel.stream_from_1d_slice(I.arg).eval(arg=a)
     self.assertIsInstance(res, stream_clib.Stream)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
     res_list = res.read_all(timeout=0)
@@ -45,7 +45,7 @@ class KodaInternalParallelStreamFrom1DSliceTest(absltest.TestCase):
 
   def test_mixed_values(self):
     a = ds([1, '2', fns.obj(x=3)])
-    res = kde_internal.parallel.stream_from_1d_slice(I.arg).eval(arg=a)  # pyrefly: ignore[missing-attribute]
+    res = kde_internal.parallel.stream_from_1d_slice(I.arg).eval(arg=a)
     self.assertIsInstance(res, stream_clib.Stream)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
     res_list = res.read_all(timeout=0)
@@ -55,7 +55,7 @@ class KodaInternalParallelStreamFrom1DSliceTest(absltest.TestCase):
     testing.assert_equal(res_list[2], a.S[2])
 
   def test_empty(self):
-    res = kde_internal.parallel.stream_from_1d_slice(I.arg).eval(arg=ds([]))  # pyrefly: ignore[missing-attribute]
+    res = kde_internal.parallel.stream_from_1d_slice(I.arg).eval(arg=ds([]))
     self.assertIsInstance(res, stream_clib.Stream)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
     res_list = res.read_all(timeout=0)
@@ -65,21 +65,21 @@ class KodaInternalParallelStreamFrom1DSliceTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'expected a 1D data slice, got 0 dimensions'
     ):
-      _ = kde_internal.parallel.stream_from_1d_slice(I.arg).eval(arg=ds(5))  # pyrefly: ignore[missing-attribute]
+      _ = kde_internal.parallel.stream_from_1d_slice(I.arg).eval(arg=ds(5))
 
   def test_qtype_signatures(self):
     stream_of_slice = stream_clib.Stream.new(qtypes.DATA_SLICE)[0].qtype
     arolla.testing.assert_qtype_signatures(
-        kde_internal.parallel.stream_from_1d_slice,  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.stream_from_1d_slice,
         [(qtypes.DATA_SLICE, stream_of_slice)],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde_internal.parallel.stream_from_1d_slice(I.arg))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde_internal.parallel.stream_from_1d_slice(I.arg))
     )
-    self.assertTrue(view.has_koda_view(kde.streams.from_1d_slice(I.arg)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.streams.from_1d_slice(I.arg)))
 
 
 if __name__ == '__main__':

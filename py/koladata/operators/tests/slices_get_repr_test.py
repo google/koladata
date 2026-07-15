@@ -179,7 +179,7 @@ class SlicesGetReprTest(parameterized.TestCase):
     )
 
   def test_functor_itemid(self):
-    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y))).eval()  # pyrefly: ignore[missing-attribute, unsupported-operation]
+    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y))).eval()
     res = kd.slices.get_repr(fn, show_item_id=True)
     self.assertRegex(
         res.internal_as_py(),
@@ -195,13 +195,13 @@ class SlicesGetReprTest(parameterized.TestCase):
 
   def test_expr_quote_max_len(self):
     res = kd.slices.get_repr(
-        ds(arolla.quote(kde.math.add(I.x, I.y))), max_expr_quote_len=5  # pyrefly: ignore[missing-attribute]
+        ds(arolla.quote(kde.math.add(I.x, I.y))), max_expr_quote_len=5
     )
     testing.assert_equal(res, ds('I.x +... ExprQuote max length reached ...'))
 
   def test_expr_quote_max_len_inf(self):
     res = kd.slices.get_repr(
-        ds(arolla.quote(kde.math.add(I.x, I.y))), max_expr_quote_len=-1  # pyrefly: ignore[missing-attribute]
+        ds(arolla.quote(kde.math.add(I.x, I.y))), max_expr_quote_len=-1
     )
     testing.assert_equal(res, ds('I.x + I.y'))
 
@@ -227,7 +227,7 @@ class SlicesGetReprTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.get_repr(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.slices.get_repr(I.x)))
 
 
 if __name__ == '__main__':

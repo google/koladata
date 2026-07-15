@@ -34,7 +34,7 @@ class CurvesPwlCurveTest(curves_test_case.BaseCurveTestcase):
 
   @property
   def operator(self):
-    return kde.curves.pwl_curve  # pyrefly: ignore[missing-attribute]
+    return kde.curves.pwl_curve
 
   @parameterized.parameters((
       ds(3.5),
@@ -49,7 +49,7 @@ class CurvesPwlCurveTest(curves_test_case.BaseCurveTestcase):
     testing.assert_allclose(result, expected, rtol=1e-4)
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.curves.pwl_curve, kde.pwl_curve))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.curves.pwl_curve, kde.pwl_curve))
 
 
 if __name__ == '__main__':

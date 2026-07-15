@@ -181,24 +181,24 @@ class ObjsUuTest(parameterized.TestCase):
             ' UNSPECIFIED}'
         ),
     ):
-      _ = kde.objs.uu(  # pyrefly: ignore[missing-attribute]
+      _ = kde.objs.uu(
           a=ds(1),
           b=arolla.unspecified(),
       )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.objs.uu(seed=I.seed)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.objs.uu(seed=I.seed)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.objs.uu, kde.uuobj))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.objs.uu, kde.uuobj))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.objs.uu(a=I.z, seed=I.seed)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.objs.uu(a=I.z, seed=I.seed)),
         'kd.objs.uu(I.seed, a=I.z)',
     )
     self.assertEqual(
-        repr(kde.objs.uu(I.seed, a=I.z)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.objs.uu(I.seed, a=I.z)),
         'kd.objs.uu(I.seed, a=I.z)',
     )
 

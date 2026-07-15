@@ -66,9 +66,9 @@ class ShapesNewTest(parameterized.TestCase):
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.shapes.new([1]),  # pyrefly: ignore[missing-attribute]
+        kde.shapes.new([1]),
         arolla.abc.bind_op(
-            kde.shapes.new,  # pyrefly: ignore[missing-attribute]
+            kde.shapes.new,
             literal_operator.literal(
                 arolla.tuple(data_slice.DataSlice.from_vals([1]))
             ),
@@ -83,7 +83,7 @@ class ShapesNewTest(parameterized.TestCase):
             ' *dimensions: (FLOAT32)'
         ),
     ):
-      kde.shapes.new(arolla.float32(1.0))  # pyrefly: ignore[missing-attribute]
+      kde.shapes.new(arolla.float32(1.0))
 
   def test_unsupported_rank_error(self):
     with self.assertRaisesRegex(
@@ -105,7 +105,7 @@ class ShapesNewTest(parameterized.TestCase):
       kd.shapes.new(ds(2), ds([1]))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.shapes.new()))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.shapes.new()))
 
 
 if __name__ == '__main__':

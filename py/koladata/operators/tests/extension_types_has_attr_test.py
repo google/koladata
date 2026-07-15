@@ -34,7 +34,7 @@ kd = eager_op_utils.operators_container("kd")
 ds = data_slice.DataSlice.from_vals
 bag = data_bag.DataBag.empty
 
-M = arolla.M | objects.M  # pyrefly: ignore[unsupported-operation]
+M = arolla.M | objects.M
 
 
 @extension_types.extension_type()
@@ -64,7 +64,7 @@ class ExtensionTypesHasAttrTest(parameterized.TestCase):
     testing.assert_equal(result, mask_constants.missing)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.extension_types.has_attr(I.x, "x")))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.extension_types.has_attr(I.x, "x")))
 
 
 if __name__ == "__main__":
