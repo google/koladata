@@ -21,5 +21,5 @@ _h_sub = kd.fn(lambda y: y + 1)
 
 MODEL = kd.fn(kd.V.g(kd.I.x) + kd.V.h(kd.I.y), g=_g_sub, h=_h_sub)
 INPUTS = [
-    {'x': kd.item(3), 'y': kd.item(4)},  # pyrefly: ignore[missing-attribute]
+    {'x': kd.item(3), 'y': kd.item(4)},
 ]

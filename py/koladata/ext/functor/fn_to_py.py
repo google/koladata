@@ -54,7 +54,7 @@ def _inline_and_rename(
 
   def callback(var_name, var, visited_vars):
     del var_name  # Unused
-    if kd.is_fn(var):  # pyrefly: ignore[missing-attribute]
+    if kd.is_fn(var):
       return kd.V[name_registry[var.get_itemid().no_bag()]]
     if var.get_schema() == kd.EXPR:
       subs = {
@@ -64,7 +64,7 @@ def _inline_and_rename(
       return arolla.abc.sub_by_fingerprint(kd.expr.unpack_expr(var), subs)
     return kd.expr.literal(var)
 
-  return kd.functor.visit_variables(functor, callback)  # pyrefly: ignore[missing-attribute]
+  return kd.functor.visit_variables(functor, callback)
 
 
 # NOTE: This utility is used to simplify the signatures of the generated Python
@@ -79,10 +79,10 @@ def _inline_and_rename(
 # our internal library code and they do not use **__extra_inputs__ directly.
 def _get_redacted_inspect_signature(fn: kd.types.DataItem) -> inspect.Signature:
   """Removes the `__extra_inputs__` keyword argument from the signature."""
-  assert kd.is_fn(fn)  # pyrefly: ignore[missing-attribute]
+  assert kd.is_fn(fn)
   # fn.returns may contain variables, but only calls to other sub-functors.
   # Other variables are inlined.
-  sig = kd.functor.get_inspect_signature(fn)  # pyrefly: ignore[missing-attribute]
+  sig = kd.functor.get_inspect_signature(fn)
 
   # Checks if the signature is the default one created by kd.fn(<expr>).
   if not (
@@ -95,7 +95,7 @@ def _get_redacted_inspect_signature(fn: kd.types.DataItem) -> inspect.Signature:
   ):
     return sig
 
-  assert sig.parameters['self'].default == kd.uu(  # pyrefly: ignore[missing-attribute]
+  assert sig.parameters['self'].default == kd.uu(
       '__self_not_specified__', self_not_specified=kd.present
   )
   input_names = kd.expr.get_input_names(kd.expr.unpack_expr(fn.returns))
@@ -141,7 +141,7 @@ def fn_to_py_fn_rec(
     root_name: The name of the root functor. Reserved to avoid collisions with
       subfunctor names.
   """
-  if not kd.is_fn(fn):  # pyrefly: ignore[missing-attribute]
+  if not kd.is_fn(fn):
     raise ValueError(f'{fn} is not a functor')
 
   functions: dict[kd.types.DataItem, FuncRec] = {}
@@ -183,11 +183,11 @@ def fn_to_py_fn_rec(
         name=None,  # Filled in below after full traversal.
         code=kd.expr.pack_expr(_strip_annotations(expr)),
         signature=_get_redacted_inspect_signature(functor),
-        docstring=str(doc) if kd.has(doc) else None,  # pyrefly: ignore[missing-attribute]
+        docstring=str(doc) if kd.has(doc) else None,
     )
     return functor
 
-  kd.functor.visit_functors(fn, callback)  # pyrefly: ignore[missing-attribute]
+  kd.functor.visit_functors(fn, callback)
 
   # Fill in names: during bottom-up traversal, a functor's name is only known
   # after its parent registers it, so we apply names in a second pass.

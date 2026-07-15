@@ -19,18 +19,18 @@ from koladata import kd
 
 def my_model(x, y):
   # 2D slice with Expr args, mixed with constants, and explicit schema
-  return kd.slice([[x, x], [y, 3.0]], schema=kd.FLOAT64)  # pyrefly: ignore[missing-attribute]
+  return kd.slice([[x, x], [y, 3.0]], schema=kd.FLOAT64)
 
 
 MODEL = kd.fn(my_model)
 
 INPUTS = [
     {
-        'x': kd.item(1.5),  # pyrefly: ignore[missing-attribute]
-        'y': kd.item(2.5),  # pyrefly: ignore[missing-attribute]
+        'x': kd.item(1.5),
+        'y': kd.item(2.5),
     },
     {
-        'x': kd.item(-1.0),  # pyrefly: ignore[missing-attribute]
-        'y': kd.item(2.0),  # pyrefly: ignore[missing-attribute]
+        'x': kd.item(-1.0),
+        'y': kd.item(2.0),
     },
 ]

@@ -18,6 +18,6 @@ from koladata import kd
 
 MODEL = kd.fn(lambda x, y=kd.item(10): x + y)
 INPUTS = [
-    {'x': kd.item(5)},  # Uses default y=10  # pyrefly: ignore[missing-attribute]
-    {'x': kd.item(5), 'y': kd.item(20)},  # Overrides y  # pyrefly: ignore[missing-attribute]
+    {'x': kd.item(5)},  # Uses default y=10
+    {'x': kd.item(5), 'y': kd.item(20)},  # Overrides y
 ]

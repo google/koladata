@@ -49,7 +49,7 @@ class FnToPyFuncRecTest(parameterized.TestCase):
     self.assertEqual(func_rec.signature, inspect.signature(lambda x: None))
 
   @parameterized.parameters(
-      (kd.S + 1, inspect.signature(lambda self, /: None)),  # pyrefly: ignore[unsupported-operation]
+      (kd.S + 1, inspect.signature(lambda self, /: None)),
       (kd.I.x + kd.I.y, inspect.signature(lambda *, x, y: None)),
       (kd.I.x + kd.S, inspect.signature(lambda self, /, *, x: None)),
   )
@@ -66,7 +66,7 @@ class FnToPyFuncRecTest(parameterized.TestCase):
     result = fn_to_py.fn_to_py_fn_rec(fn, root_name='top')
     self.assertLen(result, 1)
     func_rec = result[fn.get_itemid().no_bag()]
-    kd.testing.assert_equal(kd.expr.unpack_expr(func_rec.code), kd.S * 2)  # pyrefly: ignore[bad-argument-type, unsupported-operation]
+    kd.testing.assert_equal(kd.expr.unpack_expr(func_rec.code), kd.S * 2)
     self.assertEqual(
         func_rec.signature,
         inspect.signature(lambda self=kd.item(42), /: None)
@@ -133,13 +133,13 @@ class FnToPyFuncRecTest(parameterized.TestCase):
     )
 
   def test_embed_non_expr_variable_as_literal(self):
-    fn = kd.fn(lambda x: x + kd.with_name(42, 'a'))  # pyrefly: ignore[missing-attribute]
+    fn = kd.fn(lambda x: x + kd.with_name(42, 'a'))
     result = fn_to_py.fn_to_py_fn_rec(fn, root_name='top')
     self.assertLen(result, 1)
     func_rec = result[fn.get_itemid().no_bag()]
     kd.testing.assert_equal(
         kd.expr.unpack_expr(func_rec.code),
-        kd.I.x + kd.item(42).with_bag(fn.get_bag()),  # pyrefly: ignore[missing-attribute]
+        kd.I.x + kd.item(42).with_bag(fn.get_bag()),
     )
     self.assertEqual(func_rec.signature, inspect.signature(lambda x: None))
 
@@ -181,7 +181,7 @@ class FnToPyFuncRecTest(parameterized.TestCase):
     self.assertEqual(keys[-1], d_id)
 
   def test_non_functor_raises_error(self):
-    item = kd.item(42)  # pyrefly: ignore[missing-attribute]
+    item = kd.item(42)
     with self.assertRaisesRegex(ValueError, '.* is not a functor'):
       fn_to_py.fn_to_py_fn_rec(item, root_name='top')
 
@@ -297,7 +297,7 @@ class FnToPyFuncRecTest(parameterized.TestCase):
 
   def test_single_functor_multiple_names(self):
     shared_sub = kd.fn(lambda x: x + 1)
-    f1 = kd.functor.expr_fn(kd.V.f(kd.S), f=shared_sub)  # pyrefly: ignore[missing-attribute]
+    f1 = kd.functor.expr_fn(kd.V.f(kd.S), f=shared_sub)
     f2 = kd.fn(kd.V.g(kd.S), g=shared_sub)
     fn = kd.fn(kd.V.f1(kd.V.f2(kd.S)), f1=f1, f2=f2)
 
@@ -313,7 +313,7 @@ class FnToPyFuncRecTest(parameterized.TestCase):
 
   def test_same_subfunctor_different_names_same_parent(self):
     shared = kd.fn(lambda x: x + 1)
-    fn = kd.functor.expr_fn(kd.V.f(kd.V.g(kd.S)), f=shared, g=shared)  # pyrefly: ignore[missing-attribute]
+    fn = kd.functor.expr_fn(kd.V.f(kd.V.g(kd.S)), f=shared, g=shared)
 
     result = fn_to_py.fn_to_py_fn_rec(fn, root_name='top')
 
@@ -419,7 +419,7 @@ class FnToPyTest(absltest.TestCase):
 
   def test_fn_to_py_single_functor_multiple_names(self):
     shared_sub = kd.fn(lambda x: x + 1)
-    f1 = kd.functor.expr_fn(kd.V.f(kd.I.x), f=shared_sub)  # pyrefly: ignore[missing-attribute]
+    f1 = kd.functor.expr_fn(kd.V.f(kd.I.x), f=shared_sub)
     f2 = kd.fn(kd.V.g(kd.I.x), g=shared_sub)
     fn = kd.fn(kd.V.f1(kd.I.x) + kd.V.f2(kd.I.x), f1=f1, f2=f2)
 
@@ -461,7 +461,7 @@ class FnToPyTest(absltest.TestCase):
 
   def test_non_functor_error(self):
     with self.assertRaisesRegex(ValueError, 'is not a functor'):
-      fn_to_py.fn_to_py(kd.item(42))  # pyrefly: ignore[missing-attribute]
+      fn_to_py.fn_to_py(kd.item(42))
 
   def test_fn_to_py_with_docstrings(self):
     @kd.trace_as_fn()
@@ -501,7 +501,7 @@ class FnToPyTest(absltest.TestCase):
     f1 = kd.fn(f1_py)
     f2 = kd.fn(f2_py)
     fn = kd.fn(
-        lambda x: kd.with_name(f1, 'my_f1')(x) + kd.with_name(f2, 'my_f2')(x)  # pyrefly: ignore[missing-attribute]
+        lambda x: kd.with_name(f1, 'my_f1')(x) + kd.with_name(f2, 'my_f2')(x)
     )
     result = fn_to_py.fn_to_py(fn)
 

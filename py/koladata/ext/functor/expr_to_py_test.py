@@ -29,70 +29,70 @@ class QValueToPyTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # None
-      (kd.item(None), 'None'),  # pyrefly: ignore[missing-attribute]
+      (kd.item(None), 'None'),
       # Ints
-      (kd.item(42), '42'),  # pyrefly: ignore[missing-attribute]
-      (kd.int32(None), 'kd.int32(None)'),  # pyrefly: ignore[missing-attribute]
-      (kd.int64(42), 'kd.int64(42)'),  # pyrefly: ignore[missing-attribute]
+      (kd.item(42), '42'),
+      (kd.int32(None), 'kd.int32(None)'),
+      (kd.int64(42), 'kd.int64(42)'),
       # Floats
-      (kd.item(1.0), '1.0'),  # pyrefly: ignore[missing-attribute]
-      (kd.float32(3.14), '3.14'),  # pyrefly: ignore[missing-attribute]
-      (kd.float32(-0.0), '-0.0'),  # pyrefly: ignore[missing-attribute]
-      (kd.float32(3.14), '3.14'),  # pyrefly: ignore[missing-attribute]
-      (kd.float32(math.inf), "float('inf')"),  # pyrefly: ignore[missing-attribute]
-      (kd.float32(-math.inf), "float('-inf')"),  # pyrefly: ignore[missing-attribute]
-      (kd.float32(math.nan), "float('nan')"),  # pyrefly: ignore[missing-attribute]
-      (kd.float64(3.14), 'kd.float64(3.14)'),  # pyrefly: ignore[missing-attribute]
-      (kd.float64(-0.0), 'kd.float64(-0.0)'),  # pyrefly: ignore[missing-attribute]
-      (kd.float64(math.inf), "kd.float64(float('inf'))"),  # pyrefly: ignore[missing-attribute]
-      (kd.float64(-math.inf), "kd.float64(float('-inf'))"),  # pyrefly: ignore[missing-attribute]
-      (kd.float64(math.nan), "kd.float64(float('nan'))"),  # pyrefly: ignore[missing-attribute]
+      (kd.item(1.0), '1.0'),
+      (kd.float32(3.14), '3.14'),
+      (kd.float32(-0.0), '-0.0'),
+      (kd.float32(3.14), '3.14'),
+      (kd.float32(math.inf), "float('inf')"),
+      (kd.float32(-math.inf), "float('-inf')"),
+      (kd.float32(math.nan), "float('nan')"),
+      (kd.float64(3.14), 'kd.float64(3.14)'),
+      (kd.float64(-0.0), 'kd.float64(-0.0)'),
+      (kd.float64(math.inf), "kd.float64(float('inf'))"),
+      (kd.float64(-math.inf), "kd.float64(float('-inf'))"),
+      (kd.float64(math.nan), "kd.float64(float('nan'))"),
       # Strings
-      (kd.item('hello'), "'hello'"),  # pyrefly: ignore[missing-attribute]
-      (kd.str('hello'), "'hello'"),  # pyrefly: ignore[missing-attribute]
-      (kd.str(None), 'kd.str(None)'),  # pyrefly: ignore[missing-attribute]
+      (kd.item('hello'), "'hello'"),
+      (kd.str('hello'), "'hello'"),
+      (kd.str(None), 'kd.str(None)'),
       # Bytes
-      (kd.item(b'hello'), "b'hello'"),  # pyrefly: ignore[missing-attribute]
+      (kd.item(b'hello'), "b'hello'"),
       # Booleans
-      (kd.item(True), 'True'),  # pyrefly: ignore[missing-attribute]
-      (kd.bool(False), 'False'),  # pyrefly: ignore[missing-attribute]
-      (kd.bool(None), 'kd.bool(None)'),  # pyrefly: ignore[missing-attribute]
+      (kd.item(True), 'True'),
+      (kd.bool(False), 'False'),
+      (kd.bool(None), 'kd.bool(None)'),
       # Masks
       (kd.present, 'kd.present'),
       (kd.missing, 'kd.missing'),
       # ExprQuote
-      (kd.expr_quote(None), 'kd.expr_quote(None)'),  # pyrefly: ignore[missing-attribute]
+      (kd.expr_quote(None), 'kd.expr_quote(None)'),
       # Multi-dimensional slices
-      (kd.slice([1, 2, 3]), 'kd.slice([1, 2, 3])'),  # pyrefly: ignore[missing-attribute]
-      (kd.slice([[None, None], [None]]), 'kd.slice([[None, None], [None]])'),  # pyrefly: ignore[missing-attribute]
-      (kd.bytes([[None, None], [None]]), 'kd.bytes([[None, None], [None]])'),  # pyrefly: ignore[missing-attribute]
+      (kd.slice([1, 2, 3]), 'kd.slice([1, 2, 3])'),
+      (kd.slice([[None, None], [None]]), 'kd.slice([[None, None], [None]])'),
+      (kd.bytes([[None, None], [None]]), 'kd.bytes([[None, None], [None]])'),
       (
-          kd.float64([[1.0, 2.71], [3.14, None]]),  # pyrefly: ignore[missing-attribute]
+          kd.float64([[1.0, 2.71], [3.14, None]]),
           'kd.float64([[1.0, 2.71], [3.14, None]])',
       ),
       (
-          kd.float64([[1.0, math.nan], [3.14, None, -math.inf]]),  # pyrefly: ignore[missing-attribute]
+          kd.float64([[1.0, math.nan], [3.14, None, -math.inf]]),
           "kd.float64([[1.0, float('nan')], [3.14, None, float('-inf')]])",
       ),
       (
-          kd.slice([[1.0, math.nan], [2.0, None, -math.inf]]),  # pyrefly: ignore[missing-attribute]
+          kd.slice([[1.0, math.nan], [2.0, None, -math.inf]]),
           "kd.slice([[1.0, float('nan')], [2.0, None, float('-inf')]])",
       ),
       (
-          kd.slice([[kd.present, kd.missing], [kd.missing, kd.present]]),  # pyrefly: ignore[missing-attribute]
+          kd.slice([[kd.present, kd.missing], [kd.missing, kd.present]]),
           'kd.slice([[kd.present, kd.missing], [kd.missing, kd.present]])',
       ),
       # Schema constants
       (kd.INT32, 'kd.INT32'),
       (kd.NONE, 'kd.NONE'),
       (kd.OBJECT, 'kd.OBJECT'),
-      (kd.slice([kd.INT32, kd.FLOAT64]), 'kd.slice([kd.INT32, kd.FLOAT64])'),  # pyrefly: ignore[missing-attribute]
+      (kd.slice([kd.INT32, kd.FLOAT64]), 'kd.slice([kd.INT32, kd.FLOAT64])'),
       (
-          kd.slice([[kd.INT32, kd.FLOAT64], [kd.STRING]]),  # pyrefly: ignore[missing-attribute]
+          kd.slice([[kd.INT32, kd.FLOAT64], [kd.STRING]]),
           'kd.slice([[kd.INT32, kd.FLOAT64], [kd.STRING]])',
       ),
       (
-          kd.slice([  # pyrefly: ignore[missing-attribute]
+          kd.slice([
               kd.INT64,
               kd.FLOAT32,
               kd.BOOLEAN,
@@ -108,47 +108,47 @@ class QValueToPyTest(parameterized.TestCase):
           ),
       ),
       # kd.obj on primitives
-      (kd.obj(42), 'kd.obj(42)'),  # pyrefly: ignore[missing-attribute]
-      (kd.obj(1.5), 'kd.obj(1.5)'),  # pyrefly: ignore[missing-attribute]
-      (kd.obj(float('inf')), "kd.obj(float('inf'))"),  # pyrefly: ignore[missing-attribute]
-      (kd.obj(kd.float64(float('-inf'))), "kd.obj(kd.float64(float('-inf')))"),  # pyrefly: ignore[missing-attribute]
-      (kd.obj(float('nan')), "kd.obj(float('nan'))"),  # pyrefly: ignore[missing-attribute]
-      (kd.obj('hello'), "kd.obj('hello')"),  # pyrefly: ignore[missing-attribute]
-      (kd.obj(b'hello'), "kd.obj(b'hello')"),  # pyrefly: ignore[missing-attribute]
-      (kd.obj(True), 'kd.obj(True)'),  # pyrefly: ignore[missing-attribute]
-      (kd.obj(kd.present), 'kd.obj(kd.present)'),  # pyrefly: ignore[missing-attribute]
-      (kd.obj(None), 'kd.obj(None)'),  # pyrefly: ignore[missing-attribute]
+      (kd.obj(42), 'kd.obj(42)'),
+      (kd.obj(1.5), 'kd.obj(1.5)'),
+      (kd.obj(float('inf')), "kd.obj(float('inf'))"),
+      (kd.obj(kd.float64(float('-inf'))), "kd.obj(kd.float64(float('-inf')))"),
+      (kd.obj(float('nan')), "kd.obj(float('nan'))"),
+      (kd.obj('hello'), "kd.obj('hello')"),
+      (kd.obj(b'hello'), "kd.obj(b'hello')"),
+      (kd.obj(True), 'kd.obj(True)'),
+      (kd.obj(kd.present), 'kd.obj(kd.present)'),
+      (kd.obj(None), 'kd.obj(None)'),
       (
-          kd.slice([1, 2, 3], schema=kd.OBJECT),  # pyrefly: ignore[missing-attribute]
+          kd.slice([1, 2, 3], schema=kd.OBJECT),
           'kd.slice([1, 2, 3], schema=kd.OBJECT)',
       ),
       (
-          kd.slice([1.0, float('nan')], schema=kd.OBJECT),  # pyrefly: ignore[missing-attribute]
+          kd.slice([1.0, float('nan')], schema=kd.OBJECT),
           "kd.slice([1.0, float('nan')], schema=kd.OBJECT)",
       ),
       (
-          kd.slice([kd.present, kd.missing], schema=kd.OBJECT),  # pyrefly: ignore[missing-attribute]
+          kd.slice([kd.present, kd.missing], schema=kd.OBJECT),
           'kd.slice([kd.present, None], schema=kd.OBJECT)',
       ),
       (
-          kd.slice([[1, 'str'], [1.5]]),  # pyrefly: ignore[missing-attribute]
+          kd.slice([[1, 'str'], [1.5]]),
           'kd.slice([[1, \'str\'], [1.5]], schema=kd.OBJECT)',
       ),
       (
-          kd.slice([[1, 2], [1.5]], schema=kd.OBJECT),  # pyrefly: ignore[missing-attribute]
+          kd.slice([[1, 2], [1.5]], schema=kd.OBJECT),
           'kd.slice([[1, 2], [1.5]], schema=kd.OBJECT)',
       ),
       (
-          kd.slice([kd.present, kd.INT32], schema=kd.OBJECT),  # pyrefly: ignore[missing-attribute]
+          kd.slice([kd.present, kd.INT32], schema=kd.OBJECT),
           'kd.slice([kd.present, kd.INT32], schema=kd.OBJECT)',
       ),
       (
-          kd.slice([[None, kd.present], [float('inf')]]),  # pyrefly: ignore[missing-attribute]
+          kd.slice([[None, kd.present], [float('inf')]]),
           "kd.slice([[None, kd.present], [float('inf')]], "
           + 'schema=kd.OBJECT)',
       ),
       (
-          kd.slice([[None, kd.present], [kd.float64(3.14)]], schema=kd.OBJECT),  # pyrefly: ignore[missing-attribute]
+          kd.slice([[None, kd.present], [kd.float64(3.14)]], schema=kd.OBJECT),
           'kd.slice([[None, kd.present], [kd.float64(3.14)]], '
           + 'schema=kd.OBJECT)',
       ),
@@ -163,13 +163,13 @@ class QValueToPyTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'non-primitive DataSlice literals are not yet supported'
     ):
-      expr_to_py.qvalue_to_py(kd.obj())  # pyrefly: ignore[missing-attribute]
+      expr_to_py.qvalue_to_py(kd.obj())
 
   def test_unsupported_qvalue_type_error(self):
     with self.assertRaisesRegex(
         ValueError, 'DataBag cannot be converted to a Python AST expression'
     ):
-      expr_to_py.qvalue_to_py(kd.bag())  # pyrefly: ignore[missing-attribute]
+      expr_to_py.qvalue_to_py(kd.bag())
 
 
 class ExprToPyTest(parameterized.TestCase):
@@ -480,7 +480,7 @@ class ExprToPyTest(parameterized.TestCase):
     self.assertEqual(ast.unparse(ast_node), expected_code)
 
   def test_literal_in_expr(self):
-    item = kd.int64(2)  # pyrefly: ignore[missing-attribute]
+    item = kd.int64(2)
     expr = kd.lazy.math.add(kd.I.x, kd.lazy.math.multiply(kd.I.y, item))
     sig = inspect.signature(lambda x, y: None)
     expected_code = textwrap.dedent("""\
@@ -492,7 +492,7 @@ class ExprToPyTest(parameterized.TestCase):
 
   def test_list_explode_literal(self):
     def f(x):
-      return x + kd.slice([[1, 2], [3]])  # pyrefly: ignore[missing-attribute]
+      return x + kd.slice([[1, 2], [3]])
 
     fn = kd.fn(f)
     assert fn.has_attr('_aux_0')
@@ -518,7 +518,7 @@ class ExprToPyTest(parameterized.TestCase):
         'non-primitive DataSlice literals are not yet supported',
     ) as e:
       _ = expr_to_py.expr_to_py(
-          kd.lazy.explode(kd.list([[1, 2], [3]]), 1), 'my_func', sig, {'sub_fn'}  # pyrefly: ignore[missing-attribute]
+          kd.lazy.explode(kd.list([[1, 2], [3]]), 1), 'my_func', sig, {'sub_fn'}
       )
     self.assertIn('[my_func] unsupported literal', e.exception.__notes__)
 
@@ -544,7 +544,7 @@ class ExprToPyTest(parameterized.TestCase):
     self.assertEqual(ast.unparse(ast_node), expected_code)
 
   def test_unsupported_literal_error(self):
-    expr = kd.expr.literal(kd.bag())  # pyrefly: ignore[missing-attribute]
+    expr = kd.expr.literal(kd.bag())
     sig = inspect.signature(lambda x: None)
 
     with self.assertRaisesRegex(
@@ -826,7 +826,7 @@ class ExprToPyTest(parameterized.TestCase):
 
   def test_nested_function_call_with_literal_args(self):
     expr = kd.expr.unpack_expr(
-        kd.fn(kd.V.sub_fn(42, kd.float64(3.14)), sub_fn=None).returns  # pyrefly: ignore[missing-attribute]
+        kd.fn(kd.V.sub_fn(42, kd.float64(3.14)), sub_fn=None).returns
     )
     sig = inspect.signature(lambda x: None)
     ast_node = expr_to_py.expr_to_py(expr, 'my_func', sig, {'sub_fn'})

@@ -26,32 +26,32 @@ class ValueCountsTest(parameterized.TestCase):
   @parameterized.parameters(
       # 1-d.
       (
-          kd.slice([None, None]),  # pyrefly: ignore[missing-attribute]
-          kd.dict(kd.slice([None]), kd.slice([None], schema=kd.INT64)),  # pyrefly: ignore[missing-attribute]
+          kd.slice([None, None]),
+          kd.dict(kd.slice([None]), kd.slice([None], schema=kd.INT64)),
       ),
       (
-          kd.slice([4, 3, 4, None, 2, 2, 1, 4, 1, None, 2]),  # pyrefly: ignore[missing-attribute]
-          kd.dict(  # pyrefly: ignore[missing-attribute]
-              kd.slice([1, 2, 3, 4]), kd.slice([2, 3, 1, 3], schema=kd.INT64)  # pyrefly: ignore[missing-attribute]
+          kd.slice([4, 3, 4, None, 2, 2, 1, 4, 1, None, 2]),
+          kd.dict(
+              kd.slice([1, 2, 3, 4]), kd.slice([2, 3, 1, 3], schema=kd.INT64)
           ),
       ),
       (
-          kd.slice(['a', 'a', 3, None, 4, None, 3]),  # pyrefly: ignore[missing-attribute]
-          kd.dict(kd.slice(['a', 3, 4]), kd.slice([2, 2, 1], schema=kd.INT64)),  # pyrefly: ignore[missing-attribute]
+          kd.slice(['a', 'a', 3, None, 4, None, 3]),
+          kd.dict(kd.slice(['a', 3, 4]), kd.slice([2, 2, 1], schema=kd.INT64)),
       ),
       # 2-d.
       (
-          kd.slice([[None], [None]]),  # pyrefly: ignore[missing-attribute]
-          kd.dict(  # pyrefly: ignore[missing-attribute]
-              kd.slice([[None], [None]]),  # pyrefly: ignore[missing-attribute]
-              kd.slice([[None], [None]], schema=kd.INT64),  # pyrefly: ignore[missing-attribute]
+          kd.slice([[None], [None]]),
+          kd.dict(
+              kd.slice([[None], [None]]),
+              kd.slice([[None], [None]], schema=kd.INT64),
           ),
       ),
       (
-          kd.slice([[4, 3, 4], [None, 2], [2, 1, 4, 1], [None]]),  # pyrefly: ignore[missing-attribute]
-          kd.dict(  # pyrefly: ignore[missing-attribute]
-              kd.slice([[4, 3], [2], [2, 1, 4], [None]]),  # pyrefly: ignore[missing-attribute]
-              kd.slice([[2, 1], [1], [1, 2, 1], [None]], schema=kd.INT64)  # pyrefly: ignore[missing-attribute]
+          kd.slice([[4, 3, 4], [None, 2], [2, 1, 4, 1], [None]]),
+          kd.dict(
+              kd.slice([[4, 3], [2], [2, 1, 4], [None]]),
+              kd.slice([[2, 1], [1], [1, 2, 1], [None]], schema=kd.INT64)
           ),
       ),
   )
@@ -67,7 +67,7 @@ class ValueCountsTest(parameterized.TestCase):
 
   def test_incompatible_type_error(self):
     with self.assertRaisesRegex(ValueError, 'dict keys cannot be FLOAT32'):
-      kd.eval(kde.contrib.value_counts(kd.slice([1.0, 2.0])))  # pyrefly: ignore[missing-attribute]
+      kd.eval(kde.contrib.value_counts(kd.slice([1.0, 2.0])))
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

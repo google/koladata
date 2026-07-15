@@ -17,21 +17,21 @@ from absl.testing import parameterized
 from koladata import kd
 from koladata import kd_ext
 
-ds = kd.slice  # pyrefly: ignore[missing-attribute]
+ds = kd.slice
 
 
 class AutoReferenceUpdateTest(parameterized.TestCase):
 
   def test_auto_reference_update_attributes(self):
-    input_schema = kd.schema.new_schema(a=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    input_schema = kd.schema.new_schema(a=kd.INT32)
     input_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         input_schema,
         foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
     )
-    x_input = kd.new(a=ds([1, 2, 2, 4, 5]), schema=input_schema)  # pyrefly: ignore[missing-attribute]
+    x_input = kd.new(a=ds([1, 2, 2, 4, 5]), schema=input_schema)
     x_input = x_input.enriched(kd_ext.ids.auto_id_update(x_input))  # pyrefly: ignore[missing-attribute]
 
-    schema = kd.schema.new_schema()  # pyrefly: ignore[missing-attribute]
+    schema = kd.schema.new_schema()
     schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         schema,
         foo_ref=kd_ext.ids.auto_reference('foo'),  # pyrefly: ignore[missing-attribute]
@@ -41,7 +41,7 @@ class AutoReferenceUpdateTest(parameterized.TestCase):
     )
     x = schema.new(
         foo_ref=ds(['foo_1', 'foo_4']),
-        more_foo_ref=ds([kd.list(['foo_2', 'foo_3']), kd.list(['foo_5'])]),  # pyrefly: ignore[missing-attribute]
+        more_foo_ref=ds([kd.list(['foo_2', 'foo_3']), kd.list(['foo_5'])]),
     )
     update_db = kd_ext.ids.auto_reference_update(x, x_input)  # pyrefly: ignore[missing-attribute]
     x_with_refs = (
@@ -49,26 +49,26 @@ class AutoReferenceUpdateTest(parameterized.TestCase):
     )
     kd.testing.assert_equivalent(
         x_with_refs,
-        kd.new(  # pyrefly: ignore[missing-attribute]
+        kd.new(
             foo_ref=ds([x_input.S[0], x_input.S[3]]),
             more_foo_ref=ds([
-                kd.list([x_input.S[1], x_input.S[2]]),  # pyrefly: ignore[missing-attribute]
-                kd.list([x_input.S[4]]),  # pyrefly: ignore[missing-attribute]
+                kd.list([x_input.S[1], x_input.S[2]]),
+                kd.list([x_input.S[4]]),
             ]),
         ),
         schemas_equality=False,
     )
 
   def test_missing_reference(self):
-    input_schema = kd.schema.new_schema(a=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    input_schema = kd.schema.new_schema(a=kd.INT32)
     input_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         input_schema,
         foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
     )
-    x_input = kd.new(a=ds([1, 2]), schema=input_schema)  # pyrefly: ignore[missing-attribute]
+    x_input = kd.new(a=ds([1, 2]), schema=input_schema)
     x_input = x_input.enriched(kd_ext.ids.auto_id_update(x_input))  # pyrefly: ignore[missing-attribute]
 
-    schema = kd.schema.new_schema()  # pyrefly: ignore[missing-attribute]
+    schema = kd.schema.new_schema()
     schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         schema,
         foo_ref=kd_ext.ids.auto_reference('foo'),  # pyrefly: ignore[missing-attribute]
@@ -83,12 +83,12 @@ class AutoReferenceUpdateTest(parameterized.TestCase):
       _ = kd_ext.ids.auto_reference_update(x, x_input)  # pyrefly: ignore[missing-attribute]
 
   def test_inconsistent_schemas(self):
-    input_schema_1 = kd.schema.new_schema(a=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    input_schema_1 = kd.schema.new_schema(a=kd.INT32)
     input_schema_1 = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         input_schema_1,
         foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
     )
-    input_schema_2 = kd.schema.new_schema(b=kd.STRING)  # pyrefly: ignore[missing-attribute]
+    input_schema_2 = kd.schema.new_schema(b=kd.STRING)
     input_schema_2 = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         input_schema_2,
         foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
@@ -96,10 +96,10 @@ class AutoReferenceUpdateTest(parameterized.TestCase):
     db = kd.mutable_bag()
     x1 = db.new(a=1, schema=input_schema_1)
     x2 = db.new(b='val', schema=input_schema_2)
-    x_input = kd.slice([x1, x2], schema=kd.OBJECT)  # pyrefly: ignore[missing-attribute]
+    x_input = kd.slice([x1, x2], schema=kd.OBJECT)
     x_input = x_input.enriched(kd_ext.ids.auto_id_update(x_input))  # pyrefly: ignore[missing-attribute]
 
-    schema = kd.schema.new_schema()  # pyrefly: ignore[missing-attribute]
+    schema = kd.schema.new_schema()
     schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         schema,
         more_foo_ref=kd_ext.ids.auto_reference_list(  # pyrefly: ignore[missing-attribute]
@@ -107,7 +107,7 @@ class AutoReferenceUpdateTest(parameterized.TestCase):
         ),
     )
     x = schema.new(
-        more_foo_ref=ds([kd.list(['foo_1', 'foo_2'])]),  # pyrefly: ignore[missing-attribute]
+        more_foo_ref=ds([kd.list(['foo_1', 'foo_2'])]),
     )
     with self.assertRaisesRegex(
         ValueError,
@@ -116,26 +116,26 @@ class AutoReferenceUpdateTest(parameterized.TestCase):
       _ = kd_ext.ids.auto_reference_update(x, x_input)  # pyrefly: ignore[missing-attribute]
 
   def test_multiple_namespaces(self):
-    foo_schema = kd.schema.new_schema(a=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    foo_schema = kd.schema.new_schema(a=kd.INT32)
     foo_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         foo_schema,
         foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
     )
-    bar_schema = kd.schema.new_schema(b=kd.STRING)  # pyrefly: ignore[missing-attribute]
+    bar_schema = kd.schema.new_schema(b=kd.STRING)
     bar_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         bar_schema,
         bar_id=kd_ext.ids.auto_id('bar'),  # pyrefly: ignore[missing-attribute]
     )
 
-    root_input_schema = kd.schema.new_schema(foo=foo_schema, bar=bar_schema)  # pyrefly: ignore[missing-attribute]
-    x_input = kd.new(  # pyrefly: ignore[missing-attribute]
-        foo=kd.new(a=ds([1, 2]), schema=foo_schema),  # pyrefly: ignore[missing-attribute]
-        bar=kd.new(b=ds(['a', 'b']), schema=bar_schema),  # pyrefly: ignore[missing-attribute]
+    root_input_schema = kd.schema.new_schema(foo=foo_schema, bar=bar_schema)
+    x_input = kd.new(
+        foo=kd.new(a=ds([1, 2]), schema=foo_schema),
+        bar=kd.new(b=ds(['a', 'b']), schema=bar_schema),
         schema=root_input_schema,
     )
     x_input = x_input.enriched(kd_ext.ids.auto_id_update(x_input))  # pyrefly: ignore[missing-attribute]
 
-    schema = kd.schema.new_schema()  # pyrefly: ignore[missing-attribute]
+    schema = kd.schema.new_schema()
     schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         schema,
         foo_ref=kd_ext.ids.auto_reference('foo'),  # pyrefly: ignore[missing-attribute]
@@ -152,7 +152,7 @@ class AutoReferenceUpdateTest(parameterized.TestCase):
 
     kd.testing.assert_equivalent(
         x_with_refs,
-        kd.new(  # pyrefly: ignore[missing-attribute]
+        kd.new(
             foo_ref=ds([x_input.foo.S[0], x_input.foo.S[1]]),
             bar_ref=ds([x_input.bar.S[1], x_input.bar.S[0]]),
         ),
@@ -160,15 +160,15 @@ class AutoReferenceUpdateTest(parameterized.TestCase):
     )
 
   def test_scalar_input(self):
-    input_schema = kd.schema.new_schema(a=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    input_schema = kd.schema.new_schema(a=kd.INT32)
     input_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         input_schema,
         foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
     )
-    x_input = kd.new(a=42, schema=input_schema)  # pyrefly: ignore[missing-attribute]
+    x_input = kd.new(a=42, schema=input_schema)
     x_input = x_input.enriched(kd_ext.ids.auto_id_update(x_input))  # pyrefly: ignore[missing-attribute]
 
-    schema = kd.schema.new_schema()  # pyrefly: ignore[missing-attribute]
+    schema = kd.schema.new_schema()
     schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         schema,
         foo_ref=kd_ext.ids.auto_reference('foo'),  # pyrefly: ignore[missing-attribute]
@@ -182,7 +182,7 @@ class AutoReferenceUpdateTest(parameterized.TestCase):
     )
     kd.testing.assert_equivalent(
         x_with_refs,
-        kd.new(  # pyrefly: ignore[missing-attribute]
+        kd.new(
             foo_ref=x_input,
         ),
         schemas_equality=False,

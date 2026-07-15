@@ -21,7 +21,7 @@ I = kd.I
 
 kde = kd_ext.lazy
 bag = kd.mutable_bag
-ds = kd.slice  # pyrefly: ignore[missing-attribute]
+ds = kd.slice
 
 
 class ContribFlattenCyclicReferencesTest(parameterized.TestCase):

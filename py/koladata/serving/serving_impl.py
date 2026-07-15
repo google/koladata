@@ -58,7 +58,7 @@ def parallel_transform(fn: kd.types.DataItem) -> kd.types.DataItem:
 
 def serialize_slices(slices: Mapping[str, kd.types.DataSlice]):
   """Serializes Koda slices into bytes."""
-  names = kd.slice(list(slices.keys()))  # pyrefly: ignore[missing-attribute]
+  names = kd.slice(list(slices.keys()))
   data = arolla.s11n.riegeli_dumps_many([names, *slices.values()], [])
   return serving_impl_clib.cleanup_bag_id(data)
 

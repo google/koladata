@@ -136,7 +136,7 @@ def _convert_single_item(item: Any, schema: kd.types.SchemaItem) -> ast.expr:
     if schema == kd.FLOAT32:
       # Format float32 values for concise representation (e.g., 0.2 instead of
       # 0.20000000298023224).
-      return ast.Name(id=str(kd.float32(item)), ctx=ast.Load())  # pyrefly: ignore[missing-attribute]
+      return ast.Name(id=str(kd.float32(item)), ctx=ast.Load())
   if schema == kd.SCHEMA:
     return ast.Name(id=_schema_to_py_name(item), ctx=ast.Load())
   return ast.Constant(value=item)

@@ -22,7 +22,7 @@ _NON_DETERMINISTIC_TOKEN_OP = arolla.abc.lookup_operator(
     'koda_internal.non_deterministic'
 )
 
-_SOURCE_LOCATION_OP = arolla.M.annotation.source_location  # pyrefly: ignore[missing-attribute]
+_SOURCE_LOCATION_OP = arolla.M.annotation.source_location
 
 
 class Determinizer:
@@ -65,21 +65,21 @@ class Determinizer:
         self._assert_deterministic_schema(ds.get_schema())
         list_items = [self.make_deterministic(x) for x in ds]
         new_id = self._freeze_listid(ds.get_itemid())
-        return kd.list(list_items, itemid=new_id, schema=ds.get_schema())  # pyrefly: ignore[missing-attribute]
+        return kd.list(list_items, itemid=new_id, schema=ds.get_schema())
 
       if ds.is_dict():
         self._assert_deterministic_schema(ds.get_schema())
-        keys = kd.sort(ds.get_keys())  # pyrefly: ignore[missing-attribute]
+        keys = kd.sort(ds.get_keys())
         if not keys.is_primitive() or kd.expr.is_packed_expr(keys):
           raise NotImplementedError(
               f'Dicts with non-primitive or Expr keys are not supported: {ds}'
           )
         values = ds[keys]
-        deterministic_values = kd.slice(  # pyrefly: ignore[missing-attribute]
+        deterministic_values = kd.slice(
             [self.make_deterministic(v) for v in values.L]
         )
         new_id = self._freeze_dictid(ds.get_itemid())
-        return kd.dict(  # pyrefly: ignore[missing-attribute]
+        return kd.dict(
             keys, deterministic_values, itemid=new_id, schema=ds.get_schema()
         )
 
@@ -88,19 +88,19 @@ class Determinizer:
         return ds
 
       # TODO: Are there other cases not covered here?
-      assert kd.is_entity(ds), ds  # pyrefly: ignore[missing-attribute]
+      assert kd.is_entity(ds), ds
 
       new_id = self._freeze_itemid(ds.get_itemid())
       attrs = kd.dir(ds)
       attr_to_values = {
-          attr: self.make_deterministic(kd.get_attr(ds, attr)) for attr in attrs  # pyrefly: ignore[missing-attribute]
+          attr: self.make_deterministic(kd.get_attr(ds, attr)) for attr in attrs
       }
 
       if ds.get_schema() == kd.OBJECT:
-        return kd.obj(**attr_to_values, itemid=new_id)  # pyrefly: ignore[missing-attribute]
+        return kd.obj(**attr_to_values, itemid=new_id)
       else:
         self._assert_deterministic_schema(ds.get_schema())
-        return kd.new(**attr_to_values, schema=ds.get_schema(), itemid=new_id)  # pyrefly: ignore[missing-attribute]
+        return kd.new(**attr_to_values, schema=ds.get_schema(), itemid=new_id)
 
     if ds.fingerprint in self._already_made_deterministic:
       return self._already_made_deterministic[ds.fingerprint]
@@ -112,9 +112,9 @@ class Determinizer:
   def _freeze_non_deterministic_token(self, token):
     """Freezes an arolla.int64 non-deterministic token."""
     if token not in self._frozen_non_deterministic_tokens:
-      int64_seed = kd.cityhash(self._seed, 0)  # pyrefly: ignore[missing-attribute]
+      int64_seed = kd.cityhash(self._seed, 0)
       new_token = arolla.int64(
-          kd.cityhash(  # pyrefly: ignore[missing-attribute]
+          kd.cityhash(
               len(self._frozen_non_deterministic_tokens), int64_seed
           ).to_py()
       )
@@ -142,12 +142,12 @@ class Determinizer:
     return arolla.abc.transform(expr, make_deterministic_node)
 
   def _freeze_itemid(self, itemid: kd.types.DataItem) -> kd.types.DataItem:
-    if kd.ids.is_uuid(itemid):  # pyrefly: ignore[missing-attribute]
+    if kd.ids.is_uuid(itemid):
       return itemid
 
     if itemid not in self._frozen_ids:
-      self._frozen_ids[itemid] = kd.to_itemid(  # pyrefly: ignore[missing-attribute]
-          kd.uu(  # pyrefly: ignore[missing-attribute]
+      self._frozen_ids[itemid] = kd.to_itemid(
+          kd.uu(
               seed=self._seed,
               koladata_serving_determinism_id=len(self._frozen_ids),
           )
@@ -155,21 +155,21 @@ class Determinizer:
     return self._frozen_ids[itemid]
 
   def _freeze_listid(self, itemid: kd.types.DataItem) -> kd.types.DataItem:
-    if kd.ids.is_uuid(itemid):  # pyrefly: ignore[missing-attribute]
+    if kd.ids.is_uuid(itemid):
       return itemid
 
     if itemid not in self._frozen_ids:
-      self._frozen_ids[itemid] = kd.uuid_for_list(  # pyrefly: ignore[missing-attribute]
+      self._frozen_ids[itemid] = kd.uuid_for_list(
           seed=self._seed, koladata_serving_determinism_id=len(self._frozen_ids)
       )
     return self._frozen_ids[itemid]
 
   def _freeze_dictid(self, itemid: kd.types.DataItem) -> kd.types.DataItem:
-    if kd.ids.is_uuid(itemid):  # pyrefly: ignore[missing-attribute]
+    if kd.ids.is_uuid(itemid):
       return itemid
 
     if itemid not in self._frozen_ids:
-      self._frozen_ids[itemid] = kd.uuid_for_dict(  # pyrefly: ignore[missing-attribute]
+      self._frozen_ids[itemid] = kd.uuid_for_dict(
           seed=self._seed,
           koladata_serving_determinism_id=len(self._frozen_ids),
       )
@@ -190,7 +190,7 @@ class Determinizer:
     ):
       return
 
-    if not kd.ids.is_uuid(schema):  # pyrefly: ignore[missing-attribute]
+    if not kd.ids.is_uuid(schema):
       raise ValueError(
           'All schemas used it the functors for serving must have uuids, got:'
           f' {schema}'
