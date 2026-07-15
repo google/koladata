@@ -270,7 +270,7 @@ class DataItemTest(parameterized.TestCase):
     )
 
   def test_call(self):
-    fn = functor_factories.expr_fn(I.x * I.y)  # pyrefly: ignore[unsupported-operation]
+    fn = functor_factories.expr_fn(I.x * I.y)
     self.assertEqual(fn(x=2, y=3), 6)
     self.assertIsInstance(fn(x=2, y=I.z), arolla.Expr)
     self.assertEqual(fn(x=2, y=I.z).eval(z=3), 6)
@@ -294,7 +294,7 @@ class DataItemTest(parameterized.TestCase):
     self.assertEqual(fn_pos.bind(5)(y=6), 11)
     self.assertEqual(fn_pos.bind(5, y=6)(), 11)
     fn = functor_factories.trace_py_fn(
-        lambda x, y: user_facing_kd.attrs(x, my_attr=y)  # pyrefly: ignore[missing-attribute]
+        lambda x, y: user_facing_kd.attrs(x, my_attr=y)
     ).bind(y=42, return_type_as=data_bag.DataBag)
     x = fns.new()
     self.assertEqual(
@@ -331,76 +331,76 @@ class DataItemTest(parameterized.TestCase):
   def test_hash_compatibility_with_py(self):
     kd_values = [
         # NONE
-        user_facing_kd.item(None),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.obj(user_facing_kd.item(None)),  # pyrefly: ignore[missing-attribute]
+        user_facing_kd.item(None),
+        user_facing_kd.obj(user_facing_kd.item(None)),
         # MASK
-        user_facing_kd.mask(None),  # pyrefly: ignore[missing-attribute]
+        user_facing_kd.mask(None),
         user_facing_kd.present,
-        user_facing_kd.obj(user_facing_kd.present),  # pyrefly: ignore[missing-attribute]
+        user_facing_kd.obj(user_facing_kd.present),
         # BOOLEAN
-        user_facing_kd.bool(True),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.obj(user_facing_kd.bool(True)),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.bool(None),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.obj(user_facing_kd.bool(None)),  # pyrefly: ignore[missing-attribute]
+        user_facing_kd.bool(True),
+        user_facing_kd.obj(user_facing_kd.bool(True)),
+        user_facing_kd.bool(None),
+        user_facing_kd.obj(user_facing_kd.bool(None)),
         # INT32
-        *(user_facing_kd.int32(i) for i in range(-10, 10)),  # pyrefly: ignore[missing-attribute]
-        *(user_facing_kd.obj(user_facing_kd.int32(i)) for i in range(-10, 10)),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.int32(None),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.obj(user_facing_kd.int32(None)),  # pyrefly: ignore[missing-attribute]
+        *(user_facing_kd.int32(i) for i in range(-10, 10)),
+        *(user_facing_kd.obj(user_facing_kd.int32(i)) for i in range(-10, 10)),
+        user_facing_kd.int32(None),
+        user_facing_kd.obj(user_facing_kd.int32(None)),
         # INT64
-        *(user_facing_kd.int64(i) for i in range(-10, 10)),  # pyrefly: ignore[missing-attribute]
-        *(user_facing_kd.obj(user_facing_kd.int64(i)) for i in range(-10, 10)),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.int64(None),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.obj(user_facing_kd.int64(None)),  # pyrefly: ignore[missing-attribute]
+        *(user_facing_kd.int64(i) for i in range(-10, 10)),
+        *(user_facing_kd.obj(user_facing_kd.int64(i)) for i in range(-10, 10)),
+        user_facing_kd.int64(None),
+        user_facing_kd.obj(user_facing_kd.int64(None)),
         # FLOAT32
-        user_facing_kd.float32(0.5),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.obj(user_facing_kd.float32(0.5)),  # pyrefly: ignore[missing-attribute]
-        *(user_facing_kd.float32(i) for i in range(-10, 10)),  # pyrefly: ignore[missing-attribute]
+        user_facing_kd.float32(0.5),
+        user_facing_kd.obj(user_facing_kd.float32(0.5)),
+        *(user_facing_kd.float32(i) for i in range(-10, 10)),
         *(
-            user_facing_kd.obj(user_facing_kd.float32(i))  # pyrefly: ignore[missing-attribute]
+            user_facing_kd.obj(user_facing_kd.float32(i))
             for i in range(-10, 10)
         ),
-        user_facing_kd.obj(user_facing_kd.float32(1)),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.float32(None),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.obj(user_facing_kd.float32(None)),  # pyrefly: ignore[missing-attribute]
+        user_facing_kd.obj(user_facing_kd.float32(1)),
+        user_facing_kd.float32(None),
+        user_facing_kd.obj(user_facing_kd.float32(None)),
         # FLOAT64
-        user_facing_kd.float64(0.5),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.obj(user_facing_kd.float64(0.5)),  # pyrefly: ignore[missing-attribute]
-        *(user_facing_kd.float64(i) for i in range(-10, 10)),  # pyrefly: ignore[missing-attribute]
+        user_facing_kd.float64(0.5),
+        user_facing_kd.obj(user_facing_kd.float64(0.5)),
+        *(user_facing_kd.float64(i) for i in range(-10, 10)),
         *(
-            user_facing_kd.obj(user_facing_kd.float64(i))  # pyrefly: ignore[missing-attribute]
+            user_facing_kd.obj(user_facing_kd.float64(i))
             for i in range(-10, 10)
         ),
-        user_facing_kd.float64(None),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.obj(user_facing_kd.float64(None)),  # pyrefly: ignore[missing-attribute]
+        user_facing_kd.float64(None),
+        user_facing_kd.obj(user_facing_kd.float64(None)),
         # BYTES
-        user_facing_kd.bytes(b''),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.obj(user_facing_kd.bytes(b'')),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.bytes(b'foo'),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.obj(user_facing_kd.bytes(b'foo')),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.bytes(None),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.obj(user_facing_kd.bytes(None)),  # pyrefly: ignore[missing-attribute]
+        user_facing_kd.bytes(b''),
+        user_facing_kd.obj(user_facing_kd.bytes(b'')),
+        user_facing_kd.bytes(b'foo'),
+        user_facing_kd.obj(user_facing_kd.bytes(b'foo')),
+        user_facing_kd.bytes(None),
+        user_facing_kd.obj(user_facing_kd.bytes(None)),
         # STRING
-        user_facing_kd.str(''),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.obj(user_facing_kd.str('')),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.str('foo'),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.obj(user_facing_kd.str('foo')),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.str(None),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.obj(user_facing_kd.str(None)),  # pyrefly: ignore[missing-attribute]
+        user_facing_kd.str(''),
+        user_facing_kd.obj(user_facing_kd.str('')),
+        user_facing_kd.str('foo'),
+        user_facing_kd.obj(user_facing_kd.str('foo')),
+        user_facing_kd.str(None),
+        user_facing_kd.obj(user_facing_kd.str(None)),
         # SCHEMA
         schema_constants.INT32,
-        user_facing_kd.schema.new_schema(x=schema_constants.INT32),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.schema.new_schema(x=schema_constants.INT32),  # pyrefly: ignore[missing-attribute]
+        user_facing_kd.schema.new_schema(x=schema_constants.INT32),
+        user_facing_kd.schema.new_schema(x=schema_constants.INT32),
         # Entities
-        user_facing_kd.new(schema='foo'),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.new(schema='foo'),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.uu(foo=1),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.uu(foo=1),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.uu(foo=1).stub(),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.uu(foo=1).no_bag(),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.obj(user_facing_kd.uu(foo=1)),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.uuobj(foo=1),  # pyrefly: ignore[missing-attribute]
-        user_facing_kd.uuobj(foo=1),  # pyrefly: ignore[missing-attribute]
+        user_facing_kd.new(schema='foo'),
+        user_facing_kd.new(schema='foo'),
+        user_facing_kd.uu(foo=1),
+        user_facing_kd.uu(foo=1),
+        user_facing_kd.uu(foo=1).stub(),
+        user_facing_kd.uu(foo=1).no_bag(),
+        user_facing_kd.obj(user_facing_kd.uu(foo=1)),
+        user_facing_kd.uuobj(foo=1),
+        user_facing_kd.uuobj(foo=1),
     ]
     values = kd_values + [0.5, *(range(-10, 10)), True, b'foo', 'foo', None]
     for kd_value in kd_values:

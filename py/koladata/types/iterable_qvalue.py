@@ -24,10 +24,10 @@ from koladata.types import py_boxing
 from koladata.types import qtypes
 
 
-_SEQUENCE_TO_ITERABLE_EXPR = kde_operators.internal.iterables.from_sequence(  # pyrefly: ignore[missing-attribute]
+_SEQUENCE_TO_ITERABLE_EXPR = kde_operators.internal.iterables.from_sequence(
     arolla.L.arg
 )
-_ITERABLE_TO_SEQUENCE_EXPR = kde_operators.internal.iterables.to_sequence(  # pyrefly: ignore[missing-attribute]
+_ITERABLE_TO_SEQUENCE_EXPR = kde_operators.internal.iterables.to_sequence(
     arolla.L.arg
 )
 

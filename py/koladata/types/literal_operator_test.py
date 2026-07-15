@@ -143,7 +143,7 @@ class LiteralOperatorTest(parameterized.TestCase):
         ValueError,
         re.escape('inconsistent annotation.qtype(expr: INT32, qtype=FLOAT32)'),
     ) as cm:
-      arolla.M.annotation.qtype(x, arolla.FLOAT32)  # pyrefly: ignore[not-callable]
+      arolla.M.annotation.qtype(x, arolla.FLOAT32)
     self.assertIn(
         'koda_internal.literal():Attr(qvalue=1)',
         '\n'.join(cm.exception.__notes__),
