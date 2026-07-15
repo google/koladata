@@ -450,7 +450,7 @@ Args:
 Returns:
   A DataBag containing the merged results of all functor evaluations.</code></pre>
 
-### `kd.functor.py_fn(f: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **defaults: Any) -> DataItem` {#kd.functor.py_fn}
+### `kd.functor.py_fn(fn: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **defaults: Any) -> DataItem` {#kd.functor.py_fn}
 Aliases:
 
 - [kd.py_fn](../kd.md#kd.py_fn)
@@ -471,7 +471,7 @@ arguments and an unknown argument is passed when calling the functor, an
 exception will occur.
 
 Args:
-  f: Python function. It is required that this function returns a
+  fn: Python function. It is required that this function returns a
     DataSlice/DataItem or a primitive that will be automatically wrapped into
     a DataItem.
   return_type_as: The return type of the function is expected to be the same
@@ -493,7 +493,7 @@ Returns:
 
 Alias for [kd.iterables.reduce](iterables.md#kd.iterables.reduce)
 
-### `kd.functor.register_py_fn(f: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, unsafe_override: bool = False, **defaults: Any) -> DataItem` {#kd.functor.register_py_fn}
+### `kd.functor.register_py_fn(fn: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, unsafe_override: bool = False, **defaults: Any) -> DataItem` {#kd.functor.register_py_fn}
 Aliases:
 
 - [kd.register_py_fn](../kd.md#kd.register_py_fn)
@@ -503,9 +503,9 @@ Aliases:
 This is the recommended way to wrap a non-traceable python function into a
 functor.
 
-`f` will be wrapped into an operator and registered with the name taken from
-the `__module__` and `__qualname__` attributes. This requires `f` to be named,
-and to not be a locally defined function. Furthermore, attempts to call
+`fn` will be wrapped into an operator and registered with the name taken from
+the `__module__` and `__qualname__` attributes. This requires `fn` to be
+named, and to not be a locally defined function. Furthermore, attempts to call
 `register_py_fn` on the same function will fail unless unsafe_override is True
 (not recommended).
 
@@ -513,7 +513,7 @@ The resulting functor can be serialized and loaded from a different process
 (unlike `py_fn`). In order for the serialized functor to be deserialized, an
 equivalent call to `register_py_fn` is required to have been made in the
 process that performs the deserialization. In practice, this is often
-implemented through `f` being a top-level function that is traced at library
+implemented through `fn` being a top-level function that is traced at library
 import time.
 
 Note that unlike the functors created by kd.functor.expr_fn from an Expr, this
@@ -523,7 +523,7 @@ arguments and an unknown argument is passed when calling the functor, an
 exception will occur.
 
 Args:
-  f: Python function. It is required that this function returns a
+  fn: Python function. It is required that this function returns a
     DataSlice/DataItem or a primitive that will be automatically wrapped into
     a DataItem. The function must also have `__qualname__` and `__module__`
     attributes set.

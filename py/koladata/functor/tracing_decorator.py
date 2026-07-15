@@ -79,7 +79,7 @@ class FunctorFactory(Protocol):
   """
 
   def __call__(
-      self, fn: py_types.FunctionType, return_type_as: arolla.AnyQValue
+      self, fn: py_types.FunctionType, *, return_type_as: arolla.AnyQValue
   ) -> data_item.DataItem:
     ...
 

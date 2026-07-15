@@ -1204,7 +1204,7 @@ Alias for [kd.masking.present_shaped_as](kd/masking.md#kd.masking.present_shaped
 
 Alias for [kd.curves.pwl_curve](kd/curves.md#kd.curves.pwl_curve)
 
-### `kd.py_fn(f: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **defaults: Any) -> DataItem` {#kd.py_fn}
+### `kd.py_fn(fn: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **defaults: Any) -> DataItem` {#kd.py_fn}
 
 Alias for [kd.functor.py_fn](kd/functor.md#kd.functor.py_fn)
 
@@ -1245,7 +1245,7 @@ Alias for [kd.slices.range](kd/slices.md#kd.slices.range)
 
 Alias for [kd.core.ref](kd/core.md#kd.core.ref)
 
-### `kd.register_py_fn(f: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, unsafe_override: bool = False, **defaults: Any) -> DataItem` {#kd.register_py_fn}
+### `kd.register_py_fn(fn: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, unsafe_override: bool = False, **defaults: Any) -> DataItem` {#kd.register_py_fn}
 
 Alias for [kd.functor.register_py_fn](kd/functor.md#kd.functor.register_py_fn)
 
@@ -1513,7 +1513,7 @@ Alias for [kd.schema.to_none](kd/schema.md#kd.schema.to_none)
 
 Alias for [kd.schema.to_object](kd/schema.md#kd.schema.to_object)
 
-### `kd.to_proto(x: DataSlice, /, message_class: type[Message]) -> Message | list[_NestedMessageList] | None` {#kd.to_proto}
+### `kd.to_proto(x: DataSlice, /, message_class: type[Message]) -> Any` {#kd.to_proto}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Converts a DataSlice or DataItem to one or more proto messages.
 

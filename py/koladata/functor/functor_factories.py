@@ -262,7 +262,7 @@ def _box_py_fn(
 
 
 def py_fn(
-    f: Callable[..., Any],
+    fn: Callable[..., Any],  # pylint: disable=redefined-outer-name
     *,
     return_type_as: Any = data_slice.DataSlice,
     **defaults: Any,
@@ -281,7 +281,7 @@ def py_fn(
   exception will occur.
 
   Args:
-    f: Python function. It is required that this function returns a
+    fn: Python function. It is required that this function returns a
       DataSlice/DataItem or a primitive that will be automatically wrapped into
       a DataItem.
     return_type_as: The return type of the function is expected to be the same
@@ -299,7 +299,7 @@ def py_fn(
   Returns:
     A DataItem representing the functor.
   """
-  boxed_f = _box_py_fn(f)
+  boxed_f = _box_py_fn(fn)
   sig = inspect.signature(boxed_f.py_value())  # pyrefly: ignore[bad-argument-type]
   args_expr, kwargs_expr = build_forwarding_args_kwargs_exprs(sig)
 
@@ -315,18 +315,18 @@ def py_fn(
       ),
       signature=signature_utils.from_py_signature(sig),
   )
-  if f.__doc__ is not None:
-    py_functor = py_functor.with_attr('__doc__', inspect.cleandoc(f.__doc__))
-  if qualname := getattr(f, '__qualname__', None):
+  if fn.__doc__ is not None:
+    py_functor = py_functor.with_attr('__doc__', inspect.cleandoc(fn.__doc__))
+  if qualname := getattr(fn, '__qualname__', None):
     py_functor = py_functor.with_attr('__qualname__', qualname)
-  if module := getattr(f, '__module__', None):
+  if module := getattr(fn, '__module__', None):
     py_functor = py_functor.with_attr('__module__', module)
   py_functor = typing.cast(data_item.DataItem, py_functor)
   return bind(py_functor, **defaults) if defaults else py_functor
 
 
 def register_py_fn(
-    f: Callable[..., Any],
+    fn: Callable[..., Any],  # pylint: disable=redefined-outer-name
     *,
     return_type_as: Any = data_slice.DataSlice,
     unsafe_override: bool = False,
@@ -337,9 +337,9 @@ def register_py_fn(
   This is the recommended way to wrap a non-traceable python function into a
   functor.
 
-  `f` will be wrapped into an operator and registered with the name taken from
-  the `__module__` and `__qualname__` attributes. This requires `f` to be named,
-  and to not be a locally defined function. Furthermore, attempts to call
+  `fn` will be wrapped into an operator and registered with the name taken from
+  the `__module__` and `__qualname__` attributes. This requires `fn` to be
+  named, and to not be a locally defined function. Furthermore, attempts to call
   `register_py_fn` on the same function will fail unless unsafe_override is True
   (not recommended).
 
@@ -347,7 +347,7 @@ def register_py_fn(
   (unlike `py_fn`). In order for the serialized functor to be deserialized, an
   equivalent call to `register_py_fn` is required to have been made in the
   process that performs the deserialization. In practice, this is often
-  implemented through `f` being a top-level function that is traced at library
+  implemented through `fn` being a top-level function that is traced at library
   import time.
 
   Note that unlike the functors created by kd.functor.expr_fn from an Expr, this
@@ -357,7 +357,7 @@ def register_py_fn(
   exception will occur.
 
   Args:
-    f: Python function. It is required that this function returns a
+    fn: Python function. It is required that this function returns a
       DataSlice/DataItem or a primitive that will be automatically wrapped into
       a DataItem. The function must also have `__qualname__` and `__module__`
       attributes set.
@@ -378,16 +378,16 @@ def register_py_fn(
   Returns:
     A DataItem representing the functor.
   """
-  qualname = getattr(f, '__qualname__', None)
-  module = getattr(f, '__module__', None)
+  qualname = getattr(fn, '__qualname__', None)
+  module = getattr(fn, '__module__', None)
   if qualname is None or module is None:
     raise ValueError(
         'qualname and module must be set on the function when registering it'
         ' as operator'
     )
-  # Preprocess & validate `f` in a similar way we do in `py_fn`. Although we
+  # Preprocess & validate `fn` in a similar way we do in `py_fn`. Although we
   # don't need the boxed function, so we just use its py_value().
-  boxed = _box_py_fn(f)
+  boxed = _box_py_fn(fn)
   f_op = optools.as_py_function_operator(
       module + '.' + qualname,
       qtype_inference_expr=py_boxing.as_qvalue(return_type_as).qtype,
@@ -402,8 +402,8 @@ def register_py_fn(
       arolla.abc.bind_op(f_op, args_expr, kwargs_expr),
       signature=signature_utils.from_py_signature(sig),
   )
-  if f.__doc__ is not None:
-    py_functor = py_functor.with_attr('__doc__', inspect.cleandoc(f.__doc__))
+  if fn.__doc__ is not None:
+    py_functor = py_functor.with_attr('__doc__', inspect.cleandoc(fn.__doc__))
   py_functor = py_functor.with_attr('__qualname__', qualname)
   py_functor = py_functor.with_attr('__module__', module)
   py_functor = typing.cast(data_item.DataItem, py_functor)

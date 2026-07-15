@@ -200,7 +200,7 @@ def _example_computation_kd_no_py_vectorized(
 
 def _example_computation_kd_vectorized(datas: list[Data]) -> list[list[Group]]:
   """An example vectorized computation in Koda with to/from py conversions."""
-  datas = kd.from_py(datas, schema=DATAS_SCHEMA)  # pylint: disable=protected-access
+  datas = kd.from_py(datas, schema=DATAS_SCHEMA)  # pylint: disable=protected-access  # pyrefly: ignore[bad-assignment]
   item_groups = _example_computation_kd_no_py_vectorized(datas)
   return item_groups.to_py(max_depth=-1)
 

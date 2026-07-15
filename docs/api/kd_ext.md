@@ -28,7 +28,7 @@ Subcategory | Description
 
 Alias for [kd.functor.fn](kd/functor.md#kd.functor.fn)
 
-### `kd_ext.PyFn(f: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **defaults: Any) -> DataItem` {#kd_ext.PyFn}
+### `kd_ext.PyFn(fn: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **defaults: Any) -> DataItem` {#kd_ext.PyFn}
 
 Alias for [kd.functor.py_fn](kd/functor.md#kd.functor.py_fn)
 
