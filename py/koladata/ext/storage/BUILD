@@ -395,6 +395,9 @@ py_library(
 py_library(
     name = "global_cache_lib",
     srcs = ["global_cache_lib.py"],
+    visibility = [
+        "//koladata:internal",
+    ],
     deps = [
         ":global_cache_flags",
         ":lru_size_tracking_cache",

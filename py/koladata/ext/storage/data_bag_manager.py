@@ -103,6 +103,7 @@ class DataBagManager:
   _persistence_dir: str
   _fs: kd.file_io.FileSystemInterface
   _metadata: metadata_pb2.DataBagManagerMetadata
+  bag_cache: global_cache_lib.CacheType
 
   @classmethod
   def create_new(
@@ -215,6 +216,7 @@ class DataBagManager:
     self._persistence_dir = persistence_dir
     self._fs = fs
     self._metadata = metadata
+    self.bag_cache = global_cache_lib.get_global_cache()
 
   def get_available_bag_names(self) -> AbstractSet[str]:
     """Returns the names of all bags that are managed by this manager.
@@ -521,14 +523,13 @@ class DataBagManager:
       )
       raise
 
-    # Populate the global cache with the newly added bags.
+    # Populate the cache with the newly added bags.
     # If the cache is partially updated, e.g. when a KeyboardInterrupt happens
     # during the loop below, then the state of the current manager remains
     # consistent. It only means that the bags will have to be loaded from disk
     # the next time they are needed.
-    cache = global_cache_lib.get_global_cache()
     for bag_to_add, bag_filename in zip(bags_to_add, bag_filenames):
-      cache_key = _get_global_cache_key(
+      cache_key = _get_bag_cache_key(
           bag_name=bag_to_add.bag_name,
           bag_filepath=self._get_bag_filepath_from_filename(bag_filename),
       )
@@ -546,7 +547,9 @@ class DataBagManager:
       # reason is that no other thread could have set a value for cache_key,
       # which depends on the bag_filepath and hence bag_filename - a fresh
       # filename generated privately here and that embodies a fresh UUID.
-      cache.set(key=cache_key, value=cache_value, metadata=entry_metadata)
+      self.bag_cache.set(
+          key=cache_key, value=cache_value, metadata=entry_metadata
+      )
 
   def _make_single_bag(
       self, bag_name_to_bag: dict[str, kd.types.DataBag]
@@ -641,7 +644,7 @@ class DataBagManager:
     """Loads exactly the requested bags.
 
     Loading from disk is done only when the requested bag is not found in the
-    global cache.
+    bag cache.
 
     Args:
       bags_to_load: The names of the bags to load. They must be a subset of
@@ -651,10 +654,9 @@ class DataBagManager:
       A dictionary mapping the requested bag names to the corresponding
       DataBags.
     """
-    global_cache = global_cache_lib.get_global_cache()
     result = {
-        bn: global_cache.get(
-            _get_global_cache_key(
+        bn: self.bag_cache.get(
+            _get_bag_cache_key(
                 bag_name=bn, bag_filepath=self._get_bag_filepath(bn)
             )
         )
@@ -677,7 +679,7 @@ class DataBagManager:
       ]
     for bag_name, future in zip(needed_bags, futures):
       bag = future.result()
-      cache_key = _get_global_cache_key(
+      cache_key = _get_bag_cache_key(
           bag_name=bag_name,
           bag_filepath=self._get_bag_filepath(bag_name),
       )
@@ -688,7 +690,7 @@ class DataBagManager:
       )
       result[bag_name] = cast(
           kd.types.DataBag,
-          global_cache.set(
+          self.bag_cache.set(
               key=cache_key, value=cache_value, metadata=entry_metadata
           ),
       )
@@ -822,7 +824,7 @@ def _read_latest_metadata(
     return metadata_pb2.DataBagManagerMetadata.FromString(f.read())  # pyrefly: ignore[bad-argument-type]
 
 
-def _get_global_cache_key(*, bag_name: str, bag_filepath: str) -> str:
+def _get_bag_cache_key(*, bag_name: str, bag_filepath: str) -> str:
   # We include the bag name in the cache key because users might move
   # manager directories around in the filesystem, and nothing prevents them from
   # swapping the filesystem locations of two unrelated managers. Since the only

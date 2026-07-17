@@ -44,9 +44,10 @@ flags.register_validator(
 CACHE_VALUE_TYPE = kd.types.DataBag | kd.types.DataSlice
 
 Cache = _lru_size_tracking_cache.LruSizeTrackingCache
+CacheType = Cache[str, CACHE_VALUE_TYPE]
 CacheEntryMetadata = _lru_size_tracking_cache.CacheEntryMetadata
 
-_CACHE: Cache[str, CACHE_VALUE_TYPE] = Cache(
+_CACHE: CacheType = Cache(
     max_total_bytes_of_entries_in_cache=_mb_to_bytes(
         # Use the flag value if it is present, i.e. if flag parsing is done and
         # the flag was provided. Otherwise, use the default value of the flag,
@@ -59,6 +60,6 @@ _CACHE: Cache[str, CACHE_VALUE_TYPE] = Cache(
 )
 
 
-def get_global_cache() -> Cache[str, CACHE_VALUE_TYPE]:
+def get_global_cache() -> CacheType:
   """Returns the global cache."""
   return _CACHE
