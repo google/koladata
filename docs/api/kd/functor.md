@@ -404,7 +404,7 @@ Args:
 Returns:
   The evaluation result.</code></pre>
 
-### `kd.functor.map_py_fn(f: Union[Callable[..., Any], PyObject], *, schema: Any = None, max_threads: Any = 1, ndim: Any = 0, include_missing: Any = None, **defaults: Any) -> DataItem` {#kd.functor.map_py_fn}
+### `kd.functor.map_py_fn(f: Callable[..., Any] | PyObject, *, schema: Any = None, max_threads: Any = 1, ndim: Any = 0, include_missing: Any = None, **defaults: Any) -> DataItem` {#kd.functor.map_py_fn}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Koda functor wrapping a python function for kd.map_py.
 

@@ -52,7 +52,7 @@ Args:
 Yields:
   All data slice paths that exist and satisfy the max_depth condition.</code></pre>
 
-### `DataSliceManagerInterface.get_data_slice(self, populate: Union[Collection[DataSlicePath], None] = None, populate_including_descendants: Union[Collection[DataSlicePath], None] = None) -> DataSlice` {#kd_ext.storage.DataSliceManagerInterface.get_data_slice}
+### `DataSliceManagerInterface.get_data_slice(self, populate: Collection[DataSlicePath] | None = None, populate_including_descendants: Collection[DataSlicePath] | None = None) -> DataSlice` {#kd_ext.storage.DataSliceManagerInterface.get_data_slice}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the dataslice with data for the requested data slice paths.
 
