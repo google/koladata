@@ -69,6 +69,10 @@ struct ReprOption {
   // If true, format structures (lists, dicts, entities) as multiline if they
   // are large or contain newlines.
   bool enable_multiline = true;
+  // If true, guarantee that we print only data and no wrapping with
+  // "DataSlice/DataItem()" is happening. Overrides other show_* options (except
+  // show_attributes).
+  bool force_no_metadata = false;
 };
 // LINT.ThenChange(//py/koladata/operators/slices.py)
 

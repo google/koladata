@@ -2062,12 +2062,46 @@ TEST(DataSliceReprTest, DataSliceRepr_EmptySlice) {
         Eq("DataSlice([], schema: INT32)"));
   }
   {
+    // Rank 1 empty slice, show_shape = true
+    auto shape = test::ShapeFromSizes({{0}});
+    auto ds = test::DataSlice<int>({}, std::move(shape));
+    EXPECT_THAT(
+        DataSliceRepr(ds, {.show_databag_id = false, .show_shape = true}),
+        Eq("DataSlice([], schema: INT32, shape: JaggedShape(0))"));
+  }
+  {
+    // Rank 1 empty slice, force_no_metadata = true
+    auto shape = test::ShapeFromSizes({{0}});
+    auto ds = test::DataSlice<int>({}, std::move(shape));
+    EXPECT_THAT(DataSliceRepr(ds, {.force_no_metadata = true}), Eq("[]"));
+  }
+  {
     // Rank 2 empty slice, show_shape = false
     auto shape = test::ShapeFromSizes({{0}, {}});
     auto ds = test::DataSlice<int>({}, std::move(shape));
     EXPECT_THAT(
         DataSliceRepr(ds, {.show_databag_id = false, .show_shape = false}),
         Eq("DataSlice([], schema: INT32, shape: JaggedShape(0, []))"));
+  }
+  {
+    // Rank 2 empty slice, show_shape = true
+    auto shape = test::ShapeFromSizes({{0}, {}});
+    auto ds = test::DataSlice<int>({}, std::move(shape));
+    EXPECT_THAT(
+        DataSliceRepr(ds, {.show_databag_id = false, .show_shape = true}),
+        Eq("DataSlice([], schema: INT32, shape: JaggedShape(0, []))"));
+  }
+  {
+    // Rank 2 empty slice [0, []], force_no_metadata = true
+    auto shape = test::ShapeFromSizes({{0}, {}});
+    auto ds = test::DataSlice<int>({}, std::move(shape));
+    EXPECT_THAT(DataSliceRepr(ds, {.force_no_metadata = true}), Eq("[]"));
+  }
+  {
+    // Rank 2 empty slice [2, 0], force_no_metadata = true
+    auto shape = test::ShapeFromSizes({{2}, {0, 0}});
+    auto ds = test::DataSlice<int>({}, std::move(shape));
+    EXPECT_THAT(DataSliceRepr(ds, {.force_no_metadata = true}), Eq("[[], []]"));
   }
 }
 

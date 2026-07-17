@@ -64,7 +64,8 @@ absl::StatusOr<DataSlice> GetRepr(
     const DataSlice& show_attributes, const DataSlice& show_databag_id,
     const DataSlice& show_shape, const DataSlice& show_schema,
     const DataSlice& show_item_id, const DataSlice& show_present_count,
-    const DataSlice& float_format, const DataSlice& enable_multiline);
+    const DataSlice& float_format, const DataSlice& enable_multiline,
+    const DataSlice& force_no_metadata);
 
 // kd.slices.group_by_indices.
 absl::StatusOr<DataSlice> GroupByIndices(

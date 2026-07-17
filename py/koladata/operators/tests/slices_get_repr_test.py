@@ -278,6 +278,40 @@ class SlicesGetReprTest(parameterized.TestCase):
         kd.slices.get_repr(long_list, enable_multiline=False).internal_as_py(),
     )
 
+  def test_force_no_metadata(self):
+    x = ds([[], []])  # 2D empty
+    # Default behavior: shape is printed despite show_shape=False.
+    testing.assert_equal(
+        kd.slices.get_repr(x, show_shape=False),
+        ds('DataSlice([[], []], shape: JaggedShape(2, 0))'),
+    )
+    # With force_no_metadata=True, we should get [[], []] even though it is
+    # rank 2 empty.
+    testing.assert_equal(
+        kd.slices.get_repr(x, force_no_metadata=True),
+        ds('[[], []]'),
+    )
+    # show_attributes=True is allowed
+    testing.assert_equal(
+        kd.slices.get_repr(x, force_no_metadata=True, show_attributes=True),
+        ds('[[], []]'),
+    )
+    # But it should fail for other show_* flags:
+    with self.assertRaisesRegex(ValueError, 'cannot show metadata'):
+      kd.slices.get_repr(x, force_no_metadata=True, show_shape=True)
+
+    with self.assertRaisesRegex(ValueError, 'cannot show metadata'):
+      kd.slices.get_repr(x, force_no_metadata=True, show_schema=True)
+
+    with self.assertRaisesRegex(ValueError, 'cannot show metadata'):
+      kd.slices.get_repr(x, force_no_metadata=True, show_databag_id=True)
+
+    with self.assertRaisesRegex(ValueError, 'cannot show metadata'):
+      kd.slices.get_repr(x, force_no_metadata=True, show_present_count=True)
+
+    with self.assertRaisesRegex(ValueError, 'cannot show metadata'):
+      kd.slices.get_repr(x, force_no_metadata=True, show_item_id=True)
+
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.slices.get_repr(I.x)))
 

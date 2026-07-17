@@ -1082,7 +1082,8 @@ absl::StatusOr<DataSlice> GetRepr(
     const DataSlice& show_attributes, const DataSlice& show_databag_id,
     const DataSlice& show_shape, const DataSlice& show_schema,
     const DataSlice& show_item_id, const DataSlice& show_present_count,
-    const DataSlice& float_format, const DataSlice& enable_multiline) {
+    const DataSlice& float_format, const DataSlice& enable_multiline,
+    const DataSlice& force_no_metadata) {
   ASSIGN_OR_RETURN(int64_t depth_int, GetIntegerArgument(depth, "depth"));
   ASSIGN_OR_RETURN(int64_t item_limit_int,
                    GetIntegerArgument(item_limit, "item_limit"));
@@ -1121,6 +1122,18 @@ absl::StatusOr<DataSlice> GetRepr(
   }
   ASSIGN_OR_RETURN(bool enable_multiline_bool,
                    GetBoolArgument(enable_multiline, "enable_multiline"));
+  ASSIGN_OR_RETURN(bool force_no_metadata_bool,
+                   GetBoolArgument(force_no_metadata, "force_no_metadata"));
+
+  if (force_no_metadata_bool) {
+    if (show_databag_id_bool || show_shape_bool || show_schema_bool ||
+        show_item_id_bool || show_present_count_bool) {
+      return absl::InvalidArgumentError(
+          "cannot show metadata (shape, schema, databag_id, item_id, or "
+          "present_count) when force_no_metadata is True");
+    }
+  }
+
   auto repr = DataSliceRepr(
       x, ReprOption{
              .depth = static_cast<size_t>(depth_int),
@@ -1138,6 +1151,7 @@ absl::StatusOr<DataSlice> GetRepr(
              .show_present_count = show_present_count_bool,
              .float_format = parsed_float_format.get(),
              .enable_multiline = enable_multiline_bool,
+             .force_no_metadata = force_no_metadata_bool,
          });
   return DataSlice::Create(internal::DataItem(arolla::Text(std::move(repr))),
                            internal::DataItem(schema::kString));

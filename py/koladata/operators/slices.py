@@ -2280,6 +2280,7 @@ def get_repr(
     show_present_count=False,
     float_format=None,
     enable_multiline=True,
+    force_no_metadata=False,
 ):
   """Returns a string representation of the DataSlice `x`.
 
@@ -2311,6 +2312,8 @@ def get_repr(
       string (e.g. '%.2f'). Otherwise, use the shortest representation.
     enable_multiline: If true, format structures (lists, dicts, entities) as
       multiline if they are large or contain newlines.
+    force_no_metadata: If true, guarantee that we print only data and no
+      wrapping with "DataSlice/DataItem()" is happening.
 
   Returns:
     A string representation of the DataSlice `x`.

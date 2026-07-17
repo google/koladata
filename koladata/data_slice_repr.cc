@@ -993,20 +993,21 @@ std::string DataSliceRepr(const DataSlice& ds, const ReprOption& option) {
   std::string result;
   bool only_print_attr_names =
       ds.size() >= option.item_limit && option.show_attributes && ds.IsEntity();
-  // We force showing the shape for empty DataSlices of rank > 1 to distinguish
-  // them from empty DataSlices of rank 1 (e.g. DataSlice([]) vs DataSlice([],
-  // shape=...)). See b/456187313 for more details.
   bool show_shape =
-      !ds.is_item() &&
+      !option.force_no_metadata && !ds.is_item() &&
       (option.show_shape || (ds.size() == 0 && ds.GetShape().rank() > 1));
-  bool show_present_count = option.show_present_count && !ds.is_item();
-  bool show_databag_id = option.show_databag_id && ds.GetBag() != nullptr;
-  bool show_item_id =
-      option.show_item_id && ds.is_item() && ds.item().holds_value<ObjectId>();
+  bool show_present_count =
+      !option.force_no_metadata && option.show_present_count && !ds.is_item();
+  bool show_databag_id = !option.force_no_metadata && option.show_databag_id &&
+                         ds.GetBag() != nullptr;
+  bool show_item_id = !option.force_no_metadata && option.show_item_id &&
+                      ds.is_item() && ds.item().holds_value<ObjectId>();
+  bool show_schema = !option.force_no_metadata && option.show_schema;
   // Wrap in DataItem/DataSlice only if we have need to print something other
   // than the DataSlice literal.
   bool wrap_repr =
-      (show_databag_id || show_shape || option.show_schema || show_item_id ||
+      !option.force_no_metadata &&
+      (show_databag_id || show_shape || show_schema || show_item_id ||
        show_present_count || only_print_attr_names);
   if (wrap_repr) {
     absl::StrAppend(&result, ds.is_item() ? "DataItem(" : "DataSlice(");
@@ -1018,7 +1019,7 @@ std::string DataSliceRepr(const DataSlice& ds, const ReprOption& option) {
   } else {
     absl::StrAppend(&result, ValueOrError(DataSliceToStr(ds, option)));
   }
-  if (option.show_schema) {
+  if (show_schema) {
     ReprOption schema_option = option;
     if (only_print_attr_names) {
       schema_option.depth = 1;
