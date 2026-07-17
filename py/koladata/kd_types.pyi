@@ -14,6 +14,10 @@
 
 from typing import Any
 
+from koladata.functor.parallel import clib as _functor_parallel_clib
+from koladata.types import iterable_qvalue as _iterable_qvalue
+from koladata.types import jagged_shape as _jagged_shape
+
 # TODO: Fix the client-side type errors and then turn these Any
 # into proper types.
 
@@ -21,12 +25,12 @@ DataBag: Any
 DataItem: Any
 DataSlice: Any
 DictItem: Any
-Executor: Any
+Executor = _functor_parallel_clib.Executor
 Expr: Any
-Iterable: Any
-JaggedShape: Any
+Iterable = _iterable_qvalue.Iterable
+JaggedShape = _jagged_shape.JaggedShape
 ListItem: Any
 SchemaItem: Any
-Stream: Any
-StreamReader: Any
-StreamWriter: Any
+Stream = _functor_parallel_clib.Stream
+StreamReader = _functor_parallel_clib.StreamReader
+StreamWriter = _functor_parallel_clib.StreamWriter
