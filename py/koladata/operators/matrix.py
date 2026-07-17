@@ -123,3 +123,44 @@ def matmul(
     The result of the matrix multiplication.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_lambda_operator(
+    'kd.matrix.dot',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.y),
+    ],
+)
+def dot(x, y):
+  """Dot product along the last dimension.
+
+  Computes sum(x * y) along the last dimension.
+  Supports leading batch dimensions with Koda prefix broadcasting:
+    (..., n) x (..., n) -> (...)
+  The batch dimensions (all dimensions except the last) of one input must be
+  a prefix of the batch dimensions of the other input. The shorter-batch
+  input is implicitly broadcast.
+
+  Examples:
+    (3,) x (3,) -> ()               # no batch dims
+    (2, 3) x (2, 3) -> (2,)         # matching batch dims
+    (3,) x (2, 3) -> (2,)           # x batch () is prefix of y batch (2,)
+    (2, 3, 4) x (2, 4) -> (2, 3)    # y batch (2,) is prefix of x batch (2, 3)
+
+  None values are treated as 0.
+
+  Args:
+    x: A numeric DataSlice with at least 1 dimension.
+    y: A numeric DataSlice with at least 1 dimension.
+
+  Returns:
+    A DataSlice with the dot product value(s).
+  """
+  return matmul(
+      x,
+      y,
+      a_ndim=data_slice.DataSlice.from_vals(1),
+      b_ndim=data_slice.DataSlice.from_vals(1),
+  )

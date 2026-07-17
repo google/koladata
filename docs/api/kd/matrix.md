@@ -14,6 +14,32 @@ subject to standard Koda broadcasting rules.
 
 
 
+### `kd.matrix.dot(x, y)` {#kd.matrix.dot}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Dot product along the last dimension.
+
+Computes sum(x * y) along the last dimension.
+Supports leading batch dimensions with Koda prefix broadcasting:
+  (..., n) x (..., n) -&gt; (...)
+The batch dimensions (all dimensions except the last) of one input must be
+a prefix of the batch dimensions of the other input. The shorter-batch
+input is implicitly broadcast.
+
+Examples:
+  (3,) x (3,) -&gt; ()               # no batch dims
+  (2, 3) x (2, 3) -&gt; (2,)         # matching batch dims
+  (3,) x (2, 3) -&gt; (2,)           # x batch () is prefix of y batch (2,)
+  (2, 3, 4) x (2, 4) -&gt; (2, 3)    # y batch (2,) is prefix of x batch (2, 3)
+
+None values are treated as 0.
+
+Args:
+  x: A numeric DataSlice with at least 1 dimension.
+  y: A numeric DataSlice with at least 1 dimension.
+
+Returns:
+  A DataSlice with the dot product value(s).</code></pre>
+
 ### `kd.matrix.matmul(a, b, *, a_ndim=-1, b_ndim=-1)` {#kd.matrix.matmul}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Matrix multiplication.

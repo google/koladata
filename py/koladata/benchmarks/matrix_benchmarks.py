@@ -54,6 +54,16 @@ def _make_jagged_sizes():
   return [random.choice(JAGGED_SIZES) for _ in range(BATCH_SIZE)]
 
 
+def _make_masked_vector_np(size):
+  data = np.random.randn(size)
+  mask = np.random.random(size) < 0.1  # ~10% missing
+  return np.ma.array(data, mask=mask)
+
+
+def _make_uniform_vectors_np():
+  return [_make_masked_vector_np(UNIFORM_SIZE) for _ in range(BATCH_SIZE)]
+
+
 def _make_masked_matrix_np(rows, cols):
   data = np.random.randn(rows, cols)
   mask = np.random.random((rows, cols)) < 0.1  # ~10% missing
@@ -67,8 +77,18 @@ def _make_uniform_matrices_np():
   ]
 
 
+def _make_jagged_vectors_np(sizes):
+  return [_make_masked_vector_np(s) for s in sizes]
+
+
 def _make_jagged_matrices_np(sizes):
   return [_make_masked_matrix_np(s, s) for s in sizes]
+
+
+def _np_to_kd_vectors(vecs_np):
+  if len(vecs_np) == 1:
+    return kd_ext.npkd.from_array(vecs_np[0])
+  return kd.stack(*[kd_ext.npkd.from_array(v) for v in vecs_np], ndim=1)
 
 
 def _np_to_kd_matrices(mats_np):
@@ -90,6 +110,56 @@ eager_transpose_lambda = kd.optools.eager.EagerOperator(transpose_lambda)
 
 # Switch off docstring lint checks for the benchmark functions below.
 # pylint: disable=missing-function-docstring
+
+# ---- dot ----
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def numpy_dot(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    x_np = _make_uniform_vectors_np()
+    y_np = _make_uniform_vectors_np()
+  else:
+    sizes = _make_jagged_sizes()
+    x_np = _make_jagged_vectors_np(sizes)
+    y_np = _make_jagged_vectors_np(sizes)
+  while state:
+    _ = [np.dot(x_np[i], y_np[i]) for i in range(BATCH_SIZE)]
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def koda_dot(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    x_np = _make_uniform_vectors_np()
+    y_np = _make_uniform_vectors_np()
+  else:
+    sizes = _make_jagged_sizes()
+    x_np = _make_jagged_vectors_np(sizes)
+    y_np = _make_jagged_vectors_np(sizes)
+  x_kd = _np_to_kd_vectors(x_np)
+  y_kd = _np_to_kd_vectors(y_np)
+  # Make sure that Koda and NumPy implementations agree on a functional level.
+  # Koda treats missing values as 0, so we compare against filled(0).
+  kd.testing.assert_allclose(
+      kd.matrix.dot(x_kd, y_kd),
+      kd.slice(
+          [np.dot(x_np[i].filled(0), y_np[i].filled(0))
+           for i in range(BATCH_SIZE)],
+          kd.FLOAT64,
+      ),
+      rtol=1e-12,
+  )
+  while state:
+    _ = kd.matrix.dot(x_kd, y_kd)
+
 
 # ---- matmul ----
 
