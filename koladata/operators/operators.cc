@@ -386,6 +386,7 @@ OPERATOR("kd.math.subtract", Subtract);
 OPERATOR("kd.math.t_distribution_inverse_cdf", TDistributionInverseCdf);
 //
 OPERATOR("kd.matrix.matmul", MatrixMatmul);
+OPERATOR("kd.matrix.outer", MatrixOuter);
 OPERATOR("kd.matrix.transpose", MatrixTranspose);
 //
 OPERATOR_FAMILY("kd.objs.like", std::make_unique<ObjLikeOperatorFamily>());

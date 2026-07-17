@@ -355,6 +355,7 @@ absl::StatusOr<std::vector<MatrixInfo>> ExtractMatrix2DInfos(
 // operators in each phase:
 //
 //   SetupBroadcastBinaryOp   — phase 1 for binary ops (matmul, outer, solve)
+//   DispatchNumericBinaryOp  — phase 3 for binary ops with both int & float
 //   BuildBatchedMatrixShape  — phase 4 when the output has 2 trailing dims
 //   BuildBatchedVectorShape  — phase 4 when the output has 1 trailing dim
 //
@@ -401,6 +402,69 @@ absl::StatusOr<BinaryBroadcastSetup> SetupBroadcastBinaryOp(
                                      y_shape, y_batch_rank));
 
   return setup;
+}
+
+// Dispatch a binary numeric operation across integer and float types.
+// The compute_fn is a generic lambda that takes 3 arguments:
+// (const vector<T>& x_data, const vector<T>& y_data, vector<T>& result), where
+// T is either int64_t or double.
+// Returns the built DataSlice.
+template <typename ComputeFn>
+absl::StatusOr<DataSlice> DispatchNumericBinaryOp(const DataSlice& x,
+                                                  const DataSlice& y,
+                                                  int64_t out_total,
+                                                  JaggedShape out_shape,
+                                                  ComputeFn&& compute_fn) {
+  bool is_object_schema =
+      x.GetSchemaImpl() == internal::DataItem(schema::kObject) ||
+      y.GetSchemaImpl() == internal::DataItem(schema::kObject);
+  ASSIGN_OR_RETURN(auto x_dtype, GetEffectiveDType(x));
+  ASSIGN_OR_RETURN(auto y_dtype, GetEffectiveDType(y));
+  ASSIGN_OR_RETURN(auto output_dtype, GetCommonOutputDType(x_dtype, y_dtype));
+
+  auto do_compute =
+      [&]<typename ComputeT, typename OutputT>(
+          internal::DataItem compute_schema,
+          internal::DataItem output_schema) -> absl::StatusOr<DataSlice> {
+    ASSIGN_OR_RETURN(auto cast_x, CastToExplicit(x, compute_schema));
+    ASSIGN_OR_RETURN(auto cast_y, CastToExplicit(y, compute_schema));
+    auto x_data = ExtractFlat<ComputeT>(cast_x);
+    auto y_data = ExtractFlat<ComputeT>(cast_y);
+    std::vector<OutputT> result(out_total, 0);
+    // Compute in ComputeT, storing as OutputT.
+    std::vector<ComputeT> tmp(out_total, 0);
+    compute_fn(x_data, y_data, tmp);
+    for (int64_t i = 0; i < out_total; ++i) {
+      result[i] = static_cast<OutputT>(tmp[i]);
+    }
+    ASSIGN_OR_RETURN(auto result_ds,
+                     BuildFromFlat<OutputT>(std::move(result),
+                                            std::move(out_shape)));
+    if (is_object_schema) {
+      return result_ds.WithSchema(internal::DataItem(schema::kObject));
+    }
+    return result_ds;
+  };
+
+  if (output_dtype == schema::kFloat32) {
+    return do_compute.template operator()<double, float>(
+        internal::DataItem(schema::kFloat64),
+        internal::DataItem(schema::kFloat32));
+  }
+  if (output_dtype == schema::kFloat64) {
+    return do_compute.template operator()<double, double>(
+        internal::DataItem(schema::kFloat64),
+        internal::DataItem(schema::kFloat64));
+  }
+  if (output_dtype == schema::kInt32) {
+    return do_compute.template operator()<int64_t, int32_t>(
+        internal::DataItem(schema::kInt64),
+        internal::DataItem(schema::kInt32));
+  }
+  DCHECK_EQ(output_dtype, schema::kInt64);
+  return do_compute.template operator()<int64_t, int64_t>(
+      internal::DataItem(schema::kInt64),
+      internal::DataItem(schema::kInt64));
 }
 
 // Build a JaggedShape:
@@ -690,6 +754,69 @@ absl::StatusOr<DataSlice> MatrixMatmul(const DataSlice& a, const DataSlice& b,
   DCHECK_EQ(output_dtype, schema::kInt64);
   return do_matmul.operator()<int64_t, int64_t>(
       internal::DataItem(schema::kInt64), internal::DataItem(schema::kInt64));
+}
+
+absl::StatusOr<DataSlice> MatrixOuter(const DataSlice& x, const DataSlice& y) {
+  if (x.GetShape().rank() < 1 || y.GetShape().rank() < 1) {
+    return absl::InvalidArgumentError("inputs must have at least 1 dimension");
+  }
+
+  ASSIGN_OR_RETURN(auto setup,
+                   SetupBroadcastBinaryOp(x.GetShape(), y.GetShape(), 1, 1));
+  auto& broadcast_result = setup.broadcast_result;
+  // SetupBroadcastBinaryOp with trailing_dims=1 stores vector infos as
+  // x_infos: {offset, 1, m} and y_infos: {offset, m, 1}.
+  // So x vector length = x_infos[i].n, y vector length = y_infos[i].m.
+  const auto& x_infos = setup.x_infos;
+  const auto& y_infos = setup.y_infos;
+
+  // Precomputed metadata for one output batch element. We collect these in a
+  // single pass and reuse them when building the products and the output shape.
+  struct PerBatch {
+    // Offsets in flattened x and y for this batch element.
+    int64_t x_offset, y_offset;
+    int64_t m, n;  // output matrix dimensions
+  };
+  std::vector<PerBatch> pbs(broadcast_result.out_batch_size);
+  int64_t out_total = 0;
+  std::vector<int64_t> out_m_vals(broadcast_result.out_batch_size);
+  std::vector<int64_t> out_n_vals(broadcast_result.out_batch_size);
+  for (int64_t b = 0; b < broadcast_result.out_batch_size; ++b) {
+    int64_t x_idx = broadcast_result.x_batch_map[b];
+    int64_t y_idx = broadcast_result.y_batch_map[b];
+    auto& x_info = x_infos[x_idx];
+    auto& y_info = y_infos[y_idx];
+    int64_t m = x_info.n;  // x vector length
+    int64_t n = y_info.m;  // y vector length
+    pbs[b] = {x_info.offset, y_info.offset, m, n};
+    out_m_vals[b] = m;
+    out_n_vals[b] = n;
+    out_total += m * n;
+  }
+
+  auto do_outer = [&](const auto& x_data, const auto& y_data, auto& result) {
+    int64_t out_off = 0;
+    for (int64_t b = 0; b < broadcast_result.out_batch_size; ++b) {
+      const auto& pb = pbs[b];
+      const int64_t m = pb.m;
+      const int64_t n = pb.n;
+      const int64_t x_off = pb.x_offset;
+      const int64_t y_off = pb.y_offset;
+      for (int64_t i = 0; i < m; ++i) {
+        for (int64_t j = 0; j < n; ++j) {
+          result[out_off + i * n + j] = x_data[x_off + i] * y_data[y_off + j];
+        }
+      }
+      out_off += m * n;
+    }
+  };
+
+  ASSIGN_OR_RETURN(
+      auto out_shape,
+      BuildBatchedMatrixShape(std::move(broadcast_result.out_batch_shape),
+                              out_m_vals, out_n_vals));
+  return DispatchNumericBinaryOp(x, y, out_total, std::move(out_shape),
+                                 do_outer);
 }
 
 }  // namespace koladata::ops

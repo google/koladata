@@ -31,6 +31,10 @@ absl::StatusOr<DataSlice> MatrixMatmul(const DataSlice& a, const DataSlice& b,
                                        const DataSlice& a_ndim,
                                        const DataSlice& b_ndim);
 
+// kd.matrix.outer: Outer product with batch + broadcast support.
+// (..., m) x (..., n) -> (..., m, n). Batch dims are broadcast.
+absl::StatusOr<DataSlice> MatrixOuter(const DataSlice& x, const DataSlice& y);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_MATRIX_H_

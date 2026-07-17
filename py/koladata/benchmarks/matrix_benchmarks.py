@@ -105,7 +105,46 @@ def transpose_lambda(a):
   return kd.subslice(a, kd.range(m.repeat(n)), kd.range(n))
 
 
+@kd.optools.as_lambda_operator(name='outer_lambda_via_matmul')
+def outer_lambda_via_matmul(x, y):
+  # outer(x, y) = x_col @ y_row where:
+  #   x_col has shape (..., m, 1) — column vector
+  #   y_row has shape (..., 1, n) — row vector
+  # matmul gives (..., m, 1) @ (..., 1, n) -> (..., m, n)
+  x_col = kd.repeat(x, 1)  # (..., m) -> (..., m, 1)
+  y_row = kd.matrix.transpose(
+      kd.repeat(y, 1)
+  )  # (..., n) -> (..., n, 1) -> (..., 1, n)
+  return kd.matrix.matmul(x_col, y_row)
+
+
+@kd.optools.as_lambda_operator(name='outer_lambda_via_multiply')
+def outer_lambda_via_multiply(x, y):
+  """Compute outer(x, y) using list operations and pointwise multiply."""
+  # outer(x, y)[i, j] = x[i] * y[j]
+  # 1) Align batch shapes by imploding (chop last dim), aligning, exploding.
+  x_lists = kd.implode(x)
+  y_lists = kd.implode(y)
+  x_lists, y_lists = kd.align(x_lists, y_lists)
+  x = kd.explode(x_lists)
+  y = kd.explode(y_lists)
+  # 2) Build x_col: repeat each x[i] by n times -> (..., m, n).
+  n = kd.agg_size(y)
+  x_col = kd.repeat(x, n)
+  # 3) Build y_row: repeat each y list m times, then explode -> (..., m, n)
+  #    where each row is the full y vector.
+  m = kd.agg_size(x)
+  y_row = kd.explode(kd.repeat(y_lists, m))
+  return (x_col * y_row) | 0
+
+
 eager_transpose_lambda = kd.optools.eager.EagerOperator(transpose_lambda)
+eager_outer_lambda_via_matmul = kd.optools.eager.EagerOperator(
+    outer_lambda_via_matmul
+)
+eager_outer_lambda_via_multiply = kd.optools.eager.EagerOperator(
+    outer_lambda_via_multiply
+)
 
 
 # Switch off docstring lint checks for the benchmark functions below.
@@ -232,6 +271,105 @@ def koda_matmul(state):
   )
   while state:
     _ = kd.matrix.matmul(a_kd, b_kd)
+
+
+# ---- outer ----
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def numpy_outer(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    x_np = _make_uniform_vectors_np()
+    y_np = _make_uniform_vectors_np()
+  else:
+    sizes = _make_jagged_sizes()
+    x_np = _make_jagged_vectors_np(sizes)
+    y_np = _make_jagged_vectors_np(sizes)
+  while state:
+    _ = [np.outer(x_np[i], y_np[i]) for i in range(BATCH_SIZE)]
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def koda_outer(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    x_np = _make_uniform_vectors_np()
+    y_np = _make_uniform_vectors_np()
+  else:
+    sizes = _make_jagged_sizes()
+    x_np = _make_jagged_vectors_np(sizes)
+    y_np = _make_jagged_vectors_np(sizes)
+  x_kd = _np_to_kd_vectors(x_np)
+  y_kd = _np_to_kd_vectors(y_np)
+  # Make sure that Koda and NumPy implementations agree on a functional level.
+  # Koda treats missing values as 0, so we compare against filled(0).
+  kd.testing.assert_allclose(
+      kd.matrix.outer(x_kd, y_kd),
+      _np_to_kd_matrices(
+          [np.outer(x_np[i].filled(0), y_np[i].filled(0))
+           for i in range(BATCH_SIZE)]
+      ),
+      rtol=1e-12,
+  )
+  while state:
+    _ = kd.matrix.outer(x_kd, y_kd)
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def koda_outer_lambda_via_matmul(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    x_np = _make_uniform_vectors_np()
+    y_np = _make_uniform_vectors_np()
+  else:
+    sizes = _make_jagged_sizes()
+    x_np = _make_jagged_vectors_np(sizes)
+    y_np = _make_jagged_vectors_np(sizes)
+  x_kd = _np_to_kd_vectors(x_np)
+  y_kd = _np_to_kd_vectors(y_np)
+  # Make sure that the lambda implementation agrees with the C++ implementation.
+  kd.testing.assert_allclose(
+      eager_outer_lambda_via_matmul(x_kd, y_kd),
+      kd.matrix.outer(x_kd, y_kd),
+      rtol=1e-12,
+  )
+  while state:
+    _ = eager_outer_lambda_via_matmul(x_kd, y_kd)
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def koda_outer_lambda_via_multiply(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    x_np = _make_uniform_vectors_np()
+    y_np = _make_uniform_vectors_np()
+  else:
+    sizes = _make_jagged_sizes()
+    x_np = _make_jagged_vectors_np(sizes)
+    y_np = _make_jagged_vectors_np(sizes)
+  x_kd = _np_to_kd_vectors(x_np)
+  y_kd = _np_to_kd_vectors(y_np)
+  # Make sure that the lambda implementation agrees with the C++ implementation.
+  kd.testing.assert_allclose(
+      eager_outer_lambda_via_multiply(x_kd, y_kd),
+      kd.matrix.outer(x_kd, y_kd),
+      rtol=1e-12,
+  )
+  while state:
+    _ = eager_outer_lambda_via_multiply(x_kd, y_kd)
 
 
 # ---- transpose ----

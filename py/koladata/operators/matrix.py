@@ -164,3 +164,55 @@ def dot(x, y):
       a_ndim=data_slice.DataSlice.from_vals(1),
       b_ndim=data_slice.DataSlice.from_vals(1),
   )
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
+    'kd.matrix.outer',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.y),
+    ],
+)
+def outer(x, y):  # pylint: disable=unused-argument
+  """Outer product of vectors.
+
+  For vectors of shape (m,) and (n,), returns a matrix of shape (m, n)
+  where result[i, j] = x[i] * y[j].
+
+  Supports leading batch dimensions with Koda prefix broadcasting:
+    (..., m) x (..., n) -> (..., m, n)
+  The batch dimensions (all dimensions except the last) of one input must be
+  a prefix of the batch dimensions of the other input. The shorter-batch
+  input is implicitly broadcast.
+
+  Examples:
+    (3,) x (4,) -> (3, 4)          # no batch dims
+    (2, 3) x (2, 4) -> (2, 3, 4)  # matching batch dims
+    (3,) x (2, 4) -> (2, 3, 4)    # x batch () is prefix of y batch (2,)
+    (2, 3, 5) x (2, 7) -> (2, 3, 5, 7)  # y batch (2,) is prefix of x
+
+  None values are treated as 0.
+
+  Args:
+    x: A numeric DataSlice with at least 1 dimension.
+    y: A numeric DataSlice with at least 1 dimension.
+
+  Returns:
+    The outer product matrix (or batch of matrices).
+  """
+  # One could argue that outer should propagate missing values, and not treat
+  # them as 0. That would be consistent with Koda's semantics for
+  # multiplication, because
+  # kd.int32(1) * kd.int32(None) yields kd.int32(None).
+  # All of the other matrix operators here, such as matmul, dot and trace, treat
+  # missing values as 0, which is consistent with Koda's semantics for
+  # summation:
+  # kd.sum(kd.slice([None, None])) yields kd.int32(0).
+  # So we could go either way. For speed and consistency with the other matrix
+  # operators, we follow the convention here to treat missing values as 0.
+  # Aside: the discussion above illustrates that Koda itself is somewhat
+  # inconsistent in its treatment of missing values, since
+  # kd.int32(None) + kd.int32(None) is not the same as
+  # kd.sum(kd.slice([None, None], kd.INT32)).
+  raise NotImplementedError('implemented in the backend')

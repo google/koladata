@@ -83,6 +83,34 @@ Args:
 Returns:
   The result of the matrix multiplication.</code></pre>
 
+### `kd.matrix.outer(x, y)` {#kd.matrix.outer}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Outer product of vectors.
+
+For vectors of shape (m,) and (n,), returns a matrix of shape (m, n)
+where result[i, j] = x[i] * y[j].
+
+Supports leading batch dimensions with Koda prefix broadcasting:
+  (..., m) x (..., n) -&gt; (..., m, n)
+The batch dimensions (all dimensions except the last) of one input must be
+a prefix of the batch dimensions of the other input. The shorter-batch
+input is implicitly broadcast.
+
+Examples:
+  (3,) x (4,) -&gt; (3, 4)          # no batch dims
+  (2, 3) x (2, 4) -&gt; (2, 3, 4)  # matching batch dims
+  (3,) x (2, 4) -&gt; (2, 3, 4)    # x batch () is prefix of y batch (2,)
+  (2, 3, 5) x (2, 7) -&gt; (2, 3, 5, 7)  # y batch (2,) is prefix of x
+
+None values are treated as 0.
+
+Args:
+  x: A numeric DataSlice with at least 1 dimension.
+  y: A numeric DataSlice with at least 1 dimension.
+
+Returns:
+  The outer product matrix (or batch of matrices).</code></pre>
+
 ### `kd.matrix.transpose(x)` {#kd.matrix.transpose}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Transpose a matrix (swap last two dimensions).
