@@ -739,6 +739,7 @@ cc_library(
         ":object_id",
         ":stable_fingerprint",
         ":types",
+        "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/hash",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",

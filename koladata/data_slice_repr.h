@@ -16,10 +16,13 @@
 #define KOLADATA_DATA_SLICE_REPR_H_
 
 #include <cstddef>
+#include <cstdint>
+#include <optional>
 #include <string>
 
 #include "absl/base/nullability.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -60,6 +63,12 @@ struct ReprOption {
   // When true, the repr will show the size and present count of the slice. Only
   // shown for DataSlices.
   bool show_present_count = false;
+  // If specified, use this to format for floating point values. Otherwise,
+  // use the shortest representation.
+  const internal::FloatFormat* absl_nullable float_format = nullptr;
+  // If true, format structures (lists, dicts, entities) as multiline if they
+  // are large or contain newlines.
+  bool enable_multiline = true;
 };
 // LINT.ThenChange(//py/koladata/operators/slices.py)
 

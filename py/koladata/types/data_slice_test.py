@@ -680,7 +680,7 @@ class DataSliceTest(parameterized.TestCase):
           'large_string',
           ds(['a' * 1000]),
           'DataSlice([\n'
-          f"  '{'a' * 128}'...'{'a' * 128}',\n"
+          f"  '{'a' * 256}'... (1000 chars total),\n"
           '], schema: STRING, present: 1/1)',
           f"[\n  '{'a' * 1000}',\n]",  # No truncation.
       ),
@@ -688,7 +688,7 @@ class DataSliceTest(parameterized.TestCase):
           'large_bytestring',
           ds([b'a' * 1000]),
           'DataSlice([\n'
-          f"  b'{'a' * 128}'...'{'a' * 128}',\n"
+          f"  b'{'a' * 256}'... (1000 bytes total),\n"
           '], schema: BYTES, present: 1/1)',
           f"[\n  b'{'a' * 1000}',\n]",  # No truncation.
       ),

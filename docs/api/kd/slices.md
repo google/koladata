@@ -425,7 +425,7 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the number of dimensions of DataSlice `x`.</code></pre>
 
-### `kd.slices.get_repr(x, /, *, depth=25, item_limit=200, item_limit_per_dimension=25, format_html=False, max_str_len=100, max_expr_quote_len=10000, show_attributes=True, show_databag_id=False, show_shape=False, show_schema=False, show_item_id=False, show_present_count=False)` {#kd.slices.get_repr}
+### `kd.slices.get_repr(x, /, *, depth=25, item_limit=200, item_limit_per_dimension=25, format_html=False, max_str_len=100, max_expr_quote_len=10000, show_attributes=True, show_databag_id=False, show_shape=False, show_schema=False, show_item_id=False, show_present_count=False, float_format=None, enable_multiline=True)` {#kd.slices.get_repr}
 Aliases:
 
 - [kd.get_repr](../kd.md#kd.get_repr)
@@ -456,6 +456,10 @@ Args:
   show_item_id: When true, the repr will show the itemids for objects.
   show_present_count: When true, the repr will show the size and present_count
     for DataSlices.
+  float_format: If set, format float values using this printf-style format
+    string (e.g. &#39;%.2f&#39;). Otherwise, use the shortest representation.
+  enable_multiline: If true, format structures (lists, dicts, entities) as
+    multiline if they are large or contain newlines.
 
 Returns:
   A string representation of the DataSlice `x`.</code></pre>

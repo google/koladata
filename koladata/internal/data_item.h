@@ -25,9 +25,11 @@
 #include <utility>
 #include <variant>
 
+#include "absl/base/nullability.h"
 #include "absl/hash/hash.h"
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
 #include "arolla/expr/quote.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
@@ -436,6 +438,9 @@ inline bool DataItem::Less::LessImpl<float, float>(const DataItem& a,
   return LessImpl(a, double{b});
 }
 
+using FloatFormat =
+    absl::ParsedFormat<absl::FormatConversionCharSet::kFloating>;
+
 struct DataItemReprOption {
   // If true, quotes will be stripped from Text values.
   bool strip_quotes = false;
@@ -455,6 +460,9 @@ struct DataItemReprOption {
   size_t unbounded_type_max_len = -1;
   // Maximum length of an ExprQuote repr string to show.
   size_t max_expr_quote_len = 10'000;
+  // If specified, use this to format for floating point values. Otherwise,
+  // use the shortest representation.
+  const FloatFormat* absl_nullable float_format = nullptr;
 };
 
 // Returns the string representation for the DataItem. It supports different

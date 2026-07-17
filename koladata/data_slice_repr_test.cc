@@ -1510,8 +1510,12 @@ TEST(DataSliceReprTest, FormatHtml_DictLongStrings) {
       std::string result,
       DataSliceToStr(data_slice,
                      {.format_html = true, .unbounded_type_max_len = 10}));
-  EXPECT_THAT(result, HasSubstr("a'<span class=\"truncated\">...</span>'"));
-  EXPECT_THAT(result, HasSubstr("b'<span class=\"truncated\">...</span>'"));
+  EXPECT_THAT(
+      result,
+      HasSubstr("a'<span class=\"truncated\">... (20 chars total)</span>"));
+  EXPECT_THAT(
+      result,
+      HasSubstr("b'<span class=\"truncated\">... (20 chars total)</span>"));
 }
 
 TEST(DataSliceReprTest, FormatHtml_TruncationEscaping) {
@@ -1706,9 +1710,10 @@ TEST(DataSliceReprTest, UnboundedTypeMaxLength) {
   ASSERT_OK(dict.SetInDict(key, value));
 
   EXPECT_THAT(DataSliceToStr(key, {.unbounded_type_max_len = 3}),
-              IsOkAndHolds("['aa'...'aa']"));
+              IsOkAndHolds("['aaa'... (50 chars total)]"));
   EXPECT_THAT(DataSliceToStr(dict, {.unbounded_type_max_len = 3}),
-              IsOkAndHolds("Dict{'aa'...'aa'='aa'...'aa'}"));
+              IsOkAndHolds(
+                  "Dict{'aaa'... (50 chars total)='aaa'... (50 chars total)}"));
 }
 
 TEST(DataSliceReprTest, FormatHtml_ItemLimit) {

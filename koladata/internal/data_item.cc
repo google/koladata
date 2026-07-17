@@ -14,6 +14,7 @@
 //
 #include "koladata/internal/data_item.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -123,62 +124,59 @@ void DataItem::ArollaFingerprint(arolla::FingerprintHasher* hasher) const {
 
 namespace {
 
-struct TruncatedString {
-  absl::string_view prefix;
-  std::optional<absl::string_view> suffix = std::nullopt;
+size_t Utf8Length(absl::string_view str) {
+  size_t count = 0;
+  size_t i = 0;
+  while (i < str.length()) {
+    U8_FWD_1(str.data(), i, str.length());
+    count++;
+  }
+  return count;
+}
 
-  std::string JoinAndEscapeText(bool quote) const {
-    auto escape = [&](absl::string_view str) {
-      // When we keep quotes, generally escape, but unescape double quotes
-      // since they are valid in a single quoted string. Although unescaping
-      // the double quotes is not necessary, it improves readability.
-      return absl::StrReplaceAll(absl::Utf8SafeCHexEscape(str),
-                                 {{"\\\"", "\""}});
-    };
+std::string TruncateText(absl::string_view str, size_t max_len, bool quote) {
+  auto escape = [&](absl::string_view s) {
+    // When we keep quotes, generally escape, but unescape double quotes
+    // since they are valid in a single quoted string. Although unescaping
+    // the double quotes is not necessary, it improves readability.
+    return absl::StrReplaceAll(absl::Utf8SafeCHexEscape(s), {{"\\\"", "\""}});
+  };
+  size_t prefix_length = str.length();
+  if (max_len != std::numeric_limits<size_t>::max()) {
+    prefix_length = 0;
+    const int32_t max_len32 = static_cast<int32_t>(std::min(
+        max_len, static_cast<size_t>(std::numeric_limits<int32_t>::max())));
+    U8_FWD_N(str.data(), prefix_length, str.length(), max_len32);
+  }
+
+  if (prefix_length == str.length()) {
     if (quote) {
-      if (suffix.has_value()) {
-        return absl::StrCat("'", escape(prefix), "'...'", escape(*suffix), "'");
-      } else {
-        return absl::StrCat("'", escape(prefix), "'");
-      }
+      return absl::StrCat("'", escape(str), "'");
     } else {
-      // When we strip quotes, we do not escape to preserve all the of the
-      // original content of the string.
-      if (suffix.has_value()) {
-        return absl::StrCat(prefix, "...", *suffix);
-      } else {
-        return std::string(prefix);
-      }
+      return std::string(str);
     }
   }
 
-  std::string JoinAndEscapeBytes() const {
-    if (suffix.has_value()) {
-      return absl::StrCat("b'", absl::CHexEscape(prefix), "'...'",
-                          absl::CHexEscape(*suffix), "'");
-    } else {
-      return absl::StrCat("b'", absl::CHexEscape(prefix), "'");
-    }
-  }
-};
+  absl::string_view prefix = str.substr(0, prefix_length);
+  absl::string_view suffix = str.substr(prefix_length);
+  size_t total_len = max_len + Utf8Length(suffix);
 
-TruncatedString TruncateMiddle(absl::string_view str, size_t max_len) {
-  if (str.length() <= max_len ||
-      max_len == std::numeric_limits<size_t>::max()) {
-    return {.prefix = str};
-  }
-  size_t half_len = (max_len + 1) / 2;
-  size_t prefix_limit = 0;
-  U8_FWD_N(str.data(), prefix_limit, str.length(), half_len);
-  size_t suffix_limit = str.length();
-  U8_BACK_N(reinterpret_cast<const uint8_t*>(str.data()), 0, suffix_limit,
-            half_len);
-  if (prefix_limit >= suffix_limit) {
-    return {.prefix = str};
+  if (quote) {
+    return absl::StrCat("'", escape(prefix), "'... (", total_len,
+                        " chars total)");
   } else {
-    return {.prefix = str.substr(0, prefix_limit),
-            .suffix = str.substr(suffix_limit)};
+    return absl::StrCat(prefix, "... (", total_len, " chars total)");
   }
+}
+
+std::string TruncateBytes(absl::string_view str, size_t max_len) {
+  size_t byte_len = str.length();
+  if (byte_len <= max_len || max_len == std::numeric_limits<size_t>::max()) {
+    return absl::StrCat("b'", absl::CHexEscape(str), "'");
+  }
+  absl::string_view prefix = str.substr(0, max_len);
+  return absl::StrCat("b'", absl::CHexEscape(prefix), "'... (", byte_len,
+                      " bytes total)");
 }
 
 std::string TruncatedExprQuote(const arolla::expr::ExprQuote& expr_quote,
@@ -204,36 +202,43 @@ std::string DataItemRepr(const DataItem& item,
         } else if constexpr (std::is_same_v<T, arolla::Unit>) {
           return "present";
         } else if constexpr (std::is_same_v<T, arolla::Text>) {
-          return TruncateMiddle(absl::string_view(val),
-                                option.unbounded_type_max_len)
-              .JoinAndEscapeText(!option.strip_quotes);
+          return TruncateText(absl::string_view(val),
+                              option.unbounded_type_max_len,
+                              !option.strip_quotes);
         } else if constexpr (std::is_same_v<T, arolla::Bytes>) {
-          return TruncateMiddle(absl::string_view(val),
-                                option.unbounded_type_max_len)
-              .JoinAndEscapeBytes();
+          return TruncateBytes(absl::string_view(val),
+                               option.unbounded_type_max_len);
         } else if constexpr (std::is_same_v<T, arolla::expr::ExprQuote>) {
           return TruncatedExprQuote(val, option.max_expr_quote_len);
         } else if constexpr (std::is_same_v<T, bool>) {
           return val ? "True" : "False";
         } else if constexpr (std::is_same_v<T, float> ||
                              std::is_same_v<T, double>) {
-          static const double_conversion::DoubleToStringConverter converter(
-              double_conversion::DoubleToStringConverter::
-                      EMIT_TRAILING_ZERO_AFTER_POINT |
-                  double_conversion::DoubleToStringConverter::
-                      EMIT_TRAILING_DECIMAL_POINT,
-              "inf", "nan", 'e', -6, 21, 6, 0);
-          char buf[128];
-          double_conversion::StringBuilder builder(buf, sizeof(buf));
-          if (std::is_same_v<T, float>) {
-            converter.ToShortestSingle(val, &builder);
+          std::string formatted;
+          if (option.float_format != nullptr) {
+            formatted = absl::StrFormat(*option.float_format, val);
           } else {
-            converter.ToShortest(val, &builder);
+            static const double_conversion::DoubleToStringConverter converter(
+                double_conversion::DoubleToStringConverter::
+                        EMIT_TRAILING_ZERO_AFTER_POINT |
+                    double_conversion::DoubleToStringConverter::
+                        EMIT_TRAILING_DECIMAL_POINT,
+                "inf", "nan", 'e', -6, 21, 6, 0);
+            char buf[128];
+            double_conversion::StringBuilder builder(buf, sizeof(buf));
+            if (std::is_same_v<T, float>) {
+              converter.ToShortestSingle(val, &builder);
+            } else {
+              converter.ToShortest(val, &builder);
+            }
+            formatted = builder.Finalize();
+          }
+          if constexpr (std::is_same_v<T, double>) {
             if (option.show_dtype) {
-              return absl::StrCat("float64{", builder.Finalize(), "}");
+              return absl::StrCat("float64{", formatted, "}");
             }
           }
-          return builder.Finalize();
+          return formatted;
         } else if constexpr (std::is_same_v<T, int64_t>) {
           return option.show_dtype
               ? absl::StrCat("int64{", val, "}") : absl::StrCat(val);

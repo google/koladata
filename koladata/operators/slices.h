@@ -57,18 +57,14 @@ absl::StatusOr<DataSlice> EmptyShaped(const DataSlice::JaggedShape& shape,
                                       const DataSlice& schema);
 
 // kd.slices.get_repr.
-absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
-                                  const DataSlice& item_limit,
-                                  const DataSlice& item_limit_per_dimension,
-                                  const DataSlice& format_html,
-                                  const DataSlice& max_str_len,
-                                  const DataSlice& max_expr_quote_len,
-                                  const DataSlice& show_attributes,
-                                  const DataSlice& show_databag_id,
-                                  const DataSlice& show_shape,
-                                  const DataSlice& show_schema,
-                                  const DataSlice& show_item_id,
-                                  const DataSlice& show_present_count);
+absl::StatusOr<DataSlice> GetRepr(
+    const DataSlice& x, const DataSlice& depth, const DataSlice& item_limit,
+    const DataSlice& item_limit_per_dimension, const DataSlice& format_html,
+    const DataSlice& max_str_len, const DataSlice& max_expr_quote_len,
+    const DataSlice& show_attributes, const DataSlice& show_databag_id,
+    const DataSlice& show_shape, const DataSlice& show_schema,
+    const DataSlice& show_item_id, const DataSlice& show_present_count,
+    const DataSlice& float_format, const DataSlice& enable_multiline);
 
 // kd.slices.group_by_indices.
 absl::StatusOr<DataSlice> GroupByIndices(

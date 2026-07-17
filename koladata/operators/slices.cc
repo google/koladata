@@ -20,6 +20,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <string>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -57,6 +58,7 @@
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/qtype/unspecified_qtype.h"
 #include "arolla/util/repr.h"
+#include "arolla/util/text.h"
 #include "arolla/util/view_types.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/arolla_utils.h"
@@ -1073,18 +1075,14 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
   return res.WithBag(expanded_values_from.GetBag());
 }
 
-absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
-                                  const DataSlice& item_limit,
-                                  const DataSlice& item_limit_per_dimension,
-                                  const DataSlice& format_html,
-                                  const DataSlice& max_str_len,
-                                  const DataSlice& max_expr_quote_len,
-                                  const DataSlice& show_attributes,
-                                  const DataSlice& show_databag_id,
-                                  const DataSlice& show_shape,
-                                  const DataSlice& show_schema,
-                                  const DataSlice& show_item_id,
-                                  const DataSlice& show_present_count) {
+absl::StatusOr<DataSlice> GetRepr(
+    const DataSlice& x, const DataSlice& depth, const DataSlice& item_limit,
+    const DataSlice& item_limit_per_dimension, const DataSlice& format_html,
+    const DataSlice& max_str_len, const DataSlice& max_expr_quote_len,
+    const DataSlice& show_attributes, const DataSlice& show_databag_id,
+    const DataSlice& show_shape, const DataSlice& show_schema,
+    const DataSlice& show_item_id, const DataSlice& show_present_count,
+    const DataSlice& float_format, const DataSlice& enable_multiline) {
   ASSIGN_OR_RETURN(int64_t depth_int, GetIntegerArgument(depth, "depth"));
   ASSIGN_OR_RETURN(int64_t item_limit_int,
                    GetIntegerArgument(item_limit, "item_limit"));
@@ -1111,6 +1109,18 @@ absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
                    GetBoolArgument(show_item_id, "show_item_id"));
   ASSIGN_OR_RETURN(bool show_present_count_bool,
                    GetBoolArgument(show_present_count, "show_present_count"));
+  std::unique_ptr<internal::FloatFormat> parsed_float_format;
+  if (float_format.item().has_value()) {
+    ASSIGN_OR_RETURN(absl::string_view float_format_str,
+                     GetStringArgument(float_format, "float_format"));
+    parsed_float_format = internal::FloatFormat::New(float_format_str);
+    if (parsed_float_format == nullptr) {
+      return absl::InvalidArgumentError(
+          absl::StrFormat("invalid float_format: %s", float_format_str));
+    }
+  }
+  ASSIGN_OR_RETURN(bool enable_multiline_bool,
+                   GetBoolArgument(enable_multiline, "enable_multiline"));
   auto repr = DataSliceRepr(
       x, ReprOption{
              .depth = static_cast<size_t>(depth_int),
@@ -1126,6 +1136,8 @@ absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
              .show_schema = show_schema_bool,
              .show_item_id = show_item_id_bool,
              .show_present_count = show_present_count_bool,
+             .float_format = parsed_float_format.get(),
+             .enable_multiline = enable_multiline_bool,
          });
   return DataSlice::Create(internal::DataItem(arolla::Text(std::move(repr))),
                            internal::DataItem(schema::kString));

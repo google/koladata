@@ -54,6 +54,7 @@
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/signature.h"
 #include "koladata/signature_storage.h"
+#include "re2/re2.h"
 
 namespace koladata {
 namespace {
@@ -62,9 +63,9 @@ using ::koladata::internal::DataItem;
 using ::koladata::internal::DataItemRepr;
 using ::koladata::internal::ObjectId;
 
-// This is the infix we expect when DataItemRepr truncates a string. Note the
-// additional single quotes.
-constexpr absl::string_view kTruncationInfix = "'...'";
+// This is the pattern we expect when DataItemRepr truncates a string or bytes.
+static constexpr LazyRE2 kTruncationPattern = {
+    R"(\.\.\. \(\d+ (?:chars|bytes) total\))"};
 constexpr absl::string_view kAttrTemplate = "%s=%s";
 constexpr absl::string_view kAttrHtmlTemplate =
     "<span class=\"attr\">%s</span>=%s";
@@ -211,15 +212,11 @@ struct WrappingBehavior {
       // following criteria hold:
       //   * A _DataItem_ is passed as input.
       //   * strip_quotes=True.
-      //   * The original string contains kTruncationInfix as a substring.
+      //   * The original string matches kTruncationPattern as a substring.
       // Consider moving the escaping logic to the internal::DataItem repr to
       // avoid this.
-      if (size_t t_pos = result.find(kTruncationInfix);
-          t_pos != std::string::npos) {
-        result = absl::StrCat(result.substr(0, t_pos),
-                              "'<span class=\"truncated\">...</span>'",
-                              result.substr(t_pos + kTruncationInfix.size()));
-      }
+      RE2::Replace(&result, *kTruncationPattern,
+                   "<span class=\"truncated\">\\0</span>");
 
       UpdateHtmlCharCount(result.size(), initial_value_size);
       return result;
@@ -338,11 +335,11 @@ std::string DataSliceItemRepr(
   bool is_obj_schema = schema == schema::kObject;
   bool is_mask_schema = schema == schema::kMask;
   return wrapping.MaybeEscape(DataItemRepr(
-      item,
-      {.show_dtype = is_obj_schema,
-        .show_missing = is_mask_schema,
-        .unbounded_type_max_len = option.unbounded_type_max_len,
-        .max_expr_quote_len = option.max_expr_quote_len}));
+      item, {.show_dtype = is_obj_schema,
+             .show_missing = is_mask_schema,
+             .unbounded_type_max_len = option.unbounded_type_max_len,
+             .max_expr_quote_len = option.max_expr_quote_len,
+             .float_format = option.float_format}));
 }
 
 std::string DataSliceImplToStr(
@@ -419,7 +416,10 @@ std::string DataSliceImplToStr(
 
       // Compose final presentation of the group.
       group_reprs.push_back(
-          PrettyFormatStr(elem_reprs, {.prefix = "[", .suffix = "]"},
+          PrettyFormatStr(elem_reprs,
+                          {.prefix = "[",
+                           .suffix = "]",
+                           .enable_multiline = option.enable_multiline},
                           wrapping.html_char_count - initial_html_char_count));
     }
     return group_reprs;
@@ -518,9 +518,11 @@ absl::StatusOr<std::string> ListToStr(
           wrapping.MaybeAnnotateListIndex(std::move(item_str), i));
       ++item_count;
     }
-    return PrettyFormatStr(
-        elements, {.prefix = "[", .suffix = "]"},
-        wrapping.html_char_count - initial_html_char_count);
+    return PrettyFormatStr(elements,
+                           {.prefix = "[",
+                            .suffix = "]",
+                            .enable_multiline = option.enable_multiline},
+                           wrapping.html_char_count - initial_html_char_count);
   };
   ASSIGN_OR_RETURN(const std::string str, stringfy_list_items());
   return absl::StrCat("List", str);
@@ -587,9 +589,11 @@ absl::StatusOr<std::string> DictToStr(
     ++item_count;
   }
 
-  return PrettyFormatStr(
-      elements, {.prefix = "Dict{", .suffix = "}"},
-      wrapping.html_char_count - initial_html_char_count);
+  return PrettyFormatStr(elements,
+                         {.prefix = "Dict{",
+                          .suffix = "}",
+                          .enable_multiline = option.enable_multiline},
+                         wrapping.html_char_count - initial_html_char_count);
 }
 
 // Returns the string representation of schema items or objects.
@@ -723,7 +727,8 @@ absl::StatusOr<std::string> FunctorItemToStr(
   return PrettyFormatStr(
       attr_parts,
       {.prefix = absl::StrCat("Functor", name, "[", signature_str, "]("),
-       .suffix = ")"},
+       .suffix = ")",
+       .enable_multiline = option.enable_multiline},
       wrapping.html_char_count - initial_html_char_count);
 }
 
@@ -780,10 +785,11 @@ absl::StatusOr<std::string> DataItemToStr(
   // the item holds an ObjectId.
   auto repr_with_wrapping = [&option, &wrapping](const DataItem& item) {
     return wrapping.MaybeWrapObjectId(
-        item, wrapping.MaybeEscape(
-            DataItemRepr(item, {
-              .unbounded_type_max_len = option.unbounded_type_max_len,
-              .max_expr_quote_len = option.max_expr_quote_len})));
+        item,
+        wrapping.MaybeEscape(DataItemRepr(
+            item, {.unbounded_type_max_len = option.unbounded_type_max_len,
+                   .max_expr_quote_len = option.max_expr_quote_len,
+                   .float_format = option.float_format})));
   };
 
   if (!data_item.has_value()) {
@@ -858,9 +864,11 @@ absl::StatusOr<std::string> DataItemToStr(
       schema_parts.push_back(wrapping.FormatSchemaAttrAndValue(
           schema::kSchemaMetadataAttr, metadata, /*is_list=*/false));
     }
-    return PrettyFormatStr(
-      schema_parts, {.prefix = prefix, .suffix = ")"},
-      wrapping.html_char_count - initial_html_char_count);
+    return PrettyFormatStr(schema_parts,
+                           {.prefix = prefix,
+                            .suffix = ")",
+                            .enable_multiline = option.enable_multiline},
+                           wrapping.html_char_count - initial_html_char_count);
   }
 
   // Handle ITEMID schema explicitly. We should not show any additional
@@ -930,16 +938,19 @@ absl::StatusOr<std::string> DataItemToStr(
     if (attr_parts.empty()) {
       return absl::StrCat(prefix, "):", ObjectIdStr(obj));
     }
-    return PrettyFormatStr(attr_parts, {.prefix = prefix, .suffix = ")"},
+    return PrettyFormatStr(attr_parts,
+                           {.prefix = prefix,
+                            .suffix = ")",
+                            .enable_multiline = option.enable_multiline},
                            wrapping.html_char_count - initial_html_char_count);
   }
   bool is_obj_schema = schema == schema::kObject;
-  return wrapping.MaybeEscape(
-      DataItemRepr(data_item, {
-        .strip_quotes = option.strip_quotes,
-        .show_dtype = is_obj_schema,
-        .unbounded_type_max_len = option.unbounded_type_max_len,
-        .max_expr_quote_len = option.max_expr_quote_len}));
+  return wrapping.MaybeEscape(DataItemRepr(
+      data_item, {.strip_quotes = option.strip_quotes,
+                  .show_dtype = is_obj_schema,
+                  .unbounded_type_max_len = option.unbounded_type_max_len,
+                  .max_expr_quote_len = option.max_expr_quote_len,
+                  .float_format = option.float_format}));
 }
 
 }  // namespace

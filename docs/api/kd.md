@@ -737,7 +737,7 @@ Alias for [kd.schema.get_primitive_schema](kd/schema.md#kd.schema.get_primitive_
 
 Alias for [kd.proto.get_proto_attr](kd/proto.md#kd.proto.get_proto_attr)
 
-### `kd.get_repr(x, /, *, depth=25, item_limit=200, item_limit_per_dimension=25, format_html=False, max_str_len=100, max_expr_quote_len=10000, show_attributes=True, show_databag_id=False, show_shape=False, show_schema=False, show_item_id=False, show_present_count=False)` {#kd.get_repr}
+### `kd.get_repr(x, /, *, depth=25, item_limit=200, item_limit_per_dimension=25, format_html=False, max_str_len=100, max_expr_quote_len=10000, show_attributes=True, show_databag_id=False, show_shape=False, show_schema=False, show_item_id=False, show_present_count=False, float_format=None, enable_multiline=True)` {#kd.get_repr}
 
 Alias for [kd.slices.get_repr](kd/slices.md#kd.slices.get_repr)
 

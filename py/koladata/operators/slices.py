@@ -2278,6 +2278,8 @@ def get_repr(
     show_schema=False,
     show_item_id=False,
     show_present_count=False,
+    float_format=None,
+    enable_multiline=True,
 ):
   """Returns a string representation of the DataSlice `x`.
 
@@ -2305,6 +2307,10 @@ def get_repr(
     show_item_id: When true, the repr will show the itemids for objects.
     show_present_count: When true, the repr will show the size and present_count
       for DataSlices.
+    float_format: If set, format float values using this printf-style format
+      string (e.g. '%.2f'). Otherwise, use the shortest representation.
+    enable_multiline: If true, format structures (lists, dicts, entities) as
+      multiline if they are large or contain newlines.
 
   Returns:
     A string representation of the DataSlice `x`.

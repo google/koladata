@@ -142,7 +142,7 @@ TEST(DataItemTest, PresentPrimitive) {
 TEST(DataItemTest, PresentPrimitiveTypedValue) {
   for (auto item_or_status : {DataItem::Create(TypedRef::FromValue(57)),
                               DataItem::Create(TypedValue::FromValue(57))}) {
-    EXPECT_TRUE(item_or_status.ok());
+    ASSERT_OK(item_or_status);
     auto item = std::move(item_or_status).value();
     EXPECT_EQ(item.dtype(), GetQType<int>());
     ASSERT_TRUE(item.holds_value<int>());
@@ -154,7 +154,7 @@ TEST(DataItemTest, PresentOptionalTypedValue) {
   auto value = arolla::OptionalValue<int>(57);
   for (auto item_or_status : {DataItem::Create(TypedRef::FromValue(value)),
                               DataItem::Create(TypedValue::FromValue(value))}) {
-    EXPECT_TRUE(item_or_status.ok());
+    ASSERT_OK(item_or_status);
     auto item = std::move(item_or_status).value();
     EXPECT_EQ(item.dtype(), GetQType<int>());
     ASSERT_TRUE(item.holds_value<int>());
@@ -166,7 +166,7 @@ TEST(DataItemTest, MissingOptionalTypedValue) {
   auto value = arolla::OptionalValue<int>();
   for (auto item_or_status : {DataItem::Create(TypedRef::FromValue(value)),
                               DataItem::Create(TypedValue::FromValue(value))}) {
-    EXPECT_TRUE(item_or_status.ok());
+    ASSERT_OK(item_or_status);
     auto item = std::move(item_or_status).value();
     EXPECT_EQ(item.dtype(), arolla::GetNothingQType());
     EXPECT_FALSE(item.has_value());
@@ -647,25 +647,45 @@ TEST(DataItemTest, TestRepr) {
             "float64{1.23456789}");
   EXPECT_EQ(DataItemRepr(DataItem(int64_t{123}), {.show_dtype = true}),
             "int64{123}");
+  auto fmt_4f = FloatFormat::New("%.4f");
+  auto fmt_2f = FloatFormat::New("%.2f");
+  auto fmt_0f = FloatFormat::New("%.0f");
+  auto fmt_e = FloatFormat::New("%.2e");
+
+  EXPECT_EQ(DataItemRepr(DataItem(double{1.23456789}),
+                         {.float_format = fmt_4f.get()}),
+            "1.2346");
+  EXPECT_EQ(DataItemRepr(DataItem(double{1.23456789}),
+                         {.float_format = fmt_2f.get()}),
+            "1.23");
+  EXPECT_EQ(DataItemRepr(DataItem(double{1.23456789}),
+                         {.float_format = fmt_0f.get()}),
+            "1");
+  EXPECT_EQ(
+      DataItemRepr(DataItem(double{12.1}), {.float_format = fmt_0f.get()}),
+      "12");
+  EXPECT_EQ(
+      DataItemRepr(DataItem(double{1.23456789}), {.float_format = fmt_e.get()}),
+      "1.23e+00");
   EXPECT_EQ(DataItemRepr(DataItem(arolla::Unit())), "present");
   EXPECT_EQ(DataItemRepr(DataItem()), "None");
   EXPECT_EQ(DataItemRepr(DataItem(), {.show_missing = true}), "missing");
   EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("abcdefghij")),
                          {.unbounded_type_max_len = 3}),
-            "'ab'...'ij'");
+            "'abc'... (10 chars total)");
   EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("abcdefghij")),
                          {.unbounded_type_max_len = 2}),
-            "'a'...'j'");
+            "'ab'... (10 chars total)");
   EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("abcdefghij")),
                          {.strip_quotes = true, .unbounded_type_max_len = 3}),
-            "ab...ij");
+            "abc... (10 chars total)");
   // Check unicode characters are not broken by truncation.
   EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("⽥a⇠ⲇ▚☡")),
                          {.unbounded_type_max_len = 3}),
-            "'⽥a'...'▚☡'");
+            "'⽥a⇠'... (6 chars total)");
   EXPECT_EQ(DataItemRepr(DataItem(arolla::Bytes("abcdefghij")),
                          {.unbounded_type_max_len = 3}),
-            "b'ab'...'ij'");
+            "b'abc'... (10 bytes total)");
   EXPECT_EQ(DataItemRepr(DataItem(arolla::Bytes("abcdefghij")),
                          {.unbounded_type_max_len = static_cast<size_t>(-1)}),
             "b'abcdefghij'");

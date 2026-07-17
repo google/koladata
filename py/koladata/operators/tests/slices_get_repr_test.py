@@ -126,7 +126,9 @@ class SlicesGetReprTest(parameterized.TestCase):
 
   def test_max_str_len(self):
     res = kd.slices.get_repr(ds(['foo', 'bar']), max_str_len=1)
-    testing.assert_equal(res, ds("['f'...'o', 'b'...'r']"))
+    testing.assert_equal(
+        res, ds("['f'... (3 chars total), 'b'... (3 chars total)]")
+    )
 
   def test_max_str_len_inf(self):
     res = kd.slices.get_repr(ds(['foo', 'bar']), max_str_len=-1)
@@ -224,6 +226,56 @@ class SlicesGetReprTest(parameterized.TestCase):
     self.assertRegex(
         kd.slices.get_repr(x, depth=-1).internal_as_py(),
         r'Entity\(foo=Entity\(bar=\$.{22}, baz=\$.{22}\)',
+    )
+
+  def test_float_format(self):
+    # Default behavior: shortest representation (FLOAT32 by default).
+    testing.assert_equal(
+        kd.slices.get_repr(ds([1.23456789, 2.0])),
+        ds('[1.2345679, 2.0]'),
+    )
+    # Default behavior for FLOAT64:
+    testing.assert_equal(
+        kd.slices.get_repr(
+            ds([1.23456789, 2.0], schema=schema_constants.FLOAT64)
+        ),
+        ds('[1.23456789, 2.0]'),
+    )
+    # Custom format:
+    testing.assert_equal(
+        kd.slices.get_repr(ds([1.23456789, 2.0]), float_format='%.4f'),
+        ds('[1.2346, 2.0000]'),
+    )
+    testing.assert_equal(
+        kd.slices.get_repr(ds(1.23456789), float_format='%.4f'),
+        ds('1.2346'),
+    )
+    testing.assert_equal(
+        kd.slices.get_repr(ds([1.23456789, 2.3456789]), float_format='%.2f'),
+        ds('[1.23, 2.35]'),
+    )
+    testing.assert_equal(
+        kd.slices.get_repr(ds(1.23456789), float_format='%.0f'),
+        ds('1'),
+    )
+    testing.assert_equal(
+        kd.slices.get_repr(ds(1.23456789), float_format='%.2e'),
+        ds('1.23e+00'),
+    )
+    with self.assertRaisesRegex(ValueError, 'invalid float_format: %d'):
+      kd.slices.get_repr(ds(1.0), float_format='%d')
+    with self.assertRaisesRegex(ValueError, 'must be an item holding STRING'):
+      kd.slices.get_repr(ds(1.0), float_format=123)
+
+  def test_enable_multiline(self):
+    # A list that is long enough to trigger multiline (> 90 chars).
+    long_list = kd.list(['a' * 20] * 10)
+    # Default is enable_multiline=True
+    self.assertIn('\n', kd.slices.get_repr(long_list).internal_as_py())
+    # Disable multiline
+    self.assertNotIn(
+        '\n',
+        kd.slices.get_repr(long_list, enable_multiline=False).internal_as_py(),
     )
 
   def test_view(self):
