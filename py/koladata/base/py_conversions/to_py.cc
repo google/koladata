@@ -175,11 +175,7 @@ class ToPyVisitor : internal::AbstractVisitor {
 
     classes_by_path_[std::move(path_key)] = field_type;
 
-    if (!DescribesPresentFieldType(field_type)) {
-      // The type of the field is not specified, so we fail back to the default
-      // behavior; It means that class_cache_by_object_id_ will not be used for
-      // this object, object will be created during Previsit and stored in
-      // converted_object_cache_.
+    if (!field_type.has_value()) {
       return false;
     }
 
@@ -189,20 +185,21 @@ class ToPyVisitor : internal::AbstractVisitor {
         class_cache_by_object_id_.find(object_id);
 
     if (class_cached_by_object_id_it == class_cache_by_object_id_.end()) {
+      const bool describes_present_field_type =
+          DescribesPresentFieldType(field_type);
       class_cache_by_object_id_[object_id] = std::move(field_type);
-      return true;
-    } else {
+      return describes_present_field_type;
+    }
       // Koda object is the same, but Python class is different.
-      if (class_cached_by_object_id_it->second->type.get() !=
-          field_type->type.get()) {
-        return absl::InternalError(absl::StrFormat(
-            "same object is reached with different classes: %s and %s",
-            PyObjectTypeName(class_cached_by_object_id_it->second->type.get()),
-            PyObjectTypeName(field_type->type.get())));
-      }
+    PyObject* cached_type = class_cached_by_object_id_it->second->type.get();
+    PyObject* new_type = field_type->type.get();
+    if (cached_type != new_type) {
+      return absl::InternalError(absl::StrFormat(
+          "same object is reached with different classes: %s and %s",
+          PyObjectTypeName(cached_type), PyObjectTypeName(new_type)));
     }
 
-    return true;
+    return DescribesPresentFieldType(field_type);
   }
 
   // Pre-visiting Entities in order to decide whether we need to create a

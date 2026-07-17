@@ -855,6 +855,30 @@ class ToPyTest(parameterized.TestCase):
     self.assertIs(converted.d.a.__class__, _py_types.SimpleNamespace)
     self.assertEqual(converted, output_class)
 
+  def test_output_class_any_order_dependent(self):
+    class_a = dataclasses.make_dataclass('A', [])
+    class_b = dataclasses.make_dataclass(
+        'B', [('x', list[class_a]), ('y', list[Any])]
+    )
+    class_c = dataclasses.make_dataclass(
+        'C', [('x', list[Any]), ('y', list[class_a])]
+    )
+
+    o = fns.obj()
+    o = fns.obj(x=[o], y=[o])
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'same object is reached with different classes',
+    ):
+      _ = o.to_py(output_class=class_b)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'same object is reached with different classes',
+    ):
+      _ = o.to_py(output_class=class_c)
+
   def test_output_class_converts_empty_obj_to_int(self):
     self.assertEqual(py_conversions.to_py(fns.new(), output_class=int), 0)
 
@@ -886,17 +910,17 @@ class ToPyTest(parameterized.TestCase):
       dict2: Any
       i: int
 
-    koda_obj1 = fns.obj(a=1, b='x')
-    koda_obj2 = fns.obj(a=2, b='y')
-    koda_list = fns.list([koda_obj1, koda_obj2])
-    koda_dict = fns.dict({'a': koda_obj1, 'b': koda_obj2})
+    koda_obj_1 = lambda: fns.obj(a=1, b='x')
+    koda_obj_2 = lambda: fns.obj(a=2, b='y')
+    koda_list = lambda: fns.list([koda_obj_1(), koda_obj_2()])
+    koda_dict = lambda: fns.dict({'a': koda_obj_1(), 'b': koda_obj_2()})
     root = fns.new(
-        o1=koda_obj1,
-        o2=koda_obj2,
-        list1=koda_list,
-        list2=koda_list,
-        dict1=koda_dict,
-        dict2=koda_dict,
+        o1=koda_obj_1(),
+        o2=koda_obj_2(),
+        list1=koda_list(),
+        list2=koda_list(),
+        dict1=koda_dict(),
+        dict2=koda_dict(),
         i=fns.int64(3),
     )
 
@@ -915,14 +939,16 @@ class ToPyTest(parameterized.TestCase):
       direct_obj: Obj1
 
     koda_obj = fns.obj(a=1, b='x')
+    koda_obj_2 = fns.obj(a=2, b='y')
     koda_list = fns.list([koda_obj, koda_obj])
     root = fns.new(
         list_of_any=koda_list,
-        direct_obj=koda_obj,
+        direct_obj=koda_obj_2,
     )
 
     o1 = Obj1(a=1, b='x')
-    expected = TargetClass(list_of_any=[o1, o1], direct_obj=o1)
+    o2 = Obj1(a=2, b='y')
+    expected = TargetClass(list_of_any=[o1, o1], direct_obj=o2)
     converted = py_conversions.to_py(root, output_class=TargetClass)
     self.assertEqual(converted, expected)
 
