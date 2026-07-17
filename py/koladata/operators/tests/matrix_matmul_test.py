@@ -560,19 +560,33 @@ class ErrorTest(parameterized.TestCase):
   def test_matmul_string_schema_fails(self):
     a = ds([['a', 'b'], ['c', 'd']])
     b = ds([['e', 'f'], ['g', 'h']])
-    with self.assertRaisesRegex(ValueError, r'unsupported schema'):
+    with self.assertRaisesRegex(
+        ValueError, r'unsupported narrowed schema: STRING'
+    ):
       kd.matrix.matmul(a, b)
 
   def test_matmul_object_non_numeric_fails(self):
     a = kd.obj(ds([['a', 'b'], ['c', 'd']]))
     b = kd.obj(ds([['e', 'f'], ['g', 'h']]))
-    with self.assertRaisesRegex(ValueError, r'non-numeric data'):
+    with self.assertRaisesRegex(
+        ValueError, r'unsupported narrowed schema: STRING'
+    ):
       kd.matrix.matmul(a, b)
 
   def test_matmul_object_mixed_dtype_fails(self):
+    # Some kinds of mixed dtypes are supported.
     a = ds([[kd.int64(1), kd.obj(kd.int32(2))], [3, 4]])
     b = kd.obj(ds([[5, 6], [7, 8]]))
-    with self.assertRaisesRegex(ValueError, r'mixed data is not supported'):
+    testing.assert_equivalent(
+        kd.matrix.matmul(a, b),
+        kd.obj(ds([[19, 22], [43, 50]], schema_constants.INT64)),
+    )
+
+    # But not others:
+    a = ds([['foo', kd.obj(kd.int32(2))], [3, 4]])
+    with self.assertRaisesRegex(
+        ValueError, r'unsupported narrowed schema: OBJECT'
+    ):
       kd.matrix.matmul(a, b)
 
   def test_matmul_0d_input_fails(self):

@@ -52,6 +52,7 @@ cc_library(
     srcs = ["matrix.cc"],
     hdrs = ["matrix.h"],
     deps = [
+        ":matrix_helpers",
         "//koladata:data_slice",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
@@ -63,7 +64,6 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
-        "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util:status_backport",
         "@eigen",
     ],
@@ -418,6 +418,46 @@ cc_library(
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
+    name = "matrix_helpers",
+    srcs = ["matrix_helpers.cc"],
+    hdrs = ["matrix_helpers.h"],
+    deps = [
+        "//koladata:data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:schema_utils",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "matrix_helpers_test",
+    srcs = ["matrix_helpers_test.cc"],
+    deps = [
+        ":matrix_helpers",
+        "//koladata:data_slice",
+        "//koladata:test_utils",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
