@@ -45,9 +45,6 @@ class _MyTestExtension:
   y: schema_constants.INT32
 
 
-extension_type_registry.register_extension_type(_MyTestExtension, _EXT_TYPE)
-
-
 class _MyOtherTestExtension:
   pass
 
