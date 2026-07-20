@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <utility>
@@ -128,6 +129,30 @@ bool ParseBoolArg(const FastcallArgParser::Args& args,
   arg = PyObject_IsTrue(arg_it->second);
   return true;
 }
+
+bool ParseIntArg(const FastcallArgParser::Args& args,
+                 absl::string_view arg_name, int64_t& arg) {
+  auto arg_it = args.kw_only_args.find(arg_name);
+  if (arg_it == args.kw_only_args.end()) {
+    return true;
+  }
+  PyObject* arg_py = arg_it->second;
+  if (!PyLong_Check(arg_py)) {
+    PyErr_Format(PyExc_TypeError, "expected integer for %s, got %s",
+                 std::string(arg_name).c_str(),
+                 Py_TYPE(arg_py)->tp_name);
+    return false;
+  }
+  static_assert(sizeof(decltype(PyLong_AsLongLong(nullptr))) <= sizeof(int64_t),
+                "PyLong_AsLongLong return type must fit in int64_t");
+  arg = PyLong_AsLongLong(arg_py);
+  if (arg == -1 && PyErr_Occurred()) {
+    return false;
+  }
+  return true;
+}
+
+
 
 namespace {
 

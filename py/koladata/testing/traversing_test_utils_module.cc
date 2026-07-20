@@ -29,7 +29,8 @@ PyMethodDef kTraversingTestUtilsModule_methods[] = {
     {"assert_deep_equivalent", (PyCFunction)PyAssertDeepEquivalent,
      METH_FASTCALL | METH_KEYWORDS,
      ("assert_deep_equivalent(lhs, rhs, *, partial=False, "
-      "schemas_equality=False, msg=None)\n--\n\n"
+      "schemas_equality=False, ids_equality=False, max_count=5, "
+      "msg=None)\n--\n\n"
       "Asserts that two DataSlices are deep equivalent.")},
     {nullptr} /* sentinel */
 };

@@ -315,6 +315,7 @@ def assert_equivalent(
     partial: bool | None = None,
     ids_equality: bool | None = None,
     schemas_equality: bool | None = None,
+    max_count: int | None = None,
     msg: str | None = None,
 ):
   """Koda equivalency check.
@@ -336,6 +337,8 @@ def assert_equivalent(
       DataSlice case).
     schemas_equality: (default: True) Whether to check schema ids equality
       (affects only DataSlice case).
+    max_count: (default: 5) The maximum number of mismatches to report (affects
+      only DataSlice case).
     msg: A custom error message.
 
   Raises:
@@ -354,12 +357,15 @@ def assert_equivalent(
       ids_equality = False
     if schemas_equality is None:
       schemas_equality = True
+    if max_count is None:
+      max_count = 5
     _traversing_test_utils.assert_deep_equivalent(
         actual_value,
         expected_value,
         partial=partial,
         ids_equality=ids_equality,
         schemas_equality=schemas_equality,
+        max_count=max_count,
         msg=msg,
     )
     return
@@ -369,6 +375,8 @@ def assert_equivalent(
     raise AssertionError('`ids_equality` is only supported for DataSlices')
   if schemas_equality is not None:
     raise AssertionError('`schemas_equality` is only supported for DataSlices')
+  if max_count is not None:
+    raise AssertionError('`max_count` is only supported for DataSlices')
   if isinstance(actual_value, _data_bag.DataBag) and isinstance(
       expected_value, _data_bag.DataBag
   ):

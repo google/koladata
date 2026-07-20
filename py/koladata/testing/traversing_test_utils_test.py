@@ -579,6 +579,71 @@ class TraversingTestUtilsTest(absltest.TestCase):
     )
     traversing_test_utils.assert_deep_equivalent(a, b)
 
+  def test_assert_deep_equivalent_max_count(self):
+    actual = ds([1, 2])
+    expected = ds([3, 4])
+
+    # Default behavior (max_count=5, but we only have 2 mismatches, so we
+    # show all)
+    with self.assertRaises(AssertionError) as cm:
+      traversing_test_utils.assert_deep_equivalent(actual, expected)
+    message = str(cm.exception)
+    self.assertIn('expected.S[0]', message)
+    self.assertIn('expected.S[1]', message)
+
+    # max_count=1 (limits to 1 mismatch, order can be non-deterministic)
+    with self.assertRaises(AssertionError) as cm:
+      traversing_test_utils.assert_deep_equivalent(
+          actual, expected, max_count=1
+      )
+    message = str(cm.exception)
+    in_s0 = 'expected.S[0]' in message
+    in_s1 = 'expected.S[1]' in message
+    self.assertTrue(
+        in_s0 ^ in_s1,
+        'Expected exactly one of S[0] or S[1] to be present. Message:'
+        f' {message}',
+    )
+
+    # max_count=10 (larger than number of mismatches, shows all)
+    with self.assertRaises(AssertionError) as cm:
+      traversing_test_utils.assert_deep_equivalent(
+          actual, expected, max_count=10
+      )
+    message = str(cm.exception)
+    self.assertIn('expected.S[0]', message)
+    self.assertIn('expected.S[1]', message)
+
+    # TypeError on invalid max_count type
+    self.assertRaisesRegex(
+        TypeError,
+        'expected integer for max_count, got str',
+        traversing_test_utils.assert_deep_equivalent,
+        actual,
+        expected,
+        max_count='invalid',
+    )
+
+    # TypeError on None max_count type
+    self.assertRaisesRegex(
+        TypeError,
+        'expected integer for max_count, got NoneType',
+        traversing_test_utils.assert_deep_equivalent,
+        actual,
+        expected,
+        max_count=None,
+    )
+
+    # ValueError on negative max_count
+    self.assertRaisesRegex(
+        ValueError,
+        'max_count should be >= 0',
+        traversing_test_utils.assert_deep_equivalent,
+        actual,
+        expected,
+        max_count=-1,
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

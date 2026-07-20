@@ -102,7 +102,7 @@ Args:
 Raises:
   AssertionError: If actual_qvalue and expected_qvalue are not equal.</code></pre>
 
-### `kd.testing.assert_equivalent(actual_value: DataBag | DataSlice | JaggedShape | QValue | Slice | Expr | None, expected_value: DataBag | DataSlice | JaggedShape | QValue | Slice | Expr | None, *, partial: bool | None = None, ids_equality: bool | None = None, schemas_equality: bool | None = None, msg: str | None = None)` {#kd.testing.assert_equivalent}
+### `kd.testing.assert_equivalent(actual_value: DataBag | DataSlice | JaggedShape | QValue | Slice | Expr | None, expected_value: DataBag | DataSlice | JaggedShape | QValue | Slice | Expr | None, *, partial: bool | None = None, ids_equality: bool | None = None, schemas_equality: bool | None = None, max_count: int | None = None, msg: str | None = None)` {#kd.testing.assert_equivalent}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Koda equivalency check.
 
@@ -123,6 +123,8 @@ Args:
     DataSlice case).
   schemas_equality: (default: True) Whether to check schema ids equality
     (affects only DataSlice case).
+  max_count: (default: 5) The maximum number of mismatches to report (affects
+    only DataSlice case).
   msg: A custom error message.
 
 Raises:

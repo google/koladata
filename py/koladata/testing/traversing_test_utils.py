@@ -28,6 +28,7 @@ def assert_deep_equivalent(
     partial: bool = False,
     schemas_equality: bool = False,
     ids_equality: bool = False,
+    max_count: int = 5,
     msg: str | None = None,
 ):
   """Koda slices equivalency check.
@@ -50,6 +51,7 @@ def assert_deep_equivalent(
     schemas_equality: If True, the schema ObejectIds are compared.
     ids_equality: If True, the ObjectIds are compared. This is independent from
       schemas_equality, any combination of the two can be used.
+    max_count: The maximum number of mismatches to report.
     msg: Optional message to be used if the assertion fails.
 
   Raises:
@@ -61,5 +63,6 @@ def assert_deep_equivalent(
       partial=partial,
       schemas_equality=schemas_equality,
       ids_equality=ids_equality,
+      max_count=max_count,
       msg=msg,
   )

@@ -16,6 +16,7 @@
 
 #include <Python.h>
 
+#include <cstdint>
 #include <string>
 
 #include "absl/base/no_destructor.h"
@@ -42,7 +43,7 @@ PyObject* absl_nullable PyAssertDeepEquivalent(PyObject* /*module*/,
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
       /*pos_only_n=*/2, /*parse_kwargs=*/false,
-      {"partial", "schemas_equality", "ids_equality", "msg"}));
+      {"partial", "schemas_equality", "ids_equality", "max_count", "msg"}));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
@@ -69,16 +70,18 @@ PyObject* absl_nullable PyAssertDeepEquivalent(PyObject* /*module*/,
   if (!ParseBoolArg(args, "ids_equality", ids_equality)) {
     return nullptr;
   }
-  // TODO: get max_count from kwargs.
+  int64_t max_count = 5;
+  if (!ParseIntArg(args, "max_count", max_count)) {
+    return nullptr;
+  }
   testing::DeepEquivalentParams comparison_params = {
       .partial = partial,
       .schemas_equality = schemas_equality,
       .ids_equality = ids_equality};
-  ASSIGN_OR_RETURN(
-      auto mismatches,
-      testing::DeepEquivalentMismatches(*actual_ds, *expected_ds,
-                                        /*max_count=*/5, comparison_params),
-      arolla::python::SetPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(auto mismatches,
+                   testing::DeepEquivalentMismatches(
+                       *actual_ds, *expected_ds, max_count, comparison_params),
+                   arolla::python::SetPyErrFromStatus(_));
   if (mismatches.empty()) {
     Py_RETURN_NONE;
   }

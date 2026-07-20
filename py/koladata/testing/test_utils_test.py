@@ -320,6 +320,20 @@ class TestUtilsTest(parameterized.TestCase):
         AssertionError, '`partial` is only supported for DataSlices'
     ):
       test_utils.assert_equivalent(bag(), bag(), partial=True)
+    with self.assertRaisesRegex(
+        AssertionError, '`max_count` is only supported for DataSlices'
+    ):
+      test_utils.assert_equivalent(bag(), bag(), max_count=1)
+
+  def test_assert_equivalent_max_count(self):
+    actual = ds([1, 2])
+    expected = ds([3, 4])
+    with self.assertRaises(AssertionError) as cm:
+      test_utils.assert_equivalent(actual, expected, max_count=1)
+    message = str(cm.exception)
+    in_s0 = 'expected.S[0]' in message
+    in_s1 = 'expected.S[1]' in message
+    self.assertTrue(in_s0 ^ in_s1)
 
   def test_assert_allclose(self):
     test_utils.assert_allclose(ds([2.71, 2.71]), ds([2.71, 2.71]))

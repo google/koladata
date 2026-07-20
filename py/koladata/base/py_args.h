@@ -18,6 +18,7 @@
 #include <Python.h>
 
 #include <cstddef>
+#include <cstdint>
 #include <initializer_list>
 #include <optional>
 #include <utility>
@@ -213,6 +214,13 @@ bool ParseBoolArg(const FastcallArgParser::Args& args, size_t arg_pos,
 // also sets Python Exception.
 bool ParseBoolArg(const FastcallArgParser::Args& args,
                   absl::string_view arg_name, bool& arg);
+
+// Populates `arg` integer output argument if `args` contain a valid argument
+// named `arg_name`. Returns true on success, false on error, in which case it
+// also sets Python Exception.
+bool ParseIntArg(const FastcallArgParser::Args& args,
+                 absl::string_view arg_name, int64_t& arg);
+
 
 }  // namespace koladata::python
 
