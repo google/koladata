@@ -59,6 +59,7 @@ class EagerOpUtilsTest(parameterized.TestCase):
                 unsafe_extra_namespaces=[
                     'test.namespace_1',
                     'test.namespace_2',
+                    'test.namespace_3',
                 ]
             )
         )
@@ -386,17 +387,17 @@ class EagerOpUtilsTest(parameterized.TestCase):
 
   def test_overrides_doc_not_used(self):
     optools.set_namespace_docstring(
-        'test.namespace_2', 'Namespace 2 fancy docstring.'
+        'test.namespace_3', 'Namespace 3 fancy docstring.'
     )
-    kd = eager_op_utils.operators_container('test.namespace_2')
-    self.assertEqual(kd.__doc__, 'Namespace 2 fancy docstring.')
+    kd = eager_op_utils.operators_container('test.namespace_3')
+    self.assertEqual(kd.__doc__, 'Namespace 3 fancy docstring.')
     kd_with_overrides = eager_op_utils.add_overrides(
         kd,
         types.SimpleNamespace(__doc__='Overrides docstring.'),
     )
     # The override's __doc__ is NOT used; the arolla container is the sole
     # source of truth for the container's docstring.
-    self.assertEqual(kd_with_overrides.__doc__, 'Namespace 2 fancy docstring.')
+    self.assertEqual(kd_with_overrides.__doc__, 'Namespace 3 fancy docstring.')
 
 
 if __name__ == '__main__':
