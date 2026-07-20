@@ -22,6 +22,15 @@ from koladata.ext.storage import lru_size_tracking_cache
 
 class GlobalCacheLibTest(absltest.TestCase):
 
+  def setUp(self):
+    super().setUp()
+    cache = global_cache_lib.get_global_cache()
+    original_max_bytes = cache.get_max_total_bytes_of_entries_in_cache()
+    self.addCleanup(
+        cache.set_max_total_bytes_of_entries_in_cache, original_max_bytes
+    )
+    self.addCleanup(cache.clear)
+
   def test_get_global_cache_return_type(self):
     cache = global_cache_lib.get_global_cache()
     self.assertIsInstance(cache, lru_size_tracking_cache.LruSizeTrackingCache)
@@ -40,7 +49,7 @@ class GlobalCacheLibTest(absltest.TestCase):
 
   @flagsaver.flagsaver()
   def test_kd_ext_storage_global_cache_max_size_mb_flag_validation(self):
-    with self.assertRaises(flags._exceptions.IllegalFlagValueError):
+    with self.assertRaises(flags.IllegalFlagValueError):
       flags.FLAGS.kd_ext_storage_global_cache_max_size_mb = -1
 
   @flagsaver.flagsaver()
