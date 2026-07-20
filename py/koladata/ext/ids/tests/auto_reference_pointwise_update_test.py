@@ -173,6 +173,40 @@ class AutoReferencePointwiseUpdateTest(parameterized.TestCase):
     ):
       _ = kd_ext.ids.auto_reference_pointwise_update(x, x_input)  # pyrefly: ignore[missing-attribute]
 
+  def test_missing_values_in_input_ds(self):
+    child_schema = kd.schema.new_schema(val=kd.INT32)
+    child_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
+        child_schema,
+        foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
+    )
+    schema = kd.schema.new_schema(
+        children=kd.list_schema(child_schema),
+    )
+    schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
+        schema,
+        foo_ref=kd_ext.ids.auto_reference('foo'),  # pyrefly: ignore[missing-attribute]
+    )
+    children = ds([
+        kd.list([child_schema.new(val=10), child_schema.new(val=20)]),
+        kd.list([child_schema.new(val=30)]),
+    ])
+    x = kd.new(
+        children=children,
+        schema=schema,
+    )
+    x = x.enriched(kd_ext.ids.auto_id_pointwise_update(x))  # pyrefly: ignore[missing-attribute]
+    x = x.with_attr(
+        'foo_ref', ds([x.S[0].children[1].foo_id, x.S[1].children[0].foo_id])
+    )
+    # input_ds is missing, but x itself has auto_ids that should be used.
+    input_ds = x & kd.item(None)
+    update_db = kd_ext.ids.auto_reference_pointwise_update(x, input_ds)  # pyrefly: ignore[missing-attribute]
+    x_with_refs = x.with_bag(update_db).enriched(x.get_bag())
+    kd.testing.assert_equivalent(
+        x_with_refs.foo_ref,
+        ds([x.S[0].children[1], x.S[1].children[0]]),
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

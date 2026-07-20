@@ -123,7 +123,8 @@ Returns:
 
 Unlike `auto_reference_update` which resolves references across the entire
 slice, this operator processes each item independently. Each item&#39;s
-references are resolved only against the corresponding item in `input_ds`.
+references are resolved only against the item itself and the corresponding
+item in `input_ds`.
 
 Example:
   doc_schema = kd.schema.new_schema(val=kd.INT32)
@@ -153,7 +154,8 @@ Example:
   -&gt; kd.new(doc_ref=kd.slice([x_input.S[0].docs[1], x_input.S[1].docs[0]]))
 
 Args:
-  x: DataSlice with a schema that has auto_reference attributes.
+  x: DataSlice with a schema that has auto_reference attributes (may also have
+    auto_id values to reference).
   input_ds: DataSlice with auto_id values to reference. Must have the same
     top-level dimension as x.
 
@@ -165,7 +167,8 @@ Returns:
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Assigns auto_reference values to all auto_reference attributes in x.
 
 For each auto_reference attribute in the schema, resolves string references
-to the corresponding items in input_ds by matching their auto_id values.
+to the corresponding items in input_ds or in x by matching their auto_id
+values.
 
 Example:
   input_schema = kd.schema.new_schema(a=kd.INT32)
@@ -187,7 +190,8 @@ Example:
     -&gt; kd.new(foo_ref=kd.slice([x_input.S[1], x_input.S[0]]))
 
 Args:
-  x: DataSlice with a schema that has auto_reference attributes.
+  x: DataSlice with a schema that has auto_reference attributes (may also have
+    auto_id values to reference).
   input_ds: DataSlice with auto_id values to reference.
 
 Returns:
