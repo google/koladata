@@ -439,5 +439,96 @@ def koda_transpose_lambda(state):
     _ = eager_transpose_lambda(a_kd)
 
 
+# ---- diag_matrix ----
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def numpy_diag_matrix(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    x_np = _make_uniform_vectors_np()
+  else:
+    sizes = _make_jagged_sizes()
+    x_np = _make_jagged_vectors_np(sizes)
+  while state:
+    _ = [np.diag(x_np[i]) for i in range(BATCH_SIZE)]
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def koda_diag_matrix(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    x_np = _make_uniform_vectors_np()
+  else:
+    sizes = _make_jagged_sizes()
+    x_np = _make_jagged_vectors_np(sizes)
+  x_kd = _np_to_kd_vectors(x_np)
+  # Make sure that Koda and NumPy implementations agree on a functional level.
+  # Koda's diag_matrix produces a sparse diagonal matrix (missing off-diag),
+  # while np.diag produces a dense matrix (zeros off-diag). We compare with
+  # off-diagonal filled to zero on the Koda side. np.diag doesn't preserve
+  # masks, so we reconstruct the masked diagonal matrix explicitly.
+  off_diag_zeros = 0 & (
+      ~kd.matrix.diag_matrix(kd.val_shaped_as(x_kd, kd.present))
+  )
+  kd.testing.assert_allclose(
+      kd.matrix.diag_matrix(x_kd) | off_diag_zeros,
+      _np_to_kd_matrices([
+          np.ma.array(
+              np.diag(x_np[i].data), mask=np.diag(np.ma.getmaskarray(x_np[i]))
+          )
+          for i in range(BATCH_SIZE)
+      ]),
+      rtol=1e-10,
+  )
+  while state:
+    _ = kd.matrix.diag_matrix(x_kd)
+
+
+# ---- diag_vector ----
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def numpy_diag_vector(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    a_np = _make_uniform_matrices_np()
+  else:
+    sizes = _make_jagged_sizes()
+    a_np = _make_jagged_matrices_np(sizes)
+  while state:
+    _ = [np.diag(a_np[i]) for i in range(BATCH_SIZE)]
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def koda_diag_vector(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    a_np = _make_uniform_matrices_np()
+  else:
+    sizes = _make_jagged_sizes()
+    a_np = _make_jagged_matrices_np(sizes)
+  a_kd = _np_to_kd_matrices(a_np)
+  # Make sure that Koda and NumPy implementations agree on a functional level.
+  kd.testing.assert_equal(
+      kd.matrix.diag_vector(a_kd),
+      _np_to_kd_vectors([np.diag(a_np[i]) for i in range(BATCH_SIZE)]),
+  )
+  while state:
+    _ = kd.matrix.diag_vector(a_kd)
+
+
 if __name__ == '__main__':
   google_benchmark.main()

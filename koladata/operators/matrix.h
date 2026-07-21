@@ -35,6 +35,14 @@ absl::StatusOr<DataSlice> MatrixMatmul(const DataSlice& a, const DataSlice& b,
 // (..., m) x (..., n) -> (..., m, n). Batch dims are broadcast.
 absl::StatusOr<DataSlice> MatrixOuter(const DataSlice& x, const DataSlice& y);
 
+// kd.matrix.diag_matrix: Creates a diagonal matrix from a vector.
+// (..., n) -> (..., n, n). Off-diagonal elements are None.
+absl::StatusOr<DataSlice> MatrixDiagMatrix(const DataSlice& x);
+
+// kd.matrix.diag_vector: Extracts the diagonal vector from a matrix.
+// (..., m, n) -> (..., min(m,n)).
+absl::StatusOr<DataSlice> MatrixDiagVector(const DataSlice& x);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_MATRIX_H_

@@ -216,3 +216,54 @@ def outer(x, y):  # pylint: disable=unused-argument
   # kd.int32(None) + kd.int32(None) is not the same as
   # kd.sum(kd.slice([None, None], kd.INT32)).
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
+    'kd.matrix.diag_matrix',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def diag_matrix(x):  # pylint: disable=unused-argument
+  """Create a diagonal matrix from the last dimension.
+
+  Takes the last 1D of the input as a vector and creates a diagonal matrix
+  from it. For input shape (..., n), returns shape (..., n, n) where the
+  diagonal entries are set and off-diagonal entries are None (sparse).
+
+  Preserves sparsity. Works with any schema, including numeric, TEXT, BYTES,
+  and entities.
+
+  Args:
+    x: A DataSlice with at least 1 dimension.
+
+  Returns:
+    A DataSlice with one additional dimension, containing diagonal matrices.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
+    'kd.matrix.diag_vector',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def diag_vector(x):  # pylint: disable=unused-argument
+  """Extract the diagonal from the last two dimensions.
+
+  Takes the last 2D of the input as a matrix and extracts its diagonal.
+  For input shape (..., m, n), returns shape (..., min(m,n)).
+
+  Preserves sparsity. Works with any schema, including numeric, TEXT, BYTES,
+  and entities.
+
+  Args:
+    x: A DataSlice with at least 2 dimensions.
+
+  Returns:
+    A DataSlice with one fewer dimension, containing diagonal vectors.
+  """
+  raise NotImplementedError('implemented in the backend')

@@ -14,6 +14,39 @@ subject to standard Koda broadcasting rules.
 
 
 
+### `kd.matrix.diag_matrix(x)` {#kd.matrix.diag_matrix}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Create a diagonal matrix from the last dimension.
+
+Takes the last 1D of the input as a vector and creates a diagonal matrix
+from it. For input shape (..., n), returns shape (..., n, n) where the
+diagonal entries are set and off-diagonal entries are None (sparse).
+
+Preserves sparsity. Works with any schema, including numeric, TEXT, BYTES,
+and entities.
+
+Args:
+  x: A DataSlice with at least 1 dimension.
+
+Returns:
+  A DataSlice with one additional dimension, containing diagonal matrices.</code></pre>
+
+### `kd.matrix.diag_vector(x)` {#kd.matrix.diag_vector}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Extract the diagonal from the last two dimensions.
+
+Takes the last 2D of the input as a matrix and extracts its diagonal.
+For input shape (..., m, n), returns shape (..., min(m,n)).
+
+Preserves sparsity. Works with any schema, including numeric, TEXT, BYTES,
+and entities.
+
+Args:
+  x: A DataSlice with at least 2 dimensions.
+
+Returns:
+  A DataSlice with one fewer dimension, containing diagonal vectors.</code></pre>
+
 ### `kd.matrix.dot(x, y)` {#kd.matrix.dot}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Dot product along the last dimension.

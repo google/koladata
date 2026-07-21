@@ -361,4 +361,143 @@ absl::StatusOr<DataSlice> MatrixOuter(const DataSlice& x, const DataSlice& y) {
       x, y, out_total, std::move(out_shape), do_outer);
 }
 
+// Note: diag_matrix is a purely structural operation (placing values on the
+// diagonal of a new matrix). It uses VisitValues to dispatch once on the
+// runtime element type, then operates on the concrete DenseArray<T>.
+// This gives a single code path for all types with no per-element boxing.
+absl::StatusOr<DataSlice> MatrixDiagMatrix(const DataSlice& x) {
+  const int rank = x.GetShape().rank();
+  if (rank < 1) {
+    return absl::InvalidArgumentError("expected at least 1D DataSlice, got 0D");
+  }
+
+  ASSIGN_OR_RETURN(const auto vec_infos,
+                   matrix_helpers::ExtractVectorInfos(x.GetShape()));
+  const int64_t num_vectors = vec_infos.size();
+
+  int64_t out_total = 0;  // The total number of elements in the flat output.
+  std::vector<int64_t> dim_counts(num_vectors);
+  for (int64_t v = 0; v < num_vectors; ++v) {
+    int64_t m = vec_infos[v].m;
+    out_total += m * m;
+    dim_counts[v] = m;
+  }
+  const int batch_rank = rank - 1;
+  auto batch_shape = x.GetShape().RemoveDims(/*from=*/batch_rank);
+  ASSIGN_OR_RETURN(auto out_shape,
+                   matrix_helpers::BuildBatchedMatrixShape(
+                       std::move(batch_shape), dim_counts, dim_counts));
+
+  const DataSlice flat = x.Flatten();
+  const auto& flat_impl = flat.slice();
+
+  if (flat_impl.is_empty_and_unknown()) {
+    auto empty = internal::DataSliceImpl::CreateEmptyAndUnknownType(out_total);
+    return DataSlice::Create(std::move(empty), std::move(out_shape),
+                             x.GetSchemaImpl(), x.GetBag());
+  }
+
+  // Scatter input elements onto the diagonal positions of the output.
+  // Uses SliceBuilder, which handles any element type via DenseArray<T>.
+  internal::SliceBuilder builder(out_total, flat_impl.allocation_ids());
+  RETURN_IF_ERROR(flat_impl.VisitValues(
+      [&]<class T>(const arolla::DenseArray<T>& array) -> absl::Status {
+        arolla::DenseArrayBuilder<T> arr_builder(out_total);
+        bool any_present = false;
+        int64_t out_off = 0;
+        for (const auto& vec_info : vec_infos) {
+          int64_t m = vec_info.m;
+          int64_t in_off = vec_info.offset;
+          for (int64_t i = 0; i < m; ++i) {
+            if (array.present(in_off + i)) {
+              arr_builder.Set(out_off + i * m + i, array.values[in_off + i]);
+              any_present = true;
+            }
+          }
+          out_off += m * m;
+        }
+        if (any_present) {
+          auto result_array = std::move(arr_builder).Build();
+          builder.InsertIfNotSet<T>(result_array.bitmap, {},
+                                    result_array.values);
+        }
+        return absl::OkStatus();
+      }));
+
+  auto result_impl = std::move(builder).Build();
+  return DataSlice::Create(std::move(result_impl), std::move(out_shape),
+                           x.GetSchemaImpl(), x.GetBag());
+}
+
+// Note: diag_vector is a purely structural operation (extracting diagonal
+// values from a matrix). It uses VisitValues to dispatch once on the runtime
+// element type, then gathers from the concrete DenseArray<T>.
+absl::StatusOr<DataSlice> MatrixDiagVector(const DataSlice& x) {
+  const int rank = x.GetShape().rank();
+  if (rank < 2) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("expected at least 2D DataSlice, got ", rank, "D"));
+  }
+
+  ASSIGN_OR_RETURN(const auto mat_infos,
+                   matrix_helpers::ExtractMatrix2DInfos(x.GetShape()));
+  const int64_t num_matrices = mat_infos.size();
+
+  int64_t out_total = 0;  // The total number of elements in the flat output.
+  // Each matrix has k = min(m, n) diagonal elements, where m = rows, n = cols.
+  std::vector<int64_t> k_vals(num_matrices);
+  for (int64_t p = 0; p < num_matrices; ++p) {
+    const auto& mat_info = mat_infos[p];
+    int64_t k = std::min(mat_info.m, mat_info.n);
+    k_vals[p] = k;
+    out_total += k;
+  }
+
+  const int batch_rank = rank - 2;
+  auto batch_shape = x.GetShape().RemoveDims(/*from=*/batch_rank);
+  ASSIGN_OR_RETURN(auto out_shape, matrix_helpers::BuildBatchedVectorShape(
+                                       std::move(batch_shape), k_vals));
+
+  const DataSlice flat = x.Flatten();
+  const auto& flat_impl = flat.slice();
+
+  if (flat_impl.is_empty_and_unknown()) {
+    auto empty = internal::DataSliceImpl::CreateEmptyAndUnknownType(out_total);
+    return DataSlice::Create(std::move(empty), std::move(out_shape),
+                             x.GetSchemaImpl(), x.GetBag());
+  }
+
+  // Gather diagonal elements from each matrix.
+  // Uses SliceBuilder, which handles any element type via DenseArray<T>.
+  internal::SliceBuilder builder(out_total, flat_impl.allocation_ids());
+  RETURN_IF_ERROR(flat_impl.VisitValues(
+      [&]<class T>(const arolla::DenseArray<T>& array) -> absl::Status {
+        arolla::DenseArrayBuilder<T> arr_builder(out_total);
+        bool any_present = false;
+        int64_t out_off = 0;
+        for (int64_t p = 0; p < num_matrices; ++p) {
+          const int64_t n = mat_infos[p].n;  // Number of columns in this matrix
+          const int64_t in_off = mat_infos[p].offset;
+          for (int64_t i = 0; i < k_vals[p]; ++i) {
+            const int64_t src_idx = in_off + i * n + i;
+            if (array.present(src_idx)) {
+              arr_builder.Set(out_off + i, array.values[src_idx]);
+              any_present = true;
+            }
+          }
+          out_off += k_vals[p];
+        }
+        if (any_present) {
+          auto result_array = std::move(arr_builder).Build();
+          builder.InsertIfNotSet<T>(result_array.bitmap, {},
+                                    result_array.values);
+        }
+        return absl::OkStatus();
+      }));
+
+  auto result_impl = std::move(builder).Build();
+  return DataSlice::Create(std::move(result_impl), std::move(out_shape),
+                           x.GetSchemaImpl(), x.GetBag());
+}
+
 }  // namespace koladata::ops
