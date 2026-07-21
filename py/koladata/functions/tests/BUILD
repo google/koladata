@@ -515,6 +515,17 @@ py_test(
 )
 
 py_test(
+    name = "set_metadata_test",
+    srcs = ["set_metadata_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata/testing",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
     name = "del_attr_test",
     srcs = ["del_attr_test.py"],
     deps = [

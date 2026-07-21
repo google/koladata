@@ -15,7 +15,6 @@
 """Koda functions for modifying Object / Entity attributes."""
 
 from typing import Any
-
 from koladata.types import data_item as _  # pylint: disable=unused-import
 from koladata.types import data_slice
 from koladata.types import schema_constants
@@ -155,3 +154,19 @@ def dir_(
 
 
 dir = dir_  # pylint: disable=redefined-builtin
+
+
+def set_metadata(
+    x: data_slice.DataSlice,
+    **attrs: Any
+):
+  """Mutably sets metadata on DataSlice `x`.
+
+  If `x` has no metadata container, a new one is allocated in `x`'s DataBag.
+  `x` must have a DataBag attached.
+
+  Args:
+    x: DataSlice to set metadata on.
+    **attrs: metadata attributes to set.
+  """
+  x.set_metadata(**attrs)

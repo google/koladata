@@ -951,20 +951,21 @@ absl::StatusOr<DataSlice> CreateNamedSchema(
   return res;
 }
 
-absl::StatusOr<DataSlice> CreateMetadata(
+namespace {
+
+absl::StatusOr<DataSlice> SetMetadataImpl(
     const DataBagPtr& db, const DataSlice& slice,
-    absl::Span<const std::string_view> attr_names,
+    absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> values) {
   if (!slice.GetSchemaImpl().is_schema_schema()) {
     return absl::InvalidArgumentError(
-        absl::StrFormat("failed to create metadata; cannot create for a "
+        absl::StrFormat("failed to set metadata; cannot set for a "
                         "DataSlice with %v schema",
                         SchemaToStr(slice.GetSchema())));
   }
   if (db == nullptr) {
     return absl::InvalidArgumentError(
-        absl::StrFormat("failed to create metadata; the DataSlice "
-                        "is a reference without a bag"));
+        "failed to set metadata; DataBag is null");
   }
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    db->GetMutableImpl());
@@ -981,6 +982,32 @@ absl::StatusOr<DataSlice> CreateMetadata(
       }));
   return ObjectCreator::Like(db, slice, attr_names, values,
                              std::move(metadata));
+}
+
+}  // namespace
+
+absl::StatusOr<DataSlice> CreateMetadata(
+    const DataBagPtr& db, const DataSlice& slice,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values) {
+  return SetMetadataImpl(db, slice, attr_names, values);
+}
+
+absl::Status SetMetadata(
+    const DataSlice& slice,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values) {
+  DataBagPtr db = slice.GetBag();
+  if (db == nullptr) {
+    return absl::InvalidArgumentError(
+        "failed to set metadata; the DataSlice is a reference without a bag");
+  }
+  if (!db->IsMutable()) {
+    return absl::InvalidArgumentError(
+        "failed to set metadata; cannot modify/create item(s) on an immutable "
+        "DataBag");
+  }
+  return SetMetadataImpl(db, slice, attr_names, values).status();
 }
 
 absl::StatusOr<DataSlice> CreateSchema(

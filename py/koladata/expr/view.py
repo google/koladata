@@ -611,6 +611,12 @@ class KodaView(BaseKodaView):
         ' expr/tracing mode; use .with_attrs() instead.'
     )
 
+  def set_metadata(self, *args, **kwargs):  # pylint: disable=unused-argument
+    raise ValueError(
+        'calling .set_metadata() on a DataSlice is not supported in'
+        ' expr/tracing mode; use kd.with_metadata() instead.'
+    )
+
   def set_schema(self, *args, **kwargs):  # pylint: disable=unused-argument
     raise ValueError(
         'calling .set_schema() on a DataSlice is not supported in'

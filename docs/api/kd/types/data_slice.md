@@ -860,6 +860,10 @@ Args:
   **attrs: attribute values that are converted to DataSlices with DataBag
     adoption.</code></pre>
 
+### `DataSlice.set_metadata(**attrs)` {#kd.types.DataSlice.set_metadata}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Mutably sets metadata attributes on the schema DataSlice.</code></pre>
+
 ### `DataSlice.set_schema(schema, /)` {#kd.types.DataSlice.set_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of DataSlice with the provided `schema`.

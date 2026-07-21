@@ -85,13 +85,13 @@ class CoreMetadataTest(absltest.TestCase):
   def test_error(self):
     with self.assertRaisesRegex(
         ValueError,
-        'failed to create metadata; cannot create for a DataSlice with ITEMID '
+        'failed to set metadata; cannot set for a DataSlice with ITEMID '
         'schema',
     ):
       kd.core.metadata(ds([None], schema_constants.ITEMID), text=ds(['foo']))
     with self.assertRaisesRegex(
         ValueError,
-        r'failed to create metadata; cannot create for a DataSlice with'
+        r'failed to set metadata; cannot set for a DataSlice with'
         r' ENTITY\(x=INT32\) schema',
     ):
       db = object_factories.mutable_bag()

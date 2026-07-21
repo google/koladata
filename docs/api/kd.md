@@ -1390,6 +1390,17 @@ Args:
   **attrs: attribute values that are converted to DataSlices with DataBag
     adoption.</code></pre>
 
+### `kd.set_metadata(x: DataSlice, **attrs: Any)` {#kd.set_metadata}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Mutably sets metadata on DataSlice `x`.
+
+If `x` has no metadata container, a new one is allocated in `x`&#39;s DataBag.
+`x` must have a DataBag attached.
+
+Args:
+  x: DataSlice to set metadata on.
+  **attrs: metadata attributes to set.</code></pre>
+
 ### `kd.set_schema(x: DataSlice, schema: DataSlice) -> DataSlice` {#kd.set_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of `x` with the provided `schema`.

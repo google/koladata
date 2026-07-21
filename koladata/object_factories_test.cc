@@ -188,6 +188,123 @@ TEST(CreateMetadataTest, CreateMetadata_WithAttrs) {
   EXPECT_THAT(bar, testing::IsDeepEquivalentTo(ds));
 }
 
+TEST(CreateMetadataTest, CreateMetadata_SliceOfSchemas) {
+  auto db = DataBag::EmptyMutable();
+
+  ASSERT_OK_AND_ASSIGN(
+      auto schema1,
+      CreateEntitySchema(db, {"a"}, {test::Schema(schema::kFloat32)}));
+  ASSERT_OK_AND_ASSIGN(
+      auto schema2,
+      CreateEntitySchema(db, {"b"}, {test::Schema(schema::kInt32)}));
+  ASSERT_OK_AND_ASSIGN(
+      auto schemas,
+      DataSlice::Create(
+          internal::DataSliceImpl::Create({schema1.item(), schema2.item()}),
+          DataSlice::JaggedShape::FlatFromSize(2),
+          internal::DataItem(schema::kSchema), db));
+
+  ASSERT_OK_AND_ASSIGN(
+      auto metadata,
+      CreateMetadata(db, schemas, {"foo"}, {test::DataItem(1)}));
+
+  ASSERT_OK_AND_ASSIGN(auto assigned_value,
+                       schemas.GetAttr(schema::kSchemaMetadataAttr));
+  EXPECT_THAT(assigned_value, IsEquivalentTo(metadata));
+
+  EXPECT_EQ(metadata.GetSchemaImpl(), schema::kObject);
+  ASSERT_OK_AND_ASSIGN(auto metadata_schema,
+                       metadata.GetAttr(schema::kSchemaAttr));
+  EXPECT_EQ(metadata_schema.GetSchemaImpl(), schema::kSchema);
+
+  ASSERT_OK_AND_ASSIGN(auto foo, metadata.GetAttr("foo"));
+  EXPECT_THAT(foo, testing::IsDeepEquivalentTo(
+                       test::DataSlice<int>({1, 1}).WithBag(db)));
+}
+
+TEST(SetMetadataTest, SetMetadata) {
+  auto db = DataBag::EmptyMutable();
+
+  auto attr_db = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::FromAttrs(
+                                    attr_db, {"a", "b"},
+                                    {test::DataItem(1), test::DataItem(2)}));
+  ASSERT_OK_AND_ASSIGN(
+      auto schema,
+      CreateEntitySchema(db, {"a"}, {test::Schema(schema::kFloat32)}));
+  EXPECT_OK(SetMetadata(schema, {"foo", "bar"}, {test::DataItem(1), ds}));
+
+  ASSERT_OK_AND_ASSIGN(auto metadata,
+                       schema.GetAttr(schema::kSchemaMetadataAttr));
+  EXPECT_EQ(metadata.GetSchemaImpl(), schema::kObject);
+  ASSERT_OK_AND_ASSIGN(auto metadata_schema,
+                       metadata.GetAttr(schema::kSchemaAttr));
+  ASSERT_OK(metadata_schema.VerifyIsSchema());
+
+  ASSERT_OK_AND_ASSIGN(auto foo, metadata.GetAttr("foo"));
+  EXPECT_THAT(foo, testing::IsDeepEquivalentTo(test::DataItem(1)));
+  ASSERT_OK_AND_ASSIGN(auto bar, metadata.GetAttr("bar"));
+  EXPECT_THAT(bar, testing::IsDeepEquivalentTo(ds));
+}
+
+TEST(SetMetadataTest, SetMetadata_SliceOfSchemas) {
+  auto db = DataBag::EmptyMutable();
+
+  ASSERT_OK_AND_ASSIGN(
+      auto schema1,
+      CreateEntitySchema(db, {"a"}, {test::Schema(schema::kFloat32)}));
+  ASSERT_OK_AND_ASSIGN(
+      auto schema2,
+      CreateEntitySchema(db, {"b"}, {test::Schema(schema::kInt32)}));
+  ASSERT_OK_AND_ASSIGN(
+      auto schemas,
+      DataSlice::Create(
+          internal::DataSliceImpl::Create({schema1.item(), schema2.item()}),
+          DataSlice::JaggedShape::FlatFromSize(2),
+          internal::DataItem(schema::kSchema), db));
+
+  EXPECT_OK(SetMetadata(schemas, {"foo"}, {test::DataItem(1)}));
+
+  ASSERT_OK_AND_ASSIGN(auto metadata,
+                       schemas.GetAttr(schema::kSchemaMetadataAttr));
+  EXPECT_EQ(metadata.GetSchemaImpl(), schema::kObject);
+  ASSERT_OK_AND_ASSIGN(auto metadata_schema,
+                       metadata.GetAttr(schema::kSchemaAttr));
+  EXPECT_EQ(metadata_schema.GetSchemaImpl(), schema::kSchema);
+
+  ASSERT_OK_AND_ASSIGN(auto foo, metadata.GetAttr("foo"));
+
+  EXPECT_THAT(foo, testing::IsDeepEquivalentTo(
+                       test::DataSlice<int>({1, 1}).WithBag(db)));
+}
+
+
+TEST(SetMetadataTest, Error_NoBag) {
+  auto db = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(
+      auto schema,
+      CreateEntitySchema(db, {"a"}, {test::Schema(schema::kFloat32)}));
+  auto schema_no_bag = schema.WithBag(nullptr);
+  EXPECT_THAT(SetMetadata(schema_no_bag, {}, {}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "failed to set metadata; the DataSlice is a reference "
+                       "without a bag"));
+}
+
+TEST(SetMetadataTest, Error_ImmutableBag) {
+  auto db = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(
+      auto schema,
+      CreateEntitySchema(db, {"a"}, {test::Schema(schema::kFloat32)}));
+  auto immutable_db = db->Freeze();
+  auto schema_immutable_bag = schema.WithBag(immutable_db);
+  EXPECT_THAT(SetMetadata(schema_immutable_bag, {}, {}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "failed to set metadata; cannot modify/create item(s) "
+                       "on an immutable DataBag"));
+}
+
+
 TEST(CreateSchemaWithOrderedAttrsTest, CreateSchemaWithOrderedAttrs) {
   auto db = DataBag::EmptyMutable();
 

@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "absl/base/nullability.h"
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
@@ -291,6 +292,12 @@ absl::StatusOr<DataSlice> CreateNamedSchema(
 // Returns a metadata with its ItemId derived from given slice.
 absl::StatusOr<DataSlice> CreateMetadata(
     const DataBagPtr& db, const DataSlice& slice,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values);
+
+// Sets metadata item and metadata attributes on the given slice of schemas.
+absl::Status SetMetadata(
+    const DataSlice& slice,
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> values);
 

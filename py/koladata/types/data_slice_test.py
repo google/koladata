@@ -2046,6 +2046,49 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
         obj.maybe(ds(['a', 'a', 'c'])), ds([1, None, None]).with_bag(db)
     )
 
+  def test_set_metadata(self):
+    x = bag().new(a=1, b='a')
+    y = bag().new(foo='bar')
+    x.get_schema().set_metadata(a=2, b=y)
+    x = x.freeze_bag()
+    meta_a = kde.get_metadata(x.get_schema()).a.eval()
+    meta_b_foo = kde.get_metadata(x.get_schema()).b.foo.eval()
+    testing.assert_equal(meta_a, ds(2).with_bag(x.get_bag()))
+    testing.assert_equal(meta_b_foo, ds('bar').with_bag(x.get_bag()))
+
+  def test_set_metadata_multielement_slice(self):
+    db = bag()
+    schema1 = db.new_schema(a=schema_constants.INT32)
+    schema2 = db.new_schema(b=schema_constants.FLOAT32)
+    schemas = ds([schema1, schema2])
+    schemas.set_metadata(abc='bar')
+    meta_abc = user_facing_kd.get_metadata(schemas).abc
+    testing.assert_equal(meta_abc, ds(['bar', 'bar']).with_bag(db))
+
+  def test_set_metadata_no_bag_error(self):
+    db = bag()
+    schema = db.new_schema(a=schema_constants.INT32).no_bag()
+    with self.assertRaisesRegex(
+        ValueError, 'is a reference without a bag'
+    ):
+      schema.set_metadata(foo='bar')
+
+  def test_set_metadata_immutable_bag_error(self):
+    db = bag()
+    schema = db.new_schema(a=schema_constants.INT32).with_bag(db.freeze())
+    with self.assertRaisesRegex(
+        ValueError, 'cannot modify/create item'
+    ):
+      schema.set_metadata(foo='bar')
+
+  def test_set_metadata_non_schema_error(self):
+    db = bag()
+    x = db.new(a=1)
+    with self.assertRaisesRegex(
+        ValueError, 'cannot set for a DataSlice with'
+    ):
+      x.set_metadata(foo='bar')
+
   def test_internal_as_arolla_value(self):
     x = ds([1, 2, 3], schema_constants.FLOAT32)
     arolla.testing.assert_qvalue_allclose(

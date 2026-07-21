@@ -57,6 +57,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/object_factories.h"
 #include "koladata/operators/core.h"
 #include "koladata/operators/masking.h"
 #include "koladata/operators/schema.h"
@@ -526,6 +527,44 @@ PyObject* absl_nullable PyDataSlice_set_attrs(PyObject* self,
                 std::move(status), self_ds.GetBag(), values, self_ds));
       });
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_ds.GetBag()))
+      .With(arolla::python::SetPyErrFromStatus);
+  Py_RETURN_NONE;
+}
+
+PyObject* absl_nullable PyDataSlice_set_metadata(PyObject* self,
+                                                 PyObject* const* py_args,
+                                                 Py_ssize_t nargs,
+                                                 PyObject* py_kwnames) {
+  arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
+  static const absl::NoDestructor parser(
+      FastcallArgParser(/*pos_only_n=*/0, /*parse_kwargs=*/true,
+                        /*kw_only_arg_names=*/{}));
+
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
+    return nullptr;
+  }
+  const DataSlice& self_ds = UnsafeDataSliceRef(self);
+  const DataBagPtr& self_db = self_ds.GetBag();
+  if (self_db == nullptr) {
+    return arolla::python::SetPyErrFromStatus(absl::InvalidArgumentError(
+        "failed to set metadata; the DataSlice is a reference without a bag"));
+  }
+  AdoptionQueue adoption_queue;
+  ASSIGN_OR_RETURN(
+      std::vector<DataSlice> values,
+      ConvertArgsToDataSlices(self_db, args.kw_values, adoption_queue),
+      arolla::python::SetPyErrFromStatus(_));
+
+  RETURN_IF_ERROR(koladata::SetMetadata(self_ds, args.kw_names, values))
+      .With([&](absl::Status status) {
+        return arolla::python::SetPyErrFromStatus(
+            KodaErrorCausedByIncompatibleSchemaError(
+                std::move(status), self_db, values, self_ds));
+      });
+
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
       .With(arolla::python::SetPyErrFromStatus);
   Py_RETURN_NONE;
 }
@@ -1242,6 +1281,11 @@ Args:
   **attrs: attribute values that are converted to DataSlices with DataBag
     adoption.
 )"""},
+    {"set_metadata", (PyCFunction)PyDataSlice_set_metadata,
+     METH_FASTCALL | METH_KEYWORDS,
+     "set_metadata(**attrs)\n"
+     "--\n\n"
+     "Mutably sets metadata attributes on the schema DataSlice."},
     {"append", (PyCFunction)PyDataSlice_append, METH_FASTCALL,
      "append(value, /)\n"
      "--\n\n"

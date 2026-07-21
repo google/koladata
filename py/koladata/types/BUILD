@@ -81,6 +81,7 @@ cc_library(
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
+        "//koladata:object_factories",
         "//koladata:uuid_utils",
         "//koladata/expr:expr_operators",
         "//koladata/internal:data_item",
