@@ -103,7 +103,7 @@ class DataBagManager:
   _persistence_dir: str
   _fs: kd.file_io.FileSystemInterface
   _metadata: metadata_pb2.DataBagManagerMetadata
-  bag_cache: global_cache_lib.CacheType
+  bag_cache: global_cache_lib.CacheType | None
 
   @classmethod
   def create_new(
@@ -523,6 +523,8 @@ class DataBagManager:
       )
       raise
 
+    if self.bag_cache is None:
+      return
     # Populate the cache with the newly added bags.
     # If the cache is partially updated, e.g. when a KeyboardInterrupt happens
     # during the loop below, then the state of the current manager remains
@@ -654,14 +656,17 @@ class DataBagManager:
       A dictionary mapping the requested bag names to the corresponding
       DataBags.
     """
-    result = {
-        bn: self.bag_cache.get(
-            _get_bag_cache_key(
-                bag_name=bn, bag_filepath=self._get_bag_filepath(bn)
-            )
-        )
-        for bn in bags_to_load
-    }
+    if self.bag_cache is None:
+      result = {}
+    else:
+      result = {
+          bn: self.bag_cache.get(
+              _get_bag_cache_key(
+                  bag_name=bn, bag_filepath=self._get_bag_filepath(bn)
+              )
+          )
+          for bn in bags_to_load
+      }
     result: dict[str, kd.types.DataBag] = {
         k: v
         for k, v in result.items()
@@ -679,6 +684,9 @@ class DataBagManager:
       ]
     for bag_name, future in zip(needed_bags, futures):
       bag = future.result()
+      if self.bag_cache is None:
+        result[bag_name] = bag
+        continue
       cache_key = _get_bag_cache_key(
           bag_name=bag_name,
           bag_filepath=self._get_bag_filepath(bag_name),

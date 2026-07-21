@@ -1239,6 +1239,32 @@ class DataBagManagerTest(parameterized.TestCase):
       manager.get_minimal_bag({'bag1'})
       mock_executor.assert_called_once_with(max_workers=dbm._PARALLELISM)
 
+  def test_disable_bag_cache(self):
+    # Clear the global cache to start with a clean slate.
+    global_cache = global_cache_lib.get_global_cache()
+    global_cache.clear()
+
+    # Create a DataBagManager instance with bag_cache set to None.
+    persistence_dir = self.create_tempdir().full_path
+    manager = DataBagManager.create_new(persistence_dir)
+    manager.bag_cache = None  # Disable caching.
+
+    # Add a bag to the manager.
+    bag1 = kd.attrs(kd.new(), a=1, b='hello world!')  # pyrefly: ignore[missing-attribute]
+    manager.add_bags([
+        dbm.BagToAdd(bag_name='bag1', bag=bag1, dependencies=()),
+    ])
+
+    # Verify that the bag is not stored in the global cache.
+    self.assertEqual(global_cache.get_total_bytes_of_entries_in_cache(), 0)
+
+    # Load the bag from the persistence dir.
+    loaded_bag1 = manager.get_minimal_bag({'bag1'})
+    kd.testing.assert_equivalent(loaded_bag1.merge_fallbacks(), bag1)
+
+    # Verify that the global cache is still empty.
+    self.assertEqual(global_cache.get_total_bytes_of_entries_in_cache(), 0)
+
 
 if __name__ == '__main__':
   absltest.main()
