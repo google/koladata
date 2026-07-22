@@ -139,20 +139,14 @@ bool ParseIntArg(const FastcallArgParser::Args& args,
   PyObject* arg_py = arg_it->second;
   if (!PyLong_Check(arg_py)) {
     PyErr_Format(PyExc_TypeError, "expected integer for %s, got %s",
-                 std::string(arg_name).c_str(),
-                 Py_TYPE(arg_py)->tp_name);
+                 std::string(arg_name).c_str(), Py_TYPE(arg_py)->tp_name);
     return false;
   }
-  static_assert(sizeof(decltype(PyLong_AsLongLong(nullptr))) <= sizeof(int64_t),
+  static_assert(sizeof(PyLong_AsLongLong(arg_py)) <= sizeof(arg),
                 "PyLong_AsLongLong return type must fit in int64_t");
   arg = PyLong_AsLongLong(arg_py);
-  if (arg == -1 && PyErr_Occurred()) {
-    return false;
-  }
-  return true;
+  return arg != -1 || !PyErr_Occurred();
 }
-
-
 
 namespace {
 
