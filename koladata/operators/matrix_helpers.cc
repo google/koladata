@@ -28,6 +28,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
+#include "koladata/casting.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
@@ -254,6 +255,26 @@ absl::StatusOr<JaggedShape> BuildBatchedVectorShape(
   auto da = arolla::CreateFullDenseArray<int64_t>(std::move(splits));
   auto edge = Edge::UnsafeFromSplitPoints(std::move(da));
   return batch_shape.AddDims({std::move(edge)});
+}
+
+absl::StatusOr<std::vector<int64_t>> ParseAndBroadcastK(
+    const DataSlice& k_ds, const JaggedShape& batch_shape) {
+  // Validate that k is implicitly castable to INT64.
+  if (!schema::IsImplicitlyCastableTo(GetNarrowedSchema(k_ds),
+                                      internal::DataItem(schema::kInt64))) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("argument `k` must be castable to INT64, got ",
+                     DescribeSliceSchema(k_ds)));
+  }
+  ASSIGN_OR_RETURN(auto k_int64,
+                   CastToExplicit(k_ds, internal::DataItem(schema::kInt64)));
+
+  // Broadcast k to the batch shape.
+  ASSIGN_OR_RETURN(auto k_broadcast,
+                   BroadcastToShape(std::move(k_int64), batch_shape));
+
+  // Flatten and extract per-element int64 values.
+  return ExtractFlat<int64_t>(k_broadcast);
 }
 
 }  // namespace koladata::ops::matrix_helpers

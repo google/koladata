@@ -14,38 +14,57 @@ subject to standard Koda broadcasting rules.
 
 
 
-### `kd.matrix.diag_matrix(x)` {#kd.matrix.diag_matrix}
+### `kd.matrix.diag_matrix(x, *, k=0)` {#kd.matrix.diag_matrix}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Create a diagonal matrix from the last dimension.
 
-Takes the last 1D of the input as a vector and creates a diagonal matrix
-from it. For input shape (..., n), returns shape (..., n, n) where the
-diagonal entries are set and off-diagonal entries are None (sparse).
+Takes the last 1D of the input as a vector and places its elements on the
+k-th diagonal of a matrix. For input shape (..., n), returns shape
+(..., n+|k|, n+|k|) where the specified diagonal entries are set and all
+other entries are None (sparse).
+
+The `k` parameter controls which diagonal to fill:
+  k = 0  (default): main diagonal.
+  k &gt; 0: k-th super-diagonal (above the main diagonal).
+  k &lt; 0: |k|-th sub-diagonal (below the main diagonal).
 
 Preserves sparsity. Works with any schema, including numeric, TEXT, BYTES,
 and entities.
 
 Args:
   x: A DataSlice with at least 1 dimension.
+  k: Integer DataSlice. Diagonal offset. Must be broadcastable to the batch
+    dimensions of `x`. 0 (default) is the main diagonal, positive values
+    refer to super-diagonals, negative values refer to sub-diagonals.
 
 Returns:
   A DataSlice with one additional dimension, containing diagonal matrices.</code></pre>
 
-### `kd.matrix.diag_vector(x)` {#kd.matrix.diag_vector}
+### `kd.matrix.diag_vector(x, *, k=0)` {#kd.matrix.diag_vector}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Extract the diagonal from the last two dimensions.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Extract a diagonal from the last two dimensions.
 
-Takes the last 2D of the input as a matrix and extracts its diagonal.
-For input shape (..., m, n), returns shape (..., min(m,n)).
+Takes the last 2D of the input as a matrix and extracts its k-th diagonal.
+For input shape (..., m, n), returns shape (..., max(0, min(m, n-k))) when
+k &gt;= 0, or (..., max(0, min(m+k, n))) when k &lt; 0.
+
+The `k` parameter controls which diagonal to extract:
+  k = 0  (default): main diagonal.
+  k &gt; 0: k-th super-diagonal (above the main diagonal).
+  k &lt; 0: |k|-th sub-diagonal (below the main diagonal).
 
 Preserves sparsity. Works with any schema, including numeric, TEXT, BYTES,
 and entities.
 
 Args:
   x: A DataSlice with at least 2 dimensions.
+  k: Integer DataSlice. Diagonal offset. Must be broadcastable to the batch
+    dimensions of `x`. 0 (default) is the main diagonal, positive values
+    refer to super-diagonals, negative values refer to sub-diagonals.
 
 Returns:
-  A DataSlice with one fewer dimension, containing diagonal vectors.</code></pre>
+  A DataSlice with one fewer dimension, containing the requested diagonal
+  vectors.</code></pre>
 
 ### `kd.matrix.dot(x, y)` {#kd.matrix.dot}
 

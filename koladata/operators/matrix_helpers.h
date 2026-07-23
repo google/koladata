@@ -148,6 +148,12 @@ absl::StatusOr<std::vector<MatrixInfo>> ExtractVectorInfos(
 absl::StatusOr<std::vector<MatrixInfo>> ExtractMatrix2DInfos(
     const JaggedShape& shape);
 
+// Parses k_ds as integer(s), casts to INT64, broadcasts to batch_shape, and
+// returns a flat vector of per-batch-element k values. Missing values in k are
+// treated as 0.
+absl::StatusOr<std::vector<int64_t>> ParseAndBroadcastK(
+    const DataSlice& k_ds, const JaggedShape& batch_shape);
+
 // =========================================================================
 // Framework helpers for the "Batch + Core Op" pattern
 // =========================================================================

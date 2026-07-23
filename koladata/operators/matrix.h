@@ -36,12 +36,19 @@ absl::StatusOr<DataSlice> MatrixMatmul(const DataSlice& a, const DataSlice& b,
 absl::StatusOr<DataSlice> MatrixOuter(const DataSlice& x, const DataSlice& y);
 
 // kd.matrix.diag_matrix: Creates a diagonal matrix from a vector.
-// (..., n) -> (..., n, n). Off-diagonal elements are None.
-absl::StatusOr<DataSlice> MatrixDiagMatrix(const DataSlice& x);
+// (..., n) -> (..., n+|k|, n+|k|). Off-diagonal elements are None.
+// k selects which diagonal: 0=main, positive=above, negative=below.
+// k will be broadcasted to the batch dimensions of x.
+absl::StatusOr<DataSlice> MatrixDiagMatrix(const DataSlice& x,
+                                           const DataSlice& k);
 
-// kd.matrix.diag_vector: Extracts the diagonal vector from a matrix.
-// (..., m, n) -> (..., min(m,n)).
-absl::StatusOr<DataSlice> MatrixDiagVector(const DataSlice& x);
+// kd.matrix.diag_vector: Extracts the k-th diagonal vector from a matrix.
+// (..., m, n) -> (..., max(0,min(m,n-k))) for k>=0, (..., max(0,min(m+k,n)))
+// for k<0.
+// k selects which diagonal: 0=main, positive=above, negative=below.
+// k will be broadcasted to the batch dimensions of x.
+absl::StatusOr<DataSlice> MatrixDiagVector(const DataSlice& x,
+                                           const DataSlice& k);
 
 }  // namespace koladata::ops
 

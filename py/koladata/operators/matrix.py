@@ -223,20 +223,32 @@ def outer(x, y):  # pylint: disable=unused-argument
     'kd.matrix.diag_matrix',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.k),
     ],
 )
-def diag_matrix(x):  # pylint: disable=unused-argument
+# pylint: disable=unused-argument
+def diag_matrix(x, *, k=data_slice.DataSlice.from_vals(0)):
+  # pylint: enable=unused-argument
   """Create a diagonal matrix from the last dimension.
 
-  Takes the last 1D of the input as a vector and creates a diagonal matrix
-  from it. For input shape (..., n), returns shape (..., n, n) where the
-  diagonal entries are set and off-diagonal entries are None (sparse).
+  Takes the last 1D of the input as a vector and places its elements on the
+  k-th diagonal of a matrix. For input shape (..., n), returns shape
+  (..., n+|k|, n+|k|) where the specified diagonal entries are set and all
+  other entries are None (sparse).
+
+  The `k` parameter controls which diagonal to fill:
+    k = 0  (default): main diagonal.
+    k > 0: k-th super-diagonal (above the main diagonal).
+    k < 0: |k|-th sub-diagonal (below the main diagonal).
 
   Preserves sparsity. Works with any schema, including numeric, TEXT, BYTES,
   and entities.
 
   Args:
     x: A DataSlice with at least 1 dimension.
+    k: Integer DataSlice. Diagonal offset. Must be broadcastable to the batch
+      dimensions of `x`. 0 (default) is the main diagonal, positive values
+      refer to super-diagonals, negative values refer to sub-diagonals.
 
   Returns:
     A DataSlice with one additional dimension, containing diagonal matrices.
@@ -249,21 +261,34 @@ def diag_matrix(x):  # pylint: disable=unused-argument
     'kd.matrix.diag_vector',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.k),
     ],
 )
-def diag_vector(x):  # pylint: disable=unused-argument
-  """Extract the diagonal from the last two dimensions.
+# pylint: disable=unused-argument
+def diag_vector(x, *, k=data_slice.DataSlice.from_vals(0)):
+  # pylint: enable=unused-argument
+  """Extract a diagonal from the last two dimensions.
 
-  Takes the last 2D of the input as a matrix and extracts its diagonal.
-  For input shape (..., m, n), returns shape (..., min(m,n)).
+  Takes the last 2D of the input as a matrix and extracts its k-th diagonal.
+  For input shape (..., m, n), returns shape (..., max(0, min(m, n-k))) when
+  k >= 0, or (..., max(0, min(m+k, n))) when k < 0.
+
+  The `k` parameter controls which diagonal to extract:
+    k = 0  (default): main diagonal.
+    k > 0: k-th super-diagonal (above the main diagonal).
+    k < 0: |k|-th sub-diagonal (below the main diagonal).
 
   Preserves sparsity. Works with any schema, including numeric, TEXT, BYTES,
   and entities.
 
   Args:
     x: A DataSlice with at least 2 dimensions.
+    k: Integer DataSlice. Diagonal offset. Must be broadcastable to the batch
+      dimensions of `x`. 0 (default) is the main diagonal, positive values
+      refer to super-diagonals, negative values refer to sub-diagonals.
 
   Returns:
-    A DataSlice with one fewer dimension, containing diagonal vectors.
+    A DataSlice with one fewer dimension, containing the requested diagonal
+    vectors.
   """
   raise NotImplementedError('implemented in the backend')

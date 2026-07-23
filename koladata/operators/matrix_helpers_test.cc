@@ -850,5 +850,86 @@ TEST(IntegrationTest, ExtractAndBuildRoundTrip) {
   EXPECT_THAT(extracted, ElementsAre(10, 20, 30, 40));
 }
 
+// =========================================================================
+// ParseAndBroadcastK tests
+// =========================================================================
+
+TEST(ParseAndBroadcastKTest, ScalarBroadcastToFlat) {
+  // Scalar k=2 broadcast to batch shape [3] -> {2, 2, 2}.
+  ASSERT_OK_AND_ASSIGN(auto k_ds,
+                       DataSlice::Create(internal::DataItem(int64_t{2}),
+                                         internal::DataItem(schema::kInt64)));
+  ASSERT_OK_AND_ASSIGN(
+      auto batch_shape,
+      JaggedShape::FromEdges({test::EdgeFromSplitPoints({0, 3})}));
+  ASSERT_OK_AND_ASSIGN(auto result, ParseAndBroadcastK(k_ds, batch_shape));
+  EXPECT_THAT(result, ElementsAre(2, 2, 2));
+}
+
+TEST(ParseAndBroadcastKTest, OneDimensionalK) {
+  // k=[1, -1, 0] with batch shape [3] -> {1, -1, 0}.
+  ASSERT_OK_AND_ASSIGN(
+      auto batch_shape,
+      JaggedShape::FromEdges({test::EdgeFromSplitPoints({0, 3})}));
+  ASSERT_OK_AND_ASSIGN(auto k_ds,
+                       BuildFromFlat<int64_t>({1, -1, 0}, batch_shape));
+  ASSERT_OK_AND_ASSIGN(auto result, ParseAndBroadcastK(k_ds, batch_shape));
+  EXPECT_THAT(result, ElementsAre(1, -1, 0));
+}
+
+TEST(ParseAndBroadcastKTest, Int32CastedToInt64) {
+  // INT32 scalar is implicitly castable to INT64.
+  ASSERT_OK_AND_ASSIGN(auto k_ds,
+                       DataSlice::Create(internal::DataItem(int32_t{5}),
+                                         internal::DataItem(schema::kInt32)));
+  auto batch_shape = JaggedShape::FlatFromSize(1);
+  ASSERT_OK_AND_ASSIGN(auto result, ParseAndBroadcastK(k_ds, batch_shape));
+  EXPECT_THAT(result, ElementsAre(5));
+}
+
+TEST(ParseAndBroadcastKTest, FloatRejected) {
+  ASSERT_OK_AND_ASSIGN(auto k_ds,
+                       DataSlice::Create(internal::DataItem(1.5f),
+                                         internal::DataItem(schema::kFloat32)));
+  auto batch_shape = JaggedShape::FlatFromSize(1);
+  EXPECT_THAT(ParseAndBroadcastK(k_ds, batch_shape),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       ::testing::HasSubstr("must be castable to INT64")));
+}
+
+TEST(ParseAndBroadcastKTest, TextRejected) {
+  ASSERT_OK_AND_ASSIGN(
+      auto k_ds, DataSlice::Create(internal::DataItem(arolla::Text("hello")),
+                                   internal::DataItem(schema::kString)));
+  auto batch_shape = JaggedShape::FlatFromSize(1);
+  EXPECT_THAT(ParseAndBroadcastK(k_ds, batch_shape),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       ::testing::HasSubstr("must be castable to INT64")));
+}
+
+TEST(ParseAndBroadcastKTest, BroadcastFailure) {
+  // k has 2 elements, batch shape has 3 -> broadcast fails.
+  ASSERT_OK_AND_ASSIGN(
+      auto shape, JaggedShape::FromEdges({test::EdgeFromSplitPoints({0, 2})}));
+  ASSERT_OK_AND_ASSIGN(auto k_ds,
+                       BuildFromFlat<int64_t>({1, 2}, std::move(shape)));
+  ASSERT_OK_AND_ASSIGN(
+      auto batch_shape,
+      JaggedShape::FromEdges({test::EdgeFromSplitPoints({0, 3})}));
+  EXPECT_THAT(ParseAndBroadcastK(k_ds, batch_shape),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       ::testing::HasSubstr("cannot be expanded")));
+}
+
+TEST(ParseAndBroadcastKTest, MissingValuesInK) {
+  // k=[1, std::nullopt, 0] with batch shape [3] -> {1, 0, 0}.
+  ASSERT_OK_AND_ASSIGN(
+      auto batch_shape,
+      JaggedShape::FromEdges({test::EdgeFromSplitPoints({0, 3})}));
+  auto k_ds = test::DataSlice<int64_t>({1, std::nullopt, 0}, batch_shape);
+  ASSERT_OK_AND_ASSIGN(auto result, ParseAndBroadcastK(k_ds, batch_shape));
+  EXPECT_THAT(result, ElementsAre(1, 0, 0));
+}
+
 }  // namespace
 }  // namespace koladata::ops::matrix_helpers

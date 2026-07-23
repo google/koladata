@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstdlib>
 #include <utility>
 #include <vector>
 
@@ -365,11 +366,18 @@ absl::StatusOr<DataSlice> MatrixOuter(const DataSlice& x, const DataSlice& y) {
 // diagonal of a new matrix). It uses VisitValues to dispatch once on the
 // runtime element type, then operates on the concrete DenseArray<T>.
 // This gives a single code path for all types with no per-element boxing.
-absl::StatusOr<DataSlice> MatrixDiagMatrix(const DataSlice& x) {
+absl::StatusOr<DataSlice> MatrixDiagMatrix(const DataSlice& x,
+                                           const DataSlice& k_ds) {
   const int rank = x.GetShape().rank();
   if (rank < 1) {
     return absl::InvalidArgumentError("expected at least 1D DataSlice, got 0D");
   }
+
+  // Parse k: cast to INT64, broadcast to batch dims, extract per-vector values.
+  const int batch_rank = rank - 1;
+  auto batch_shape = x.GetShape().RemoveDims(/*from=*/batch_rank);
+  ASSIGN_OR_RETURN(const auto k_vals,
+                   matrix_helpers::ParseAndBroadcastK(k_ds, batch_shape));
 
   ASSIGN_OR_RETURN(const auto vec_infos,
                    matrix_helpers::ExtractVectorInfos(x.GetShape()));
@@ -378,12 +386,12 @@ absl::StatusOr<DataSlice> MatrixDiagMatrix(const DataSlice& x) {
   int64_t out_total = 0;  // The total number of elements in the flat output.
   std::vector<int64_t> dim_counts(num_vectors);
   for (int64_t v = 0; v < num_vectors; ++v) {
-    int64_t m = vec_infos[v].m;
-    out_total += m * m;
-    dim_counts[v] = m;
+    int64_t n = vec_infos[v].m;  // input vector length
+    int64_t abs_k = std::abs(k_vals[v]);
+    int64_t d = n + abs_k;  // output matrix is d x d
+    out_total += d * d;
+    dim_counts[v] = d;
   }
-  const int batch_rank = rank - 1;
-  auto batch_shape = x.GetShape().RemoveDims(/*from=*/batch_rank);
   ASSIGN_OR_RETURN(auto out_shape,
                    matrix_helpers::BuildBatchedMatrixShape(
                        std::move(batch_shape), dim_counts, dim_counts));
@@ -397,7 +405,9 @@ absl::StatusOr<DataSlice> MatrixDiagMatrix(const DataSlice& x) {
                              x.GetSchemaImpl(), x.GetBag());
   }
 
-  // Scatter input elements onto the diagonal positions of the output.
+  // Scatter input elements onto the k-th diagonal positions of the output.
+  // For k>=0: element i goes to (i, i+k). For k<0: element i goes to
+  // (i+|k|, i).
   // Uses SliceBuilder, which handles any element type via DenseArray<T>.
   internal::SliceBuilder builder(out_total, flat_impl.allocation_ids());
   RETURN_IF_ERROR(flat_impl.VisitValues(
@@ -405,16 +415,22 @@ absl::StatusOr<DataSlice> MatrixDiagMatrix(const DataSlice& x) {
         arolla::DenseArrayBuilder<T> arr_builder(out_total);
         bool any_present = false;
         int64_t out_off = 0;
-        for (const auto& vec_info : vec_infos) {
-          int64_t m = vec_info.m;
-          int64_t in_off = vec_info.offset;
-          for (int64_t i = 0; i < m; ++i) {
+        for (int64_t v = 0; v < num_vectors; ++v) {
+          const int64_t n = vec_infos[v].m;  // input vector length
+          const int64_t k = k_vals[v];
+          const int64_t abs_k = std::abs(k);
+          const int64_t d = n + abs_k;  // output matrix dimension
+          const int64_t in_off = vec_infos[v].offset;
+          const int64_t row_base = k >= 0 ? 0 : abs_k;
+          const int64_t col_base = k >= 0 ? k : 0;
+          for (int64_t i = 0; i < n; ++i) {
             if (array.present(in_off + i)) {
-              arr_builder.Set(out_off + i * m + i, array.values[in_off + i]);
+              arr_builder.Set(out_off + (row_base + i) * d + (col_base + i),
+                              array.values[in_off + i]);
               any_present = true;
             }
           }
-          out_off += m * m;
+          out_off += d * d;
         }
         if (any_present) {
           auto result_array = std::move(arr_builder).Build();
@@ -432,31 +448,43 @@ absl::StatusOr<DataSlice> MatrixDiagMatrix(const DataSlice& x) {
 // Note: diag_vector is a purely structural operation (extracting diagonal
 // values from a matrix). It uses VisitValues to dispatch once on the runtime
 // element type, then gathers from the concrete DenseArray<T>.
-absl::StatusOr<DataSlice> MatrixDiagVector(const DataSlice& x) {
+absl::StatusOr<DataSlice> MatrixDiagVector(const DataSlice& x,
+                                           const DataSlice& k_ds) {
   const int rank = x.GetShape().rank();
   if (rank < 2) {
     return absl::InvalidArgumentError(
         absl::StrCat("expected at least 2D DataSlice, got ", rank, "D"));
   }
 
+  // Parse k: cast to INT64, broadcast to batch dims, extract per-matrix values.
+  const int batch_rank = rank - 2;
+  auto batch_shape = x.GetShape().RemoveDims(/*from=*/batch_rank);
+  ASSIGN_OR_RETURN(const auto k_vals,
+                   matrix_helpers::ParseAndBroadcastK(k_ds, batch_shape));
+
   ASSIGN_OR_RETURN(const auto mat_infos,
                    matrix_helpers::ExtractMatrix2DInfos(x.GetShape()));
   const int64_t num_matrices = mat_infos.size();
 
   int64_t out_total = 0;  // The total number of elements in the flat output.
-  // Each matrix has k = min(m, n) diagonal elements, where m = rows, n = cols.
-  std::vector<int64_t> k_vals(num_matrices);
+  // The diagonal length of each matrix:
+  // k>=0: max(0, min(m, n-k)); k<0: max(0, min(m+k, n)).
+  std::vector<int64_t> diag_length(num_matrices);
   for (int64_t p = 0; p < num_matrices; ++p) {
     const auto& mat_info = mat_infos[p];
-    int64_t k = std::min(mat_info.m, mat_info.n);
-    k_vals[p] = k;
-    out_total += k;
+    const int64_t k = k_vals[p];
+    int64_t diag_len;
+    if (k >= 0) {
+      diag_len = std::max<int64_t>(0, std::min(mat_info.m, mat_info.n - k));
+    } else {
+      diag_len = std::max<int64_t>(0, std::min(mat_info.m + k, mat_info.n));
+    }
+    diag_length[p] = diag_len;
+    out_total += diag_len;
   }
 
-  const int batch_rank = rank - 2;
-  auto batch_shape = x.GetShape().RemoveDims(/*from=*/batch_rank);
   ASSIGN_OR_RETURN(auto out_shape, matrix_helpers::BuildBatchedVectorShape(
-                                       std::move(batch_shape), k_vals));
+                                       std::move(batch_shape), diag_length));
 
   const DataSlice flat = x.Flatten();
   const auto& flat_impl = flat.slice();
@@ -467,7 +495,8 @@ absl::StatusOr<DataSlice> MatrixDiagVector(const DataSlice& x) {
                              x.GetSchemaImpl(), x.GetBag());
   }
 
-  // Gather diagonal elements from each matrix.
+  // Gather k-th diagonal elements from each matrix.
+  // For k>=0: element i from (i, i+k). For k<0: element i from (i-k, i).
   // Uses SliceBuilder, which handles any element type via DenseArray<T>.
   internal::SliceBuilder builder(out_total, flat_impl.allocation_ids());
   RETURN_IF_ERROR(flat_impl.VisitValues(
@@ -476,16 +505,20 @@ absl::StatusOr<DataSlice> MatrixDiagVector(const DataSlice& x) {
         bool any_present = false;
         int64_t out_off = 0;
         for (int64_t p = 0; p < num_matrices; ++p) {
-          const int64_t n = mat_infos[p].n;  // Number of columns in this matrix
+          const int64_t n = mat_infos[p].n;
           const int64_t in_off = mat_infos[p].offset;
-          for (int64_t i = 0; i < k_vals[p]; ++i) {
-            const int64_t src_idx = in_off + i * n + i;
+          const int64_t k = k_vals[p];
+          const int64_t row_base = k >= 0 ? 0 : -k;
+          const int64_t col_base = k >= 0 ? k : 0;
+          for (int64_t i = 0; i < diag_length[p]; ++i) {
+            const int64_t src_idx =
+                in_off + (row_base + i) * n + (col_base + i);
             if (array.present(src_idx)) {
               arr_builder.Set(out_off + i, array.values[src_idx]);
               any_present = true;
             }
           }
-          out_off += k_vals[p];
+          out_off += diag_length[p];
         }
         if (any_present) {
           auto result_array = std::move(arr_builder).Build();

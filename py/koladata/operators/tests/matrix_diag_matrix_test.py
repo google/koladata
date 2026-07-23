@@ -37,6 +37,8 @@ DATA_SLICE = qtypes.DATA_SLICE
 QTYPES = frozenset([
     # (x,) -> result:
     (DATA_SLICE, DATA_SLICE),
+    # (x, k) -> result:
+    (DATA_SLICE, DATA_SLICE, DATA_SLICE),
 ])
 
 
@@ -198,6 +200,61 @@ class MatrixDiagMatrixTest(parameterized.TestCase):
     self.assertEqual(result.get_schema(), schema_constants.OBJECT)
     testing.assert_equal(x.get_bag(), result.get_bag())  # Same bag.
 
+  def test_k_positive(self):
+    x = ds([1.0, 2.0, 3.0])
+    result = kd.matrix.diag_matrix(x, k=1)
+    testing.assert_equal(
+        result,
+        ds([
+            [None, 1.0, None, None],
+            [None, None, 2.0, None],
+            [None, None, None, 3.0],
+            [None, None, None, None],
+        ]),
+    )
+
+  def test_k_negative(self):
+    x = ds([1.0, 2.0, 3.0])
+    result = kd.matrix.diag_matrix(x, k=-1)
+    testing.assert_equal(
+        result,
+        ds([
+            [None, None, None, None],
+            [1.0, None, None, None],
+            [None, 2.0, None, None],
+            [None, None, 3.0, None],
+        ]),
+    )
+
+  def test_k_large(self):
+    x = ds([1.0, 2.0])
+    result = kd.matrix.diag_matrix(x, k=2)
+    testing.assert_equal(
+        result,
+        ds([
+            [None, None, 1.0, None],
+            [None, None, None, 2.0],
+            [None, None, None, None],
+            [None, None, None, None],
+        ]),
+    )
+
+  def test_k_zero_is_default(self):
+    x = ds([1.0, 2.0, 3.0])
+    result_default = kd.matrix.diag_matrix(x)
+    result_k0 = kd.matrix.diag_matrix(x, k=0)
+    testing.assert_equal(result_default, result_k0)
+
+  def test_roundtrip_with_k(self):
+    x = ds([5.0, 10.0, 15.0])
+    result = kd.matrix.diag_vector(kd.matrix.diag_matrix(x, k=1), k=1)
+    testing.assert_equal(result, x)
+
+  def test_roundtrip_with_negative_k(self):
+    x = ds([5.0, 10.0, 15.0])
+    result = kd.matrix.diag_vector(kd.matrix.diag_matrix(x, k=-2), k=-2)
+    testing.assert_equal(result, x)
+
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
         kde.matrix.diag_matrix,
@@ -228,6 +285,13 @@ class NumpyComparisonTest(parameterized.TestCase):
     expected = [np.diag(v_np[i]).tolist() for i in range(4)]
     testing.assert_allclose(result, ds(expected), atol=1e-5)
 
+  @parameterized.parameters(-2, -1, 0, 1, 2)
+  def test_k_vs_numpy(self, k_val):
+    v_np = np.array([1.0, 2.0, 3.0])
+    expected = np.diag(v_np, k=k_val)
+    result = kd.matrix.diag_matrix(ds(v_np.tolist()), k=k_val) | 0.0
+    testing.assert_allclose(result, ds(expected.tolist()))
+
 
 class ErrorTest(parameterized.TestCase):
   """Tests for error messages."""
@@ -236,6 +300,90 @@ class ErrorTest(parameterized.TestCase):
     x = ds(1.0)
     with self.assertRaisesRegex(ValueError, r'expected at least 1D.*got 0D'):
       kd.matrix.diag_matrix(x)
+
+  def test_k_float_fails(self):
+    x = ds([1.0, 2.0, 3.0])
+    with self.assertRaisesRegex(
+        ValueError, r'argument `k` must be castable to INT64'
+    ):
+      kd.matrix.diag_matrix(x, k=ds(1.5))
+
+  def test_k_text_fails(self):
+    x = ds([1.0, 2.0, 3.0])
+    with self.assertRaisesRegex(
+        ValueError, r'argument `k` must be castable to INT64'
+    ):
+      kd.matrix.diag_matrix(x, k=ds('hello'))
+
+  def test_k_not_broadcastable_wrong_size_fails(self):
+    # k has 2 elements but batch has 3 vectors — not broadcastable.
+    x = ds([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])  # (3, 2)
+    with self.assertRaisesRegex(ValueError, r'cannot be expanded'):
+      kd.matrix.diag_matrix(x, k=ds([1, -1]))
+
+  def test_k_higher_rank_than_batch_fails(self):
+    # x is 1D (batch is scalar), but k is 1D — k has higher rank than batch.
+    x = ds([1.0, 2.0, 3.0])  # (3,), batch shape is scalar
+    with self.assertRaisesRegex(ValueError, r'cannot be expanded'):
+      kd.matrix.diag_matrix(x, k=ds([1, 2, 3]))
+
+  def test_k_2d_for_1d_batch_fails(self):
+    # x is 2D (batch is 1D with 2 elements), but k is 2D — k outranks batch.
+    x = ds([[1.0, 2.0], [3.0, 4.0]])  # (2, 2), batch shape (2,)
+    with self.assertRaisesRegex(ValueError, r'cannot be expanded'):
+      kd.matrix.diag_matrix(x, k=ds([[1, -1], [0, 2]]))
+
+
+class BroadcastKTest(parameterized.TestCase):
+  """Tests for broadcastable k parameter."""
+
+  def test_k_per_batch_element(self):
+    # 2 vectors, k=[1, -1]: first on super-diagonal, second on sub-diagonal.
+    x = ds([[1.0, 2.0], [3.0, 4.0]])  # (2, 2)
+    result = kd.matrix.diag_matrix(x, k=ds([1, -1]))
+    # First vector k=1: 3x3 matrix with elements on super-diagonal.
+    # Second vector k=-1: 3x3 matrix with elements on sub-diagonal.
+    testing.assert_equal(
+        result,
+        ds([
+            [[None, 1.0, None], [None, None, 2.0], [None, None, None]],
+            [[None, None, None], [3.0, None, None], [None, 4.0, None]],
+        ]),
+    )
+
+  def test_k_scalar_broadcast(self):
+    # Scalar k broadcasts to all batch elements — same as before.
+    x = ds([[1.0, 2.0], [3.0, 4.0]])  # (2, 2)
+    result_scalar = kd.matrix.diag_matrix(x, k=1)
+    result_broadcast = kd.matrix.diag_matrix(x, k=ds([1, 1]))
+    testing.assert_equal(result_scalar, result_broadcast)
+
+  def test_k_int64_accepted(self):
+    x = ds([1.0, 2.0, 3.0])
+    result = kd.matrix.diag_matrix(x, k=ds(1, schema_constants.INT64))
+    expected = kd.matrix.diag_matrix(x, k=1)
+    testing.assert_equal(result, expected)
+
+  def test_k_mixed_positive_negative(self):
+    x = ds([[10.0], [20.0], [30.0]])  # (3, 1)
+    result = kd.matrix.diag_matrix(x, k=ds([0, 1, -1]))
+    # k=0: 1x1 matrix [[10.0]]
+    # k=1: 2x2 matrix [[None, 20.0], [None, None]]
+    # k=-1: 2x2 matrix [[None, None], [30.0, None]]
+    testing.assert_equal(
+        result,
+        ds([
+            [[10.0]],
+            [[None, 20.0], [None, None]],
+            [[None, None], [30.0, None]],
+        ]),
+    )
+
+  def test_roundtrip_broadcast_k(self):
+    x = ds([[1.0, 2.0], [3.0, 4.0]])
+    k = ds([1, -1])
+    result = kd.matrix.diag_vector(kd.matrix.diag_matrix(x, k=k), k=k)
+    testing.assert_equal(result, x)
 
 
 if __name__ == '__main__':

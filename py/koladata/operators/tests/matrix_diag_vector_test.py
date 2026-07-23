@@ -37,6 +37,8 @@ DATA_SLICE = qtypes.DATA_SLICE
 QTYPES = frozenset([
     # (x,) -> result:
     (DATA_SLICE, DATA_SLICE),
+    # (x, k) -> result:
+    (DATA_SLICE, DATA_SLICE, DATA_SLICE),
 ])
 
 
@@ -155,6 +157,60 @@ class MatrixDiagVectorTest(parameterized.TestCase):
     self.assertEqual(result.get_schema(), schema_constants.OBJECT)
     testing.assert_equal(result.get_bag(), x.get_bag())  # Same bag.
 
+  def test_k_positive(self):
+    # Extract the k=1 super-diagonal from a 3x3 matrix.
+    a = ds([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
+    result = kd.matrix.diag_vector(a, k=1)
+    testing.assert_allclose(result, ds([2.0, 6.0]))
+
+  def test_k_negative(self):
+    # Extract the k=-1 sub-diagonal from a 3x3 matrix.
+    a = ds([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
+    result = kd.matrix.diag_vector(a, k=-1)
+    testing.assert_allclose(result, ds([4.0, 8.0]))
+
+  def test_k_out_of_bounds(self):
+    # k larger than matrix dimensions -> empty result.
+    a = ds([[1.0, 2.0], [3.0, 4.0]])
+
+    result = kd.matrix.diag_vector(a, k=5)
+    self.assertEqual(result.get_size(), 0)
+    testing.assert_equal(result, ds([], schema_constants.FLOAT32))
+
+    result = kd.matrix.diag_vector(a, k=-5)
+    self.assertEqual(result.get_size(), 0)
+    testing.assert_equal(result, ds([], schema_constants.FLOAT32))
+
+  def test_k_zero_is_default(self):
+    a = ds([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
+    result_default = kd.matrix.diag_vector(a)
+    result_k0 = kd.matrix.diag_vector(a, k=0)
+    testing.assert_allclose(result_default, result_k0)
+
+  def test_k_nonsquare_matrix_with_more_columns(self):
+    # 2x4 matrix, k=2 -> elements at (0,2) and (1,3).
+    a = ds([[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 7.0, 8.0]])
+    result = kd.matrix.diag_vector(a, k=2)
+    testing.assert_allclose(result, ds([3.0, 8.0]))
+
+    result = kd.matrix.diag_vector(a, k=3)
+    testing.assert_allclose(result, ds([4.0]))
+
+    result = kd.matrix.diag_vector(a, k=-1)
+    testing.assert_allclose(result, ds([5.0]))
+
+  def test_k_nonsquare_matrix_with_more_rows(self):
+    # 4x2 matrix, k=-1 -> elements at (1,0), (2,1).
+    a = ds([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]])
+    result = kd.matrix.diag_vector(a, k=-1)
+    testing.assert_allclose(result, ds([3.0, 6.0]))
+
+    result = kd.matrix.diag_vector(a, k=-3)
+    testing.assert_allclose(result, ds([7.0]))
+
+    result = kd.matrix.diag_vector(a, k=1)
+    testing.assert_allclose(result, ds([2.0]))
+
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
         kde.matrix.diag_vector,
@@ -181,6 +237,13 @@ class NumpyComparisonTest(parameterized.TestCase):
     expected = [np.diag(a_np[i]).tolist() for i in range(3)]
     testing.assert_allclose(result, ds(expected), atol=1e-5)
 
+  @parameterized.parameters(-2, -1, 0, 1, 2)
+  def test_k_vs_numpy(self, k_val):
+    a_np = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
+    expected = np.diag(a_np, k=k_val)
+    result = kd.matrix.diag_vector(ds(a_np.tolist()), k=k_val)
+    testing.assert_allclose(result, ds(expected.tolist()))
+
 
 class ErrorTest(parameterized.TestCase):
   """Exhaustive tests for error messages."""
@@ -199,6 +262,82 @@ class ErrorTest(parameterized.TestCase):
     x = ds([[1.0, 2.0, 3.0], [4.0, 5.0]])
     with self.assertRaisesRegex(ValueError, r'non-uniform row sizes'):
       kd.matrix.diag_vector(x)
+
+  def test_k_float_fails(self):
+    x = ds([[1.0, 2.0], [3.0, 4.0]])
+    with self.assertRaisesRegex(
+        ValueError, r'argument `k` must be castable to INT64'
+    ):
+      kd.matrix.diag_vector(x, k=ds(1.5))
+
+  def test_k_text_fails(self):
+    x = ds([[1.0, 2.0], [3.0, 4.0]])
+    with self.assertRaisesRegex(
+        ValueError, r'argument `k` must be castable to INT64'
+    ):
+      kd.matrix.diag_vector(x, k=ds('hello'))
+
+  def test_k_not_broadcastable_wrong_size_fails(self):
+    # k has 3 elements but x is a single 2x2 matrix (batch size 1).
+    x = ds([[1.0, 2.0], [3.0, 4.0]])
+    with self.assertRaisesRegex(ValueError, r'cannot be expanded'):
+      kd.matrix.diag_vector(x, k=ds([0, 1, -1]))
+
+  def test_k_higher_rank_than_batch_fails(self):
+    # x is 2D (batch is scalar), but k is 1D — k has higher rank than batch.
+    x = ds([[1.0, 2.0], [3.0, 4.0]])  # (2, 2), batch shape is scalar
+    with self.assertRaisesRegex(ValueError, r'cannot be expanded'):
+      kd.matrix.diag_vector(x, k=ds([0, 1]))
+
+  def test_k_2d_for_1d_batch_fails(self):
+    # x is 3D (batch is 1D with 2 elements), but k is 2D — k outranks batch.
+    x = ds([
+        [[1.0, 2.0], [3.0, 4.0]],
+        [[5.0, 6.0], [7.0, 8.0]],
+    ])  # (2, 2, 2), batch shape (2,)
+    with self.assertRaisesRegex(ValueError, r'cannot be expanded'):
+      kd.matrix.diag_vector(x, k=ds([[0, 1], [1, 0]]))
+
+
+class BroadcastKTest(parameterized.TestCase):
+  """Tests for broadcastable k parameter."""
+
+  def test_k_per_batch_element(self):
+    # 2 matrices, k=[0, 1]: extract main diagonal from first, super-diagonal
+    # from second.
+    a = ds([
+        [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
+        [[10.0, 20.0, 30.0], [40.0, 50.0, 60.0], [70.0, 80.0, 90.0]],
+    ])  # (2, 3, 3)
+    result = kd.matrix.diag_vector(a, k=ds([0, 1]))
+    # k=0 from first: [1.0, 5.0, 9.0]
+    # k=1 from second: [20.0, 60.0]
+    testing.assert_allclose(result, ds([[1.0, 5.0, 9.0], [20.0, 60.0]]))
+
+  def test_k_scalar_broadcast(self):
+    # Scalar k broadcasts to all batch elements — same as before.
+    a = ds([
+        [[1.0, 2.0], [3.0, 4.0]],
+        [[5.0, 6.0], [7.0, 8.0]],
+    ])
+    result_scalar = kd.matrix.diag_vector(a, k=1)
+    result_broadcast = kd.matrix.diag_vector(a, k=ds([1, 1]))
+    testing.assert_allclose(result_scalar, result_broadcast)
+
+  def test_k_mixed_positive_negative(self):
+    # 3 matrices, k=[1, 0, -1].
+    a = ds([
+        [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
+        [[10.0, 20.0, 30.0], [40.0, 50.0, 60.0], [70.0, 80.0, 90.0]],
+        [[100.0, 200.0], [300.0, 400.0]],
+    ])
+    result = kd.matrix.diag_vector(a, k=ds([1, 0, -1]))
+    # k=1: [2.0, 6.0]
+    # k=0: [10.0, 50.0, 90.0]
+    # k=-1: [300.0]
+    testing.assert_allclose(
+        result, ds([[2.0, 6.0], [10.0, 50.0, 90.0], [300.0]])
+    )
 
 
 if __name__ == '__main__':
