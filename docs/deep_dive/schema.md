@@ -341,7 +341,7 @@ available:
     Computes the common schema across the last `ndim` dimensions of a DataSlice.
 *   [`kd.schema.common_schema`](/koladata/g3doc/api/kd/schema.md#kd.schema.common_schema):
     Computes the common schema of the entire DataSlice.
-*   [`kd.schema.cast_to_implicit`](/koladata/g3doc/api/kd/schema.md#kd.schema.cast_to_implicit):
+*   [`kd.schema.internal_cast_to_implicit`](/koladata/g3doc/api/kd/schema.md#kd.schema.internal_cast_to_implicit):
     Casts the input to a provided schema if allowed by the type promotion rules.
 
 #### Explicit Casting
@@ -401,7 +401,7 @@ kd.agg_sum(ints, ndim=kd.item(2, schema=kd.OBJECT))  # DataItem(6, schema=INT32)
 
 Here are some additional helpers to perform narrowing:
 
-*   [`kd.schema.cast_to_narrow`](/koladata/g3doc/api/kd/schema.md#kd.schema.cast_to_narrow):
+*   [`kd.schema.internal_cast_to_narrow`](/koladata/g3doc/api/kd/schema.md#kd.schema.internal_cast_to_narrow):
     Casts the input to the provided schema by first computing the narrowed
     schema of the input and then casting to the provided schema using implicit
     casting rules.

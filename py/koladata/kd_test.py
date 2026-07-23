@@ -688,7 +688,7 @@ class KdTest(absltest.TestCase):
  the common schema(s) INT32
  the first conflicting schema ITEMID"""),
     ):
-      kd.schema.cast_to_implicit(x, kd.ITEMID)
+      kd.schema.internal_cast_to_implicit(x, kd.ITEMID)
 
   def test_non_deterministic_op_derived_from_expr_op(self):
     itemid1 = kd.new_itemid()

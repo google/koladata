@@ -281,8 +281,11 @@ def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
 
 
 def _cast_input_qvalue(value: Any, annotation: Any) -> arolla.AnyQValue:
+  """Returns a qvalue casting `value` to the provided `annotation`."""
   if isinstance(annotation, schema_item.SchemaItem):
-    return arolla.abc.aux_eval_op('kd.schema.cast_to_narrow', value, annotation)
+    return arolla.abc.aux_eval_op(
+        'kd.schema.internal_cast_to_narrow', value, annotation
+    )
   elif extension_type_registry.is_koda_extension_type(annotation):
     # TODO: Restrict to only support _upcasting_ by encoding the
     # hierarchy into a derived QType chain, making this safe.
@@ -296,7 +299,9 @@ def _cast_input_qvalue(value: Any, annotation: Any) -> arolla.AnyQValue:
 def _cast_input_expr(value: arolla.Expr, annotation: Any) -> arolla.Expr:
   """Returns an expr casting `value` to the provided `annotation`."""
   if isinstance(annotation, schema_item.SchemaItem):
-    return arolla.abc.aux_bind_op('kd.schema.cast_to_narrow', value, annotation)
+    return arolla.abc.aux_bind_op(
+        'kd.schema.internal_cast_to_narrow', value, annotation
+    )
   elif extension_type_registry.is_koda_extension_type(annotation):
     # TODO: Restrict to only support _upcasting_ by encoding the
     # hierarchy into a derived QType chain, making this safe.

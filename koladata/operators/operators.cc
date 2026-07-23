@@ -421,8 +421,6 @@ AROLLA_REGISTER_QEXPR_OPERATOR(
 OPERATOR("kd.schema._unsafe_cast_to", UnsafeCastTo,
               "kd.schema.unsafe_cast_to");
 OPERATOR("kd.schema.cast_to", CastTo);
-OPERATOR("kd.schema.cast_to_implicit", CastToImplicit);
-OPERATOR("kd.schema.cast_to_narrow", CastToNarrow);
 OPERATOR("kd.schema.dict_schema", DictSchema);
 OPERATOR("kd.schema.get_item_schema", GetItemSchema);
 OPERATOR("kd.schema.get_key_schema", GetKeySchema);
@@ -433,6 +431,10 @@ OPERATOR("kd.schema.get_repr", GetSchemaRepr);
 OPERATOR("kd.schema.get_schema", GetSchema);
 OPERATOR("kd.schema.get_schema_name", GetSchemaName);
 OPERATOR("kd.schema.get_value_schema", GetValueSchema);
+OPERATOR("kd.schema.internal_cast_to_implicit", InternalCastToImplicit,
+         "kd.schema.cast_to_implicit");
+OPERATOR("kd.schema.internal_cast_to_narrow", InternalCastToNarrow,
+         "kd.schema.cast_to_narrow");
 OPERATOR("kd.schema.is_dict_schema", IsDictSchema);
 OPERATOR("kd.schema.is_entity_schema", IsEntitySchema);
 OPERATOR("kd.schema.is_itemid_schema", IsItemIdSchema);

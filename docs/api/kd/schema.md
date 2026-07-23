@@ -47,35 +47,6 @@ Args:
   x: DataSlice to cast.
   schema: Schema to cast to.</code></pre>
 
-### `kd.schema.cast_to_implicit(x, schema)` {#kd.schema.cast_to_implicit}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `x` casted to the provided `schema` using implicit casting rules.
-
-Note that `schema` must be the common schema of `schema` and `x.get_schema()`
-according to go/koda-type-promotion.
-
-Note that `x` must be correctly typed with its schema. Thus, if provided
-`schema` is equal to `x.get_schema()`, operator does nothing.
-
-Args:
-  x: DataSlice to cast.
-  schema: Schema to cast to. Must be a scalar.</code></pre>
-
-### `kd.schema.cast_to_narrow(x, schema)` {#kd.schema.cast_to_narrow}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `x` casted to the provided `schema`.
-
-Allows for schema narrowing, where OBJECT types can be casted to primitive
-schemas as long as the data is implicitly castable to the schema. Follows the
-casting rules of `kd.cast_to_implicit` for the narrowed schema.
-
-Note that `x` must be correctly typed with its schema. Thus, if provided
-`schema` is equal to `x.get_schema()`, operator does nothing.
-
-Args:
-  x: DataSlice to cast.
-  schema: Schema to cast to. Must be a scalar.</code></pre>
-
 ### `kd.schema.common_schema(x)` {#kd.schema.common_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the common schema as a scalar DataItem of `x`.
@@ -236,6 +207,36 @@ Aliases:
 - [kd.get_value_schema](../kd.md#kd.get_value_schema)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the value schema of a Dict schema`.</code></pre>
+
+### `kd.schema.internal_cast_to_implicit(x, schema)` {#kd.schema.internal_cast_to_implicit}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `x` casted to the provided `schema` using implicit casting rules.
+
+Note that `schema` must be the common schema of `schema` and `x.get_schema()`
+according to go/koda-type-promotion.
+
+Note that `x` must be correctly typed with its schema. Thus, if provided
+`schema` is equal to `x.get_schema()`, operator does nothing.
+
+Args:
+  x: DataSlice to cast.
+  schema: Schema to cast to. Must be a scalar.</code></pre>
+
+### `kd.schema.internal_cast_to_narrow(x, schema)` {#kd.schema.internal_cast_to_narrow}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `x` casted to the provided `schema`.
+
+Allows for schema narrowing, where OBJECT types can be casted to primitive
+schemas as long as the data is implicitly castable to the schema. Follows the
+casting rules of `kd.schema.internal_cast_to_implicit` for the narrowed
+schema.
+
+Note that `x` must be correctly typed with its schema. Thus, if provided
+`schema` is equal to `x.get_schema()`, operator does nothing.
+
+Args:
+  x: DataSlice to cast.
+  schema: Schema to cast to. Must be a scalar.</code></pre>
 
 ### `kd.schema.internal_maybe_named_schema(name_or_schema)` {#kd.schema.internal_maybe_named_schema}
 

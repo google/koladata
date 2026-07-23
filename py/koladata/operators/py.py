@@ -197,7 +197,7 @@ def _unwrap_scalar_integer(
   if isinstance(value, data_item.DataItem):
     try:
       return eval_op(
-          'kd.schema.cast_to_narrow', value, schema_constants.INT64
+          'kd.schema.internal_cast_to_narrow', value, schema_constants.INT64
       ).__index__()
     except ValueError:
       pass
@@ -208,11 +208,11 @@ def _unwrap_scalar_integer(
 def _unwrap_optional_boolean(
     value: data_slice.DataSlice, *, param_name: str
 ) -> bool:
-  """Returns a boolean none stored in the parameter."""
+  """Returns a python scalar boolean stored in the parameter."""
   if isinstance(value, data_item.DataItem):
     try:
       return eval_op(
-          'kd.schema.cast_to_narrow', value, schema_constants.BOOLEAN
+          'kd.schema.internal_cast_to_narrow', value, schema_constants.BOOLEAN
       ).to_py()
     except ValueError:
       pass

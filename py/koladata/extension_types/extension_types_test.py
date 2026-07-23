@@ -1167,7 +1167,7 @@ class ExtensionTypesTest(parameterized.TestCase):
           )
           + '[a-z0-9]+'
           + re.escape(
-              """)}}, y=kd.schema.cast_to_narrow(I.x, DataItem(INT32, schema: SCHEMA)), x=kd.schema.cast_to_narrow(I.y, DataItem(INT32, schema: SCHEMA)))"""
+              """)}}, y=kd.schema.internal_cast_to_narrow(I.x, DataItem(INT32, schema: SCHEMA)), x=kd.schema.internal_cast_to_narrow(I.y, DataItem(INT32, schema: SCHEMA)))"""
           )
       )
       self.assertRegex(repr(A(I.x, I.y)), expected_repr)  # pyrefly: ignore[bad-argument-count]
@@ -1223,7 +1223,7 @@ class ExtensionTypesTest(parameterized.TestCase):
           )
           + '[a-z0-9]+'
           + re.escape(
-              """)}}, y=kd.schema.cast_to_narrow(I.x, DataItem(INT32, schema: SCHEMA)), x=kd.schema.cast_to_narrow(I.y, DataItem(INT32, schema: SCHEMA)))"""
+              """)}}, y=kd.schema.internal_cast_to_narrow(I.x, DataItem(INT32, schema: SCHEMA)), x=kd.schema.internal_cast_to_narrow(I.y, DataItem(INT32, schema: SCHEMA)))"""
           )
       )
       self.assertRegex(repr(A(I.x, I.y)), expected_repr)  # pyrefly: ignore[bad-argument-count]

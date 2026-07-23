@@ -79,13 +79,13 @@ absl::StatusOr<DataSlice> InternalMaybeNamedSchema(
 // kd.schema.cast_to operator.
 absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema);
 
-// kd.schema.cast_to_implicit operator.
-absl::StatusOr<DataSlice> CastToImplicit(const DataSlice& x,
-                                         const DataSlice& schema);
+// kd.schema.internal_cast_to_implicit operator.
+absl::StatusOr<DataSlice> InternalCastToImplicit(const DataSlice& x,
+                                                 const DataSlice& schema);
 
-// kd.schema.cast_to_narrow operator.
-absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& x,
-                                       const DataSlice& schema);
+// kd.schema.internal_cast_to_narrow operator.
+absl::StatusOr<DataSlice> InternalCastToNarrow(const DataSlice& x,
+                                               const DataSlice& schema);
 
 // kd.schema.deep_cast_to operator.
 absl::StatusOr<DataSlice> DeepCastTo(const DataSlice& x,

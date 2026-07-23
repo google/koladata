@@ -254,15 +254,15 @@ absl::StatusOr<DataSlice> DeepCastTo(const DataSlice& x,
                     allow_new_attrs.item().value<bool>());
 }
 
-absl::StatusOr<DataSlice> CastToImplicit(const DataSlice& x,
-                                         const DataSlice& schema) {
+absl::StatusOr<DataSlice> InternalCastToImplicit(const DataSlice& x,
+                                                 const DataSlice& schema) {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   ASSIGN_OR_RETURN(auto x_with_bag, WithAdoptedSchema(x, schema));
   return ::koladata::CastToImplicit(x_with_bag, schema.item());
 }
 
-absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& x,
-                                       const DataSlice& schema) {
+absl::StatusOr<DataSlice> InternalCastToNarrow(const DataSlice& x,
+                                               const DataSlice& schema) {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   ASSIGN_OR_RETURN(auto x_with_bag, WithAdoptedSchema(x, schema));
   return ::koladata::CastToNarrow(x_with_bag, schema.item());

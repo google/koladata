@@ -29,69 +29,41 @@ from koladata.types import literal_operator
 from koladata.types import schema_constants
 
 
-I = input_container.InputContainer("I")
+I = input_container.InputContainer('I')
 
 ds = data_slice.DataSlice.from_vals
-kd = eager_op_utils.operators_container("kd")
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 
 DATA_SLICE = qtypes.DATA_SLICE
+DB = data_bag.DataBag.empty_mutable()
+ENTITY = DB.new()
+OBJ = DB.obj()
 
 
-class SchemaCastToNarrowTest(parameterized.TestCase):
+class SchemaInternalCastToImplicitTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      # Implicit casting.
       (ds(1), schema_constants.INT64, ds(1, schema_constants.INT64)),
       (ds([1]), schema_constants.INT64, ds([1], schema_constants.INT64)),
       (ds(None), schema_constants.FLOAT32, ds(None, schema_constants.FLOAT32)),
       (
-          ds([1, "a"], schema_constants.OBJECT),
+          ds([1, 'a'], schema_constants.OBJECT),
           schema_constants.OBJECT,
-          ds([1, "a"], schema_constants.OBJECT),
+          ds([1, 'a'], schema_constants.OBJECT),
       ),
       (ds(1), schema_constants.OBJECT, ds(1, schema_constants.OBJECT)),
-      # Narrowing.
-      (
-          ds(1, schema_constants.OBJECT),
-          schema_constants.INT64,
-          ds(1, schema_constants.INT64),
-      ),
-      (ds(1, schema_constants.OBJECT), schema_constants.FLOAT32, ds(1.0)),
-      (
-          ds(1, schema_constants.OBJECT),
-          schema_constants.INT64,
-          ds(1, schema_constants.INT64),
-      ),
   )
   def test_eval(self, x, schema, expected):
-    res = kd.schema.cast_to_narrow(x, schema)
+    res = kd.schema.internal_cast_to_implicit(x, schema)
     testing.assert_equal(res, expected)
-
-  def test_explicit_entity_schema(self):
-    db = data_bag.DataBag.empty_mutable()
-    entity = db.new()
-    obj = entity.embed_schema()
-    frozen_bag = db.freeze()
-    entity = entity.with_bag(frozen_bag)
-    obj = obj.with_bag(frozen_bag)
-    res = kd.schema.cast_to_narrow(obj, entity.get_schema())
-    testing.assert_equal(res, entity)
-
-  def test_implicit_entity_schema_error(self):
-    db = data_bag.DataBag.empty_mutable()
-    obj = db.obj()
-    with self.assertRaisesRegex(
-        ValueError, "DataSlice cannot have an implicit schema as its schema"
-    ):
-      kd.schema.cast_to_narrow(obj, obj.get_obj_schema())
 
   def test_adoption(self):
     bag1 = data_bag.DataBag.empty_mutable()
     bag2 = data_bag.DataBag.empty_mutable()
     entity = bag1.new(x=ds([1]))
     schema = entity.get_schema().with_bag(bag2)
-    result = kd.schema.cast_to_narrow(entity, schema)
+    result = kd.schema.internal_cast_to_implicit(entity, schema)
     testing.assert_equal(result.x.no_bag(), ds([1]))
     testing.assert_equal(
         result.no_bag(), entity.no_bag().with_schema(schema.no_bag())
@@ -101,32 +73,24 @@ class SchemaCastToNarrowTest(parameterized.TestCase):
 
   def test_not_schema_error(self):
     with self.assertRaisesRegex(
-        ValueError, "schema must be SCHEMA, got: INT32"
+        ValueError, 'schema must be SCHEMA, got: INT32'
     ):
-      kd.schema.cast_to_narrow(ds(1), ds(1))
+      kd.schema.internal_cast_to_implicit(ds(1), ds(1))
 
   def test_multidim_schema_error(self):
     with self.assertRaisesRegex(
-        ValueError, "schema can only be 0-rank schema slice"
+        ValueError, 'schema can only be 0-rank schema slice'
     ):
-      kd.schema.cast_to_narrow(
+      kd.schema.internal_cast_to_implicit(
           ds(1), ds([schema_constants.INT32, schema_constants.INT64])
       )
 
   def test_not_implicitly_castable_error(self):
     with self.assertRaisesRegex(
-        ValueError, "unsupported narrowing cast to INT32"
+        ValueError, 'unsupported implicit cast from INT64 to INT32'
     ):
-      kd.schema.cast_to_narrow(
+      kd.schema.internal_cast_to_implicit(
           ds(1, schema_constants.INT64), schema_constants.INT32
-      )
-
-  def test_not_narrowable_error(self):
-    with self.assertRaisesRegex(
-        ValueError, "unsupported narrowing cast to INT32"
-    ):
-      kd.schema.cast_to_narrow(
-          ds(1.0, schema_constants.OBJECT), schema_constants.INT32
       )
 
   def test_cast_error(self):
@@ -137,15 +101,15 @@ class SchemaCastToNarrowTest(parameterized.TestCase):
  the common schema(s) INT64
  the first conflicting schema ITEMID"""),
     ):
-      kd.schema.cast_to_narrow(
+      kd.schema.internal_cast_to_implicit(
           ds(1, schema_constants.INT64), schema_constants.ITEMID
       )
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.schema.cast_to_narrow(1, schema_constants.INT64),
+        kde.schema.internal_cast_to_implicit(1, schema_constants.INT64),
         arolla.abc.bind_op(
-            kde.schema.cast_to_narrow,
+            kde.schema.internal_cast_to_implicit,
             literal_operator.literal(ds(1)),
             literal_operator.literal(schema_constants.INT64),
         ),
@@ -153,14 +117,16 @@ class SchemaCastToNarrowTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.schema.cast_to_narrow,
+        kde.schema.internal_cast_to_implicit,
         [(DATA_SLICE, DATA_SLICE, DATA_SLICE)],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.cast_to_narrow(I.x, I.y)))
+    self.assertTrue(
+        view.has_koda_view(kde.schema.internal_cast_to_implicit(I.x, I.y))
+    )
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   absltest.main()

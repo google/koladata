@@ -156,13 +156,13 @@ def internal_maybe_named_schema(name_or_schema):
 
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
-    'kd.schema.cast_to_implicit',
+    'kd.schema.internal_cast_to_implicit',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.schema),
     ],
 )
-def cast_to_implicit(x, schema):  # pylint: disable=unused-argument
+def internal_cast_to_implicit(x, schema):  # pylint: disable=unused-argument
   """Returns `x` casted to the provided `schema` using implicit casting rules.
 
   Note that `schema` must be the common schema of `schema` and `x.get_schema()`
@@ -209,18 +209,19 @@ def cast_to(x, schema):  # pylint: disable=unused-argument
 
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
-    'kd.schema.cast_to_narrow',
+    'kd.schema.internal_cast_to_narrow',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.schema),
     ],
 )
-def cast_to_narrow(x, schema):  # pylint: disable=unused-argument
+def internal_cast_to_narrow(x, schema):  # pylint: disable=unused-argument
   """Returns `x` casted to the provided `schema`.
 
   Allows for schema narrowing, where OBJECT types can be casted to primitive
   schemas as long as the data is implicitly castable to the schema. Follows the
-  casting rules of `kd.cast_to_implicit` for the narrowed schema.
+  casting rules of `kd.schema.internal_cast_to_implicit` for the narrowed
+  schema.
 
   Note that `x` must be correctly typed with its schema. Thus, if provided
   `schema` is equal to `x.get_schema()`, operator does nothing.

@@ -6436,8 +6436,8 @@ py_test(
 )
 
 py_test(
-    name = "schema_cast_to_implicit_test",
-    srcs = ["schema_cast_to_implicit_test.py"],
+    name = "schema_internal_cast_to_implicit_test",
+    srcs = ["schema_internal_cast_to_implicit_test.py"],
     deps = [
         "//py:python_path",
         "//py/koladata/expr:input_container",
@@ -6457,8 +6457,8 @@ py_test(
 )
 
 py_test(
-    name = "schema_cast_to_narrow_test",
-    srcs = ["schema_cast_to_narrow_test.py"],
+    name = "schema_internal_cast_to_narrow_test",
+    srcs = ["schema_internal_cast_to_narrow_test.py"],
     deps = [
         "//py:python_path",
         "//py/koladata/expr:input_container",
