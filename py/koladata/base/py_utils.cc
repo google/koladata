@@ -94,8 +94,7 @@ absl::StatusOr<DataSlice> AssignmentRhsFromPyValue(
                             /*dict_as_obj=*/false, /*itemid=*/std::nullopt));
 
     adoption_queue.Add(res);
-    RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
-    return res.WithBag(db);
+    return res;
   }
   ASSIGN_OR_RETURN(auto res, DataSliceFromPyValue(rhs, adoption_queue));
   if (res.GetShape().rank() > 0) {
