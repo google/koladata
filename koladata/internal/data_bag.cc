@@ -360,7 +360,7 @@ absl::Status MergeToMutableDenseSource(
       auto other_items,
       GetAttributeFromSources(objects, {&dense_source}, sparse_sources));
   // GetAttributeFromSources returns information about unset values in
-  // TypesBuffer withing DataSliceImpl. Ensure that TypesBuffer is there.
+  // TypesBuffer within DataSliceImpl. Ensure that TypesBuffer is there.
   DCHECK_GT(size, 0);
   DCHECK(!other_items.types_buffer().id_to_typeidx.empty());
 
