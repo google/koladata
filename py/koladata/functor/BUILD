@@ -15,9 +15,8 @@
 # Python tools for working with Koda functors.
 
 load("@pip_deps//:requirements.bzl", "requirement")
-load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
-load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
+load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_pybind_extension")
 
 package(default_visibility = [
     "//koladata:internal",
@@ -53,35 +52,17 @@ py_test(
     ],
 )
 
-cc_library(
-    name = "py_functors_cc_lib",
-    srcs = ["py_functors.cc"],
-    hdrs = ["py_functors.h"],
+koladata_pybind_extension(
+    name = "py_functors_py_ext",
+    srcs = ["py_functors_clib.cc"],
     deps = [
         "//koladata:data_slice",
-        "//koladata:data_slice_qtype",
         "//koladata/functor:auto_variables",
-        "//py/koladata/base:py_args",
         "//py/koladata/base:wrap_utils",
-        "@com_google_absl//absl/base:no_destructor",
-        "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_arolla//arolla/util",
-        "@com_google_arolla//arolla/util:status_backport",
-        "@com_google_arolla//py/arolla/abc:py_abc",
+        "@com_google_arolla//py/arolla/abc:pybind11_utils",
         "@com_google_arolla//py/arolla/py_utils",
-        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
-    ],
-)
-
-koladata_py_extension(
-    name = "py_functors_py_ext",
-    srcs = ["py_functors_module.cc"],
-    deps = [
-        ":py_functors_cc_lib",
-        "//koladata:data_slice",
-        "@com_google_arolla//py/arolla/py_utils",
-        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
     ],
 )
 
