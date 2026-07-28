@@ -170,7 +170,7 @@ class DumpsLoadsTest(parameterized.TestCase):
     testing.assert_equal(loaded_shape, shape)
 
   def test_dumps_loads_extension_type(self):
-    ext_x = MyExtensionType(1, 2)  # pyrefly: ignore[bad-argument-count]
+    ext_x = MyExtensionType(1, 2)
     dumped_bytes = s11n.dumps(ext_x)  # pyrefly: ignore[bad-argument-type]
     loaded_x = s11n.loads(dumped_bytes)
     testing.assert_equal(ext_x.qtype, loaded_x.qtype)  # pyrefly: ignore[missing-attribute]
@@ -257,7 +257,7 @@ class ExperimentalSaferLoadsTest(parameterized.TestCase):
     testing.assert_equal(loaded_shape, shape)
 
   def test_dumps_loads_extension_type(self):
-    ext_x = MyExtensionType(1, 2)  # pyrefly: ignore[bad-argument-count]
+    ext_x = MyExtensionType(1, 2)
     dumped_bytes = s11n.dumps(ext_x)  # pyrefly: ignore[bad-argument-type]
     loaded_x = s11n.experimental_safer_loads(dumped_bytes)
     testing.assert_equal(ext_x.qtype, loaded_x.qtype)  # pyrefly: ignore[missing-attribute]

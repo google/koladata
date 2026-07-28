@@ -18,7 +18,7 @@ import dataclasses
 import functools
 import inspect
 import types
-from typing import Any, Callable, Mapping, Self, Sequence
+from typing import Any, Callable, Mapping, Self, Sequence, dataclass_transform
 from arolla import arolla
 from arolla.derived_qtype import derived_qtype
 from arolla.objects import objects
@@ -519,6 +519,10 @@ def _make_dispatch_fn(
   return dispatching_new
 
 
+# TODO: Pyrefly doesn't properly support inheritance for
+# dataclass_transform. Investigate whether we can fix it on our side and
+# remove ignore[unexpected-keyword] suppressions.
+@dataclass_transform(eq_default=False)
 def extension_type(
     unsafe_override=False,
 ) -> Callable[[type[Any]], type[arolla.AnyQValue]]:

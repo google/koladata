@@ -883,7 +883,7 @@ class KdTest(absltest.TestCase):
       def fn(self, y):
         return self.x + y
 
-    kd.testing.assert_equal(A(1).fn(2), kd.slice(3))  # pyrefly: ignore[bad-argument-count]
+    kd.testing.assert_equal(A(1).fn(2), kd.slice(3))  # pyrefly: ignore[bad-argument-type]
 
   def test_extension_type_operators(self):
     @kd.extension_type(unsafe_override=True)
@@ -894,7 +894,7 @@ class KdTest(absltest.TestCase):
       a_qtype = kd.eager.extension_types.get_extension_qtype(A)
       return kd.extension_types.dynamic_cast(a, a_qtype).x + 2
 
-    a = A(1)  # pyrefly: ignore[bad-argument-count]
+    a = A(1)  # pyrefly: ignore[bad-argument-type]
     kd.testing.assert_equal(fn(a), kd.slice(3))
     kd.testing.assert_equal(kd.fn(fn)(a), kd.slice(3))
 

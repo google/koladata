@@ -100,7 +100,7 @@ class NullableMixinTest(absltest.TestCase):
   def test_positional_initialization(self):
     # Sanity check that we're not injecting values into the signature which
     # would affect initialization.
-    testing.assert_equal(A(1).x, ds(1))  # pyrefly: ignore[bad-argument-count]
+    testing.assert_equal(A(1).x, ds(1))  # pyrefly: ignore[bad-argument-type]
 
 
 if __name__ == '__main__':

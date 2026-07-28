@@ -50,7 +50,7 @@ class ExtensionTypesWithAttrsTest(parameterized.TestCase):
 
   def test_with_attrs(self):
     db = bag()
-    a = A(ds(1), db)  # pyrefly: ignore[bad-argument-count]
+    a = A(ds(1), db)
     result = expr_eval.eval(kde.extension_types.with_attrs(a, x=ds(2)))
     testing.assert_equal(result.x, ds(2))
     testing.assert_equal(result.y, db)
@@ -77,7 +77,7 @@ class ExtensionTypesWithAttrsTest(parameterized.TestCase):
     )
 
   def test_with_attrs_wrong_type(self):
-    a = A(ds(1), bag())  # pyrefly: ignore[bad-argument-count]
+    a = A(ds(1), bag())
     new_bag = bag()
     res = arolla.eval(kde.extension_types.with_attrs(a, x=new_bag))
     with self.assertRaisesRegex(
@@ -93,7 +93,7 @@ class ExtensionTypesWithAttrsTest(parameterized.TestCase):
     testing.assert_equal(x, new_bag)
 
   def test_with_attrs_non_existent_attr(self):
-    a = A(ds(1), bag())  # pyrefly: ignore[bad-argument-count]
+    a = A(ds(1), bag())
     res = arolla.eval(kde.extension_types.with_attrs(a, z=ds(2)))
     with self.assertRaisesRegex(AttributeError, "no attribute 'z'"):
       _ = res.z
