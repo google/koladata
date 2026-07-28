@@ -16,11 +16,14 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
+#include "absl/synchronization/mutex.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
@@ -36,8 +39,8 @@
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
 #include "py/arolla/abc/pybind11_utils.h"
+#include "py/arolla/py_utils/py_utils.h"
 #include "pybind11_abseil/absl_casters.h"
-#include "pybind11_abseil/status_casters.h"
 
 namespace koladata::python {
 namespace {
@@ -61,7 +64,9 @@ class LruCacheWrapper {
   // MISSING if not in the cache) and returns them as a single DataSlice.
   // The schemas are aggregated with koladata::schema::CommonSchemaAggregator.
   absl::StatusOr<arolla::TypedValue> Get(TypedValue keys_tv) {
+    arolla::python::ReleasePyGIL guard;
     ASSIGN_OR_RETURN(const DataSlice& keys_slice, keys_tv.As<DataSlice>());
+    absl::MutexLock lock(mutex_);
 
     if (keys_slice.is_item()) {
       const DataSlice* res = nullptr;
@@ -98,17 +103,18 @@ class LruCacheWrapper {
     koladata::schema::CommonSchemaAggregator schema_agg;
     schema_agg.Add(koladata::schema::kNone);
     koladata::AdoptionQueue bags;
-    keys.ForEachPresent([&](int64_t offset, ObjectId key) {
-      if (const DataSlice* v = cache_.LookupOrNull(key); v != nullptr) {
-        DCHECK(v->is_item());
-        bldr.InsertIfNotSetAndUpdateAllocIds(offset, v->item());
-        bags.Add(v->GetBag());
-        if (v->GetSchemaImpl() == koladata::schema::kNone) {
-          return;
-        }
-        schema_agg.Add(v->GetSchemaImpl());
-      }
-    });
+    keys.ForEachPresent(
+        [&](int64_t offset, ObjectId key) ABSL_NO_THREAD_SAFETY_ANALYSIS {
+          if (const DataSlice* v = cache_.LookupOrNull(key); v != nullptr) {
+            DCHECK(v->is_item());
+            bldr.InsertIfNotSetAndUpdateAllocIds(offset, v->item());
+            bags.Add(v->GetBag());
+            if (v->GetSchemaImpl() == koladata::schema::kNone) {
+              return;
+            }
+            schema_agg.Add(v->GetSchemaImpl());
+          }
+        });
 
     ASSIGN_OR_RETURN(auto schema, std::move(schema_agg).Get());
     ASSIGN_OR_RETURN(
@@ -126,6 +132,7 @@ class LruCacheWrapper {
   // If the cache reaches max capacity, then the values not accessed for the
   // longest time  are removed.
   absl::Status Set(arolla::TypedValue keys_tv, arolla::TypedValue values_tv) {
+    arolla::python::ReleasePyGIL guard;
     ASSIGN_OR_RETURN(const DataSlice& keys_slice, keys_tv.As<DataSlice>());
     ASSIGN_OR_RETURN(DataSlice values_slice, values_tv.As<DataSlice>());
     ASSIGN_OR_RETURN(values_slice,
@@ -136,6 +143,9 @@ class LruCacheWrapper {
     if (keys_slice.dtype() != arolla::GetQType<ObjectId>()) {
       return absl::InvalidArgumentError("ObjectId expected");
     }
+
+    absl::MutexLock lock(mutex_);
+
     if (keys_slice.is_item()) {
       (void)cache_.Put(keys_slice.item().value<ObjectId>(), values_slice);
       return absl::OkStatus();
@@ -144,7 +154,8 @@ class LruCacheWrapper {
     const arolla::DenseArray<ObjectId>& keys =
         keys_slice.slice().values<ObjectId>();
     const auto& values = values_slice.slice();
-    keys.ForEachPresent([&](int64_t offset, ObjectId key) {
+    keys.ForEachPresent([&](int64_t offset,
+                            ObjectId key) ABSL_NO_THREAD_SAFETY_ANALYSIS {
       DataItem val = values[offset];
       if (!val.has_value()) {
         return;
@@ -157,21 +168,31 @@ class LruCacheWrapper {
   }
 
   void Clear() {
+    absl::MutexLock lock(mutex_);
     cache_.Clear();
   }
 
  private:
-  arolla::LruCache<ObjectId, DataSlice> cache_;
+  absl::Mutex mutex_;
+  arolla::LruCache<ObjectId, DataSlice> cache_ ABSL_GUARDED_BY(mutex_);
 };
 
 PYBIND11_MODULE(lru_cache, m) {
-  pybind11::google::ImportStatusModule();
   py::class_<LruCacheWrapper>(m, "LruCache", R"doc(
 LRU cache Object/Entity -> DataSlice
 )doc")
       .def(py::init<size_t>(), py::arg("capacity") = 100000)
-      .def("__getitem__", &LruCacheWrapper::Get)
-      .def("__setitem__", &LruCacheWrapper::Set)
+      .def("__getitem__",
+           [](LruCacheWrapper& self, TypedValue keys_tv) {
+             return arolla::python::pybind11_unstatus_or(
+                 self.Get(std::move(keys_tv)));
+           })
+      .def("__setitem__",
+           [](LruCacheWrapper& self, TypedValue keys_tv,
+              TypedValue values_tv) {
+             arolla::python::pybind11_throw_if_error(
+                 self.Set(std::move(keys_tv), std::move(values_tv)));
+           })
       .def("clear", &LruCacheWrapper::Clear);
 }
 

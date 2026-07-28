@@ -43,13 +43,13 @@ class LruCacheTest(parameterized.TestCase):
 
   def test_item_invalid_key_type(self):
     cache = lru_cache.LruCache()
-    with self.assertRaisesRegex(Exception, 'ObjectId expected'):
+    with self.assertRaisesRegex(ValueError, 'ObjectId expected'):
       _ = cache[kd.item(123)]
     with self.assertRaises(TypeError):
       _ = cache[123]
-    with self.assertRaisesRegex(Exception, 'ObjectId expected'):
+    with self.assertRaisesRegex(ValueError, 'ObjectId expected'):
       _ = cache[kd.item('not_an_object_id')]
-    with self.assertRaisesRegex(Exception, 'ObjectId expected'):
+    with self.assertRaisesRegex(ValueError, 'ObjectId expected'):
       cache[kd.item(123)] = kd.item(1)
 
   def test_missing_item_key(self):
@@ -98,9 +98,9 @@ class LruCacheTest(parameterized.TestCase):
 
   def test_slice_invalid_key_type(self):
     cache = lru_cache.LruCache()
-    with self.assertRaisesRegex(Exception, 'ObjectId expected'):
+    with self.assertRaisesRegex(ValueError, 'ObjectId expected'):
       _ = cache[kd.slice([1, 2])]
-    with self.assertRaisesRegex(Exception, 'ObjectId expected'):
+    with self.assertRaisesRegex(ValueError, 'ObjectId expected'):
       cache[kd.slice([1, 2])] = kd.slice([3, 4])
 
   def test_slice_broadcasting(self):
