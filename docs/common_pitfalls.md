@@ -1339,6 +1339,73 @@ DataItem(List[1, 2, 3, 4, 5, 6, 7], schema: LIST[INT32], bag_id:...)
 >>> assert l1.get_itemid() != l6.get_itemid()
 ```
 
+## Adoption Copies Data — Use Fallbacks to Avoid Memory Spikes
+
+When a DataSlice with its own DataBag is used as an attribute value in
+`kd.attrs`, `with_attrs`, `kd.new`, or `kd.obj`, Koda **adopts** (copies) all
+data reachable from that DataSlice into the new DataBag. This creates a
+copy of all underlying data, which can cause significant memory spikes —
+especially for large dense sources (e.g. many strings or large arrays).
+
+After the adoption, there are **two copies** of the data in memory: the original
+in `value.get_bag()` and the adopted copy in the new DataBag.
+
+To avoid this, use the **zero-copy pattern**: detach the DataSlice from its
+DataBag with `.no_bag()`, attach the attribute, and then add the original
+DataBag as a fallback via `.updated()`.
+
+```py
+>>> db = kd.mutable_bag()
+>>> large_ds = db.new(x=kd.slice([10, 20, 30]))
+>>> e = kd.new(y=kd.slice([1, 2, 3]))
+
+# Expensive: adopts (copies) all data from `large_ds` into the new DataBag.
+>>> result = e.with_attrs(my_attr=large_ds)
+>>> result.my_attr.x
+DataSlice([10, 20, 30], schema: INT32,...)
+```
+
+The zero-copy pattern produces the same result without copying data:
+
+```py
+>>> db = kd.mutable_bag()
+>>> large_ds = db.new(x=kd.slice([10, 20, 30]))
+>>> e = kd.new(y=kd.slice([1, 2, 3]))
+>>> result = e.updated(kd.attrs(e, my_attr=large_ds.no_bag()))
+>>> result = result.updated(large_ds.get_bag())
+>>> result.my_attr.x
+DataSlice([10, 20, 30], schema: INT32,...)
+```
+
+Why this works:
+
+-   `large_ds.no_bag()` strips the DataBag, so `kd.attrs()` only records
+    the attribute mapping `(ItemId, attribute_name) -> ItemId` without
+    copying data.
+-   `result.updated(large_ds.get_bag())` adds the original DataBag as the
+    first bag in the fallback chain — a reference, not a copy.
+-   Lookups resolve the attribute mapping from the first bag and the actual
+    data from the chain of fallback bags, producing the same result without the
+    copy.
+
+### Trade-offs of the Zero-Copy Pattern
+
+While this pattern avoids the initial copy spike, it is a double-edged sword:
+
+-   **Memory Dependency**: Adding the original bag to the fallback chain keeps
+    the *entire* bag alive in memory, preventing garbage collection of any
+    unrelated data in it. If you only need a small subset of a large bag, it may
+    be better to adopt just the subset to allow the rest of the bag to be freed.
+-   **Side-Effects**: The fallback bag might contain data for other ItemIds
+    that happen to be reachable from your target. These unrelated ItemIds will
+    now also reflect the fallback bag's updates, which wouldn't happen in the
+    adoption-based code.
+
+Use this pattern when attaching large DataSlices as attributes, memory is a
+concern, and the original bag's lifetime is acceptable. Do not use this pattern
+when you intentionally want all data in a single DataBag (e.g. for serialization
+or when you need `merge_fallbacks()` to flatten everything).
+
 ## Multiple Versions of Entities/Lists/Dicts with the Same ItemIds
 
 Immutable APIs (e.g. `with_attrs`, `with_dict_update`,
