@@ -22,7 +22,6 @@
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
-#include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/jagged_shape/testing/matchers.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -2356,10 +2355,50 @@ TEST(ObjectFactoriesTest, Implode) {
     // itemid, ndim=2
     ASSERT_OK_AND_ASSIGN(auto lists, Implode(db, values, /*ndim=*/2, itemid));
     EXPECT_EQ(lists.GetShape().rank(), 0);
-    EXPECT_EQ(lists.item(), itemid.item());
-    EXPECT_THAT(
-        lists.ExplodeList(0, std::nullopt)->ExplodeList(0, std::nullopt),
-        IsOkAndHolds(IsEquivalentTo(values.WithBag(db))));
+
+    // Root itemids match the input itemids.
+    ASSERT_OK_AND_ASSIGN(
+        auto root_itemids,
+        lists.WithSchema(test::Schema(schema::kItemId)));
+    EXPECT_THAT(root_itemids.WithBag(nullptr), IsEquivalentTo(itemid));
+
+    // Spot-check values to ensure that itemids haven't collided.
+    ASSERT_OK_AND_ASSIGN(auto exploded_lists_1,
+                         lists.ExplodeList(0, std::nullopt));
+    ASSERT_OK_AND_ASSIGN(auto exploded_lists_2,
+                         exploded_lists_1.ExplodeList(0, std::nullopt));
+    EXPECT_THAT(exploded_lists_2.slice(), ElementsAreArray(values.slice()));
+
+    // Structural uniqueness: items within nested level are distinct.
+    EXPECT_EQ(exploded_lists_1.size(), 2);
+    EXPECT_NE(exploded_lists_1.slice().values<ObjectId>()[0],
+              exploded_lists_1.slice().values<ObjectId>()[1]);
+
+    // Determinism: calling with the same itemid produces identical nested
+    // lists.
+    auto db_same = DataBag::EmptyMutable();
+    ASSERT_OK_AND_ASSIGN(auto lists_same,
+                         Implode(db_same, values, /*ndim=*/2, itemid));
+    EXPECT_THAT(lists.WithBag(nullptr),
+                IsEquivalentTo(lists_same.WithBag(nullptr)));
+
+    ASSERT_OK_AND_ASSIGN(auto exploded_same_1,
+                         lists_same.ExplodeList(0, std::nullopt));
+    EXPECT_THAT(exploded_lists_1.WithBag(nullptr),
+                IsEquivalentTo(exploded_same_1.WithBag(nullptr)));
+
+    // Independence: calling with a different itemid constructs different
+    // nested lists.
+    ASSERT_OK_AND_ASSIGN(
+        auto itemid_other,
+        DataSlice::Create(internal::DataItem(internal::AllocateSingleList()),
+                          internal::DataItem(schema::kItemId)));
+    ASSERT_OK_AND_ASSIGN(auto lists_other,
+                         Implode(db, values, /*ndim=*/2, itemid_other));
+    ASSERT_OK_AND_ASSIGN(auto exploded_other_1,
+                         lists_other.ExplodeList(0, std::nullopt));
+    EXPECT_THAT(exploded_lists_1.WithBag(nullptr),
+                Not(IsEquivalentTo(exploded_other_1.WithBag(nullptr))));
   }
     // itemid, ndim=0
     EXPECT_THAT(
@@ -2718,16 +2757,21 @@ TEST(ObjectFactoriesTest, CreateNestedList_ItemId_Nested) {
                             test::EdgeFromSplitPoints({0, 2, 3, 5})}));
   auto values = test::DataSlice<int>({1, 2, 3, 4, 5}, shape, db);
 
-  auto itemid = *DataSlice::Create(
-      internal::DataItem(internal::AllocateSingleList()),
-      internal::DataItem(schema::kItemId));
+  ASSERT_OK_AND_ASSIGN(
+      auto itemid,
+      DataSlice::Create(internal::DataItem(internal::AllocateSingleList()),
+                        internal::DataItem(schema::kItemId)));
 
   ASSERT_OK_AND_ASSIGN(auto lists,
                        CreateNestedList(db, values, /*schema=*/std::nullopt,
                                         /*item_schema=*/std::nullopt, itemid));
   EXPECT_THAT(lists.item(),
               DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())));
-  EXPECT_EQ(lists.item(), itemid.item());
+  // Root itemids match the input itemids.
+  ASSERT_OK_AND_ASSIGN(
+      auto root_itemids_nested,
+      lists.WithSchema(test::Schema(schema::kItemId)));
+  EXPECT_THAT(root_itemids_nested.WithBag(nullptr), IsEquivalentTo(itemid));
 
   ASSERT_OK_AND_ASSIGN(auto item_schema,
                        lists.GetSchema().GetAttr("__items__"));
@@ -2735,31 +2779,95 @@ TEST(ObjectFactoriesTest, CreateNestedList_ItemId_Nested) {
   ASSERT_OK_AND_ASSIGN(item_schema, item_schema.GetAttr("__items__"));
   EXPECT_EQ(item_schema.item(), schema::kInt32);
 
-  ASSERT_OK_AND_ASSIGN(auto exploded_lists,
+  // Spot-check leaf values.
+  ASSERT_OK_AND_ASSIGN(auto exploded_lists_1,
                        lists.ExplodeList(0, std::nullopt));
-  ASSERT_OK_AND_ASSIGN(exploded_lists,
-                       exploded_lists.ExplodeList(0, std::nullopt));
-  ASSERT_OK_AND_ASSIGN(exploded_lists,
-                       exploded_lists.ExplodeList(0, std::nullopt));
-  EXPECT_EQ(exploded_lists.GetSchemaImpl(), schema::kInt32);
-  EXPECT_THAT(values.slice(), IsEquivalentTo(exploded_lists.slice()));
-  EXPECT_THAT(values.GetShape(), IsEquivalentTo(exploded_lists.GetShape()));
+  ASSERT_OK_AND_ASSIGN(auto exploded_lists_2,
+                       exploded_lists_1.ExplodeList(0, std::nullopt));
+  ASSERT_OK_AND_ASSIGN(auto exploded_lists_3,
+                       exploded_lists_2.ExplodeList(0, std::nullopt));
+  EXPECT_EQ(exploded_lists_3.GetSchemaImpl(), schema::kInt32);
+  EXPECT_THAT(values.slice(), IsEquivalentTo(exploded_lists_3.slice()));
+  EXPECT_THAT(values.GetShape(), IsEquivalentTo(exploded_lists_3.GetShape()));
+
+  // Structural uniqueness checks.
+  EXPECT_EQ(exploded_lists_1.size(), 2);
+  exploded_lists_1.slice().values<ObjectId>().ForEach(
+      [&](int64_t id, bool present, ObjectId object_id) {
+        if (present) {
+          EXPECT_TRUE(object_id.IsList());
+        }
+      });
+  EXPECT_NE(exploded_lists_1.slice().values<ObjectId>()[0],
+            exploded_lists_1.slice().values<ObjectId>()[1]);
+
+  EXPECT_EQ(exploded_lists_2.size(), 3);
+  exploded_lists_2.slice().values<ObjectId>().ForEach(
+      [&](int64_t id, bool present, ObjectId object_id) {
+        if (present) {
+          EXPECT_TRUE(object_id.IsList());
+        }
+      });
+  EXPECT_NE(exploded_lists_2.slice().values<ObjectId>()[0],
+            exploded_lists_2.slice().values<ObjectId>()[1]);
+
+  // Determinism tests.
+  auto db2 = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(auto lists2,
+                       CreateNestedList(db2, values, /*schema=*/std::nullopt,
+                                        /*item_schema=*/std::nullopt, itemid));
+  EXPECT_THAT(lists.WithBag(nullptr),
+              IsEquivalentTo(lists2.WithBag(nullptr)));
+
+  ASSERT_OK_AND_ASSIGN(auto exploded_lists_1_same,
+                       lists2.ExplodeList(0, std::nullopt));
+  EXPECT_THAT(exploded_lists_1.WithBag(nullptr),
+              IsEquivalentTo(exploded_lists_1_same.WithBag(nullptr)));
+
+  ASSERT_OK_AND_ASSIGN(auto exploded_lists_2_same,
+                       exploded_lists_1_same.ExplodeList(0, std::nullopt));
+  EXPECT_THAT(exploded_lists_2.WithBag(nullptr),
+              IsEquivalentTo(exploded_lists_2_same.WithBag(nullptr)));
+
+  // Independence tests.
+  ASSERT_OK_AND_ASSIGN(
+      auto itemid_other,
+      DataSlice::Create(internal::DataItem(internal::AllocateSingleList()),
+                        internal::DataItem(schema::kItemId)));
+  ASSERT_OK_AND_ASSIGN(
+      auto lists_other,
+      CreateNestedList(db, values, /*schema=*/std::nullopt,
+                       /*item_schema=*/std::nullopt, itemid_other));
+  ASSERT_OK_AND_ASSIGN(auto exploded_lists_1_other,
+                       lists_other.ExplodeList(0, std::nullopt));
+  ASSERT_OK_AND_ASSIGN(auto exploded_lists_2_other,
+                       exploded_lists_1_other.ExplodeList(0, std::nullopt));
+
+  EXPECT_THAT(exploded_lists_1.WithBag(nullptr),
+              Not(IsEquivalentTo(exploded_lists_1_other.WithBag(nullptr))));
+  EXPECT_THAT(exploded_lists_2.WithBag(nullptr),
+              Not(IsEquivalentTo(exploded_lists_2_other.WithBag(nullptr))));
 }
+
 
 TEST(ObjectFactoriesTest, CreateNestedList_ItemId_Flat) {
   auto db = DataBag::EmptyMutable();
   auto values = test::DataSlice<int>({1, 2, 3, 4, 5});
 
-  auto itemid = *DataSlice::Create(
-      internal::DataItem(internal::AllocateSingleList()),
-      internal::DataItem(schema::kItemId));
+  ASSERT_OK_AND_ASSIGN(
+      auto itemid,
+      DataSlice::Create(internal::DataItem(internal::AllocateSingleList()),
+                        internal::DataItem(schema::kItemId)));
 
   ASSERT_OK_AND_ASSIGN(auto lists,
                        CreateNestedList(db, values, /*schema=*/std::nullopt,
                                         /*item_schema=*/std::nullopt, itemid));
   EXPECT_THAT(lists.item(),
               DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())));
-  EXPECT_EQ(lists.item(), itemid.item());
+  ASSERT_OK_AND_ASSIGN(
+      auto root_itemids_flat,
+      lists.WithSchema(test::Schema(schema::kItemId)));
+  EXPECT_THAT(root_itemids_flat.WithBag(nullptr), IsEquivalentTo(itemid));
 
   ASSERT_OK_AND_ASSIGN(auto item_schema,
                        lists.GetSchema().GetAttr("__items__"));
@@ -2776,11 +2884,12 @@ TEST(ObjectFactoriesTest, CreateNestedList_ItemId_ShapeError) {
   auto db = DataBag::EmptyMutable();
   auto values = test::DataSlice<int>({1, 2, 3, 4, 5});
 
-  auto itemid = *DataSlice::Create(
-      internal::DataSliceImpl::ObjectsFromAllocation(
-          internal::AllocateLists(2), 2),
-      DataSlice::JaggedShape::FlatFromSize(2),
-      internal::DataItem(schema::kItemId));
+  ASSERT_OK_AND_ASSIGN(
+      auto itemid,
+      DataSlice::Create(internal::DataSliceImpl::ObjectsFromAllocation(
+                            internal::AllocateLists(2), 2),
+                        DataSlice::JaggedShape::FlatFromSize(2),
+                        internal::DataItem(schema::kItemId)));
 
   EXPECT_THAT(CreateNestedList(db, values, /*schema=*/std::nullopt,
                                /*item_schema=*/std::nullopt, itemid),
@@ -2803,9 +2912,10 @@ TEST(ObjectFactoriesTest, CreateNestedList_ItemId_ItemIdTypeError) {
   auto db = DataBag::EmptyMutable();
   auto values = test::DataSlice<int>({1, 2, 3, 4, 5});
 
-  auto itemid = *DataSlice::Create(
-      internal::DataItem(internal::AllocateSingleDict()),
-      internal::DataItem(schema::kItemId));
+  ASSERT_OK_AND_ASSIGN(
+      auto itemid,
+      DataSlice::Create(internal::DataItem(internal::AllocateSingleDict()),
+                        internal::DataItem(schema::kItemId)));
   EXPECT_THAT(CreateNestedList(db, values, /*schema=*/std::nullopt,
                                /*item_schema=*/std::nullopt, itemid),
               StatusIs(absl::StatusCode::kInvalidArgument,

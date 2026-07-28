@@ -28,6 +28,7 @@ from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import schema_constants
 
 
 I = input_container.InputContainer('I')
@@ -82,10 +83,29 @@ class ListLikeTest(parameterized.TestCase):
     testing.assert_equal(x[:].no_bag(), ds([['a', 'b'], ['c']]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
 
+  def test_itemid_nested_list(self):
     itemid = kd.allocation.new_listid()
-    x = kd.lists.implode(ds([['a', 'b'], ['c']]), ndim=2, itemid=itemid)
-    testing.assert_equal(x[:][:].no_bag(), ds([['a', 'b'], ['c']]))
+    x = kd.lists.implode(
+        ds([[['a', 'b'], ['c']], [['d', 'e']]]), ndim=3, itemid=itemid
+    )
+    testing.assert_equal(
+        x[:][:][:].no_bag(), ds([[['a', 'b'], ['c']], [['d', 'e']]])
+    )
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
+    expected_child_itemid = kd.uuid_for_list(
+        seed='__nested_list_child__', parent=itemid, index=kd.range(2)
+    )
+    testing.assert_equal(x[:].no_bag().get_itemid(), expected_child_itemid)
+    expected_grandchild_itemid = kd.uuid_for_list(
+        seed='__nested_list_child__',
+        parent=expected_child_itemid,
+        # Note that the final itemid will depend only on the parent itemid
+        # and the index of each child list in the parent:
+        index=ds([[0, 1], [0]], schema_constants.INT64),
+    )
+    testing.assert_equal(
+        x[:][:].no_bag().get_itemid(), expected_grandchild_itemid
+    )
 
   def test_ndim_error(self):
     with self.assertRaisesRegex(

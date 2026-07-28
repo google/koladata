@@ -57,6 +57,7 @@
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/uuid_object.h"
 #include "koladata/shape_utils.h"
+#include "koladata/uuid_utils.h"
 
 namespace koladata {
 
@@ -78,6 +79,51 @@ absl::Status VerifyNoSchemaArg(absl::Span<const absl::string_view> attr_names) {
   }
   return absl::OkStatus();
 }
+
+constexpr absl::string_view kChildListGroupIdSeed = "__nested_list_child__";
+
+// Returns a DataSlice of List UUIDs for child lists derived from
+// `parent_itemid` and their local index within each parent list.
+absl::StatusOr<DataSlice> MakeChildListItemIds(
+    DataSlice parent_itemid, const DataSlice::JaggedShape& items_shape) {
+  const auto& edge = items_shape.edges().back();
+  DCHECK_EQ(edge.edge_type(), arolla::DenseArrayEdge::SPLIT_POINTS);
+  const auto& splits = edge.edge_values().values;
+  int64_t num_items = splits.back();
+  std::vector<int64_t> indices(num_items);
+  for (size_t i = 0; i + 1 < splits.size(); ++i) {
+    for (int64_t j = splits[i]; j < splits[i + 1]; ++j) {
+      indices[j] = j - splits[i];
+    }
+  }
+  auto arr = arolla::CreateFullDenseArray<int64_t>(std::move(indices));
+  ASSIGN_OR_RETURN(
+      auto index, DataSlice::CreatePrimitive(std::move(arr), items_shape));
+  return CreateListUuidFromFields(kChildListGroupIdSeed, {"parent", "index"},
+                                  {std::move(parent_itemid), std::move(index)});
+}
+
+// Recursively generates itemids for all `ndim` levels of nested lists starting
+// from `itemid` at the root down to child lists for each level.
+absl::StatusOr<std::vector<DataSlice>> GetNestedListItemIds(
+    const DataSlice& itemid,
+    const DataSlice::JaggedShape& shape,
+    int64_t ndim) {
+  DCHECK_LE(ndim, shape.rank());
+  std::vector<DataSlice> level_itemids;
+  level_itemids.reserve(ndim);
+  level_itemids.push_back(itemid);
+  int64_t rank = shape.rank();
+  for (int64_t i = 1; i < ndim; ++i) {
+    ASSIGN_OR_RETURN(
+        auto next_itemid,
+        MakeChildListItemIds(level_itemids.back(),
+                             shape.RemoveDims(rank - ndim + i)));
+    level_itemids.push_back(std::move(next_itemid));
+  }
+  return level_itemids;
+}
+
 
 // Returns an entity (with `db` attached) that can be created either from
 // DataSliceImpl(s) or DataItem(s).
@@ -112,8 +158,8 @@ absl::Status SetObjectSchema(
           ds_impl, schema::kImplicitSchemaSeed));
   RETURN_IF_ERROR(
       db_mutable_impl.SetSchemaFields<ImplT>(schema_impl, attr_names, schemas));
-  RETURN_IF_ERROR(
-      db_mutable_impl.SetAttr(ds_impl, schema::kSchemaAttr, schema_impl));
+  RETURN_IF_ERROR(db_mutable_impl.SetAttr(
+      ds_impl, schema::kSchemaAttr, std::move(schema_impl)));
   return absl::OkStatus();
 }
 
@@ -530,8 +576,8 @@ absl::StatusOr<DataSlice> CreateObjectsImpl(
             impl, schema::kImplicitSchemaSeed));
     ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                      db->GetMutableImpl());
-    RETURN_IF_ERROR(
-        db_mutable_impl.SetAttr(impl, schema::kSchemaAttr, schema_impl));
+    RETURN_IF_ERROR(db_mutable_impl.SetAttr(
+        impl, schema::kSchemaAttr, std::move(schema_impl)));
     return absl::OkStatus();
   }));
   RETURN_IF_ERROR(res.SetAttrs(attr_names, values))
@@ -1163,22 +1209,28 @@ absl::StatusOr<DataSlice> CreateNestedList(
     RETURN_IF_ERROR(schema_adoption_queue.AdoptInto(*db));
   }
 
+  std::vector<DataSlice> level_itemids;
+  if (itemid.has_value()) {
+    ASSIGN_OR_RETURN(
+        level_itemids,
+        GetNestedListItemIds(*itemid, values.GetShape(), rank));
+  }
+
   // NOTE: CreateListShaped deals with consistency of values and passed schema
   // args (called from CreateListsFromLastDimension below).
-  ASSIGN_OR_RETURN(DataSlice res,
-                   CreateListsFromLastDimension(
-                       db, values, /*schema=*/std::nullopt, inner_item_schema,
-                       rank <= 1 && itemid ? itemid : std::nullopt));
+  ASSIGN_OR_RETURN(
+      DataSlice res,
+      CreateListsFromLastDimension(
+          db, values, /*schema=*/std::nullopt, inner_item_schema,
+          itemid ? std::optional(std::move(level_itemids[rank - 1]))
+                 : std::nullopt));
   for (size_t i = 1; i < rank; ++i) {
-    // NOTE: If `itemid` is present, the last "implosion" of a list needs to
-    // happen to `itemid` ObjectIds.
     ASSIGN_OR_RETURN(
-        res, CreateListsFromLastDimension(
-                 db, res, /*schema=*/std::nullopt,
-                 /*item_schema=*/std::nullopt,
-                 // TODO: When itemid is provided by the user, a
-                 // proper nested / child itemid should be created.
-                 i == rank - 1 && itemid ? itemid : std::nullopt));
+        res,
+        CreateListsFromLastDimension(
+            db, res, /*schema=*/std::nullopt, /*item_schema=*/std::nullopt,
+            itemid ? std::optional(std::move(level_itemids[rank - 1 - i]))
+                   : std::nullopt));
   }
   return std::move(res);
 }
@@ -1216,18 +1268,24 @@ absl::StatusOr<DataSlice> Implode(
     }
     return values.WithBag(db);
   }
-  // Changing the `db`, because CreateListsFromLastDimension also adopts.
-  std::optional<DataSlice> result = values.WithBag(db);
-  for (int i = 1; i < ndim; ++i) {
-    // TODO: When itemid is provided by the user, a proper nested /
-    // child itemid should be created.
-    ASSIGN_OR_RETURN(result, CreateListsFromLastDimension(db, *result));
+  std::vector<DataSlice> level_itemids;
+  if (itemid.has_value()) {
+    ASSIGN_OR_RETURN(
+        level_itemids,
+        GetNestedListItemIds(*itemid, values.GetShape(), ndim));
   }
-  ASSIGN_OR_RETURN(
-      result,
-      CreateListsFromLastDimension(db, *result, /*schema=*/std::nullopt,
-                                   /*item_schema=*/std::nullopt, itemid));
-  return *std::move(result);
+
+  // Changing the `db`, because CreateListsFromLastDimension also adopts.
+  DataSlice result = values.WithBag(db);
+  for (int i = 1; i <= ndim; ++i) {
+    ASSIGN_OR_RETURN(
+        result,
+        CreateListsFromLastDimension(
+            db, result, /*schema=*/std::nullopt, /*item_schema=*/std::nullopt,
+            itemid ? std::optional(std::move(level_itemids[ndim - i]))
+                   : std::nullopt));
+  }
+  return result;
 }
 
 absl::StatusOr<DataSlice> ConcatLists(const DataBagPtr& db,
@@ -1387,7 +1445,7 @@ absl::StatusOr<DataSlice> CreateNoFollowSchema(const DataSlice& target_schema) {
 absl::StatusOr<DataSlice> NoFollow(const DataSlice& target) {
   ASSIGN_OR_RETURN(auto no_follow_schema_item,
                    schema::NoFollowSchemaItem(target.GetSchemaImpl()));
-  return target.WithSchema(no_follow_schema_item);
+  return target.WithSchema(std::move(no_follow_schema_item));
 }
 
 }  // namespace koladata
