@@ -775,8 +775,6 @@ def concat_lists(
 ) -> data_slice.DataSlice:
   """Returns a DataSlice of Lists concatenated from the List items of `lists`.
 
-  Returned lists are immutable.
-
   Each input DataSlice must contain only present List items, and the item
   schemas of each input must be compatible. Input DataSlices are aligned (see
   `kd.align`) automatically before concatenation.
@@ -784,10 +782,10 @@ def concat_lists(
   If `lists` is empty, this returns a single empty list with OBJECT item schema.
 
   Args:
-    *lists: the DataSlices of Lists to concatenate
+    *lists: The DataSlices of Lists to concatenate.
 
   Returns:
-    DataSlice of concatenated Lists
+    DataSlice of concatenated Lists.
   """
   # NOTE: We create a mutable bag and freeze it for performance reasons.
   # The alternative to rely on eager version of kd.lazy is significantly slower.

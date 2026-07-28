@@ -34,19 +34,16 @@ NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
 
 QTYPES = frozenset([
     (
-        DATA_SLICE,
         arolla.make_tuple_qtype(),
         NON_DETERMINISTIC_TOKEN,
         DATA_SLICE,
     ),
     (
-        DATA_SLICE,
         arolla.make_tuple_qtype(DATA_SLICE),
         NON_DETERMINISTIC_TOKEN,
         DATA_SLICE,
     ),
     (
-        DATA_SLICE,
         arolla.make_tuple_qtype(DATA_SLICE, DATA_SLICE),
         NON_DETERMINISTIC_TOKEN,
         DATA_SLICE,
@@ -68,6 +65,7 @@ class ListsConcatTest(parameterized.TestCase):
     )
 
   @parameterized.parameters(
+      ((), db.list()),
       ((db.list([1, 2, 3]),), db.list([1, 2, 3])),
       (
           (db.list([[1], [2, 3]]),),

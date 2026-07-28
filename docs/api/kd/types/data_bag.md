@@ -44,18 +44,17 @@ Each input DataSlice must contain only present List items, and the item
 schemas of each input must be compatible. Input DataSlices are aligned (see
 `kd.align`) automatically before concatenation.
 
-If `lists` is empty, this returns a single empty list.
+If `lists` is empty, this returns a single empty list with OBJECT item schema.
 
 The specified `db` is used to create the new concatenated lists, and is the
 DataBag used by the result DataSlice. If `db` is not specified, a new DataBag
 is created for this purpose.
 
 Args:
-  *lists: the DataSlices of Lists to concatenate
-  db: optional DataBag to populate with the result
+  *lists: The DataSlices of Lists to concatenate.
 
 Returns:
-  DataSlice of concatenated Lists</code></pre>
+  DataSlice of concatenated Lists.</code></pre>
 
 ### `DataBag.contents_repr(self: DataBag, /, *, triple_limit: int = 1000) -> ContentsReprWrapper` {#kd.types.DataBag.contents_repr}
 

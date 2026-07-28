@@ -563,20 +563,30 @@ def _concat_lists(*args):  # pylint: disable=unused-argument
 @optools.as_lambda_operator(
     'kd.lists.concat',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.arg0),
         qtype_utils.expect_data_slice_args(P.args),
     ],
     deterministic=False,
 )
-def concat_lists(arg0, *args):
-  """Implementation of kde.lists.concat."""
-  # TODO: Support 0 args.
+def concat_lists(*args):
+  """Returns a DataSlice of Lists concatenated from the List items of `args`.
+
+  Each input DataSlice must contain only present List items, and the item
+  schemas of each input must be compatible. Input DataSlices are aligned (see
+  `kd.align`) automatically before concatenation.
+
+  If `args` is empty, this returns a single empty list with OBJECT item schema.
+
+  Args:
+    *args: The DataSlices of Lists to concatenate.
+
+  Returns:
+    DataSlice of concatenated Lists.
+  """
   args = arolla.optools.fix_trace_args(args)
-  return arolla.M.core.apply_varargs(
-      _concat_lists,
-      arolla.abc.aux_bind_op('koda_internal.non_deterministic_identity', arg0),
-      args,
+  args = arolla.abc.aux_bind_op(
+      'koda_internal.non_deterministic_identity', args
   )
+  return arolla.M.core.apply_varargs(_concat_lists, args)
 
 
 @optools.add_to_registry(aliases=['kd.list_size'], via_cc_operator_package=True)

@@ -34,8 +34,6 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice of Lists concatenated from the List items of `lists`.
 
-Returned lists are immutable.
-
 Each input DataSlice must contain only present List items, and the item
 schemas of each input must be compatible. Input DataSlices are aligned (see
 `kd.align`) automatically before concatenation.
@@ -43,10 +41,10 @@ schemas of each input must be compatible. Input DataSlices are aligned (see
 If `lists` is empty, this returns a single empty list with OBJECT item schema.
 
 Args:
-  *lists: the DataSlices of Lists to concatenate
+  *lists: The DataSlices of Lists to concatenate.
 
 Returns:
-  DataSlice of concatenated Lists</code></pre>
+  DataSlice of concatenated Lists.</code></pre>
 
 ### `kd.lists.explode(x, ndim=1)` {#kd.lists.explode}
 Aliases:
