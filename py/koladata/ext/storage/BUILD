@@ -160,6 +160,9 @@ py_proto_library(
 py_library(
     name = "schema_helper",
     srcs = ["schema_helper.py"],
+    visibility = [
+        "//koladata:internal",
+    ],
     deps = [
         ":data_slice_path",
         ":stubs_and_minimal_bags_lib",
@@ -184,6 +187,9 @@ py_test(
 py_library(
     name = "data_slice_path",
     srcs = ["data_slice_path.py"],
+    visibility = [
+        "//koladata:internal",
+    ],
     deps = [
         ":stubs_and_minimal_bags_lib",
         "//py:python_path",
