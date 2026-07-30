@@ -223,6 +223,317 @@ class ContribFlattenCyclicReferencesTest(parameterized.TestCase):
     expected_ds['c'] = ds(['foo', 'bar', 'baz'])
     kd.testing.assert_equivalent(result, expected_ds, schemas_equality=False)
 
+  def test_empty_list(self):
+    db = bag()
+    o = db.new(
+        a=db.implode(db.new(x=ds([], schema=kd.INT32))),
+        b=ds('hello'),
+    )
+    o.set_attr('self', o)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)  # pyrefly: ignore[missing-attribute]
+
+    self.assertFalse(result.get_bag().is_mutable())
+
+    expected_ds = db.new(
+        self=db.new(
+            self=ds(None),
+            a=db.implode(db.new(x=ds([], schema=kd.INT32))),
+            b=ds('hello'),
+        ),
+        a=db.implode(db.new(x=ds([], schema=kd.INT32))),
+        b=ds('hello'),
+    )
+    kd.testing.assert_equivalent(result, expected_ds, schemas_equality=False)
+
+  def test_empty_dict(self):
+    db = bag()
+    empty_dict = db.dict({}, key_schema=kd.STRING, value_schema=kd.INT32)
+    o = db.new(a=empty_dict, b=ds('hello'))
+    o.set_attr('self', o)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)  # pyrefly: ignore[missing-attribute]
+
+    self.assertFalse(result.get_bag().is_mutable())
+
+    expected_ds = db.new(
+        self=db.new(
+            self=ds(None),
+            a=db.dict({}, key_schema=kd.STRING, value_schema=kd.INT32),
+            b=ds('hello'),
+        ),
+        a=db.dict({}, key_schema=kd.STRING, value_schema=kd.INT32),
+        b=ds('hello'),
+    )
+    kd.testing.assert_equivalent(result, expected_ds, schemas_equality=False)
+
+  def test_list_as_object(self):
+    db = bag()
+    lst = db.list([1, 2, 3])
+    obj_lst = db.obj(lst)
+    o = db.new(l=obj_lst)
+    o.set_attr('self', o)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)  # pyrefly: ignore[missing-attribute]
+
+    self.assertFalse(result.get_bag().is_mutable())
+    self.assertEqual(
+        result.to_pytree(max_depth=-1),
+        {
+            'l': [1, 2, 3],
+            'self': {
+                'l': [1, 2, 3],
+                'self': None,
+            },
+        },
+    )
+
+  def test_dict_as_object(self):
+    db = bag()
+    dct = db.dict({'a': 1, 'b': 2})
+    obj_dct = db.obj(dct)
+    o = db.new(d=obj_dct)
+    o.set_attr('self', o)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)  # pyrefly: ignore[missing-attribute]
+
+    self.assertFalse(result.get_bag().is_mutable())
+    self.assertEqual(
+        result.to_pytree(max_depth=-1),
+        {
+            'd': {'a': 1, 'b': 2},
+            'self': {
+                'd': {'a': 1, 'b': 2},
+                'self': None,
+            },
+        },
+    )
+
+  def test_nested_dict_as_object_in_list_as_object(self):
+    db = bag()
+    dct = db.dict({'a': 1, 'b': 2})
+    obj_dct = db.obj(dct)
+    lst = db.list([obj_dct])
+    obj_lst = db.obj(lst)
+    o = db.new(nested=obj_lst)
+    o.set_attr('self', o)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)  # pyrefly: ignore[missing-attribute]
+
+    self.assertFalse(result.get_bag().is_mutable())
+    self.assertEqual(
+        result.to_pytree(max_depth=-1),
+        {
+            'nested': [{'a': 1, 'b': 2}],
+            'self': {
+                'nested': [{'a': 1, 'b': 2}],
+                'self': None,
+            },
+        },
+    )
+
+  def test_object(self):
+    db = bag()
+    b_slice = db.obj(a=ds([1, None, 2]))
+    o = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
+    o.set_attr('self', o)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=0)  # pyrefly: ignore[missing-attribute]
+
+    self.assertFalse(result.get_bag().is_mutable())
+
+    expected_ds = db.obj(
+        self=ds([None, None, None]),
+        b=db.obj(a=ds([1, None, 2])),
+        c=ds(['foo', 'bar', 'baz']),
+    )
+    kd.testing.assert_equivalent(result, expected_ds, schemas_equality=False)
+
+  def test_empty_list_entity_item_schema(self):
+    db = bag()
+    item_schema = db.new_schema(x=kd.INT32, y=kd.STRING)
+    o = db.new(
+        a=db.list([], item_schema=item_schema),
+        b=ds('foo'),
+    )
+    o.set_attr('self', o)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)  # pyrefly: ignore[missing-attribute]
+
+    self.assertFalse(result.get_bag().is_mutable())
+    expected = kd.new(
+        a=db.list([], item_schema=item_schema),
+        b=ds('foo'),
+        self=kd.new(
+            a=db.list([], item_schema=item_schema),
+            b=ds('foo'),
+            schema=o.get_schema(),
+        ),
+        schema=o.get_schema(),
+    )
+    kd.testing.assert_equivalent(result, expected, schemas_equality=True)
+
+  def test_schema_object_on_object_attribute(self):
+    db = bag()
+    stored_schema = db.new_schema(x=kd.INT32, y=kd.STRING)
+    o = db.obj(stored_schema=stored_schema)
+    res = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(res.stored_schema.no_bag(), stored_schema.no_bag())
+
+  def test_metadata_object(self):
+    db = bag()
+    schema = db.new_schema(x=kd.INT32, y=kd.INT32)
+    schema = kd.with_metadata(schema.freeze_bag(), foo='bar')
+    o = db.obj(kd.new(x=1, y=2, schema=schema))
+    o.set_attr('self', o)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=0)  # pyrefly: ignore[missing-attribute]
+
+    self.assertFalse(result.get_bag().is_mutable())
+
+    res_metadata = kd.get_metadata(result.get_obj_schema())
+    kd.testing.assert_equal(res_metadata.foo.no_bag(), ds('bar'))
+
+  def test_metadata_entity(self):
+    db = bag()
+    schema = db.new_schema(x=kd.INT32, y=kd.INT32)
+    schema = kd.with_metadata(schema.freeze_bag(), foo='bar')
+    o = db.new(x=1, y=2, schema=schema)
+    o.set_attr('self', o)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)  # pyrefly: ignore[missing-attribute]
+
+    self.assertFalse(result.get_bag().is_mutable())
+
+    expected = kd.new(
+        x=1, y=2, self=kd.new(x=1, y=2, schema=schema), schema=schema
+    )
+    kd.testing.assert_equivalent(result, expected, schemas_equality=True)
+
+    res_metadata = kd.get_metadata(result.get_schema())
+    kd.testing.assert_equal(res_metadata.foo.no_bag(), ds('bar'))
+
+  def test_named_schema(self):
+    db = bag()
+    schema = db.named_schema('MySchema', x=kd.INT32, y=kd.STRING)
+    o = db.new(x=1, y='hello', schema=schema)
+    o.set_attr('self', o)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)  # pyrefly: ignore[missing-attribute]
+
+    self.assertFalse(result.get_bag().is_mutable())
+    # Named schema should keep its name and identity.
+    kd.testing.assert_equal(
+        result.get_schema().no_bag(), schema.no_bag()
+    )
+    kd.testing.assert_equal(
+        result.get_schema().get_schema_name().no_bag(),
+        ds('MySchema'),
+    )
+    expected = kd.new(
+        x=1, y='hello',
+        self=kd.new(x=1, y='hello', schema=schema),
+        schema=schema,
+    )
+    kd.testing.assert_equivalent(result, expected, schemas_equality=True)
+
+  def test_shared_schema(self):
+    db = bag()
+    schema = db.new_schema(x=kd.INT32, y=kd.STRING)
+    a = db.new(x=1, y='a', schema=schema)
+    b = db.new(x=2, y='b', schema=schema)
+    o = db.new(a=a, b=b)
+    o.set_attr('self', o)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=0)  # pyrefly: ignore[missing-attribute]
+
+    self.assertFalse(result.get_bag().is_mutable())
+    # Both child entities should share the same schema.
+    kd.testing.assert_equal(
+        result.a.get_schema().no_bag(), schema.no_bag()
+    )
+    kd.testing.assert_equal(
+        result.b.get_schema().no_bag(), schema.no_bag()
+    )
+    kd.testing.assert_equal(
+        result.a.get_schema().no_bag(), result.b.get_schema().no_bag()
+    )
+
+  def test_entity_schema_preserved(self):
+    db = bag()
+    schema = db.new_schema(x=kd.INT32)
+    o = db.new(x=42, schema=schema)
+    o.set_attr('self', o)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=0)  # pyrefly: ignore[missing-attribute]
+
+    self.assertFalse(result.get_bag().is_mutable())
+    expected = kd.new(x=42, schema=schema)
+    kd.testing.assert_equivalent(result, expected, schemas_equality=True)
+
+  def test_list_with_entity_items(self):
+    db = bag()
+    item_schema = db.new_schema(val=kd.INT32)
+    items = db.list(
+        [db.new(val=1, schema=item_schema), db.new(val=2, schema=item_schema)],
+        item_schema=item_schema,
+    )
+    o = db.new(items=items, name=ds('test'))
+    o.set_attr('self', o)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=0)  # pyrefly: ignore[missing-attribute]
+
+    self.assertFalse(result.get_bag().is_mutable())
+    expected = db.new(items=items, name=ds('test'), schema=o.get_schema())
+    kd.testing.assert_equivalent(result, expected, schemas_equality=True)
+
+  def test_schema_as_data_attribute(self):
+    db = bag()
+    stored_schema = db.new_schema(x=kd.INT32, y=kd.STRING)
+    o = db.new(my_schema=stored_schema, data=ds(42))
+    o.set_attr('self', o)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=0)  # pyrefly: ignore[missing-attribute]
+
+    self.assertFalse(result.get_bag().is_mutable())
+    # The schema stored as data should be preserved and its attrs accessible.
+    kd.testing.assert_equal(
+        result.my_schema.no_bag(), stored_schema.no_bag()
+    )
+    kd.testing.assert_equal(result.my_schema.x.no_bag(), kd.INT32)
+    kd.testing.assert_equal(result.my_schema.y.no_bag(), kd.STRING)
+
+  def test_schema_as_itemid_attribute(self):
+    db = bag()
+    stored_schema = db.new_schema(x=kd.INT32, y=kd.STRING)
+    o = db.new(my_schema=stored_schema.get_itemid(), data=ds(42))
+    o.set_attr('self', o)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=0)  # pyrefly: ignore[missing-attribute]
+
+    self.assertFalse(result.get_bag().is_mutable())
+    # The schema stored as data should be preserved and its attrs accessible.
+    kd.testing.assert_equal(
+        result.my_schema.no_bag(), stored_schema.get_itemid().no_bag()
+    )
+    kd.testing.assert_equivalent(
+        stored_schema.with_bag(result.get_bag()), db.new_schema()
+    )
+
+  def test_object_implicit_schema_gets_new_id(self):
+    """Implicit schemas should get new IDs derived from the cloned object."""
+    db = bag()
+    o = db.obj(x=1, y='a')
+    o.set_attr('self', o)
+    original_schema = o.get_obj_schema()
+
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)  # pyrefly: ignore[missing-attribute]
+
+    # The result's obj-schema should be different from the original's because
+    # implicit schemas get new IDs derived from the cloned object.
+    result_schema = result.get_obj_schema()
+    kd.testing.assert_not_equal(
+        result_schema.no_bag(), original_schema.no_bag()
+    )
+    # But the schema attrs should still be correct.
+    kd.testing.assert_equal(result_schema.x.no_bag(), kd.INT32)
+    kd.testing.assert_equal(result_schema.y.no_bag(), kd.STRING)
+
+  def test_schemas_slice(self):
+    db = bag()
+    schema = db.new_schema(x=kd.INT32, y=kd.STRING)
+    x = ds([schema, schema])
+    with self.assertRaisesRegex(
+        ValueError,
+        'cannot flatten cyclic references for a DataSlice of schemas',
+    ):
+      kd_ext.contrib.flatten_cyclic_references(x, max_recursion_depth=1)  # pyrefly: ignore[missing-attribute]
+
   def test_view(self):
     expr = kde.contrib.flatten_cyclic_references(
         I.x, max_recursion_depth=I.max_recursion_depth

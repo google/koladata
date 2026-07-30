@@ -23,6 +23,7 @@ tree-like copy. The max_recursion_depth argument controls the maximum number
 of times the same entity can occur on the path from the root to a leaf.
 Note: resulting DataBag might have an exponential size, compared to the input
 DataBag.
+Note: a slice of schemas is not supported as input.
 
 Args:
   x: DataSlice to flatten.

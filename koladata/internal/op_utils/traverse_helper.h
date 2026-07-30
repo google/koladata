@@ -64,6 +64,45 @@ class TraverseHelper {
     kSliceItem,
   };
 
+  template <typename Sink>
+  friend void AbslStringify(Sink& sink, TransitionType type) {
+    switch (type) {
+      case TransitionType::kListItem:
+        sink.Append("kListItem");
+        break;
+      case TransitionType::kListNoItems:
+        sink.Append("kListNoItems");
+        break;
+      case TransitionType::kDictKey:
+        sink.Append("kDictKey");
+        break;
+      case TransitionType::kDictNoKeys:
+        sink.Append("kDictNoKeys");
+        break;
+      case TransitionType::kDictValue:
+        sink.Append("kDictValue");
+        break;
+      case TransitionType::kDictNoValues:
+        sink.Append("kDictNoValues");
+        break;
+      case TransitionType::kAttributeName:
+        sink.Append("kAttributeName");
+        break;
+      case TransitionType::kSchemaAttributeName:
+        sink.Append("kSchemaAttributeName");
+        break;
+      case TransitionType::kObjectSchema:
+        sink.Append("kObjectSchema");
+        break;
+      case TransitionType::kSchema:
+        sink.Append("kSchema");
+        break;
+      case TransitionType::kSliceItem:
+        sink.Append("kSliceItem");
+        break;
+    }
+  }
+
   struct Transition {
     DataItem item;
     DataItem schema;
