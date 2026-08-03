@@ -32,10 +32,14 @@ absl::StatusOr<DataSlice> ExtractWithSchema(
     const DataSlice& ds, const DataSlice& schema, int max_depth,
     const std::optional<internal::CastingCallback>& casting_callback,
     const std::optional<internal::LeafCallback>& leaf_callback) {
-  const auto& db = ds.GetBag();
-  if (db == nullptr) {
+  if (ds.GetBag() == nullptr) {
+    if (ds.present_count() == 0) {
+      return ExtractWithSchema(ds.WithBag(DataBag::GetStaticEmpty()), schema,
+                               max_depth, casting_callback, leaf_callback);
+    }
     return absl::InvalidArgumentError("cannot extract without a DataBag");
   }
+  const auto& db = ds.GetBag();
   const auto& schema_db = schema.GetBag();
   if (ds.IsWhole() && db == schema_db && max_depth == -1) {
     return ds;
@@ -70,7 +74,7 @@ absl::StatusOr<DataSlice> ExtractWithSchema(
 }
 
 absl::StatusOr<DataSlice> Extract(const DataSlice& ds) {
-  if (ds.IsWhole()) {
+  if (ds.IsWhole() && ds.GetBag() != nullptr) {
     return ds;
   }
   return ExtractWithSchema(ds, ds.GetSchema());

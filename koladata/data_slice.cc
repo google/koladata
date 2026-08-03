@@ -190,6 +190,9 @@ absl::StatusOr<internal::DataItem> GetObjSchemaImpl(
 // Gets embedded schema from DataSliceImpl for primitives and objects.
 absl::StatusOr<internal::DataSliceImpl> GetObjSchemaImpl(
     const internal::DataSliceImpl& impl, const absl_nullable DataBagPtr& db) {
+  if (impl.present_count() == 0) {
+    return internal::DataSliceImpl::CreateEmptyAndUnknownType(impl.size());
+  }
   internal::SliceBuilder builder(impl.size());
 
   RETURN_IF_ERROR(impl.VisitValues([&]<class T>(const arolla::DenseArray<T>&
@@ -1416,6 +1419,10 @@ absl::StatusOr<DataSlice> DataSlice::GetNoFollowedSchema() const {
 }
 
 absl::StatusOr<DataSlice> DataSlice::ForkBag() const {
+  if (GetBag() == nullptr) {
+    return absl::InvalidArgumentError(
+        "cannot fork bag of a DataSlice without a DataBag");
+  }
   ASSIGN_OR_RETURN(auto forked_db, GetBag()->Fork());
   return DataSlice(internal_->impl, GetShape(), GetSchemaImpl(),
                    std::move(forked_db), IsWhole());
@@ -1449,6 +1456,9 @@ bool DataSlice::IsEquivalentTo(const DataSlice& other) const {
 absl::StatusOr<DataSlice::AttrNamesSet> DataSlice::GetAttrNames(
     OnAttrNamesMismatch on_mismatch) const {
   if (GetBag() == nullptr) {
+    if (present_count() == 0) {
+      return AttrNamesSet{};
+    }
     return absl::InvalidArgumentError(
         "cannot get available attributes without a DataBag");
   }
@@ -1475,6 +1485,11 @@ absl::StatusOr<DataSlice::AttrNamesSet> DataSlice::GetAttrNames(
 
 absl::StatusOr<DataSlice> DataSlice::GetAttrNamesPerItem() const {
   if (GetBag() == nullptr) {
+    if (present_count() == 0) {
+      ASSIGN_OR_RETURN(
+          auto res, WithBag(DataBag::GetStaticEmpty()).GetAttrNamesPerItem());
+      return res.WithBag(nullptr);
+    }
     return absl::InvalidArgumentError(
         "cannot get available attributes without a DataBag");
   }
@@ -1588,6 +1603,11 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrNamesPerItem() const {
 
 absl::StatusOr<DataSlice> DataSlice::GetAttr(
     absl::string_view attr_name) const {
+  if (GetBag() == nullptr && present_count() == 0) {
+    ASSIGN_OR_RETURN(auto res,
+                     WithBag(DataBag::GetStaticEmpty()).GetAttr(attr_name));
+    return res.WithBag(nullptr);
+  }
   ASSIGN_OR_RETURN(
       auto result,
       VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
@@ -1609,6 +1629,12 @@ absl::StatusOr<DataSlice> DataSlice::GetAttr(
 
 absl::StatusOr<DataSlice> DataSlice::GetAttrOrMissing(
     absl::string_view attr_name) const {
+  if (GetBag() == nullptr && present_count() == 0) {
+    ASSIGN_OR_RETURN(
+        auto res,
+        WithBag(DataBag::GetStaticEmpty()).GetAttrOrMissing(attr_name));
+    return res.WithBag(nullptr);
+  }
   ASSIGN_OR_RETURN(
       auto result,
       VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
@@ -1662,6 +1688,11 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
 
 absl::StatusOr<DataSlice> DataSlice::HasAttr(
     absl::string_view attr_name) const {
+  if (GetBag() == nullptr && present_count() == 0) {
+    ASSIGN_OR_RETURN(auto res,
+                     WithBag(DataBag::GetStaticEmpty()).HasAttr(attr_name));
+    return res.WithBag(nullptr);
+  }
   ASSIGN_OR_RETURN(
       auto result,
       VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
@@ -1968,6 +1999,11 @@ bool DataSlice::IsEntity() const {
 
 absl::StatusOr<DataSlice> DataSlice::GetFromDict(const DataSlice& keys) const {
   if (GetBag() == nullptr) {
+    if (present_count() == 0) {
+      ASSIGN_OR_RETURN(auto res,
+                       WithBag(DataBag::GetStaticEmpty()).GetFromDict(keys));
+      return res.WithBag(nullptr);
+    }
     return absl::InvalidArgumentError(
         "cannot get dict values without a DataBag");
   }
@@ -2056,6 +2092,11 @@ absl::Status DataSlice::SetInDict(const DataSlice& keys,
 
 absl::StatusOr<DataSlice> DataSlice::GetDictKeys() const {
   if (GetBag() == nullptr) {
+    if (present_count() == 0) {
+      ASSIGN_OR_RETURN(auto res,
+                       WithBag(DataBag::GetStaticEmpty()).GetDictKeys());
+      return res.WithBag(nullptr);
+    }
     return absl::InvalidArgumentError("cannot get dict keys without a DataBag");
   }
   FlattenFallbackFinder fb_finder(*GetBag());
@@ -2081,6 +2122,11 @@ absl::StatusOr<DataSlice> DataSlice::GetDictKeys() const {
 
 absl::StatusOr<DataSlice> DataSlice::GetDictValues() const {
   if (GetBag() == nullptr) {
+    if (present_count() == 0) {
+      ASSIGN_OR_RETURN(auto res,
+                       WithBag(DataBag::GetStaticEmpty()).GetDictValues());
+      return res.WithBag(nullptr);
+    }
     return absl::InvalidArgumentError(
         "cannot get dict values without a DataBag");
   }
@@ -2107,6 +2153,11 @@ absl::StatusOr<DataSlice> DataSlice::GetDictValues() const {
 absl::StatusOr<DataSlice> DataSlice::GetFromList(
     const DataSlice& indices) const {
   if (GetBag() == nullptr) {
+    if (present_count() == 0) {
+      ASSIGN_OR_RETURN(auto res,
+                       WithBag(DataBag::GetStaticEmpty()).GetFromList(indices));
+      return res.WithBag(nullptr);
+    }
     return absl::InvalidArgumentError(
         "cannot get list items without a DataBag");
   }
@@ -2162,6 +2213,12 @@ absl::StatusOr<DataSlice> DataSlice::GetFromList(
 absl::StatusOr<DataSlice> DataSlice::ExplodeList(
     int64_t start, std::optional<int64_t> stop) const {
   if (GetBag() == nullptr) {
+    if (present_count() == 0) {
+      ASSIGN_OR_RETURN(
+          auto res,
+          WithBag(DataBag::GetStaticEmpty()).ExplodeList(start, stop));
+      return res.WithBag(nullptr);
+    }
     return absl::InvalidArgumentError(
         "cannot get list items without a DataBag");
   }
@@ -2620,6 +2677,11 @@ absl::StatusOr<DataSlice> CastOrUpdateSchema(
 absl::StatusOr<DataSlice> ListSize(const DataSlice& lists) {
   const auto& db = lists.GetBag();
   if (db == nullptr) {
+    if (lists.present_count() == 0) {
+      return DataSlice::Create(
+          internal::DataSliceImpl::CreateEmptyAndUnknownType(lists.size()),
+          lists.GetShape(), internal::DataItem(schema::kInt64), nullptr);
+    }
     return absl::InvalidArgumentError(
         "not possible to get List size without a DataBag");
   }

@@ -41,6 +41,7 @@
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "koladata/adoption_utils.h"
+#include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_bag.h"
@@ -552,6 +553,15 @@ TEST(DataSliceTest, ForkErrors) {
   EXPECT_THAT(ds.ForkBag(),
               StatusIs(absl::StatusCode::kFailedPrecondition,
                        HasSubstr("forking with fallbacks is not supported")));
+
+  {
+    auto ds_nobag = test::DataSlice<int>({1, 2});  // no bag
+    EXPECT_THAT(
+        ds_nobag.ForkBag(),
+        StatusIs(
+            absl::StatusCode::kInvalidArgument,
+            HasSubstr("cannot fork bag of a DataSlice without a DataBag")));
+  }
 }
 
 TEST(DataSliceTest, IsEquivalentTo) {
@@ -1172,6 +1182,14 @@ TEST(DataSliceTest, GetObjSchema) {
   }
 
   {
+    // OBJECT schema empty slice, no bag, ObjectId type
+    auto ds =
+        test::DataSlice<internal::ObjectId>({std::nullopt}, schema::kObject);
+    auto schema_ds = test::EmptyDataSlice(1, schema::kSchema);
+    EXPECT_THAT(ds.GetObjSchema(), IsOkAndHolds(IsEquivalentTo(schema_ds)));
+  }
+
+  {
     // NONE schema slice
     auto ds = test::EmptyDataSlice(3, schema::kNone);
     auto schema_ds = test::EmptyDataSlice(3, schema::kSchema);
@@ -1625,9 +1643,25 @@ TEST(DataSliceTest, GetAttrNamesPerItem_Errors) {
 
 TEST(DataSliceTest, GetAttrErrors) {
   {
-    // No db.
+    // No db, empty.
     auto x =
         test::DataSlice<internal::ObjectId>({std::nullopt}, schema::kObject);
+    ASSERT_OK_AND_ASSIGN(auto res, x.GetAttr("a"));
+    EXPECT_EQ(res.GetBag(), nullptr);
+    EXPECT_TRUE(res.IsEmpty());
+    EXPECT_EQ(res.GetSchemaImpl(), schema::kNone);
+  }
+  {
+    // No db, empty, entity schema (should fail)
+    auto schema = internal::AllocateExplicitSchema();
+    auto x = test::DataSlice<internal::ObjectId>({std::nullopt}, schema);
+    EXPECT_THAT(x.GetAttr("a"), StatusIs(absl::StatusCode::kInvalidArgument,
+                                         HasSubstr("missing on the schema")));
+  }
+  {
+    // No db, not empty.
+    auto x = test::DataSlice<internal::ObjectId>(
+        {internal::AllocateSingleObject()}, schema::kObject);
     EXPECT_THAT(x.GetAttr("a"),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("failed to get attribute 'a': the DataSlice "
@@ -1672,6 +1706,22 @@ TEST(DataSliceTest, GetAttrErrors) {
                  "list. Perhaps you want to get attribute from list items but "
                  "forgot to explode the list. For example, ds[:].field_a"));
   }
+}
+
+TEST(DataSliceTest, GetAttrNames_NoBagEmpty) {
+  auto x = test::DataSlice<internal::ObjectId>({std::nullopt}, schema::kObject);
+  EXPECT_THAT(x.GetAttrNames(DataSlice::OnAttrNamesMismatch::kUnion),
+              IsOkAndHolds(ElementsAre()));
+  EXPECT_THAT(x.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection),
+              IsOkAndHolds(ElementsAre()));
+  EXPECT_THAT(x.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
+              IsOkAndHolds(ElementsAre()));
+
+  ASSERT_OK_AND_ASSIGN(auto names_per_item, x.GetAttrNamesPerItem());
+  EXPECT_EQ(names_per_item.GetBag(), nullptr);
+  EXPECT_TRUE(names_per_item.IsEmpty());
+  EXPECT_EQ(names_per_item.GetSchemaImpl(), schema::kString);
+  EXPECT_EQ(names_per_item.GetShape().rank(), 2);  // [1] -> [1, 0]
 }
 
 TEST(DataSliceTest, GetAttrNames_SchemaItem) {
@@ -3267,6 +3317,57 @@ TEST(DataSliceTest, GetNoFollow_ListItems) {
               IsOkAndHolds(Property(&DataSlice::slice, ElementsAre(1, 2))));
 }
 
+TEST(DataSliceCastingTest, CastTo_NoBagEmpty) {
+  {
+    // Entity to Entity (same schema)
+    auto schema = internal::AllocateExplicitSchema();  // ObjectId
+    auto x = test::DataSlice<internal::ObjectId>({std::nullopt}, schema);
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         CastToExplicit(x, internal::DataItem(schema)));
+    EXPECT_EQ(res.GetBag(), nullptr);
+    EXPECT_TRUE(res.IsEmpty());
+    EXPECT_EQ(res.GetSchemaImpl(), internal::DataItem(schema));
+  }
+  {
+    // Entity to Entity (different schema)
+    auto schema1 = internal::AllocateExplicitSchema();
+    auto schema2 = internal::AllocateExplicitSchema();
+    auto x = test::DataSlice<internal::ObjectId>({std::nullopt}, schema1);
+    EXPECT_THAT(CastToExplicit(x, internal::DataItem(schema2)),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("without DataBag")));
+  }
+  {
+    // Object to Entity
+    auto schema = internal::AllocateExplicitSchema();
+    auto x =
+        test::DataSlice<internal::ObjectId>({std::nullopt}, schema::kObject);
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         CastToExplicit(x, internal::DataItem(schema)));
+    EXPECT_EQ(res.GetBag(), nullptr);
+    EXPECT_TRUE(res.IsEmpty());
+    EXPECT_EQ(res.GetSchemaImpl(), internal::DataItem(schema));
+  }
+  {
+    // Entity to Object
+    auto schema = internal::AllocateExplicitSchema();
+    auto x = test::DataSlice<internal::ObjectId>({std::nullopt}, schema);
+    ASSERT_OK_AND_ASSIGN(
+        auto res, CastToExplicit(x, internal::DataItem(schema::kObject)));
+    EXPECT_EQ(res.GetBag(), nullptr);
+    EXPECT_TRUE(res.IsEmpty());
+    EXPECT_EQ(res.GetSchemaImpl(), schema::kObject);
+  }
+  {
+    // Primitive to Entity (should STILL fail)
+    auto schema = internal::AllocateExplicitSchema();
+    auto x = test::DataSlice<int>({std::nullopt}, schema::kInt32);
+    EXPECT_THAT(CastToExplicit(x, internal::DataItem(schema)),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("currently not supported")));
+  }
+}
+
 TEST(DataSliceTest, SetAttr_AutoBroadcasting) {
   auto ds_primitive = test::DataSlice<int>({1, 2, 3});
 
@@ -4457,6 +4558,51 @@ TEST(DataSliceTest, PopFromList_NoneSchema_NotAList) {
               IsEquivalentTo(test::EmptyDataSlice(3, schema::kNone, db)));
 }
 
+TEST(DataSliceTest, ListNoBagEmpty) {
+  auto list = test::DataSlice<internal::ObjectId>({std::nullopt},
+                                                  schema::kObject);  // empty
+
+  ASSERT_OK_AND_ASSIGN(auto exploded, list.ExplodeList(0, std::nullopt));
+  EXPECT_EQ(exploded.GetBag(), nullptr);
+  EXPECT_TRUE(exploded.IsEmpty());
+  EXPECT_EQ(exploded.GetSchemaImpl(), schema::kNone);
+  EXPECT_EQ(exploded.GetShape().rank(), 2);  // [1] -> [1, 0]
+
+  auto indices = test::DataSlice<int64_t>({0}, schema::kInt64);
+  ASSERT_OK_AND_ASSIGN(auto get_res, list.GetFromList(indices));
+  EXPECT_EQ(get_res.GetBag(), nullptr);
+  EXPECT_TRUE(get_res.IsEmpty());
+  EXPECT_EQ(get_res.GetSchemaImpl(), schema::kNone);
+  EXPECT_EQ(get_res.GetShape().rank(), 1);  // [1]
+
+  ASSERT_OK_AND_ASSIGN(auto size, ListSize(list));
+  EXPECT_EQ(size.GetBag(), nullptr);
+  EXPECT_TRUE(size.IsEmpty());
+  EXPECT_EQ(size.GetSchemaImpl(), schema::kInt64);
+  EXPECT_EQ(size.GetShape().rank(), 1);
+
+  // Broadcasting indices
+  {
+    auto shape12 = test::ShapeFromSplitPoints({{0, 1}, {0, 2}});
+    auto indices_multidim =
+        test::DataSlice<int64_t>({0, 0}, shape12, schema::kInt64);
+    ASSERT_OK_AND_ASSIGN(auto get_res2, list.GetFromList(indices_multidim));
+    EXPECT_EQ(get_res2.GetBag(), nullptr);
+    EXPECT_TRUE(get_res2.IsEmpty());
+    EXPECT_EQ(get_res2.GetSchemaImpl(), schema::kNone);
+    EXPECT_EQ(get_res2.GetShape().rank(), 2);  // [1, 2]
+  }
+  // Incompatible shapes
+  {
+    auto list_shape2 = test::DataSlice<internal::ObjectId>(
+        {std::nullopt, std::nullopt}, schema::kObject);
+    auto indices_shape3 = test::DataSlice<int64_t>({0, 0, 0}, schema::kInt64);
+    EXPECT_THAT(list_shape2.GetFromList(indices_shape3),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("cannot be expanded to shape")));
+  }
+}
+
 TEST(DataSliceTest, ExplodeList_Int32Schema) {
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}, {0, 1, 2, 3}});
   auto items = test::DataSlice<int>({42, 12, 13}, shape, schema::kInt32);
@@ -4974,6 +5120,52 @@ TEST(DataSliceTest, DictErrors) {
   EXPECT_THAT(dict.SetInDict(dict, dict),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("without a DataBag")));
+}
+
+TEST(DataSliceTest, DictNoBagEmpty) {
+  auto dict = test::DataSlice<internal::ObjectId>({std::nullopt},
+                                                  schema::kObject);  // empty
+
+  ASSERT_OK_AND_ASSIGN(auto keys, dict.GetDictKeys());
+  EXPECT_EQ(keys.GetBag(), nullptr);
+  EXPECT_TRUE(keys.IsEmpty());
+  EXPECT_EQ(keys.GetSchemaImpl(), schema::kNone);
+  EXPECT_EQ(keys.GetShape().rank(), 2);  // [1] -> [1, 0]
+
+  ASSERT_OK_AND_ASSIGN(auto values, dict.GetDictValues());
+  EXPECT_EQ(values.GetBag(), nullptr);
+  EXPECT_TRUE(values.IsEmpty());
+  EXPECT_EQ(values.GetSchemaImpl(), schema::kNone);
+  EXPECT_EQ(values.GetShape().rank(), 2);
+
+  ASSERT_OK_AND_ASSIGN(auto get_res, dict.GetFromDict(keys));
+  EXPECT_EQ(get_res.GetBag(), nullptr);
+  EXPECT_TRUE(get_res.IsEmpty());
+  EXPECT_EQ(get_res.GetSchemaImpl(), schema::kNone);
+  EXPECT_EQ(get_res.GetShape().rank(), 2);
+
+  // Broadcasting keys
+  {
+    auto shape12 = test::ShapeFromSplitPoints({{0, 1}, {0, 2}});
+    auto keys_multidim = test::DataSlice<internal::ObjectId>(
+        {std::nullopt, std::nullopt}, shape12, schema::kObject);
+    ASSERT_OK_AND_ASSIGN(auto get_res2, dict.GetFromDict(keys_multidim));
+    EXPECT_EQ(get_res2.GetBag(), nullptr);
+    EXPECT_TRUE(get_res2.IsEmpty());
+    EXPECT_EQ(get_res2.GetSchemaImpl(), schema::kNone);
+    EXPECT_EQ(get_res2.GetShape().rank(), 2);  // [1, 2]
+  }
+  // Incompatible shapes
+  {
+    auto dict_shape2 = test::DataSlice<internal::ObjectId>(
+        {std::nullopt, std::nullopt}, schema::kObject);  // shape [2]
+    auto keys_shape3 = test::DataSlice<internal::ObjectId>(
+        {std::nullopt, std::nullopt, std::nullopt},
+        schema::kObject);  // shape [3]
+    EXPECT_THAT(dict_shape2.GetFromDict(keys_shape3),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("cannot be expanded to shape")));
+  }
 }
 
 TEST(DataSliceTest, SetInDict_GetFromDict_DataItem_ObjectSchema) {

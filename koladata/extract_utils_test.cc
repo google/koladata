@@ -20,6 +20,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 
 namespace koladata {
 namespace {
@@ -56,6 +57,52 @@ TEST(ExtractionUtilsTest, ExtractNonWholeMarksWhole) {
   ASSERT_OK_AND_ASSIGN(auto ds_extracted, extract_utils_internal::Extract(ds));
   EXPECT_NE(ds.GetBag().get(), ds_extracted.GetBag().get());
   EXPECT_TRUE(ds_extracted.IsWhole());
+}
+
+TEST(ExtractionUtilsTest, ExtractNoBagEmpty) {
+  // Primitive schema
+  {
+    ASSERT_OK_AND_ASSIGN(
+        auto ds, DataSlice::Create(internal::DataItem(),
+                                   internal::DataItem(schema::kInt32), nullptr,
+                                   DataSlice::Wholeness::kWhole));
+    ASSERT_OK_AND_ASSIGN(auto ds_extracted,
+                         extract_utils_internal::Extract(ds));
+    EXPECT_NE(ds_extracted.GetBag(), nullptr);
+    EXPECT_TRUE(ds_extracted.IsEmpty());
+    EXPECT_EQ(ds_extracted.GetSchemaImpl(), schema::kInt32);
+  }
+  // Entity schema with bag
+  {
+    auto db = DataBag::EmptyMutable();
+    auto schema_item = internal::AllocateExplicitSchema();
+    ASSERT_OK_AND_ASSIGN(auto& db_impl, db->GetMutableImpl());
+    ASSERT_OK(db_impl.SetSchemaAttr(internal::DataItem(schema_item), "a",
+                                    internal::DataItem(schema::kInt32)));
+
+    ASSERT_OK_AND_ASSIGN(
+        auto ds,
+        DataSlice::Create(internal::DataItem(), internal::DataItem(schema_item),
+                          nullptr, DataSlice::Wholeness::kWhole));
+
+    ASSERT_OK_AND_ASSIGN(auto schema_ds,
+                         DataSlice::Create(internal::DataItem(schema_item),
+                                           internal::DataItem(schema::kSchema),
+                                           db, DataSlice::Wholeness::kWhole));
+
+    ASSERT_OK_AND_ASSIGN(
+        auto ds_extracted,
+        extract_utils_internal::ExtractWithSchema(ds, schema_ds));
+    EXPECT_NE(ds_extracted.GetBag(), nullptr);
+    EXPECT_TRUE(ds_extracted.IsEmpty());
+    EXPECT_EQ(ds_extracted.GetSchemaImpl(), internal::DataItem(schema_item));
+
+    // Check schema adoption
+    auto schema_extracted = ds_extracted.GetSchema();
+    EXPECT_NE(schema_extracted.GetBag(), nullptr);
+    ASSERT_OK_AND_ASSIGN(auto attr_val, schema_extracted.GetAttr("a"));
+    EXPECT_EQ(attr_val.item(), internal::DataItem(schema::kInt32));
+  }
 }
 
 }  // namespace

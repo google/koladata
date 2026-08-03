@@ -124,8 +124,8 @@ absl::StatusOr<DataSlice> ToSchema(const DataSlice& slice);
 // Casts the given slice to the provided entity schema.
 //
 // The following schemas are supported: {NONE, ITEMID, OBJECT} as well as
-// entity schemas. Note that the provided entity schema is not validated to
-// match any existing schema attributes in the slice's DataBag.
+// entity schemas. If the slice already has the target `entity_schema`, it is
+// returned as-is. Schema attributes are validated for compatibility.
 //
 // If `allow_removing_attrs` is true, the schema is allowed to remove attributes
 // from the slice. If `allow_new_attrs` is true, the schema is allowed to add

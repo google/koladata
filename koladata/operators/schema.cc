@@ -156,6 +156,12 @@ absl::StatusOr<DataSlice> CastToImpl(const DataSlice& x,
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   if (schema.item() == schema::kObject &&
       x.GetSchemaImpl().is_struct_schema()) {
+    // If the slice is empty and has no bag, we don't need to create a bag to
+    // embed the schema (which would be ignored anyway on empty slices).
+    // We can just return the empty slice with OBJECT schema and no bag.
+    if (x.IsEmpty() && x.GetBag() == nullptr) {
+      return ::koladata::ToObject(x, /*validate_schema=*/false);
+    }
     // This requires embedding the entity schema, which is a mutating operation.
     AdoptionQueue adoption_queue;
     adoption_queue.Add(x);

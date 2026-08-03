@@ -73,6 +73,9 @@ class DataBag : public arolla::RefcountedBase {
   // Returns a newly created empty immutable DataBag.
   static DataBagPtr Empty() { return DataBagPtr::Make(immutable_t()); }
 
+  // Returns a static empty immutable DataBag.
+  static const DataBagPtr& GetStaticEmpty();
+
   DataBag() : DataBag(/*is_mutable=*/true) {}
   explicit DataBag(immutable_t) : DataBag(/*is_mutable=*/false) {}
   ~DataBag() noexcept;

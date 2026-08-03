@@ -277,6 +277,50 @@ class CoreGetAttrTest(parameterized.TestCase):
     res = eager.core.get_attr(missing_schema, attrs)
     testing.assert_equal(res, missing_schema)
 
+  @parameterized.parameters(
+      (ds([None]), 'x'),
+      (ds([None]).with_schema(schema_constants.OBJECT), 'x'),
+  )
+  def test_no_bag_empty_succeeds(self, slice_val, attr_name):
+    res = eager.core.get_attr(slice_val, attr_name)
+    expected = slice_val.with_schema(schema_constants.NONE)
+    testing.assert_equal(res, expected)
+    testing.assert_equal(res.get_schema(), schema_constants.NONE)
+
+  def test_no_bag_empty_custom_schema_fails(self):
+    db = bag()
+    entity_schema = db.new_schema(a=schema_constants.INT32)
+    x = ds([None], entity_schema).no_bag()
+    with self.assertRaisesRegex(
+        ValueError, "the attribute 'a' is missing on the schema"
+    ):
+      _ = eager.core.get_attr(x, 'a')
+
+  @parameterized.parameters(
+      schema_constants.INT32,
+      schema_constants.STRING,
+  )
+  def test_no_bag_empty_primitive_fails(self, schema_val):
+    o_prim = ds([None]).with_schema(schema_val)
+    with self.assertRaisesRegex(
+        ValueError, 'primitives do not have attributes'
+    ):
+      _ = eager.core.get_attr(o_prim, 'x')
+
+  def test_no_bag_empty_attr_name_slice_fails(self):
+    o = ds([None]).with_schema(schema_constants.OBJECT)
+    with self.assertRaisesRegex(
+        ValueError, 'the DataSlice is a reference without a bag'
+    ):
+      _ = eager.core.get_attr(o, ds(['x']))
+
+  def test_no_bag_non_empty_fails(self):
+    o = bag().new(a=1).no_bag()
+    with self.assertRaisesRegex(
+        ValueError, 'the DataSlice is a reference without a bag'
+    ):
+      _ = eager.core.get_attr(o, 'a')
+
   def test_attr_name_error(self):
     entity = bag().new(a=1, b=2)
     with self.assertRaisesRegex(

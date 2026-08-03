@@ -115,6 +115,18 @@ class ListsExplodeTest(parameterized.TestCase):
           kd.list([kd.obj() & ds(None, schema_constants.MASK)]), -1
       )
 
+  @parameterized.parameters(
+      (ds([None]).with_schema(schema_constants.OBJECT), ds([[]])),
+      (ds([None]), ds([[]])),
+      (ds(None).with_schema(schema_constants.OBJECT), ds([])),
+      (ds(None), ds([])),
+  )
+  def test_no_bag_empty(self, l, expected):
+    expected_obj = expected.with_schema(schema_constants.NONE)
+    testing.assert_equal(kd.lists.explode(l, 1), expected_obj)
+    testing.assert_equal(l[:], expected_obj)
+    self.assertFalse(kd.lists.explode(l, 1).has_bag())
+
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
         kde.lists.explode,

@@ -62,6 +62,24 @@ class ListsSizeTest(parameterized.TestCase):
   def test_eval(self, d, sizes):
     testing.assert_equal(kd.lists.size(d), sizes)
 
+  @parameterized.parameters(
+      (ds([None]), ds([None], schema_constants.INT64)),
+      (
+          ds([None]).with_schema(schema_constants.OBJECT),
+          ds([None], schema_constants.INT64),
+      ),
+      (
+          ds([None]).with_schema(schema_constants.INT32),
+          ds([None], schema_constants.INT64),
+      ),
+  )
+  def test_no_bag_empty_succeeds(self, l, expected):
+    testing.assert_equal(kd.lists.size(l), expected)
+
+  def test_no_bag_empty_custom_schema_succeeds(self):
+    l = ds([None], bag().list_schema(schema_constants.INT32)).no_bag()
+    testing.assert_equal(kd.lists.size(l), ds([None], schema_constants.INT64))
+
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(

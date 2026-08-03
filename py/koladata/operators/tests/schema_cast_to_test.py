@@ -39,6 +39,9 @@ DATA_SLICE = qtypes.DATA_SLICE
 DB = data_bag.DataBag.empty_mutable()
 ENTITY = DB.new()
 
+EMPTY_SCHEMA_INT32 = kd.schema.new_schema(x=schema_constants.INT32).no_bag()
+EMPTY_SCHEMA_FLOAT32 = kd.schema.new_schema(x=schema_constants.FLOAT32).no_bag()
+
 
 class SchemaCastToTest(parameterized.TestCase):
 
@@ -399,6 +402,34 @@ class SchemaCastToTest(parameterized.TestCase):
       kd.schema.cast_to(
           ds(1), ds([schema_constants.INT32, schema_constants.INT64])
       )
+
+  @parameterized.parameters(
+      (ds([None]).with_schema(schema_constants.OBJECT), EMPTY_SCHEMA_INT32),
+      (ds([None]).with_schema(EMPTY_SCHEMA_INT32), schema_constants.OBJECT),
+  )
+  def test_no_bag_empty_succeeds(self, x, target_schema):
+    res = kd.schema.cast_to(x, target_schema)
+    self.assertFalse(res.has_bag())
+    testing.assert_equal(res, ds([None]).with_schema(target_schema))
+
+  @parameterized.parameters(
+      schema_constants.INT32,
+      schema_constants.STRING,
+  )
+  def test_no_bag_empty_primitive_fails(self, from_schema):
+    x = ds([None], from_schema)
+    with self.assertRaisesRegex(
+        ValueError,
+        'casting from .* to entity schema .* is currently not supported',
+    ):
+      _ = kd.schema.cast_to(x, EMPTY_SCHEMA_INT32)
+
+  def test_no_bag_empty_different_custom_schema_fails(self):
+    x = ds([None]).with_schema(EMPTY_SCHEMA_INT32)
+    with self.assertRaisesRegex(
+        ValueError, 'without DataBag is currently not supported'
+    ):
+      _ = kd.schema.cast_to(x, EMPTY_SCHEMA_FLOAT32)
 
   def test_boxing(self):
     testing.assert_equal(

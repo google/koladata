@@ -446,6 +446,7 @@ cc_test(
         ":data_slice",
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
         "@com_google_arolla//arolla/util/testing",
         "@com_google_googletest//:gtest_main",
     ],

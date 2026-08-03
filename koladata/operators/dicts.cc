@@ -24,6 +24,7 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/object_factories.h"
@@ -34,6 +35,11 @@ namespace koladata::ops {
 absl::StatusOr<DataSlice> DictSize(const DataSlice& dicts) {
   const auto& db = dicts.GetBag();
   if (db == nullptr) {
+    if (dicts.present_count() == 0) {
+      return DataSlice::Create(
+          internal::DataSliceImpl::CreateEmptyAndUnknownType(dicts.size()),
+          dicts.GetShape(), internal::DataItem(schema::kInt64), nullptr);
+    }
     return absl::InvalidArgumentError(
         "Not possible to get Dict size without a DataBag");
   }

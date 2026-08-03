@@ -239,6 +239,28 @@ class CoreExtractTest(parameterized.TestCase):
         ds([0, 1, 0], schema=schema_constants.INT64).no_bag(),
     )
 
+  @parameterized.parameters(
+      ds([None]),
+      ds([None]).with_schema(schema_constants.OBJECT),
+      (kd.new(a=1, b=2) & None).no_bag(),
+  )
+  def test_no_bag_empty(self, o):
+    res = kd.extract(o)
+    testing.assert_equal(res.no_bag(), o)
+    self.assertTrue(res.has_bag())
+    testing.assert_equal(res.get_schema().no_bag(), o.get_schema().no_bag())
+    self.assertTrue(res.get_schema().has_bag())
+
+  def test_no_bag_empty_schema_adoption(self):
+    db = data_bag.DataBag.empty_mutable()
+    schema = db.new_schema(a=schema_constants.INT32)
+    o = ds([None]).with_schema(schema).no_bag()
+    self.assertFalse(o.has_bag())
+
+    res = kd.extract(o, schema=schema)
+    self.assertTrue(res.has_bag())
+    testing.assert_equal(res.get_schema().a.no_bag(), schema_constants.INT32)
+
   def test_invalid_object_dtype_schema(self):
     db = data_bag.DataBag.empty_mutable()
     o = db.obj(x=1)

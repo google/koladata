@@ -1529,6 +1529,27 @@ TEST(Casting, EntityErrors) {
                            "(deep) casting from MASK to entity schema %v is "
                            "currently not supported",
                            internal::DataItem(entity_schema)))));
+
+  // If the slice is empty and there is no bag, the error correctly reports
+  // schema mismatch without needing the bag.
+  EXPECT_THAT(ToEntity(test::EmptyDataSlice(3, schema::kMask, /*db=*/nullptr),
+                       internal::DataItem(entity_schema)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr(absl::StrFormat(
+                           "(deep) casting from MASK to entity schema %v is "
+                           "currently not supported",
+                           internal::DataItem(entity_schema)))));
+
+  // Empty OBJECT slice without bag can be cast successfully.
+  ASSERT_OK_AND_ASSIGN(
+      auto empty_obj_no_bag,
+      ToEntity(test::EmptyDataSlice(3, schema::kObject, /*db=*/nullptr),
+               internal::DataItem(entity_schema)));
+  EXPECT_TRUE(empty_obj_no_bag.IsEmpty());
+  EXPECT_EQ(empty_obj_no_bag.GetSchemaImpl(),
+            internal::DataItem(entity_schema));
+  EXPECT_EQ(empty_obj_no_bag.GetBag(), nullptr);
+
   // If the "wrong" bag is attached, the error is still fine (it will be the
   // empty schema).
   EXPECT_THAT(ToEntity(test::DataSlice<arolla::Unit>(

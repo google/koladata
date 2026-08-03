@@ -475,6 +475,9 @@ absl::StatusOr<DataSlice> ToEntity(const DataSlice& slice,
         absl::StrFormat("expected an entity schema, got: %v", entity_schema));
   }
   internal::DataItem from_schema = slice.GetSchemaImpl();
+  if (from_schema == entity_schema) {
+    return slice;
+  }
   DataSlice slice_with_schema = slice;
   if (from_schema == schema::kObject) {
     // In case of OBJECT, we validate that the existing __schema__ attributes

@@ -42,6 +42,11 @@
 
 namespace koladata {
 
+const DataBagPtr& DataBag::GetStaticEmpty() {
+  static const absl::NoDestructor<DataBagPtr> empty_bag(DataBag::Empty());
+  return *empty_bag;
+}
+
 absl::StatusOr<DataBagPtr> DataBag::ImmutableEmptyWithFallbacks(
     absl::Span<const DataBagPtr absl_nullable> fallbacks) {
   auto res = DataBagPtr::Make(DataBag::immutable_t());

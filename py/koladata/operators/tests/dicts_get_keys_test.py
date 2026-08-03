@@ -120,6 +120,17 @@ class DictsGetKeysTest(parameterized.TestCase):
           ds([db.dict({1: 2}), 1], schema_constants.OBJECT).with_bag(db)
       )
 
+  @parameterized.parameters(
+      (ds([None]).with_schema(schema_constants.OBJECT), ds([[]])),
+      (ds([None]), ds([[]])),
+      (ds(None).with_schema(schema_constants.OBJECT), ds([])),
+      (ds(None), ds([])),
+  )
+  def test_no_bag_empty(self, x, expected):
+    res = kd.get_keys(x)
+    testing.assert_equal(res, expected.with_schema(schema_constants.NONE))
+    self.assertFalse(res.has_bag())
+
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
