@@ -998,8 +998,10 @@ py_library(
     srcs = ["koda_internal_functor.py"],
     deps = [
         ":optools",
+        ":qtype_utils",
         "//py:python_path",
         "//py/koladata/types:qtypes",
+        "@com_google_arolla//py/arolla",
     ],
 )
 

@@ -19,6 +19,8 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.functor import boxing as _
+from koladata.functor import functor_factories
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -33,14 +35,18 @@ kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 INT64 = schema_constants.INT64
+NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
 
 
 QTYPES = frozenset([
-    (DATA_SLICE, DATA_SLICE),
-    (DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE),
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE),
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
-    (DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE, DATA_SLICE),
+    (DATA_SLICE, DATA_SLICE, DATA_SLICE, NON_DETERMINISTIC_TOKEN, DATA_SLICE),
+    (
+        DATA_SLICE,
+        arolla.UNSPECIFIED,
+        DATA_SLICE,
+        NON_DETERMINISTIC_TOKEN,
+        DATA_SLICE,
+    ),
 ])
 
 
@@ -121,6 +127,30 @@ class SlicesSortTest(parameterized.TestCase):
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
+      (functor_factories.expr_fn(-I.self),),
+      (lambda x: -x,),
+  )
+  def test_eval_with_sort_by_functor_eager(self, sort_by):
+    result = kd.slices.sort(ds([2, 1, 3]), sort_by)
+    testing.assert_equal(result, ds([3, 2, 1]))
+
+  @parameterized.parameters(
+      (
+          kde.slices.sort(I.x, -I.self),
+          (ds([2, 1, 3]),),
+          dict(x=ds([2, 1, 3])),
+      ),
+      (
+          kde.slices.sort(I.x, functor_factories.expr_fn(-I.self)),
+          (),
+          dict(x=ds([2, 1, 3])),
+      ),
+  )
+  def test_eval_with_sort_by_functor_lazy(self, expr, args, kwargs):
+    result = expr.eval(*args, **kwargs)
+    testing.assert_equal(result, ds([3, 2, 1]))
+
+  @parameterized.parameters(
       # x.ndim = 1
       (ds([0, 3, None, 6]), ds([0, 3, 6, None])),
       # x.ndim = 2
@@ -133,49 +163,45 @@ class SlicesSortTest(parameterized.TestCase):
     result = kd.slices.sort(x)
     testing.assert_equal(result, expected)
 
-  def test_sort_by_more_sparse(self):
-    with self.assertRaisesRegex(
-        ValueError, re.escape('more sparse')
-    ):
-      kd.slices.sort(ds([0, 3, 6]), ds([2, 1, None]))
-
-  def test_data_item(self):
-    with self.assertRaisesRegex(
-        ValueError,
-        # TODO: For lambdas we only report underlying operator
-        # names.
-        re.escape('kd.slices.ordinal_rank: expected rank(x) > 0'),
-    ):
-      kd.slices.sort(ds(0))
-
-  def test_different_shape(self):
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape(
-            'kd.slices.sort: arguments `x` and `sort_by` must have the same'
-            ' shape'
-        ),
-    ):
-      kd.slices.sort(ds([0, 3, 6]), ds([0, 3, 6, 1]))
-
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape(
-            'kd.slices.sort: arguments `x` and `sort_by` must have the same'
-            ' shape'
-        ),
-    ):
-      kd.slices.sort(ds([0, 3, 6]), ds([[1], [2, 3], [4]]))
+  @parameterized.parameters(
+      (ds([0, 3, 6]), ds([2, 1, None]), 'more sparse'),
+      # TODO: For lambdas we only report underlying operator
+      # names.
+      (ds(0), None, 'kd.slices.ordinal_rank: expected rank(x) > 0'),
+      (
+          ds([0, 3, 6]),
+          ds([0, 3, 6, 1]),
+          (
+              'kd.slices.sort: arguments `x` and `sort_by` must have the same'
+              ' shape'
+          ),
+      ),
+      (
+          ds([0, 3, 6]),
+          ds([[1], [2, 3], [4]]),
+          (
+              'kd.slices.sort: arguments `x` and `sort_by` must have the same'
+              ' shape'
+          ),
+      ),
+  )
+  def test_errors(self, x, sort_by, err_msg):
+    with self.assertRaisesRegex(ValueError, re.escape(err_msg)):
+      if sort_by is None:
+        kd.slices.sort(x)
+      else:
+        kd.slices.sort(x, sort_by)
 
   def test_qtype_signatures(self):
     # Limit the allowed qtypes and a random QType to speed up the test.
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
             kde.slices.sort,
-            possible_qtypes=(
+            possible_qtypes=(  # pyrefly: ignore[bad-argument-type]
                 arolla.UNSPECIFIED,
                 qtypes.DATA_SLICE,
                 arolla.INT64,
+                qtypes.NON_DETERMINISTIC_TOKEN,
             ),
         ),
         QTYPES,

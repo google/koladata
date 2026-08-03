@@ -551,7 +551,8 @@ def shuffle(x, /, ndim=arolla.unspecified(), seed=arolla.unspecified()):
           lists.implode(core.no_bag(P.x), P.ndim), param=P.non_determinism_token
       ),
   )(x, ndim, py_boxing.NON_DETERMINISTIC_TOKEN_LEAF)
-  x_shuffled_lists = slices.sort(
+  # pylint: disable=protected-access
+  x_shuffled_lists = slices._sort(
       x_lists, sort_by=randint_shaped_as(x_lists, seed=seed)
   )
   return arolla.types.DispatchOperator(

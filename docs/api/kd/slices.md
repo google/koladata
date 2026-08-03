@@ -1058,8 +1058,10 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Sorts the items in `x` over the last dimension.
 
-When `sort_by` is specified, it is used to sort items in `x`. `sort_by` must
-have the same shape as `x` and cannot be more sparse than `x`. Otherwise,
+When `sort_by` is specified, it is used to sort items in `x`.
+`sort_by` (or the result of evaluating it, if it is a functor/function)
+must have the same shape as `x` and cannot be more sparse than `x`.
+Otherwise,
 items in `x` are compared by their values. Missing items are put in the end of
 the sorted list regardless of the value of `descending`.
 
@@ -1075,6 +1077,10 @@ Examples:
   kd.sort(ds, sort_by) -&gt;
       kd.slice([[[None, 1, 4, 2], [4, 1]], [[4, 5, None]]])
 
+  # Using a lambda function (which will be traced as a functor):
+  kd.sort(ds, lambda x: -x) -&gt;
+      kd.slice([[[4, 2, 1, None], [4, 1]], [[5, 4, None]]])
+
   kd.sort(kd.slice([1, 2, 3]), kd.slice([5, 4])) -&gt;
       raise due to different shapes
 
@@ -1083,7 +1089,10 @@ Examples:
 
 Args:
   x: DataSlice to sort.
-  sort_by: DataSlice used for comparisons.
+  sort_by: DataSlice used for comparisons. It can also be a Koda Functor or a
+    Python function (which can be evaluated to a DataSlice). A Python function
+    will be traced for evaluation, so it cannot have Python control flow
+    operations such as `if` or `while`.
   descending: whether to do descending sort.
 
 Returns:

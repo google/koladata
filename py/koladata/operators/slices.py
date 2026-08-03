@@ -1471,49 +1471,17 @@ def reverse(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.sort'], via_cc_operator_package=True)
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
-    'kd.slices.sort',
+    'kd.slices._sort',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice_or_unspecified(P.sort_by),
+        qtype_utils.expect_data_slice(P.sort_by),
         qtype_utils.expect_data_slice(P.descending),
     ],
 )
-def sort(x, sort_by=arolla.unspecified(), descending=False):
-  """Sorts the items in `x` over the last dimension.
-
-  When `sort_by` is specified, it is used to sort items in `x`. `sort_by` must
-  have the same shape as `x` and cannot be more sparse than `x`. Otherwise,
-  items in `x` are compared by their values. Missing items are put in the end of
-  the sorted list regardless of the value of `descending`.
-
-  Examples:
-    ds = kd.slice([[[2, 1, None, 4], [4, 1]], [[5, 4, None]]])
-
-    kd.sort(ds) -> kd.slice([[[1, 2, 4, None], [1, 4]], [[4, 5, None]]])
-
-    kd.sort(ds, descending=True) ->
-        kd.slice([[[4, 2, 1, None], [4, 1]], [[5, 4, None]]])
-
-    sort_by = kd.slice([[[9, 2, 1, 3], [2, 3]], [[9, 7, 9]]])
-    kd.sort(ds, sort_by) ->
-        kd.slice([[[None, 1, 4, 2], [4, 1]], [[4, 5, None]]])
-
-    kd.sort(kd.slice([1, 2, 3]), kd.slice([5, 4])) ->
-        raise due to different shapes
-
-    kd.sort(kd.slice([1, 2, 3]), kd.slice([5, 4, None])) ->
-        raise as `sort_by` is more sparse than `x`
-
-  Args:
-    x: DataSlice to sort.
-    sort_by: DataSlice used for comparisons.
-    descending: whether to do descending sort.
-
-  Returns:
-    DataSlice with last dimension sorted.
-  """
+def _sort(x, sort_by, descending=False):
+  """A version of kd.sort that does not support lambdas/functors."""
   assert_same_shape = arolla.types.LambdaOperator(
       'x, sort_by',
       assertion.with_assertion(
@@ -1538,15 +1506,7 @@ def sort(x, sort_by=arolla.unspecified(), descending=False):
           'kd.slices.sort: trying to sort `x` by `sort_by` that is more sparse',
       ),
   )
-  sort_by = arolla.types.DispatchOperator(
-      'x, sort_by',
-      unspecified_cast=arolla.types.DispatchCase(
-          P.x, condition=P.sort_by == arolla.UNSPECIFIED
-      ),
-      default=assert_sparsity_less(
-          assert_same_shape(P.x, P.sort_by), P.sort_by
-      ),
-  )(x, sort_by)
+  sort_by = assert_sparsity_less(assert_same_shape(x, sort_by), sort_by)
   return take(x, inverse_mapping(ordinal_rank(sort_by, descending=descending)))
 
 

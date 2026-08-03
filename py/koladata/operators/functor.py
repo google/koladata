@@ -607,6 +607,67 @@ def _maybe_call(maybe_fn, arg):  # pylint: disable=unused-argument
 
 
 # This operator is defined here since it depends on _maybe_call.
+@optools.add_to_registry(aliases=['kd.sort'], via_cc_operator_package=True)
+@optools.as_lambda_operator(
+    'kd.slices.sort',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice_or_unspecified(P.sort_by),
+        qtype_utils.expect_data_slice(P.descending),
+    ],
+)
+def sort(x, sort_by=arolla.unspecified(), descending=False):
+  """Sorts the items in `x` over the last dimension.
+
+  When `sort_by` is specified, it is used to sort items in `x`.
+  `sort_by` (or the result of evaluating it, if it is a functor/function)
+  must have the same shape as `x` and cannot be more sparse than `x`.
+  Otherwise,
+  items in `x` are compared by their values. Missing items are put in the end of
+  the sorted list regardless of the value of `descending`.
+
+  Examples:
+    ds = kd.slice([[[2, 1, None, 4], [4, 1]], [[5, 4, None]]])
+
+    kd.sort(ds) -> kd.slice([[[1, 2, 4, None], [1, 4]], [[4, 5, None]]])
+
+    kd.sort(ds, descending=True) ->
+        kd.slice([[[4, 2, 1, None], [4, 1]], [[5, 4, None]]])
+
+    sort_by = kd.slice([[[9, 2, 1, 3], [2, 3]], [[9, 7, 9]]])
+    kd.sort(ds, sort_by) ->
+        kd.slice([[[None, 1, 4, 2], [4, 1]], [[4, 5, None]]])
+
+    # Using a lambda function (which will be traced as a functor):
+    kd.sort(ds, lambda x: -x) ->
+        kd.slice([[[4, 2, 1, None], [4, 1]], [[5, 4, None]]])
+
+    kd.sort(kd.slice([1, 2, 3]), kd.slice([5, 4])) ->
+        raise due to different shapes
+
+    kd.sort(kd.slice([1, 2, 3]), kd.slice([5, 4, None])) ->
+        raise as `sort_by` is more sparse than `x`
+
+  Args:
+    x: DataSlice to sort.
+    sort_by: DataSlice used for comparisons. It can also be a Koda Functor or a
+      Python function (which can be evaluated to a DataSlice). A Python function
+      will be traced for evaluation, so it cannot have Python control flow
+      operations such as `if` or `while`.
+    descending: whether to do descending sort.
+
+  Returns:
+    DataSlice with last dimension sorted.
+  """
+  resolved_sort_by = _maybe_call(
+      arolla.M.core.default_if_unspecified(sort_by, x),
+      x,
+  )
+  # pylint: disable=protected-access
+  return slices._sort(x, resolved_sort_by, descending=descending)
+
+
+# This operator is defined here since it depends on _maybe_call.
 @optools.add_to_registry(aliases=['kd.select'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.select',

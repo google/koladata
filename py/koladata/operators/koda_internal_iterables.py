@@ -214,7 +214,8 @@ def sequence_interleave(sequences):
   indices = slices.repeat(slices.index(sizes), sizes).flatten()
   random_values = random.randint_shaped_as(indices)
   # [1, 0, 0, 1, 0]
-  shuffled_indices = slices.sort(indices, sort_by=random_values)
+  # pylint: disable=protected-access
+  shuffled_indices = slices._sort(indices, sort_by=random_values)
   # [[0, 3], [1, 2, 4]]
   grouped_indices = slices.group_by_indices(shuffled_indices)
   # [[0, 1], [0, 1, 2]]
