@@ -206,7 +206,7 @@ class MatrixDotTest(parameterized.TestCase):
     arolla.testing.assert_qtype_signatures(
         kde.matrix.dot,
         QTYPES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):

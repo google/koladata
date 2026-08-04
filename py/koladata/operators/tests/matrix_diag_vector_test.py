@@ -215,6 +215,7 @@ class MatrixDiagVectorTest(parameterized.TestCase):
     arolla.testing.assert_qtype_signatures(
         kde.matrix.diag_vector,
         QTYPES,
+        # pyrefly: ignore[bad-argument-type]
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
