@@ -656,6 +656,24 @@ Returns:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of DataSlice without DataBag.</code></pre>
 
+### `DataSlice.pipe(self: Any, fn: Callable[[Any], Any]) -> Any` {#kd.types.DataSlice.pipe}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Applies `fn(self)` and returns the result.
+
+Examples:
+  ```{.pycon-doctest}
+  &gt;&gt;&gt; x = kd.slice([1, 2, 3])
+  &gt;&gt;&gt; x.pipe(lambda s: s + 1)
+  DataSlice([2, 3, 4], schema: INT32)
+  ```
+
+Args:
+  self: The DataSlice, DataItem or Expr instance.
+  fn: A callable.
+
+Returns:
+  The result of calling `fn`.</code></pre>
+
 ### `DataSlice.pop(index, /)` {#kd.types.DataSlice.pop}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Pop a value from each list in this DataSlice</code></pre>

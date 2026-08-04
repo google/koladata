@@ -14,9 +14,12 @@
 
 from __future__ import annotations
 import types
-from typing import Any, Callable, Iterable, Iterator, Self, overload
+from typing import Any, Callable, Iterable, Iterator, Self, overload, TypeVar
 
 from arolla import arolla
+
+
+_T = TypeVar('_T')
 
 
 NotImplementedType = types.NotImplementedType
@@ -114,6 +117,7 @@ class DataSlice(arolla.QValue):
     ) -> Self: ...
     def ref(self) -> Self: ...
     def stub(self, attrs: DataSlice = []) -> Self: ...
+    def pipe(self, fn: Callable[[Self], _T]) -> _T: ...
 
     def reshape(self, shape: _JaggedShape) -> DataSlice: ...
     def reshape_as(self, shape_from: DataSlice) -> DataSlice: ...

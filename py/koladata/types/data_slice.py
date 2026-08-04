@@ -15,7 +15,7 @@
 """DataSlice abstraction."""
 
 import functools
-from typing import Any
+from typing import Any, Callable
 import warnings
 
 from arolla import arolla
@@ -617,6 +617,30 @@ def _display(
 def get_sizes(self) -> DataSlice:
   """Returns a DataSlice of sizes of the DataSlice's shape."""
   return _eval_op('kd.shapes.get_sizes', self)
+
+
+@add_method(DataSlice, 'pipe')
+def pipe_impl(
+    self: Any,
+    fn: Callable[[Any], Any],
+) -> Any:
+  """Applies `fn(self)` and returns the result.
+
+  Examples:
+    ```{.pycon-doctest}
+    >>> x = kd.slice([1, 2, 3])
+    >>> x.pipe(lambda s: s + 1)
+    DataSlice([2, 3, 4], schema: INT32)
+    ```
+
+  Args:
+    self: The DataSlice, DataItem or Expr instance.
+    fn: A callable.
+
+  Returns:
+    The result of calling `fn`.
+  """
+  return fn(self)
 
 ##### DataSlice Magic methods. #####
 

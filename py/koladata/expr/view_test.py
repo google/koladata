@@ -308,6 +308,9 @@ class KodaViewTest(parameterized.TestCase):
   def test_reshape_as(self):
     self.assert_exprs_equal(C.x.reshape_as(C.y), kde.reshape_as(C.x, C.y))
 
+  def test_pipe(self):
+    self.assert_exprs_equal(C.x.pipe(lambda x: x + 1), C.x + 1)
+
   def test_flatten(self):
     self.assert_exprs_equal(C.x.flatten(), kde.flatten(C.x))
     self.assert_exprs_equal(
@@ -950,6 +953,12 @@ class ArollaViewTest(parameterized.TestCase):
     arolla.testing.assert_expr_equal_by_fingerprint(
         op(C.x) < op(C.y),
         arolla.abc.unsafe_parse_sexpr((('core.less', (op, C.x), (op, C.y)))),
+    )
+
+  def test_pipe(self):
+    expr = op(C.x)
+    arolla.testing.assert_expr_equal_by_fingerprint(
+        expr.pipe(lambda x: x + 1), expr + 1
     )
 
 

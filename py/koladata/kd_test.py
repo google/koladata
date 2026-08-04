@@ -633,6 +633,13 @@ class KdTest(absltest.TestCase):
         kd.expr.unpack_expr(fn.f.returns), I.x + 1
     )
 
+  def test_pipe_is_traceable(self):
+    fn = kd.trace_py_fn(lambda x: x.pipe(lambda s: s + 1))
+    self.assertIsInstance(fn, kd.types.DataItem)
+    kd.testing.assert_traced_exprs_equal(
+        kd.expr.unpack_expr(fn.returns), I.x + 1
+    )
+
   def test_types_while_tracing(self):
     @kd.trace_as_fn(return_type_as=kd.types.DataBag)
     def f():

@@ -90,6 +90,8 @@ class BaseKodaView(arolla.abc.ExprView):
     # there is nothing to evaluate.
     return arolla.abc.aux_bind_op('kd.with_name', self, name)
 
+  pipe = data_slice.pipe_impl
+
 
 class KodaView(BaseKodaView):
   """ExprView applicable to all standard Koda types.

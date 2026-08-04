@@ -2186,6 +2186,11 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     with self.assertRaisesRegex(TypeError, '`shape_from` must be a DataSlice'):
       ds(1).reshape_as([])  # pytype: disable=wrong-arg-types
 
+  def test_pipe(self):
+    x = ds([1, 2, 3])
+    testing.assert_equal(x.pipe(lambda s: s + 1), ds([2, 3, 4]))
+    testing.assert_equal(x.pipe(lambda s: s * 2 + 5), ds([7, 9, 11]))
+
   @parameterized.parameters(
       (ds(1), ds([1])),
       (ds([[1, 2], [3, 4]]), ds([1, 2, 3, 4])),
