@@ -140,20 +140,42 @@ class ToPyVisitor : internal::AbstractVisitor {
   // does not exist and should not be created).
   // 2. the field exists, but is of type `Any`.
   absl::StatusOr<bool> MaybeComputeAndStoreClassForItem(
-      const DataItem& from_item, absl::string_view from_item_attr_name,
+      const DataItem& from_item,
+      const TransitionKey& transition_key,
       const DataItem& item) {
     const ObjectId& object_id = item.value<ObjectId>();
     DCHECK(output_class_descriptor_.has_value());
 
-    if (from_item_attr_name == kSliceItemPath) {
+    if (transition_key.type == TransitionType::kSliceItem) {
       // Root case; take the output object as is.
       class_cache_by_object_id_[object_id] = *output_class_descriptor_;
       return true;
     }
 
+    std::string attr_name;
+    if (transition_key.type == TransitionType::kAttributeName) {
+      DCHECK(transition_key.value.holds_value<arolla::Text>());
+      attr_name =
+          std::string(transition_key.value.value<arolla::Text>().view());
+    } else if (transition_key.type == TransitionType::kListItem) {
+      attr_name = std::string(schema::kListItemsSchemaAttr);
+    } else if (transition_key.type == TransitionType::kDictKey) {
+      attr_name = std::string(schema::kDictKeysSchemaAttr);
+    } else if (transition_key.type == TransitionType::kDictValue) {
+      if (transition_key.value.holds_value<arolla::Text>()) {
+        attr_name =
+            std::string(transition_key.value.value<arolla::Text>().view());
+      } else {
+        attr_name = std::string(schema::kDictValuesSchemaAttr);
+      }
+    } else {
+      // Other transition types (e.g. kSchemaAttributeName, kObjectSchema,
+      // kSchema, etc.) do not correspond to attributes in Python dataclasses.
+      return false;
+    }
+
     ASSIGN_OR_RETURN(PyObject * parent_class, GetCachedClass(from_item));
-    std::pair<PyObject*, std::string> path_key(parent_class,
-                                               from_item_attr_name);
+    std::pair<PyObject*, std::string> path_key(parent_class, attr_name);
     auto class_cached_by_path_it = classes_by_path_.find(path_key);
     if (class_cached_by_path_it != classes_by_path_.end()) {
       // We have already computed the class for this path.
@@ -170,7 +192,7 @@ class ToPyVisitor : internal::AbstractVisitor {
     ASSIGN_OR_RETURN(
         std::optional<DataClassesUtil::FieldTypeDescriptor> field_type,
         dataclasses_util_.GetClassFieldType(PyObjectPtr::NewRef(parent_class),
-                                            from_item_attr_name,
+                                            attr_name,
                                             /*for_primitive=*/false));
 
     classes_by_path_[std::move(path_key)] = field_type;
@@ -219,9 +241,8 @@ class ToPyVisitor : internal::AbstractVisitor {
   // not be called for this item. And the item would not be traversed further.
   absl::StatusOr<bool> Previsit(
       const DataItem& from_item, const DataItem& from_schema,
-      const std::optional<absl::string_view>& from_item_attr_name,
+      const std::optional<TransitionKey>& transition_key,
       const DataItem& item, const DataItem& schema) final {
-    // TODO: Distinguish metadata attributes by name.
     if (from_schema == schema::kSchema && schema == schema::kObject) {
       // The `item` is schema_metadata for `from_item`.
       return false;
@@ -239,20 +260,19 @@ class ToPyVisitor : internal::AbstractVisitor {
     if (output_class_descriptor_.has_value()) {
       // `output_class` is provided, so we need to compute the class for
       // the `item`.
-      if (from_item_attr_name.has_value()) {
+      if (transition_key.has_value()) {
         ASSIGN_OR_RETURN(bool class_computed,
                          MaybeComputeAndStoreClassForItem(
-                             from_item, *from_item_attr_name, item));
+                             from_item, *transition_key, item));
         if (class_computed) {
           return true;
         }
-      } else {
-        auto class_cached_by_object_id_it =
-            class_cache_by_object_id_.find(object_id);
-        if (class_cached_by_object_id_it != class_cache_by_object_id_.end() &&
-            DescribesPresentFieldType(class_cached_by_object_id_it->second)) {
-          return true;
-        }
+      }
+      auto class_cached_by_object_id_it =
+          class_cache_by_object_id_.find(object_id);
+      if (class_cached_by_object_id_it != class_cache_by_object_id_.end() &&
+          DescribesPresentFieldType(class_cached_by_object_id_it->second)) {
+        return true;
       }
       // Fall through to the default logic, because the output class for this
       // field turned out to be `Any` or the field is not present in the output

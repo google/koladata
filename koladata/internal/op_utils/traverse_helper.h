@@ -113,8 +113,11 @@ class TraverseHelper {
     TransitionType type;
     // Index of the list item, or index in TransitionSet for dict keys/values.
     int64_t index = -1;
-    // Attribute name of dict key for dict keys/values.
+    // Attribute name or dict key for dict keys/values.
     DataItem value = DataItem();
+
+    friend bool operator==(const TransitionKey& a, const TransitionKey& b) =
+        default;
   };
 
   static std::string TransitionKeyToAccessString(
@@ -428,25 +431,20 @@ class TraverseHelper {
 
   // Calls the given function for each directly reachable object.
   // fn should be a callable taking three arguments: const DataItem& to_item,
-  // const DataItem& to_schema, absl::string_view to_item_attr_name.
-  // The latter is attr_name for objects;
-  // for dicts: if dict key is a text, it would be the dict key, otherwise
-  // schema::kDictKeysSchemaAttr.
-  // TODO: consider passing std::variant<ObjectTransitionPath,
-  // DictKeyTransitionPath, ListItemTransitionPath> or something like this
-  // instead of attr_name.
+  // const DataItem& to_schema, const TransitionKey& transition_key.
   template <typename Fn>
   absl::Status ForEachObject(const DataItem& item, const DataItem& schema,
                              const TransitionsSet& transitions_set, Fn&& fn) {
     static_assert(std::is_same_v<decltype(fn(arolla::view_type_t<DataItem>{},
                                              arolla::view_type_t<DataItem>(),
-                                             absl::string_view{})),
+                                             std::declval<TransitionKey>())),
                                  void>,
                   "Callback shouldn't return value");
     if (schema == schema::kObject) {
       ASSIGN_OR_RETURN(DataItem object_schema, GetObjectSchema(item));
       if (object_schema.holds_value<ObjectId>()) {
-        fn(item, object_schema, std::nullopt);
+        fn(item, object_schema,
+           TransitionKey{.type = TransitionType::kObjectSchema});
       }
     } else if (transitions_set.is_list()) {
       ForEachListItemObject(transitions_set, fn);
@@ -557,7 +555,8 @@ class TraverseHelper {
     for (int64_t i = 0; i < list_items.size(); ++i) {
       const DataItem& item = list_items[i];
       if (item.holds_value<ObjectId>()) {
-        fn(item, item_schema, schema::kListItemsSchemaAttr);
+        fn(item, item_schema,
+           TransitionKey{.type = TransitionType::kListItem, .index = i});
       }
     }
   }
@@ -571,7 +570,9 @@ class TraverseHelper {
         const DataItem& key = dict_keys[i];
         if (key.holds_value<ObjectId>()) {
           fn(key, transitions_set.dict_keys_schema(),
-             schema::kDictKeysSchemaAttr);
+             TransitionKey{.type = TransitionType::kDictKey,
+                           .index = i,
+                           .value = key});
         }
       }
     }
@@ -583,12 +584,10 @@ class TraverseHelper {
         const DataItem value = dict_values[i];
         const DataItem& key = dict_keys[i];
         if (value.holds_value<ObjectId>()) {
-          absl::string_view key_name = schema::kDictValuesSchemaAttr;
-          if (key.holds_value<arolla::Text>()) {
-            key_name = key.value<arolla::Text>().view();
-          }
-
-          fn(value, transitions_set.dict_values_schema(), key_name);
+          fn(value, transitions_set.dict_values_schema(),
+             TransitionKey{.type = TransitionType::kDictValue,
+                           .index = i,
+                           .value = key});
         }
       }
     }
@@ -607,7 +606,9 @@ class TraverseHelper {
             return;
           }
           if (transition_or->item.holds_value<ObjectId>()) {
-            fn(transition_or->item, transition_or->schema, std::nullopt);
+            fn(transition_or->item, transition_or->schema,
+               TransitionKey{.type = TransitionType::kSchemaAttributeName,
+                             .value = DataItem(arolla::Text(attr_name))});
           }
         });
     return status;
@@ -632,7 +633,9 @@ class TraverseHelper {
             return;
           }
           if (transition_or->item.holds_value<ObjectId>()) {
-            fn(transition_or->item, transition_or->schema, attr_name);
+            fn(transition_or->item, transition_or->schema,
+               TransitionKey{.type = TransitionType::kAttributeName,
+                             .value = DataItem(arolla::Text(attr_name))});
           }
         });
     return status;

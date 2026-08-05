@@ -16,7 +16,6 @@
 
 #include <cstdint>
 #include <initializer_list>
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -39,7 +38,10 @@ namespace koladata::internal {
 namespace {
 
 using ::arolla::CreateDenseArray;
+using ::testing::AllOf;
+using ::testing::AnyOf;
 using ::testing::ElementsAre;
+using ::testing::Field;
 using ::testing::IsEmpty;
 using ::testing::UnorderedElementsAre;
 
@@ -670,19 +672,25 @@ TEST_P(TraverseHelperTest, ForEachObject_Object) {
 
   std::vector<DataItem> result_items;
   std::vector<DataItem> result_schemas;
-  std::vector<std::string> result_paths;
+  std::vector<TraverseHelper::TransitionKey> result_keys;
   EXPECT_OK(traverse_helper.ForEachObject(
       a0, schema, transition_set,
       [&](const DataItem& item, const DataItem& schema,
-          std::optional<absl::string_view> from_item_attr_name) {
+          const TraverseHelper::TransitionKey& transition_key) {
         result_items.push_back(item);
         result_schemas.push_back(schema);
-        if (from_item_attr_name.has_value()) {
-          result_paths.push_back(std::string(from_item_attr_name.value()));
-        }
+        result_keys.push_back(transition_key);
       }));
   EXPECT_THAT(result_items, UnorderedElementsAre(a1, a2));
-  EXPECT_THAT(result_paths, UnorderedElementsAre("x", "y"));
+  EXPECT_THAT(
+      result_keys,
+      UnorderedElementsAre(
+          TraverseHelper::TransitionKey{
+              .type = TraverseHelper::TransitionType::kAttributeName,
+              .value = DataItem(arolla::Text("x"))},
+          TraverseHelper::TransitionKey{
+              .type = TraverseHelper::TransitionType::kAttributeName,
+              .value = DataItem(arolla::Text("y"))}));
   EXPECT_THAT(result_schemas, ElementsAre(schema, schema));
 }
 
@@ -719,19 +727,30 @@ TEST_P(TraverseHelperTest, ForEachObject_Dict) {
 
   std::vector<DataItem> result_items;
   std::vector<DataItem> result_schemas;
-  std::vector<std::string> result_paths;
+  std::vector<TraverseHelper::TransitionKey> result_keys;
   EXPECT_OK(traverse_helper.ForEachObject(
       d0, dict_schema, transition_set,
       [&](const DataItem& item, const DataItem& schema,
-          std::optional<absl::string_view> from_item_attr_name) {
+          const TraverseHelper::TransitionKey& transition_key) {
         result_items.push_back(item);
         result_schemas.push_back(schema);
-        if (from_item_attr_name.has_value()) {
-          result_paths.push_back(std::string(from_item_attr_name.value()));
-        }
+        result_keys.push_back(transition_key);
       }));
   EXPECT_THAT(result_items, UnorderedElementsAre(a1, a2));
-  EXPECT_THAT(result_paths, UnorderedElementsAre("x", "__values__"));
+  EXPECT_EQ(result_keys.size(), 2);
+  EXPECT_THAT(
+      result_keys,
+      UnorderedElementsAre(
+          AllOf(Field(&TraverseHelper::TransitionKey::type,
+                      TraverseHelper::TransitionType::kDictValue),
+                Field(&TraverseHelper::TransitionKey::index, AnyOf(0, 1)),
+                Field(&TraverseHelper::TransitionKey::value,
+                      DataItem(arolla::Text("x")))),
+          AllOf(Field(&TraverseHelper::TransitionKey::type,
+                      TraverseHelper::TransitionType::kDictValue),
+                Field(&TraverseHelper::TransitionKey::index, AnyOf(0, 1)),
+                Field(&TraverseHelper::TransitionKey::value,
+                      DataItem(123)))));
   EXPECT_THAT(result_schemas, ElementsAre(obj_schema, obj_schema));
 }
 

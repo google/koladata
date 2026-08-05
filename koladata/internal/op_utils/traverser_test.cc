@@ -81,7 +81,7 @@ class NoOpVisitor : AbstractVisitor {
 
   absl::StatusOr<bool> Previsit(
       const DataItem& from_item, const DataItem& from_schema,
-      const std::optional<absl::string_view>& from_item_attr_name,
+      const std::optional<AbstractVisitor::TransitionKey>& transition_key,
       const DataItem& item, const DataItem& schema) override {
     if (!schema.is_schema()) {
       return absl::InvalidArgumentError(
@@ -175,7 +175,7 @@ class ObjectVisitor : AbstractVisitor {
 
   absl::StatusOr<bool> Previsit(
       const DataItem& from_item, const DataItem& from_schema,
-      const std::optional<absl::string_view>& from_item_attr_name,
+      const std::optional<AbstractVisitor::TransitionKey>& transition_key,
       const DataItem& item, const DataItem& schema) override {
     if (!item.holds_value<ObjectId>()) {
       return false;
@@ -250,7 +250,7 @@ class SaveParentVisitor : AbstractVisitor {
 
   absl::StatusOr<bool> Previsit(
       const DataItem& from_item, const DataItem& from_schema,
-      const std::optional<absl::string_view>& from_item_attr_name,
+      const std::optional<AbstractVisitor::TransitionKey>& transition_key,
       const DataItem& item, const DataItem& schema) override {
     if (!schema.is_schema()) {
       return absl::InvalidArgumentError(
@@ -349,6 +349,153 @@ absl::Status TraverseSliceCheckParents(const DataSliceImpl& ds,
   auto visitor = std::make_shared<SaveParentVisitor>();
   auto traverse_op = Traverser<SaveParentVisitor>(databag, fallbacks, visitor);
   return traverse_op.TraverseSlice(ds, schema);
+}
+
+class SaveTransitionKeysVisitor : AbstractVisitor {
+ public:
+  struct PrevisitRecord {
+    DataItem from_item;
+    DataItem from_schema;
+    std::optional<AbstractVisitor::TransitionKey> transition_key;
+    DataItem item;
+    DataItem schema;
+
+    friend bool operator==(const PrevisitRecord&,
+                           const PrevisitRecord&) = default;
+  };
+
+  explicit SaveTransitionKeysVisitor() = default;
+
+  absl::StatusOr<bool> Previsit(
+      const DataItem& from_item, const DataItem& from_schema,
+      const std::optional<AbstractVisitor::TransitionKey>& transition_key,
+      const DataItem& item, const DataItem& schema) override {
+    records_.push_back({from_item, from_schema, transition_key, item, schema});
+    return true;
+  }
+
+  absl::StatusOr<DataItem> GetValue(const DataItem& item,
+                                    const DataItem& schema) override {
+    return item;
+  }
+
+  absl::Status VisitList(const DataItem& list, const DataItem& schema,
+                         bool is_object_schema,
+                         const DataSliceImpl& items) override {
+    return absl::OkStatus();
+  }
+
+  absl::Status VisitDict(const DataItem& dict, const DataItem& schema,
+                         bool is_object_schema, const DataSliceImpl& keys,
+                         const DataSliceImpl& values) override {
+    return absl::OkStatus();
+  }
+
+  absl::Status VisitObject(
+      const DataItem& object, const DataItem& schema, bool is_object_schema,
+      const arolla::DenseArray<arolla::Text>& attr_names,
+      const arolla::DenseArray<DataItem>& attr_values) override {
+    return absl::OkStatus();
+  }
+
+  absl::Status VisitSchema(
+      const DataItem& item, const DataItem& schema, bool is_object_schema,
+      const arolla::DenseArray<arolla::Text>& attr_names,
+      const arolla::DenseArray<DataItem>& attr_schema) override {
+    return absl::OkStatus();
+  }
+
+  const std::vector<PrevisitRecord>& records() const { return records_; }
+
+ private:
+  std::vector<PrevisitRecord> records_;
+};
+
+TEST_P(NoOpTraverserTest, PrevisitTransitionKeys) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(1);
+  auto a0 = obj_ids[0];
+  auto obj_ids_child = AllocateEmptyObjects(1);
+  auto child = obj_ids_child[0];
+  auto schema = AllocateSchema();
+  auto child_schema = AllocateSchema();
+
+  TriplesT schema_triples = {
+      {schema, {{"child", child_schema}}},
+      {child_schema, {{"val", DataItem(schema::kInt32)}}}};
+  TriplesT data_triples = {{a0, {{"child", child}}},
+                           {child, {{"val", DataItem(42)}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto main_db = GetMainDb(db);
+  auto fallback_db = GetFallbackDb(db);
+  std::vector<const DataBagImpl*> fallbacks;
+  if (fallback_db != nullptr) {
+    fallbacks.push_back(fallback_db.get());
+  }
+
+  auto visitor = std::make_shared<SaveTransitionKeysVisitor>();
+  auto traverse_op =
+      Traverser<SaveTransitionKeysVisitor>(*main_db, fallbacks, visitor);
+  EXPECT_OK(traverse_op.TraverseSlice(obj_ids, schema));
+
+  using TransitionType = AbstractVisitor::TransitionType;
+  using TransitionKey = AbstractVisitor::TransitionKey;
+  using PrevisitRecord = SaveTransitionKeysVisitor::PrevisitRecord;
+
+  std::vector<PrevisitRecord> expected_records = {
+      {.from_item = DataItem(),
+       .from_schema = DataItem(),
+       .transition_key = std::nullopt,
+       .item = schema,
+       .schema = DataItem(schema::kSchema)},
+      {.from_item = DataItem(),
+       .from_schema = DataItem(),
+       .transition_key =
+           TransitionKey{.type = TransitionType::kSliceItem, .index = 0},
+       .item = a0,
+       .schema = schema},
+      {.from_item = a0,
+       .from_schema = schema,
+       .transition_key = TransitionKey{.type = TransitionType::kSchema},
+       .item = schema,
+       .schema = DataItem(schema::kSchema)},
+      {.from_item = a0,
+       .from_schema = schema,
+       .transition_key =
+           TransitionKey{.type = TransitionType::kAttributeName,
+                         .value = DataItem(arolla::Text("child"))},
+       .item = child,
+       .schema = child_schema},
+      {.from_item = child,
+       .from_schema = child_schema,
+       .transition_key = TransitionKey{.type = TransitionType::kSchema},
+       .item = child_schema,
+       .schema = DataItem(schema::kSchema)},
+      {.from_item = child_schema,
+       .from_schema = DataItem(schema::kSchema),
+       .transition_key = TransitionKey{.type = TransitionType::kSchema},
+       .item = DataItem(schema::kSchema),
+       .schema = DataItem(schema::kSchema)},
+      {.from_item = schema,
+       .from_schema = DataItem(schema::kSchema),
+       .transition_key = TransitionKey{.type = TransitionType::kSchema},
+       .item = DataItem(schema::kSchema),
+       .schema = DataItem(schema::kSchema)},
+      {.from_item = schema,
+       .from_schema = DataItem(schema::kSchema),
+       .transition_key =
+           TransitionKey{.type = TransitionType::kSchemaAttributeName,
+                         .value = DataItem(arolla::Text("child"))},
+       .item = child_schema,
+       .schema = DataItem(schema::kSchema)},
+  };
+
+  EXPECT_THAT(visitor->records(),
+              ::testing::UnorderedElementsAreArray(expected_records));
 }
 
 TEST_P(NoOpTraverserTest, ShallowEntitySlice) {

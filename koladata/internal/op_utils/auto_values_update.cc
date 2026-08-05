@@ -71,7 +71,7 @@ class AutoValuesVisitor : public AbstractVisitor {
   // Do nothing on previsit.
   absl::StatusOr<bool> Previsit(
       const DataItem& from_item, const DataItem& from_schema,
-      const std::optional<absl::string_view>& from_item_attr_name,
+      const std::optional<AbstractVisitor::TransitionKey>& transition_key,
       const DataItem& item, const DataItem& schema) override {
     return true;
   }

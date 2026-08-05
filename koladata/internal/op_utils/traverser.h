@@ -45,7 +45,8 @@ namespace koladata::internal {
 // An interface for a visitor that is used in Traverser.
 class AbstractVisitor {
  public:
-  static inline constexpr absl::string_view kSliceItemPath = "__slice_item__";
+  using TransitionKey = TraverseHelper::TransitionKey;
+  using TransitionType = TraverseHelper::TransitionType;
 
   virtual ~AbstractVisitor() = default;
 
@@ -63,9 +64,8 @@ class AbstractVisitor {
 
   // Called for each reachable item and schema before any calls to Visit* or
   // GetValue methods.
-  // `from_item_attr_name`: if provided - represents the name of the attribute
-  // of the `from_item` that led to the current item being visited. Not set for
-  // schema transitions.
+  // `transition_key`: if provided - represents the transition key from
+  // `from_item` that led to the current item being visited.
   // For objects Previsit is called twice:
   // - first time with schema::kObject.
   // - second time with the schema written in kSchemaAttr attribute.
@@ -73,7 +73,7 @@ class AbstractVisitor {
   // this item would not be listed for the Visit* methods.
   virtual absl::StatusOr<bool> Previsit(
       const DataItem& from_item, const DataItem& from_schema,
-      const std::optional<absl::string_view>& from_item_attr_name,
+      const std::optional<TransitionKey>& transition_key,
       const DataItem& item, const DataItem& schema) = 0;
 
   // Called for each reachable list.
@@ -162,9 +162,12 @@ class Traverser {
     RETURN_IF_ERROR(
         Previsit(root, std::nullopt,
                  {.item = schema, .schema = DataItem(schema::kSchema)}));
-    for (const DataItem& item : ds) {
-      RETURN_IF_ERROR(Previsit(root, AbstractVisitor::kSliceItemPath,
-                               {.item = item, .schema = schema}));
+    for (int64_t i = 0; i < ds.size(); ++i) {
+      RETURN_IF_ERROR(Previsit(
+          root,
+          TraverseHelper::TransitionKey(
+              {.type = TraverseHelper::TransitionType::kSliceItem, .index = i}),
+          {.item = ds[i], .schema = schema}));
     }
     if (!status.ok()) {
       return status;
@@ -203,14 +206,14 @@ class Traverser {
 
   absl::Status Previsit(
       const ItemWithSchema& from,
-      const std::optional<absl::string_view>& from_item_attr_name,
+      const std::optional<TraverseHelper::TransitionKey>& transition_key,
       const ItemWithSchema& item) {
     if (item.schema.is_primitive_schema()) {
       RETURN_IF_ERROR(ValidatePrimitiveType(item));
     }
     ASSIGN_OR_RETURN(bool should_visit,
                      visitor_->VisitorT::Previsit(from.item, from.schema,
-                                                  from_item_attr_name,
+                                                  transition_key,
                                                   item.item, item.schema));
     if (should_visit && item.item.has_value() &&
         !item.item.ContainsAnyPrimitives()) {
@@ -244,10 +247,13 @@ class Traverser {
         if (item.schema == schema::kObject) {
           ASSIGN_OR_RETURN(item.schema,
                            traverse_helper_.GetObjectSchema(item.item));
-          ASSIGN_OR_RETURN(auto should_visit,
-                           visitor_->VisitorT::Previsit(
-                               item.item, DataItem(schema::kObject),
-                               std::nullopt, item.item, item.schema));
+          ASSIGN_OR_RETURN(
+              auto should_visit,
+              visitor_->VisitorT::Previsit(
+                  item.item, DataItem(schema::kObject),
+                  TraverseHelper::TransitionKey(
+                      {.type = TraverseHelper::TransitionType::kObjectSchema}),
+                  item.item, item.schema));
           if (!should_visit) {
             continue;
           }
@@ -256,7 +262,9 @@ class Traverser {
             item.schema != DataItem(schema::kSchema)) {
           // Always call Previsit on the schema, unless it would be a loop.
           RETURN_IF_ERROR(Previsit(
-              item, std::nullopt,
+              item,
+              TraverseHelper::TransitionKey(
+                  {.type = TraverseHelper::TransitionType::kSchema}),
               {.item = item.schema, .schema = DataItem(schema::kSchema)}));
         }
         ASSIGN_OR_RETURN(
@@ -267,11 +275,11 @@ class Traverser {
         RETURN_IF_ERROR(traverse_helper_.ForEachObject(
             item.item, item.schema, transitions_set,
             [&](const DataItem& to_item, const DataItem& to_schema,
-                std::optional<absl::string_view> to_item_attr_name) {
+                const TraverseHelper::TransitionKey& transition_key) {
               if (!status.ok()) {
                 return;
               }
-              status = Previsit(item, to_item_attr_name,
+              status = Previsit(item, transition_key,
                                 {.item = to_item, .schema = to_schema});
             }));
         if (!status.ok()) {

@@ -58,7 +58,7 @@ class DeepCloneVisitor : AbstractVisitor {
 
   absl::StatusOr<bool> Previsit(
       const DataItem& from_item, const DataItem& from_schema,
-      const std::optional<absl::string_view>& from_item_attr_name,
+      const std::optional<AbstractVisitor::TransitionKey>& transition_key,
       const DataItem& item, const DataItem& schema) override {
     if (schema == schema::kObject && from_schema == schema::kSchema) {
       // The `item` is schema_metadata for `from_item`.
