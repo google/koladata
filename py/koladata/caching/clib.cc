@@ -177,11 +177,11 @@ class LruCacheWrapper {
   arolla::LruCache<ObjectId, DataSlice> cache_ ABSL_GUARDED_BY(mutex_);
 };
 
-PYBIND11_MODULE(lru_cache, m) {
+PYBIND11_MODULE(clib, m) {
   py::class_<LruCacheWrapper>(m, "LruCache", R"doc(
 LRU cache Object/Entity -> DataSlice
 )doc")
-      .def(py::init<size_t>(), py::arg("capacity") = 100000)
+      .def(py::init<size_t>(), py::arg("capacity"))
       .def("__getitem__",
            [](LruCacheWrapper& self, TypedValue keys_tv) {
              return arolla::python::pybind11_unstatus_or(

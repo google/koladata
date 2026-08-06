@@ -12,24 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for Koda LruCache wrapper."""
+"""Tests for Koda caching clib."""
 
 from absl.testing import absltest
 from absl.testing import parameterized
 from koladata import kd
-from koladata.base.lru_cache import lru_cache
+from koladata.caching import clib
 
 
 class LruCacheTest(parameterized.TestCase):
 
-  def test_init_default_and_custom_capacity(self):
-    cache_default = lru_cache.LruCache()
-    self.assertIsNotNone(cache_default)
-    cache_custom = lru_cache.LruCache(capacity=10)
-    self.assertIsNotNone(cache_custom)
-
   def test_item_get_and_set(self):
-    cache = lru_cache.LruCache()
+    cache = clib.LruCache(10)
     k1 = kd.uuid(x=1)
     v1 = kd.item(42)
 
@@ -42,7 +36,7 @@ class LruCacheTest(parameterized.TestCase):
     kd.testing.assert_equivalent(cache[k1], kd.item(100))
 
   def test_item_invalid_key_type(self):
-    cache = lru_cache.LruCache()
+    cache = clib.LruCache(10)
     with self.assertRaisesRegex(ValueError, 'ObjectId expected'):
       _ = cache[kd.item(123)]
     with self.assertRaises(TypeError):
@@ -53,14 +47,14 @@ class LruCacheTest(parameterized.TestCase):
       cache[kd.item(123)] = kd.item(1)
 
   def test_missing_item_key(self):
-    cache = lru_cache.LruCache()
+    cache = clib.LruCache(10)
     kd.testing.assert_equivalent(cache[kd.item(None)], kd.item(None))
 
     cache[kd.item(None)] = kd.item(42)
     kd.testing.assert_equivalent(cache[kd.item(None)], kd.item(None))
 
   def test_slice_get_and_set(self):
-    cache = lru_cache.LruCache()
+    cache = clib.LruCache(10)
     k1 = kd.uuid(x=1)
     k2 = kd.uuid(x=2)
     k3 = kd.uuid(x=3)
@@ -79,7 +73,7 @@ class LruCacheTest(parameterized.TestCase):
     )
 
   def test_slice_multidimensional(self):
-    cache = lru_cache.LruCache()
+    cache = clib.LruCache(10)
     k1, k2, k3, k4 = kd.uuid(k=1), kd.uuid(k=2), kd.uuid(k=3), kd.uuid(k=4)
     keys_slice = kd.slice([[k1, k2], [k3, k4]])
     values_slice = kd.slice([[1, 2], [3, 4]])
@@ -88,7 +82,7 @@ class LruCacheTest(parameterized.TestCase):
     kd.testing.assert_equivalent(cache[keys_slice], values_slice)
 
   def test_slice_empty_and_unknown(self):
-    cache = lru_cache.LruCache()
+    cache = clib.LruCache(10)
     kd.testing.assert_equivalent(cache[kd.slice([])], kd.slice([]))
     kd.testing.assert_equivalent(
         cache[kd.slice([None, None])], kd.slice([None, None])
@@ -97,14 +91,14 @@ class LruCacheTest(parameterized.TestCase):
     cache[kd.slice([], kd.OBJECT)] = kd.slice([])
 
   def test_slice_invalid_key_type(self):
-    cache = lru_cache.LruCache()
+    cache = clib.LruCache(10)
     with self.assertRaisesRegex(ValueError, 'ObjectId expected'):
       _ = cache[kd.slice([1, 2])]
     with self.assertRaisesRegex(ValueError, 'ObjectId expected'):
       cache[kd.slice([1, 2])] = kd.slice([3, 4])
 
   def test_slice_broadcasting(self):
-    cache = lru_cache.LruCache()
+    cache = clib.LruCache(10)
     k1, k2, k3 = kd.uuid(b=1), kd.uuid(b=2), kd.uuid(b=3)
     cache[kd.slice([k1, k2, k3])] = kd.item(99)
     kd.testing.assert_equivalent(
@@ -112,7 +106,7 @@ class LruCacheTest(parameterized.TestCase):
     )
 
   def test_slice_set_ignores_missing_values(self):
-    cache = lru_cache.LruCache()
+    cache = clib.LruCache(10)
     k1, k2 = kd.uuid(m=1), kd.uuid(m=2)
     cache[k1] = kd.item(10)
     cache[kd.slice([k1, k2])] = kd.slice([None, 20])
@@ -121,7 +115,7 @@ class LruCacheTest(parameterized.TestCase):
     kd.testing.assert_equivalent(cache[k2], kd.item(20))
 
   def test_schema_aggregation(self):
-    cache = lru_cache.LruCache()
+    cache = clib.LruCache(10)
     k1, k2 = kd.uuid(s=1), kd.uuid(s=2)
     cache[k1] = kd.item(10, kd.INT32)
     cache[k2] = kd.item('hello', kd.STRING)
@@ -131,7 +125,7 @@ class LruCacheTest(parameterized.TestCase):
     )
 
   def test_caching_objects_with_databags(self):
-    cache = lru_cache.LruCache()
+    cache = clib.LruCache(10)
     k1, k2 = kd.uuid(o=1), kd.uuid(o=2)
     obj1 = kd.obj(alpha=100, beta='hello')
     obj2 = kd.obj(alpha=200, beta='world')
@@ -150,7 +144,7 @@ class LruCacheTest(parameterized.TestCase):
     )
 
   def test_clear(self):
-    cache = lru_cache.LruCache()
+    cache = clib.LruCache(10)
     k1, k2 = kd.uuid(c=1), kd.uuid(c=2)
     cache[kd.slice([k1, k2])] = kd.slice([1, 2])
     kd.testing.assert_equivalent(
@@ -163,7 +157,7 @@ class LruCacheTest(parameterized.TestCase):
     )
 
   def test_lru_eviction(self):
-    cache = lru_cache.LruCache(capacity=2)
+    cache = clib.LruCache(capacity=2)
     k1, k2, k3 = kd.uuid(e=1), kd.uuid(e=2), kd.uuid(e=3)
 
     cache[k1] = kd.item('first')

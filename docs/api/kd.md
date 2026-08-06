@@ -22,6 +22,7 @@ Subcategory | Description
 [assertion](kd/assertion.md) | Operators that assert properties of DataSlices.
 [bags](kd/bags.md) | Operators that work on DataBags.
 [bitwise](kd/bitwise.md) | Bitwise operators.
+[caching](kd/caching.md) | Caching utilities.
 [comparison](kd/comparison.md) | Operators that compare DataSlices.
 [core](kd/core.md) | Core operators that are not part of other categories.
 [curves](kd/curves.md) | Operators working with curves.

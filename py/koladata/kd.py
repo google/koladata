@@ -20,6 +20,7 @@ import typing as _typing
 
 from koladata import kd_types as _kd_types
 from koladata.base import init as _
+from koladata.caching import lru_cache as _lru_cache
 from koladata.expr import expr_eval as _expr_eval
 from koladata.expr import input_container as _input_container
 from koladata.expr import introspection as _introspection
@@ -200,6 +201,13 @@ s11n = _eager_only(
         dumps=_s11n.dumps,
         loads=_s11n.loads,
         experimental_safer_loads=_s11n.experimental_safer_loads,
+    )
+)
+
+caching = _eager_only(
+    _py_types.SimpleNamespace(
+        __doc__='Caching utilities.',
+        LruCache=_lru_cache.LruCache,
     )
 )
 

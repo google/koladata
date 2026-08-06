@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@rules_python//python:defs.bzl", "py_test")
+# Caching utilities.
+
+load("@rules_python//python:defs.bzl", "py_library", "py_test")
 load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_pybind_extension")
 
 package(default_visibility = [
@@ -22,8 +24,8 @@ package(default_visibility = [
 licenses(["notice"])
 
 koladata_pybind_extension(
-    name = "lru_cache",
-    srcs = ["lru_cache.cc"],
+    name = "clib",
+    srcs = ["clib.cc"],
     deps = [
         "//koladata:data_bag",
         "//koladata:data_slice",
@@ -45,6 +47,30 @@ koladata_pybind_extension(
         "@com_google_arolla//py/arolla/abc:pybind11_utils",
         "@com_google_arolla//py/arolla/py_utils",
         "@pybind11_abseil//pybind11_abseil:absl_casters",
+    ],
+)
+
+py_test(
+    name = "clib_test",
+    srcs = ["clib_test.py"],
+    deps = [
+        ":clib",
+        "//py:python_path",
+        "//py/koladata:kd",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)
+
+py_library(
+    name = "lru_cache",
+    srcs = ["lru_cache.py"],
+    deps = [
+        ":clib",
+        "//py:python_path",
+        "//py/koladata/expr:py_expr_eval_py_ext",
+        "//py/koladata/expr:tracing_mode",
+        "//py/koladata/types:data_slice",
     ],
 )
 
