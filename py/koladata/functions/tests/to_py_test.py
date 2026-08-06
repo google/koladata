@@ -932,6 +932,23 @@ class ToPyTest(parameterized.TestCase):
     converted = py_conversions.to_py(root, output_class=Obj2)
     self.assertEqual(converted, root_obj)
 
+  def test_to_py_ignored_nested_object(self):
+    @dataclasses.dataclass
+    class Target:
+      text: str
+
+    inner = fns.obj(a=1)
+    docs = fns.list([inner])
+    root = fns.new(text='hello', docs=docs)
+
+    with self.assertRaisesRegex(ValueError, 'INTERNAL'):
+      _ = py_conversions.to_py(root, output_class=Target)
+
+    # TODO: This is the desired behavior:
+    # converted = py_conversions.to_py(root, output_class=Target)
+    # self.assertEqual(converted.text, 'hello')
+    # self.assertFalse(hasattr(converted, 'docs'))
+
   def test_to_py_untyped_cache_pollution(self):
     @dataclasses.dataclass
     class TargetClass:
