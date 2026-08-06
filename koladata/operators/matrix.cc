@@ -37,6 +37,7 @@
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/operators/matrix_helpers.h"
+#include "koladata/overflow_utils.h"
 #include "koladata/schema_utils.h"
 
 namespace koladata::ops {
@@ -145,8 +146,8 @@ absl::StatusOr<DataSlice> MatrixMatmul(const DataSlice& a, const DataSlice& b,
     ASSIGN_OR_RETURN(const auto ndim_int64,
                      CastToNarrow(ndim_ds, internal::DataItem(schema::kInt64)));
     // -1 means auto-detect: use min(rank, 2).
-    const int ndim = [&] {
-      int v = ndim_int64.item().value<int64_t>();
+    const int64_t ndim = [&] {
+      int64_t v = ndim_int64.item().value<int64_t>();
       return v == -1 ? std::min(rank, 2) : v;
     }();
     if (ndim < 1 || ndim > 2) {
@@ -158,7 +159,7 @@ absl::StatusOr<DataSlice> MatrixMatmul(const DataSlice& a, const DataSlice& b,
           absl::StrCat(arg_name, " has rank ", rank, " but ", ndim_arg_name,
                        "=", ndim, " requires at least that many"));
     }
-    return ndim;
+    return static_cast<int>(ndim);
   };
 
   ASSIGN_OR_RETURN(const int a_ndim,
@@ -194,6 +195,7 @@ absl::StatusOr<DataSlice> MatrixMatmul(const DataSlice& a, const DataSlice& b,
   };
   std::vector<PerBatch> pbs(broadcast_result.out_batch_size);
   int64_t out_total = 0;
+  bool overflow = false;
   for (int64_t batch = 0; batch < broadcast_result.out_batch_size; ++batch) {
     int64_t a_b = broadcast_result.x_batch_map[batch];
     int64_t b_b = broadcast_result.y_batch_map[batch];
@@ -205,7 +207,12 @@ absl::StatusOr<DataSlice> MatrixMatmul(const DataSlice& a, const DataSlice& b,
                        ": ", a_cols, " vs ", b_rows));
     }
     pbs[batch] = {a_b, b_b, a_infos_vec[a_b].m, a_cols, b_infos_vec[b_b].n};
-    out_total += pbs[batch].a_rows * pbs[batch].b_cols;
+    out_total = safe_add(
+        out_total, safe_mul(pbs[batch].a_rows, pbs[batch].b_cols, &overflow),
+        &overflow);
+  }
+  if (overflow) {
+    return absl::InvalidArgumentError("arguments cause integer overflow");
   }
 
   // Build output shape using framework helpers.
@@ -266,10 +273,12 @@ absl::StatusOr<DataSlice> MatrixMatmul(const DataSlice& a, const DataSlice& b,
       Eigen::Matrix<ComputeT, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
           mat_out(a_rows, b_cols);
       mat_out.noalias() = mat_a * mat_b;
+      // Safe: a_rows * b_cols was already validated by CheckedMul above.
       int64_t num_elements = a_rows * b_cols;
       for (int64_t i = 0; i < num_elements; ++i) {
         result[out_off + i] = static_cast<OutputT>(mat_out.data()[i]);
       }
+      // Safe: same validated product.
       out_off += a_rows * b_cols;
     }
     ASSIGN_OR_RETURN(auto result_ds,
@@ -324,6 +333,7 @@ absl::StatusOr<DataSlice> MatrixOuter(const DataSlice& x, const DataSlice& y) {
   int64_t out_total = 0;
   std::vector<int64_t> out_m_vals(broadcast_result.out_batch_size);
   std::vector<int64_t> out_n_vals(broadcast_result.out_batch_size);
+  bool overflow = false;
   for (int64_t b = 0; b < broadcast_result.out_batch_size; ++b) {
     int64_t x_idx = broadcast_result.x_batch_map[b];
     int64_t y_idx = broadcast_result.y_batch_map[b];
@@ -334,7 +344,10 @@ absl::StatusOr<DataSlice> MatrixOuter(const DataSlice& x, const DataSlice& y) {
     pbs[b] = {x_info.offset, y_info.offset, m, n};
     out_m_vals[b] = m;
     out_n_vals[b] = n;
-    out_total += m * n;
+    out_total = safe_add(out_total, safe_mul(m, n, &overflow), &overflow);
+  }
+  if (overflow) {
+    return absl::InvalidArgumentError("arguments cause integer overflow");
   }
 
   auto do_outer = [&](const auto& x_data, const auto& y_data, auto& result) {
@@ -350,6 +363,7 @@ absl::StatusOr<DataSlice> MatrixOuter(const DataSlice& x, const DataSlice& y) {
           result[out_off + i * n + j] = x_data[x_off + i] * y_data[y_off + j];
         }
       }
+      // Safe: m * n was already validated by CheckedMul above.
       out_off += m * n;
     }
   };
@@ -385,12 +399,16 @@ absl::StatusOr<DataSlice> MatrixDiagMatrix(const DataSlice& x,
 
   int64_t out_total = 0;  // The total number of elements in the flat output.
   std::vector<int64_t> dim_counts(num_vectors);
+  bool overflow = false;
   for (int64_t v = 0; v < num_vectors; ++v) {
     int64_t n = vec_infos[v].m;  // input vector length
-    int64_t abs_k = std::abs(k_vals[v]);
-    int64_t d = n + abs_k;  // output matrix is d x d
-    out_total += d * d;
+    int64_t abs_k = safe_abs(k_vals[v], &overflow);
+    int64_t d = safe_add(n, abs_k, &overflow);  // output matrix is d x d
+    out_total = safe_add(out_total, safe_mul(d, d, &overflow), &overflow);
     dim_counts[v] = d;
+  }
+  if (overflow) {
+    return absl::InvalidArgumentError("arguments cause integer overflow");
   }
   ASSIGN_OR_RETURN(auto out_shape,
                    matrix_helpers::BuildBatchedMatrixShape(
@@ -418,6 +436,7 @@ absl::StatusOr<DataSlice> MatrixDiagMatrix(const DataSlice& x,
         for (int64_t v = 0; v < num_vectors; ++v) {
           const int64_t n = vec_infos[v].m;  // input vector length
           const int64_t k = k_vals[v];
+          // CheckedAbs was already validated in the loop above.
           const int64_t abs_k = std::abs(k);
           const int64_t d = n + abs_k;  // output matrix dimension
           const int64_t in_off = vec_infos[v].offset;
@@ -430,6 +449,7 @@ absl::StatusOr<DataSlice> MatrixDiagMatrix(const DataSlice& x,
               any_present = true;
             }
           }
+          // Safe: d * d was already validated by CheckedMul above.
           out_off += d * d;
         }
         if (any_present) {
@@ -470,9 +490,13 @@ absl::StatusOr<DataSlice> MatrixDiagVector(const DataSlice& x,
   // The diagonal length of each matrix:
   // k>=0: max(0, min(m, n-k)); k<0: max(0, min(m+k, n)).
   std::vector<int64_t> diag_length(num_matrices);
+  bool overflow = false;
   for (int64_t p = 0; p < num_matrices; ++p) {
     const auto& mat_info = mat_infos[p];
     const int64_t k = k_vals[p];
+    // Validate that |k| is representable (rejects INT64_MIN which would cause
+    // UB in `i - k` inside the VisitValues lambda below).
+    RETURN_IF_ERROR(SafeAbs(k).status());
     int64_t diag_len;
     if (k >= 0) {
       diag_len = std::max<int64_t>(0, std::min(mat_info.m, mat_info.n - k));
@@ -480,9 +504,11 @@ absl::StatusOr<DataSlice> MatrixDiagVector(const DataSlice& x,
       diag_len = std::max<int64_t>(0, std::min(mat_info.m + k, mat_info.n));
     }
     diag_length[p] = diag_len;
-    out_total += diag_len;
+    out_total = safe_add(out_total, diag_len, &overflow);
   }
-
+  if (overflow) {
+    return absl::InvalidArgumentError("arguments cause integer overflow");
+  }
   ASSIGN_OR_RETURN(auto out_shape, matrix_helpers::BuildBatchedVectorShape(
                                        std::move(batch_shape), diag_length));
 

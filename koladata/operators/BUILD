@@ -54,6 +54,7 @@ cc_library(
     deps = [
         ":matrix_helpers",
         "//koladata:data_slice",
+        "//koladata:overflow_utils",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
@@ -427,6 +428,7 @@ cc_library(
     hdrs = ["matrix_helpers.h"],
     deps = [
         "//koladata:data_slice",
+        "//koladata:overflow_utils",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",

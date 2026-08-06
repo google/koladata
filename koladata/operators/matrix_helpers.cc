@@ -33,6 +33,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/overflow_utils.h"
 #include "koladata/schema_utils.h"
 
 namespace koladata::ops::matrix_helpers {
@@ -222,10 +223,14 @@ absl::StatusOr<JaggedShape> BuildBatchedMatrixShape(
     JaggedShape batch_shape, absl::Span<const int64_t> row_counts,
     absl::Span<const int64_t> col_counts) {
   const int64_t num_matrices = row_counts.size();
+  bool overflow = false;
   std::vector<int64_t> row_splits(num_matrices + 1);
   row_splits[0] = 0;
   for (int64_t b = 0; b < num_matrices; ++b) {
-    row_splits[b + 1] = row_splits[b] + row_counts[b];
+    row_splits[b + 1] = safe_add(row_splits[b], row_counts[b], &overflow);
+  }
+  if (overflow) {
+    return absl::InvalidArgumentError("arguments cause integer overflow");
   }
   const int64_t total_rows = row_splits[num_matrices];
   auto row_da = arolla::CreateFullDenseArray<int64_t>(std::move(row_splits));
@@ -235,9 +240,12 @@ absl::StatusOr<JaggedShape> BuildBatchedMatrixShape(
   int64_t ri = 0;
   for (int64_t b = 0; b < num_matrices; ++b) {
     for (int64_t r = 0; r < row_counts[b]; ++r) {
-      col_splits[ri + 1] = col_splits[ri] + col_counts[b];
+      col_splits[ri + 1] = safe_add(col_splits[ri], col_counts[b], &overflow);
       ++ri;
     }
+  }
+  if (overflow) {
+    return absl::InvalidArgumentError("arguments cause integer overflow");
   }
   auto col_da = arolla::CreateFullDenseArray<int64_t>(std::move(col_splits));
   auto col_edge = Edge::UnsafeFromSplitPoints(std::move(col_da));
@@ -247,10 +255,14 @@ absl::StatusOr<JaggedShape> BuildBatchedMatrixShape(
 absl::StatusOr<JaggedShape> BuildBatchedVectorShape(
     JaggedShape batch_shape, absl::Span<const int64_t> counts) {
   int64_t num_batches = counts.size();
+  bool overflow = false;
   std::vector<int64_t> splits(num_batches + 1);
   splits[0] = 0;
   for (int64_t b = 0; b < num_batches; ++b) {
-    splits[b + 1] = splits[b] + counts[b];
+    splits[b + 1] = safe_add(splits[b], counts[b], &overflow);
+  }
+  if (overflow) {
+    return absl::InvalidArgumentError("arguments cause integer overflow");
   }
   auto da = arolla::CreateFullDenseArray<int64_t>(std::move(splits));
   auto edge = Edge::UnsafeFromSplitPoints(std::move(da));

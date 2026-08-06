@@ -740,6 +740,39 @@ class ErrorTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, r'not compatible'):
       kd.matrix.matmul(a, b)
 
+  def test_overflow_fails(self):
+    a = kd.empty_shaped(kd.shapes.new(2, 2), schema_constants.FLOAT32)
+    b = kd.empty_shaped(kd.shapes.new(2, 2**62), schema_constants.FLOAT32)
+    with self.assertRaisesRegex(
+        ValueError, r'arguments cause integer overflow'
+    ):
+      kd.matrix.matmul(a, b)
+
+    with self.assertRaisesRegex(
+        ValueError, r'arguments cause integer overflow'
+    ):
+      kd.matrix.matmul(
+          kd.empty_shaped(kd.shapes.new(2, 2), schema_constants.FLOAT32),
+          kd.empty_shaped(kd.shapes.new(2, 2**62), schema_constants.FLOAT32),
+          a_ndim=1,
+      )
+
+    # Each batch produces 1 * 2^62 = 2^62 output elements (fits in int64),
+    # but the sum across 2 batches (2 * 2^62 = 2^63) overflows int64.
+    # Uses (2, 1, N) shapes so JaggedShape edge arrays have only 3 entries
+    # (unlike (2, N, 1) which would need N+1 entries and OOM).
+    with self.assertRaisesRegex(
+        ValueError, r'arguments cause integer overflow'
+    ):
+      kd.matrix.matmul(
+          kd.empty_shaped(
+              kd.shapes.new(2, 1, 1), schema_constants.FLOAT32
+          ),
+          kd.empty_shaped(
+              kd.shapes.new(2, 1, 2**62), schema_constants.FLOAT32
+          ),
+      )
+
 
 if __name__ == '__main__':
   absltest.main()

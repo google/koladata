@@ -334,6 +334,27 @@ class ErrorTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, r'cannot be expanded'):
       kd.matrix.diag_matrix(x, k=ds([[1, -1], [0, 2]]))
 
+  def test_k_that_triggers_overflow_fails(self):
+    x = ds([1.0, 2.0, 3.0])
+    with self.assertRaisesRegex(
+        ValueError, r'arguments cause integer overflow'
+    ):
+      kd.matrix.diag_matrix(x, k=2**32)
+    with self.assertRaisesRegex(
+        ValueError, r'arguments cause integer overflow'
+    ):
+      kd.matrix.diag_matrix(x, k=-(2**63))
+    with self.assertRaisesRegex(
+        ValueError, r'arguments cause integer overflow'
+    ):
+      kd.matrix.diag_matrix(x, k=2**63 - 1)
+    with self.assertRaisesRegex(
+        ValueError, r'arguments cause integer overflow'
+    ):
+      kd.matrix.diag_matrix(
+          ds([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]), k=ds([2**31, 2**31])
+      )
+
 
 class BroadcastKTest(parameterized.TestCase):
   """Tests for broadcastable k parameter."""

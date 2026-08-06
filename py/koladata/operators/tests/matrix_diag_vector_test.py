@@ -299,6 +299,13 @@ class ErrorTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, r'cannot be expanded'):
       kd.matrix.diag_vector(x, k=ds([[0, 1], [1, 0]]))
 
+  def test_k_that_triggers_overflow_fails(self):
+    x = ds([[1.0, 2.0], [3.0, 4.0]])
+    with self.assertRaisesRegex(
+        ValueError, r'absolute value of -9223372036854775808 causes overflow'
+    ):
+      kd.matrix.diag_vector(x, k=-(2**63))
+
 
 class BroadcastKTest(parameterized.TestCase):
   """Tests for broadcastable k parameter."""

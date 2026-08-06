@@ -799,6 +799,30 @@ TEST(BuildBatchedMatrixShapeTest, ZeroDimMatrix) {
   EXPECT_THAT(shape.edges()[2].edge_values().values.span(), ElementsAre(0));
 }
 
+TEST(BuildBatchedMatrixShapeTest, OverflowInRowSplits) {
+  // Two matrices whose row counts sum to more than INT64_MAX.
+  auto batch_shape = JaggedShape::FlatFromSize(2);
+  constexpr int64_t kHuge = int64_t{1} << 62;
+  std::vector<int64_t> rows = {kHuge, kHuge};  // sum = 2^63, overflows
+  std::vector<int64_t> cols = {1, 1};
+  EXPECT_THAT(BuildBatchedMatrixShape(batch_shape, rows, cols),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       ::testing::HasSubstr("integer overflow")));
+}
+
+TEST(BuildBatchedMatrixShapeTest, OverflowInColSplits) {
+  // Single matrix with 2 rows, each row having 2^62 columns.
+  // Row splits [0, 2] are fine, but col splits overflow: 0 + 2^62 = 2^62,
+  // 2^62 + 2^62 = 2^63 which overflows int64.
+  auto batch_shape = JaggedShape::FlatFromSize(1);
+  constexpr int64_t kHuge = int64_t{1} << 62;
+  std::vector<int64_t> rows = {2};
+  std::vector<int64_t> cols = {kHuge};
+  EXPECT_THAT(BuildBatchedMatrixShape(batch_shape, rows, cols),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       ::testing::HasSubstr("integer overflow")));
+}
+
 // =========================================================================
 // BuildBatchedVectorShape tests
 // =========================================================================
@@ -834,6 +858,16 @@ TEST(BuildBatchedVectorShapeTest, EmptyVector) {
   ASSERT_EQ(shape.edges().size(), 2);
   EXPECT_THAT(shape.edges()[0].edge_values().values.span(), ElementsAre(0, 1));
   EXPECT_THAT(shape.edges()[1].edge_values().values.span(), ElementsAre(0, 0));
+}
+
+TEST(BuildBatchedVectorShapeTest, OverflowInSplits) {
+  // Two vectors whose counts sum to more than INT64_MAX.
+  auto batch_shape = JaggedShape::FlatFromSize(2);
+  constexpr int64_t kHuge = int64_t{1} << 62;
+  std::vector<int64_t> counts = {kHuge, kHuge};  // sum = 2^63, overflows
+  EXPECT_THAT(BuildBatchedVectorShape(batch_shape, counts),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       ::testing::HasSubstr("integer overflow")));
 }
 
 // =========================================================================

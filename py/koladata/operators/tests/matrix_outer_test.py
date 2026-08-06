@@ -55,9 +55,7 @@ class MatrixOuterTest(parameterized.TestCase):
     x = ds([1, 2])
     y = ds([3, 4])
     result = kd.matrix.outer(x, y)
-    testing.assert_equal(
-        result, ds([[3, 4], [6, 8]], schema_constants.INT32)
-    )
+    testing.assert_equal(result, ds([[3, 4], [6, 8]], schema_constants.INT32))
 
   def test_int64_float32_yields_float32(self):
     x = ds([1, 2], schema_constants.INT64)
@@ -101,10 +99,13 @@ class MatrixOuterTest(parameterized.TestCase):
     # result shape: (2, 2, 2)
     testing.assert_allclose(
         result,
-        ds([
-            [[5.0, 6.0], [10.0, 12.0]],
-            [[21.0, 24.0], [28.0, 32.0]],
-        ], schema_constants.FLOAT32),
+        ds(
+            [
+                [[5.0, 6.0], [10.0, 12.0]],
+                [[21.0, 24.0], [28.0, 32.0]],
+            ],
+            schema_constants.FLOAT32,
+        ),
     )
 
   def test_prefix_broadcast_no_batch_vs_1_batch(self):
@@ -118,10 +119,13 @@ class MatrixOuterTest(parameterized.TestCase):
     # output shape: (2, 3, 2)
     testing.assert_allclose(
         result,
-        ds([
-            [[10.0, 20.0], [20.0, 40.0], [30.0, 60.0]],
-            [[30.0, 40.0], [60.0, 80.0], [90.0, 120.0]],
-        ], schema_constants.FLOAT32),
+        ds(
+            [
+                [[10.0, 20.0], [20.0, 40.0], [30.0, 60.0]],
+                [[30.0, 40.0], [60.0, 80.0], [90.0, 120.0]],
+            ],
+            schema_constants.FLOAT32,
+        ),
     )
 
   def test_prefix_broadcast_1_batch_vs_2_batch(self):
@@ -140,18 +144,24 @@ class MatrixOuterTest(parameterized.TestCase):
     # batch (1, j): x[1,j] outer y[1] = x[1,j] outer [40,50,60]
     testing.assert_allclose(
         result,
-        ds([
+        ds(
             [
-                [[10.0, 20.0, 30.0], [20.0, 40.0, 60.0]],  # x[0,0]=[1,2]
-                [[30.0, 60.0, 90.0], [40.0, 80.0, 120.0]],  # x[0,1]=[3,4]
-                [[50.0, 100.0, 150.0], [60.0, 120.0, 180.0]],  # x[0,2]=[5,6]
+                [
+                    [[10.0, 20.0, 30.0], [20.0, 40.0, 60.0]],  # x[0,0]=[1,2]
+                    [[30.0, 60.0, 90.0], [40.0, 80.0, 120.0]],  # x[0,1]=[3,4]
+                    [
+                        [50.0, 100.0, 150.0],
+                        [60.0, 120.0, 180.0],
+                    ],  # x[0,2]=[5,6]
+                ],
+                [
+                    [[280.0, 350.0, 420.0], [320.0, 400.0, 480.0]],  # x[1,0]
+                    [[360.0, 450.0, 540.0], [400.0, 500.0, 600.0]],  # x[1,1]
+                    [[440.0, 550.0, 660.0], [480.0, 600.0, 720.0]],  # x[1,2]
+                ],
             ],
-            [
-                [[280.0, 350.0, 420.0], [320.0, 400.0, 480.0]],  # x[1,0]
-                [[360.0, 450.0, 540.0], [400.0, 500.0, 600.0]],  # x[1,1]
-                [[440.0, 550.0, 660.0], [480.0, 600.0, 720.0]],  # x[1,2]
-            ],
-        ], schema_constants.FLOAT32),
+            schema_constants.FLOAT32,
+        ),
     )
 
   def test_prefix_broadcast_mismatched_dims_fails(self):
@@ -171,10 +181,13 @@ class MatrixOuterTest(parameterized.TestCase):
     # batch 1: [0,4] outer [7,8] = [[0,0],[28,32]]
     testing.assert_allclose(
         result,
-        ds([
-            [[5.0, 6.0], [0.0, 0.0]],
-            [[0.0, 0.0], [28.0, 32.0]],
-        ], schema_constants.FLOAT32),
+        ds(
+            [
+                [[5.0, 6.0], [0.0, 0.0]],
+                [[0.0, 0.0], [28.0, 32.0]],
+            ],
+            schema_constants.FLOAT32,
+        ),
     )
 
   def test_jagged_vector_sizes(self):
@@ -197,28 +210,29 @@ class MatrixOuterTest(parameterized.TestCase):
     )
 
   def test_jagged_vector_sizes_with_broadcast(self):
-    x = ds(
-        [[[1.0, 2.0], [3.0, 4.0]], [[5.0, 6.0, 7.0], [8.0, 9.0, 10.0]]]
-    )
+    x = ds([[[1.0, 2.0], [3.0, 4.0]], [[5.0, 6.0, 7.0], [8.0, 9.0, 10.0]]])
     y = ds([[10.0, 20.0], [100.0, 200.0, 300.0]])
     result = kd.matrix.outer(x, y)
     testing.assert_allclose(
         result,
-        ds([
-            [[[10.0, 20.0], [20.0, 40.0]], [[30.0, 60.0], [40.0, 80.0]]],
+        ds(
             [
+                [[[10.0, 20.0], [20.0, 40.0]], [[30.0, 60.0], [40.0, 80.0]]],
                 [
-                    [500.0, 1000.0, 1500.0],
-                    [600.0, 1200.0, 1800.0],
-                    [700.0, 1400.0, 2100.0],
-                ],
-                [
-                    [800.0, 1600.0, 2400.0],
-                    [900.0, 1800.0, 2700.0],
-                    [1000.0, 2000.0, 3000.0],
+                    [
+                        [500.0, 1000.0, 1500.0],
+                        [600.0, 1200.0, 1800.0],
+                        [700.0, 1400.0, 2100.0],
+                    ],
+                    [
+                        [800.0, 1600.0, 2400.0],
+                        [900.0, 1800.0, 2700.0],
+                        [1000.0, 2000.0, 3000.0],
+                    ],
                 ],
             ],
-        ], schema_constants.FLOAT32),
+            schema_constants.FLOAT32,
+        ),
     )
 
   def test_qtype_signatures(self):
@@ -270,6 +284,21 @@ class ErrorTest(parameterized.TestCase):
     y = ds(2.0)
     with self.assertRaisesRegex(ValueError, r'at least 1 dimension'):
       kd.matrix.outer(x, y)
+
+  def test_overflow_fails(self):
+    x = kd.empty_shaped(kd.shapes.new(2**60), schema_constants.FLOAT32)
+    y = kd.empty_shaped(kd.shapes.new(2**60), schema_constants.FLOAT32)
+    with self.assertRaisesRegex(
+        ValueError, r'arguments cause integer overflow'
+    ):
+      kd.matrix.outer(x, y)
+    with self.assertRaisesRegex(
+        ValueError, r'arguments cause integer overflow'
+    ):
+      kd.matrix.outer(
+          kd.empty_shaped(kd.shapes.new(2, 2**31), schema_constants.FLOAT32),
+          kd.empty_shaped(kd.shapes.new(2, 2**31), schema_constants.FLOAT32),
+      )
 
 
 if __name__ == '__main__':
