@@ -1000,6 +1000,16 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "overflow_utils",
+    hdrs = ["overflow_utils.h"],
+    deps = [
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
 cc_test(
     name = "metadata_utils_test",
     srcs = ["metadata_utils_test.cc"],
@@ -1015,6 +1025,19 @@ cc_test(
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_arolla//arolla/expr/operators/all",
         "@com_google_arolla//arolla/qexpr/operators/all",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "overflow_utils_test",
+    srcs = ["overflow_utils_test.cc"],
+    deps = [
+        ":overflow_utils",
+        "@com_google_absl//absl/numeric:int128",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
         "@com_google_arolla//arolla/util",
         "@com_google_googletest//:gtest_main",
     ],
