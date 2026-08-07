@@ -679,6 +679,7 @@ cc_library(
         "//koladata/internal:schema_attrs",
         "//koladata/internal:schema_utils",
         "//koladata/internal:uuid_object",
+        "//koladata/internal:uuid_schemas",
         "//koladata/internal/op_utils:error",
         "//koladata/internal/op_utils:has",
         "@com_google_absl//absl/algorithm:container",

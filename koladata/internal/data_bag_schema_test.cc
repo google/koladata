@@ -755,6 +755,125 @@ TEST(DataBagTest, CreateUuSchemaFromFields) {
                                  " schemas, got: 42")));
 }
 
+TEST(DataBagTest, CreateNamedSchema) {
+  auto db = internal::DataBagImpl::CreateEmptyDatabag();
+
+  ASSERT_OK_AND_ASSIGN(auto schema, db->CreateNamedSchema("my_schema"));
+  EXPECT_TRUE(schema.value<internal::ObjectId>().IsSchema());
+  EXPECT_TRUE(schema.value<internal::ObjectId>().IsExplicitSchema());
+  EXPECT_TRUE(schema.value<internal::ObjectId>().IsUuid());
+  EXPECT_THAT(db->GetSchemaAttr(schema, schema::kSchemaNameAttr),
+              IsOkAndHolds(DataItem(arolla::Text("my_schema"))));
+
+  // Same name produces equivalent schema ID.
+  ASSERT_OK_AND_ASSIGN(auto same_schema, db->CreateNamedSchema("my_schema"));
+  EXPECT_THAT(schema, IsEquivalentTo(same_schema));
+
+  // Different name produces different schema ID.
+  ASSERT_OK_AND_ASSIGN(auto diff_schema, db->CreateNamedSchema("other_schema"));
+  EXPECT_THAT(schema, Not(IsEquivalentTo(diff_schema)));
+}
+
+TEST(DataBagTest, CreateListSchema) {
+  auto db = internal::DataBagImpl::CreateEmptyDatabag();
+  auto int_s = GetIntSchema();
+  auto float_s = GetFloatSchema();
+  auto entity = DataItem(AllocateSingleObject());
+  auto explicit_s = DataItem(AllocateExplicitSchema());
+  auto implicit_s = DataItem(GenerateImplicitSchemas(1).ObjectByOffset(0));
+
+  // Valid item schemas.
+  for (const auto& item_s :
+       {int_s, float_s, GetObjSchema(), explicit_s, implicit_s}) {
+    ASSERT_OK_AND_ASSIGN(auto schema, db->CreateListSchema(item_s));
+    EXPECT_TRUE(schema.value<internal::ObjectId>().IsSchema());
+    EXPECT_TRUE(schema.value<internal::ObjectId>().IsExplicitSchema());
+    EXPECT_TRUE(schema.value<internal::ObjectId>().IsUuid());
+    EXPECT_THAT(db->GetSchemaAttr(schema, schema::kListItemsSchemaAttr),
+                IsOkAndHolds(item_s));
+  }
+
+  // Missing item schema.
+  EXPECT_THAT(
+      db->CreateListSchema(DataItem()),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr("Cannot create list schema with non-schema item schema")));
+
+  // Non-schema items.
+  for (const auto& invalid_s : {DataItem(), DataItem(42), entity}) {
+    EXPECT_THAT(
+        db->CreateListSchema(invalid_s),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr(
+                     "Cannot create list schema with non-schema item schema")));
+  }
+}
+
+TEST(DataBagTest, CreateDictSchema) {
+  auto db = internal::DataBagImpl::CreateEmptyDatabag();
+  auto int_s = GetIntSchema();
+  auto float_s = GetFloatSchema();
+  auto string_s = DataItem(schema::kString);
+  auto expr_s = DataItem(schema::kExpr);
+  auto explicit_s = DataItem(AllocateExplicitSchema());
+  auto entity = DataItem(AllocateSingleObject());
+
+  // Valid key and value schemas.
+  ASSERT_OK_AND_ASSIGN(auto schema, db->CreateDictSchema(int_s, float_s));
+  EXPECT_TRUE(schema.value<internal::ObjectId>().IsSchema());
+  EXPECT_TRUE(schema.value<internal::ObjectId>().IsExplicitSchema());
+  EXPECT_TRUE(schema.value<internal::ObjectId>().IsUuid());
+  EXPECT_THAT(db->GetSchemaAttr(schema, schema::kDictKeysSchemaAttr),
+              IsOkAndHolds(int_s));
+  EXPECT_THAT(db->GetSchemaAttr(schema, schema::kDictValuesSchemaAttr),
+              IsOkAndHolds(float_s));
+
+  ASSERT_OK_AND_ASSIGN(auto schema_complex,
+                       db->CreateDictSchema(string_s, explicit_s));
+  EXPECT_THAT(db->GetSchemaAttr(schema_complex, schema::kDictKeysSchemaAttr),
+              IsOkAndHolds(string_s));
+  EXPECT_THAT(db->GetSchemaAttr(schema_complex, schema::kDictValuesSchemaAttr),
+              IsOkAndHolds(explicit_s));
+
+  // Invalid key schema DTypes.
+  for (const auto& invalid_key :
+       {float_s, DataItem(schema::kFloat64), expr_s}) {
+    EXPECT_THAT(db->CreateDictSchema(invalid_key, int_s),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("dict keys cannot be")));
+  }
+
+  // Missing key schema.
+  EXPECT_THAT(
+      db->CreateDictSchema(DataItem(), int_s),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr("Cannot create dict schema with non-schema key schema")));
+
+  // Missing value schema.
+  EXPECT_THAT(
+      db->CreateDictSchema(int_s, DataItem()),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr("Cannot create dict schema with non-schema value schema")));
+
+  // Non-schema key / value items.
+  for (const auto& invalid_s : {DataItem(), DataItem(42), entity}) {
+    EXPECT_THAT(
+        db->CreateDictSchema(invalid_s, int_s),
+        StatusIs(
+            absl::StatusCode::kInvalidArgument,
+            HasSubstr("Cannot create dict schema with non-schema key schema")));
+    EXPECT_THAT(
+        db->CreateDictSchema(int_s, invalid_s),
+        StatusIs(
+            absl::StatusCode::kInvalidArgument,
+            HasSubstr(
+                "Cannot create dict schema with non-schema value schema")));
+  }
+}
+
 TEST(DataBagTest, SetSchemaFields) {
   auto db = internal::DataBagImpl::CreateEmptyDatabag();
 

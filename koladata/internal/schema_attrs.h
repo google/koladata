@@ -47,6 +47,12 @@ inline constexpr absl::string_view kImplicitSchemaSeed = "__implicit_schema__";
 inline constexpr absl::string_view kNoFollowSchemaSeed = "__nofollow_schema__";
 // Seed for metadata.
 inline constexpr absl::string_view kMetadataSeed = "__metadata__";
+// Seed for list schemas.
+inline constexpr absl::string_view kListSchemaSeed = "__list_schema__";
+// Seed for dict schemas.
+inline constexpr absl::string_view kDictSchemaSeed = "__dict_schema__";
+// Seed prefix for named schemas.
+inline constexpr absl::string_view kNamedSchemaSeedPrefix = "__named_schema__";
 
 }  // namespace koladata::schema
 

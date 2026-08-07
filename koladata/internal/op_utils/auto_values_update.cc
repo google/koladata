@@ -497,8 +497,7 @@ class AutoValuesVisitor : public AbstractVisitor {
 
   absl::StatusOr<DataItem> NestedListSchema(DataItem schema, int depth) {
     for (; depth >= 0; --depth) {
-      ASSIGN_OR_RETURN(schema, new_databag_->CreateUuSchemaFromFields(
-                                   "__list_schema__", {"__items__"}, {schema}));
+      ASSIGN_OR_RETURN(schema, new_databag_->CreateListSchema(schema));
     }
     return schema;
   }

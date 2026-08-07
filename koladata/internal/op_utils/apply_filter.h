@@ -20,7 +20,7 @@
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
-#include "koladata/internal/uuid_object.h"
+#include "koladata/internal/uuid_schemas.h"
 
 namespace koladata::internal {
 
@@ -28,19 +28,19 @@ namespace schema_filters {
 
 inline const DataItem& AnyPrimitiveFilter() {
   static const absl::NoDestructor<DataItem> kSchema(
-      CreateSchemaUuidFromFields("__named_schema____ANY_PRIMITIVE__", {}, {}));
+      CreateNamedSchemaId("__ANY_PRIMITIVE__"));
   return *kSchema;
 }
 
 inline const DataItem& AnySchemaFilter() {
   static const absl::NoDestructor<DataItem> kSchema(
-      CreateSchemaUuidFromFields("__named_schema____ANY_SCHEMA__", {}, {}));
+      CreateNamedSchemaId("__ANY_SCHEMA__"));
   return *kSchema;
 }
 
 inline const DataItem& StubFilter() {
   static const absl::NoDestructor<DataItem> kSchema(
-      CreateSchemaUuidFromFields("__named_schema____STUB__", {}, {}));
+      CreateNamedSchemaId("__STUB__"));
   return *kSchema;
 }
 

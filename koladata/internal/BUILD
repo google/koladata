@@ -535,6 +535,7 @@ cc_library(
         ":sparse_source",
         ":types_buffer",
         ":uuid_object",
+        ":uuid_schemas",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",
@@ -828,6 +829,19 @@ cc_library(
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
+    name = "uuid_schemas",
+    srcs = ["uuid_schemas.cc"],
+    hdrs = ["uuid_schemas.h"],
+    deps = [
+        ":data_item",
+        ":schema_attrs",
+        ":uuid_object",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:string_view",
     ],
 )
 

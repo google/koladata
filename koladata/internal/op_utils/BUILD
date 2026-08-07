@@ -1375,6 +1375,7 @@ cc_library(
         "//koladata/internal:object_id",
         "//koladata/internal:schema_attrs",
         "//koladata/internal:uuid_object",
+        "//koladata/internal:uuid_schemas",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",

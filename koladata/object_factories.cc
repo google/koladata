@@ -68,9 +68,6 @@ using ::koladata::internal::DataItem;
 using ::koladata::internal::DataSliceImpl;
 using ::koladata::internal::ObjectId;
 
-constexpr absl::string_view kListSchemaSeed = "__list_schema__";
-constexpr absl::string_view kDictSchemaSeed = "__dict_schema__";
-
 absl::Status VerifyNoSchemaArg(absl::Span<const absl::string_view> attr_names) {
   if (absl::c_find(attr_names, "schema") != attr_names.end()) {
     return absl::InvalidArgumentError(
@@ -419,9 +416,7 @@ absl::StatusOr<internal::DataItem> CreateListSchemaItem(
   RETURN_IF_ERROR(item_schema.VerifyIsSchema());
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    db->GetMutableImpl());
-  return db_mutable_impl.CreateUuSchemaFromFields(
-      kListSchemaSeed,
-      {"__items__"}, {item_schema.item()});
+  return db_mutable_impl.CreateListSchema(item_schema.item());
 }
 
 // Creates dict schema with the given keys and values schemas.
@@ -430,12 +425,10 @@ absl::StatusOr<internal::DataItem> CreateDictSchemaItem(
     const DataSlice& value_schema) {
   RETURN_IF_ERROR(key_schema.VerifyIsSchema());
   RETURN_IF_ERROR(value_schema.VerifyIsSchema());
-  RETURN_IF_ERROR(schema::VerifyDictKeySchema(key_schema.item()));
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    db->GetMutableImpl());
-  return db_mutable_impl.CreateUuSchemaFromFields(
-      kDictSchemaSeed, {"__keys__", "__values__"},
-      {key_schema.item(), value_schema.item()});
+  return db_mutable_impl.CreateDictSchema(key_schema.item(),
+                                          value_schema.item());
 }
 
 // Implementation of CreateDictLike and CreateDictShaped that handles schema
@@ -980,17 +973,12 @@ absl::StatusOr<DataSlice> CreateNamedSchema(
     const DataBagPtr& db, absl::string_view name,
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> schemas) {
-  // Note that we do not pass attributes here since we do not want the schema
-  // id to depend on them.
-  ASSIGN_OR_RETURN(
-      auto res,
-      CreateUuSchema(db, absl::StrCat("__named_schema__", name), {}, {}));
-
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    db->GetMutableImpl());
-  RETURN_IF_ERROR(db_mutable_impl.SetSchemaAttr(
-      res.item(), schema::kSchemaNameAttr, DataItem(arolla::Text(name))));
-
+  ASSIGN_OR_RETURN(auto named_schema, db_mutable_impl.CreateNamedSchema(name));
+  ASSIGN_OR_RETURN(
+      auto res,
+      DataSlice::Create(named_schema, internal::DataItem(schema::kSchema), db));
   RETURN_IF_ERROR(res.SetAttrs(attr_names, schemas,
                                /*overwrite_schema=*/false));
   RETURN_IF_ERROR(AdoptValuesInto(schemas, *db));
@@ -1086,16 +1074,20 @@ absl::StatusOr<DataSlice> CreateSchemaWithOrderedAttrs(
 
 absl::StatusOr<DataSlice> CreateListSchema(const DataBagPtr& db,
                                            const DataSlice& item_schema) {
-  return CreateUuSchema(db, kListSchemaSeed, {"__items__"}, {item_schema});
+  ASSIGN_OR_RETURN(auto list_schema, CreateListSchemaItem(db, item_schema));
+  RETURN_IF_ERROR(AdoptValuesInto({item_schema}, *db));
+  return DataSlice::Create(list_schema, internal::DataItem(schema::kSchema),
+                           db);
 }
 
 absl::StatusOr<DataSlice> CreateDictSchema(const DataBagPtr& db,
                                            const DataSlice& key_schema,
                                            const DataSlice& value_schema) {
-  RETURN_IF_ERROR(key_schema.VerifyIsSchema());
-  RETURN_IF_ERROR(schema::VerifyDictKeySchema(key_schema.item()));
-  return CreateUuSchema(db, kDictSchemaSeed, {"__keys__", "__values__"},
-                        {key_schema, value_schema});
+  ASSIGN_OR_RETURN(auto dict_schema,
+                   CreateDictSchemaItem(db, key_schema, value_schema));
+  RETURN_IF_ERROR(AdoptValuesInto({key_schema, value_schema}, *db));
+  return DataSlice::Create(dict_schema, internal::DataItem(schema::kSchema),
+                           db);
 }
 
 absl::StatusOr<DataSlice> CreateDictLike(

@@ -73,6 +73,7 @@
 #include "koladata/internal/sparse_source.h"
 #include "koladata/internal/types_buffer.h"
 #include "koladata/internal/uuid_object.h"
+#include "koladata/internal/uuid_schemas.h"
 
 namespace koladata::internal {
 
@@ -3309,6 +3310,47 @@ absl::StatusOr<DataItem> DataBagImpl::CreateUuSchemaFromFields(
   RETURN_IF_ERROR(
       SetSchemaFields(DataItem(schema_id), attr_names, items));
   return DataItem(schema_id);
+}
+
+absl::StatusOr<DataItem> DataBagImpl::CreateNamedSchema(
+    absl::string_view name) {
+  auto named_schema = internal::CreateNamedSchemaId(name);
+  RETURN_IF_ERROR(SetSchemaAttr(named_schema, schema::kSchemaNameAttr,
+                                DataItem(arolla::Text(name))));
+  return named_schema;
+}
+
+absl::StatusOr<DataItem> DataBagImpl::CreateListSchema(
+    const DataItem& item_schema) {
+  if (!item_schema.is_schema()) {
+    return absl::InvalidArgumentError(
+        "Cannot create list schema with non-schema item schema");
+  }
+  auto list_schema = internal::CreateListSchemaId(item_schema);
+  RETURN_IF_ERROR(SetSchemaFields(list_schema, {schema::kListItemsSchemaAttr},
+                                  {item_schema}));
+  return list_schema;
+}
+
+absl::StatusOr<DataItem> DataBagImpl::CreateDictSchema(
+    const DataItem& key_schema, const DataItem& value_schema) {
+  if (!key_schema.is_schema()) {
+    return absl::InvalidArgumentError(
+        "Cannot create dict schema with non-schema key schema");
+  }
+  if (key_schema.holds_value<schema::DType>()) {
+    RETURN_IF_ERROR(
+        schema::VerifyDictKeySchema(key_schema.value<schema::DType>()));
+  }
+  if (!value_schema.is_schema()) {
+    return absl::InvalidArgumentError(
+        "Cannot create dict schema with non-schema value schema");
+  }
+  auto dict_schema = internal::CreateDictSchemaId(key_schema, value_schema);
+  RETURN_IF_ERROR(SetSchemaFields(
+      dict_schema, {schema::kDictKeysSchemaAttr, schema::kDictValuesSchemaAttr},
+      {key_schema, value_schema}));
+  return dict_schema;
 }
 
 // ********* Merging

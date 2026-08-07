@@ -654,6 +654,19 @@ class DataBagImpl : public arolla::RefcountedBase {
       absl::string_view seed, absl::Span<const absl::string_view> attr_names,
       absl::Span<const std::reference_wrapper<const DataItem>> items);
 
+  // Returns a named schema DataItem with attribute `kSchemaNameAttr` set to
+  // `name`.
+  absl::StatusOr<DataItem> CreateNamedSchema(absl::string_view name);
+
+  // Returns a list schema DataItem with attribute `kListItemsSchemaAttr` set to
+  // `item_schema`.
+  absl::StatusOr<DataItem> CreateListSchema(const DataItem& item_schema);
+
+  // Returns a dict schema DataItem with attribute `kDictKeysSchemaAttr` set to
+  // `key_schema` and `kDictValuesSchemaAttr` set to `value_schema`.
+  absl::StatusOr<DataItem> CreateDictSchema(const DataItem& key_schema,
+                                            const DataItem& value_schema);
+
   // Sets attributes from `attr_names` to schemas in `items` in the same order.
   // Attributes are added to existing schemas, i.e. existing attributes remain
   // and are overwritten only if specified in the arguments.

@@ -307,6 +307,15 @@ inline constexpr DType kItemId = GetDType<schema::ItemIdDType>();
 // Kept as non-primitive since one cannot have values of MissingValue.
 inline constexpr DType kNone = GetDType<internal::MissingValue>();
 
+// Validates that the given DType can be used for dict keys.
+inline absl::Status VerifyDictKeySchema(const DType& dtype) {
+  if (dtype == kFloat32 || dtype == kFloat64 || dtype == kExpr) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("dict keys cannot be %v", dtype));
+  }
+  return absl::OkStatus();
+}
+
 }  // namespace koladata::schema
 
 namespace arolla {
