@@ -160,7 +160,7 @@ class SlicesConcatImplTest(parameterized.TestCase):
           ),
           0,
           (
-              'concatentation of DataItems (rank=0) is not supported - use'
+              'concatenation of DataItems (rank=0) is not supported - use'
               ' stack instead'
           ),
       ),
