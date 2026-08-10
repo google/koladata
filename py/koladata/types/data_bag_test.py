@@ -1634,6 +1634,61 @@ Assigned schema for keys: INT32""",
     ds21 = x.with_bag(db2).enriched(db1)
     self.assertTrue(data_bag.exactly_equal(ds12.get_bag(), ds21.get_bag()))
 
+  def test_content_equal_fallbacks(self):
+    a = bag().new(x=3, y=4)
+    db2 = bag()
+    a.with_bag(db2).set_attrs(x=5, u=6)
+    upd = a.get_bag() << db2
+
+    expected = bag()
+    a.with_bag(expected).set_attrs(x=5, y=4, u=6)
+
+    self.assertFalse(data_bag.exactly_equal(upd, expected))
+    self.assertTrue(data_bag.content_equal(upd, expected))
+
+  def test_content_equal_impl_raises(self):
+    with self.assertRaisesRegex(
+        TypeError, 'takes 2 positional arguments but 3'
+    ):
+      data_bag.content_equal(42, 42, 42)  # pytype: disable=wrong-arg-count
+
+    with self.assertRaisesRegex(
+        TypeError, 'missing 2 required positional arguments'
+    ):
+      data_bag.content_equal()  # pytype: disable=missing-parameter
+
+    with self.assertRaisesRegex(
+        TypeError, 'expecting a to be a DataBag, got int'
+    ):
+      data_bag.content_equal(42, bag())  # pytype: disable=wrong-arg-types
+
+    with self.assertRaisesRegex(
+        TypeError, 'expecting b to be a DataBag, got int'
+    ):
+      data_bag.content_equal(bag(), 42)  # pytype: disable=wrong-arg-types
+
+  def test_content_equal_impl(self):
+    db1 = bag()
+    db2 = bag()
+    self.assertTrue(data_bag.content_equal(db1, db2))
+
+    itemid = kde.uuid(x=1).eval()
+    _ = db1.obj(itemid=itemid, a=1)
+    self.assertFalse(data_bag.content_equal(db1, db2))
+
+    o2 = db2.obj(itemid=itemid, a=1)
+    self.assertTrue(data_bag.content_equal(db1, db2))
+
+    o2.a = 2
+    self.assertFalse(data_bag.content_equal(db1, db2))
+
+    self.assertTrue(
+        data_bag.content_equal(
+            data_bag.DataBag.empty(), data_bag.DataBag.empty()
+        )
+    )
+    self.assertFalse(data_bag.content_equal(db1, data_bag.DataBag.empty()))
+
   def test_merge_inplace(self):
     db1 = bag()
     x1 = db1.new(a=1, b=2)

@@ -79,9 +79,11 @@ using SelfOrClsType = std::conditional_t<kMode == DataBagFactoryMode::kWithBag,
                                          PyObject*, PyTypeObject*>;
 
 DataSlice AsMask(bool b) {
-  return *DataSlice::Create(
+  auto ds = DataSlice::Create(
       b ? internal::DataItem(arolla::kUnit) : internal::DataItem(),
       internal::DataItem(schema::kMask));
+  CHECK_OK(ds);
+  return *std::move(ds);
 }
 
 PyObject* absl_nullable PyDataBag_is_mutable(PyObject* self, PyObject*) {
@@ -149,7 +151,7 @@ absl::StatusOr<std::optional<DataSlice>> ListItemSchemaForBoxing(
 //
 // They invoke UniversalConverter or create Entity / Object from **kwargs.
 struct EntityCreatorHelper {
-  static constexpr absl::string_view kKodaName = "entity";
+  [[maybe_unused]] static constexpr absl::string_view kKodaName = "entity";
 
   static absl::StatusOr<DataSlice> FromAttributes(
       const std::vector<absl::string_view>& attr_names,
@@ -190,7 +192,7 @@ struct EntityCreatorHelper {
 };
 
 struct ObjectCreatorHelper {
-  static constexpr absl::string_view kKodaName = "object";
+  [[maybe_unused]] static constexpr absl::string_view kKodaName = "object";
 
   static absl::StatusOr<DataSlice> FromAttributes(
       const std::vector<absl::string_view>& attr_names,
@@ -1998,6 +2000,28 @@ PyObject* absl_nullable PyDataBagModule_exactly_equal(
   }
   return PyBool_FromLong(
       DataBagComparison::ExactlyEqual(std::move(*a), std::move(*b)));
+}
+
+PyObject* absl_nullable PyDataBagModule_content_equal(PyObject* /*module*/,
+                                                      PyObject* const* args,
+                                                      Py_ssize_t nargs) {
+  arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
+  if (nargs != 2) {
+    PyErr_Format(PyExc_ValueError,
+                 "content_equal accepts exactly 2 arguments, got %d", nargs);
+    return nullptr;
+  }
+  auto a = UnwrapDataBagPtr(args[0], "a");
+  if (a == std::nullopt) {
+    return nullptr;
+  }
+  auto b = UnwrapDataBagPtr(args[1], "b");
+  if (b == std::nullopt) {
+    return nullptr;
+  }
+  return PyBool_FromLong(
+      DataBagComparison::ContentEqual(std::move(*a), std::move(*b)));
 }
 
 }  // namespace koladata::python

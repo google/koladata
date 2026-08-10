@@ -514,3 +514,8 @@ def null_bag():
 def exactly_equal(a: DataBag, b: DataBag) -> bool:
   """Returns True if `a` and `b` are exactly equal DataBags or if both are NullDataBags."""
   return _data_bag_py_ext.internal_exactly_equal(a, b)
+
+
+def content_equal(a: DataBag, b: DataBag) -> bool:
+  """Returns True if `a` and `b` have equivalent contents after merging fallbacks, or if both are NullDataBags."""
+  return _data_bag_py_ext.internal_content_equal(a, b)

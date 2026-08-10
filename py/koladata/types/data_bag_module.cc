@@ -22,12 +22,18 @@ namespace {
 constexpr const char* kThisModuleName = "koladata.types.data_bag";
 
 PyMethodDef kPyDataSliceModule_methods[] = {
-    {"internal_exactly_equal",
-     (PyCFunction)PyDataBagModule_exactly_equal, METH_FASTCALL,
+    {"internal_exactly_equal", (PyCFunction)PyDataBagModule_exactly_equal,
+     METH_FASTCALL,
      "internal_exactly_equal(a, b, /) -> bool\n"
      "--\n\n"
      "Returns True if `a` and `b` are exactly equal DataBags or if both are"
      "NullDataBags."},
+    {"internal_content_equal", (PyCFunction)PyDataBagModule_content_equal,
+     METH_FASTCALL,
+     "internal_content_equal(a, b, /) -> bool\n"
+     "--\n\n"
+     "Returns True if `a` and `b` have equivalent contents after merging"
+     " fallbacks, or if both are NullDataBags."},
     {nullptr} /* sentinel */
 };
 

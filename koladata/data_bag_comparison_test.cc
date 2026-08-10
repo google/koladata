@@ -85,5 +85,49 @@ TEST(DataBagComparisonTest, ExactlyEqual_NullDataBag) {
   EXPECT_FALSE(DataBagComparison::ExactlyEqual(db1, db3));
 }
 
+TEST(DataBagComparisonTest, ContentEqual_Fallbacks) {
+  auto ds1 = internal::DataSliceImpl::AllocateEmptyObjects(3);
+  auto ds2 = internal::DataSliceImpl::AllocateEmptyObjects(3);
+
+  auto db1 = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(internal::DataBagImpl & db1_impl, db1->GetMutableImpl());
+  ASSERT_OK(db1_impl.SetAttr(ds1, "other", ds2));
+  auto db2 = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(internal::DataBagImpl & db2_impl, db2->GetMutableImpl());
+  ASSERT_OK(db2_impl.SetAttr(ds2, "other", ds1));
+  db1->UnsafeMakeImmutable();
+  db2->UnsafeMakeImmutable();
+
+  ASSERT_OK_AND_ASSIGN(auto db_f1, DataBag::ImmutableEmptyWithFallbacks({db1}));
+  ASSERT_OK_AND_ASSIGN(auto db_f12,
+                       DataBag::ImmutableEmptyWithFallbacks({db1, db2}));
+  ASSERT_OK_AND_ASSIGN(auto db_f12_copy,
+                       DataBag::ImmutableEmptyWithFallbacks({db1, db2}));
+  ASSERT_OK_AND_ASSIGN(auto db_f21,
+                       DataBag::ImmutableEmptyWithFallbacks({db2, db1}));
+  ASSERT_OK_AND_ASSIGN(auto db_ff12,
+                       DataBag::ImmutableEmptyWithFallbacks({db_f1, db2}));
+  ASSERT_OK_AND_ASSIGN(auto db_ff122,
+                       DataBag::ImmutableEmptyWithFallbacks({db_f12, db2}));
+  ASSERT_OK_AND_ASSIGN(auto db_ff212,
+                       DataBag::ImmutableEmptyWithFallbacks({db_f21, db2}));
+
+  EXPECT_TRUE(DataBagComparison::ContentEqual(db_f12, db_f12_copy));
+  EXPECT_TRUE(DataBagComparison::ContentEqual(db_f12, db_f21));
+  EXPECT_FALSE(DataBagComparison::ContentEqual(db_f1, db_f12));
+  EXPECT_FALSE(DataBagComparison::ContentEqual(db_f1, db_f21));
+  EXPECT_TRUE(DataBagComparison::ContentEqual(db_ff12, db_ff122));
+  EXPECT_TRUE(DataBagComparison::ContentEqual(db_ff212, db_ff122));
+}
+
+TEST(DataBagComparisonTest, ContentEqual_NullDataBag) {
+  DataBagPtr db1 = nullptr;
+  DataBagPtr db2 = nullptr;
+  auto db3 = DataBag::Empty();
+
+  EXPECT_TRUE(DataBagComparison::ContentEqual(db1, db2));
+  EXPECT_FALSE(DataBagComparison::ContentEqual(db1, db3));
+}
+
 }  // namespace
 }  // namespace koladata

@@ -759,6 +759,7 @@ cc_library(
     deps = [
         ":data_bag",
         "//koladata/internal:triples",
+        "@com_google_absl//absl/log:check",
     ],
 )
 

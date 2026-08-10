@@ -29,6 +29,12 @@ PyTypeObject* absl_nullable PyDataBag_Type();
 PyObject* absl_nullable PyDataBagModule_exactly_equal(
     PyObject* /*module*/, PyObject* const* args, Py_ssize_t nargs);
 
+// Returns True if `a` and `b` have equivalent contents after merging fallbacks,
+// or if both are NullDataBags.
+PyObject* absl_nullable PyDataBagModule_content_equal(PyObject* /*module*/,
+                                                      PyObject* const* args,
+                                                      Py_ssize_t nargs);
+
 }  // namespace koladata::python
 
 #endif  // PY_KOLADATA_TYPES_DATA_BAG_H_

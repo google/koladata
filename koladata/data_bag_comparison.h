@@ -16,7 +16,9 @@
 #define KOLADATA_DATA_BAG_COMPARISON_H_
 
 #include <cstddef>
+#include <utility>
 
+#include "absl/log/check.h"
 #include "koladata/data_bag.h"
 #include "koladata/internal/triples.h"
 
@@ -29,8 +31,11 @@ class DataBagComparison {
     if (a == nullptr || b == nullptr) {
       return a == b;
     }
-    if (Triples(a->GetImpl().ExtractContent().value()) !=
-        Triples(b->GetImpl().ExtractContent().value())) {
+    auto a_content = a->GetImpl().ExtractContent();
+    CHECK_OK(a_content);
+    auto b_content = b->GetImpl().ExtractContent();
+    CHECK_OK(b_content);
+    if (Triples(*a_content) != Triples(*b_content)) {
       return false;
     }
     FlattenFallbackFinder a_fb_finder(*a);
@@ -41,12 +46,29 @@ class DataBagComparison {
       return false;
     }
     for (size_t i = 0; i < a_fallbacks.size(); ++i) {
-      if (Triples(a_fallbacks[i]->ExtractContent().value()) !=
-          Triples(b_fallbacks[i]->ExtractContent().value())) {
+      auto a_fb_content = a_fallbacks[i]->ExtractContent();
+      CHECK_OK(a_fb_content);
+      auto b_fb_content = b_fallbacks[i]->ExtractContent();
+      CHECK_OK(b_fb_content);
+      if (Triples(*a_fb_content) != Triples(*b_fb_content)) {
         return false;
       }
     }
     return true;
+  }
+
+  static bool ContentEqual(const DataBagPtr a, const DataBagPtr b) {
+    if (a == b) {
+      return true;
+    }
+    if (a == nullptr || b == nullptr) {
+      return false;
+    }
+    auto a_merged = a->MergeFallbacks();
+    CHECK_OK(a_merged);
+    auto b_merged = b->MergeFallbacks();
+    CHECK_OK(b_merged);
+    return ExactlyEqual(std::move(*a_merged), std::move(*b_merged));
   }
 };
 
