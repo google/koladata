@@ -217,14 +217,16 @@ def assert_equal(
   Compares the argument by their fingerprint:
   * 2 DataSlice(s) are equal if their contents and JaggedShape(s) are
     equal / equivalent and they reference the same DataBag instance.
+  * 2 DataBag(s) are equal if their contents are the same (including fallback
+    DataBag structure).
   * 2 JaggedShape(s) are equal if they have the same number of dimensions and
     all "sizes" in each dimension are equal.
 
   NOTE: For JaggedShape equality and equivalence are the same thing.
 
   Args:
-    actual_value: DataSlice or JaggedShape.
-    expected_value: DataSlice or JaggedShape.
+    actual_value: DataSlice, DataBag or JaggedShape.
+    expected_value: DataSlice, DataBag or JaggedShape.
     msg: A custom error message.
 
   Raises:
@@ -238,13 +240,11 @@ def assert_equal(
   ):
     _assert_expr_equal_by_fingerprint(actual_value, expected_value, msg=msg)
     return
-  if isinstance(actual_value, _data_bag.DataBag) or isinstance(
+  if isinstance(actual_value, _data_bag.DataBag) and isinstance(
       expected_value, _data_bag.DataBag
   ):
-    raise AssertionError(
-        '`assert_equal` does not support DataBags; use'
-        ' `assert_equal_by_fingerprint`'
-    )
+    _assert_exactly_equal_bags(actual_value, expected_value, msg=msg)
+    return
   _assert_qvalue_equal_by_fingerprint(actual_value, expected_value, msg=msg)
 
 
@@ -323,13 +323,13 @@ def _bag_content(bag: Optional[_data_bag.DataBag]) -> str:
   return repr(bag.contents_repr())
 
 
-def _assert_equivalent_bags(
+def _assert_exactly_equal_bags(
     actual_value: _data_bag.DataBag,
     expected_value: _data_bag.DataBag,
     *,
     msg: str | None = None,
 ):
-  """Asserts that DataBags are equivalent."""
+  """Asserts that DataBags are exactly equal."""
   if actual_value is None and expected_value is None:
     return
   if (
@@ -341,8 +341,7 @@ def _assert_equivalent_bags(
   raise AssertionError(
       msg
       or (
-          'DataBags are not'
-          ' equivalent\n\n'
+          'DataBags are not exactly equal\n\n'
           f'{_bag_content(actual_value)} != {_bag_content(expected_value)}'
       )
   )
@@ -363,14 +362,12 @@ def assert_equivalent(
   * 2 DataSlice(s) are equivalent if their contents and JaggedShape(s) are
     equivalent and their DataBag(s) have the same contents (including the
     distribution of data in fallback DataBag(s)).
-  * 2 DataBag(s) are equivalent if their contents are the same (including the
-    distribution of data in fallback DataBag(s).
   * 2 JaggedShape(s) are equivalent if they are equal, i.e. if sizes / edges
     across all their dimensions are the same.
 
   Args:
-    actual_value: DataSlice, DataBag or JaggedShape.
-    expected_value: DataSlice, DataBag or JaggedShape.
+    actual_value: DataSlice or JaggedShape.
+    expected_value: DataSlice or JaggedShape.
     partial: (default: False) Whether to check only the attributes present in
       the expected_value (affects only DataSlice case).
     ids_equality: (default: False) Whether to check ids equality (affects only
@@ -385,6 +382,10 @@ def assert_equivalent(
     AssertionError: If actual_value.fingerprint and expected_value.fingerprint
       are not equal.
   """
+  if isinstance(actual_value, _data_bag.DataBag) or isinstance(
+      expected_value, _data_bag.DataBag
+  ):
+    raise AssertionError('`assert_equivalent` does not support DataBags')
   # NOTE: None occurs frequently when comparing DataBag(s) from DataSlice(s).
   if actual_value is None and expected_value is None:
     return
@@ -417,11 +418,6 @@ def assert_equivalent(
     raise AssertionError('`schemas_equality` is only supported for DataSlices')
   if max_count is not None:
     raise AssertionError('`max_count` is only supported for DataSlices')
-  if isinstance(actual_value, _data_bag.DataBag) and isinstance(
-      expected_value, _data_bag.DataBag
-  ):
-    _assert_equivalent_bags(actual_value, expected_value, msg=msg)
-    return
   _assert_qvalue_equal_by_fingerprint(actual_value, expected_value, msg=msg)
 
 

@@ -178,7 +178,7 @@ class CoreCloneTest(parameterized.TestCase):
         a=a_slice, itemid=result.get_itemid(), schema=o.get_schema()
     )
     testing.assert_equivalent(result, expected, ids_equality=True)
-    testing.assert_equivalent(result.get_bag(), expected.get_bag())
+    testing.assert_equal(result.get_bag(), expected.get_bag())
 
   @parameterized.product(
       noise_positioned_in_front=[True, False],
@@ -363,7 +363,7 @@ class CoreCloneTest(parameterized.TestCase):
     expected_bag = data_bag.DataBag.empty_mutable()
     result.with_bag(expected_bag).set_attr('x', schema_constants.INT32)
     result.with_bag(expected_bag).set_attr('y', schema_constants.INT32)
-    testing.assert_equivalent(result.get_bag(), expected_bag)
+    testing.assert_equal(result.get_bag(), expected_bag)
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.clone(I.x)))

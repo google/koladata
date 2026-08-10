@@ -34,7 +34,7 @@ DataBagManager = dbm.DataBagManager
 class DataBagManagerTest(parameterized.TestCase):
 
   def assert_equivalent_bags(self, bag0, bag1):
-    kd.testing.assert_equivalent(bag0.merge_fallbacks(), bag1.merge_fallbacks())
+    kd.testing.assert_equal(bag0.merge_fallbacks(), bag1.merge_fallbacks())
 
   def test_typical_usage(self):
     persistence_dir = os.path.join(self.create_tempdir().full_path, 'bags')
@@ -615,7 +615,7 @@ class DataBagManagerTest(parameterized.TestCase):
     persistence_dir = self.create_tempdir().full_path
     manager = DataBagManager.create_new(persistence_dir)
 
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         manager.get_minimal_bag(bag_names=[]), kd.bag()  # pyrefly: ignore[missing-attribute]
     )
 
@@ -791,7 +791,7 @@ class DataBagManagerTest(parameterized.TestCase):
         branch_manager.get_available_bag_names(),
         {'trunk1', 'trunk2', 'trunk3'},
     )
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         branch_manager.get_minimal_bag(
             branch_manager.get_available_bag_names()
         ),
@@ -864,7 +864,7 @@ class DataBagManagerTest(parameterized.TestCase):
         # we did not request with_all_dependents=True when creating the twig.
         {'trunk1', 'trunk2', 'branch1'},
     )
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         twig_manager.get_minimal_bag(
             twig_manager.get_available_bag_names()
         ).merge_fallbacks(),
@@ -1067,7 +1067,7 @@ class DataBagManagerTest(parameterized.TestCase):
 
     # But the manager can still perform reads, but at 1 version behind the
     # latest revision.
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         manager.get_minimal_bag({'bag1'}).merge_fallbacks(),
         bag1,
     )
@@ -1083,7 +1083,7 @@ class DataBagManagerTest(parameterized.TestCase):
     branch_manager.add_bags([
         dbm.BagToAdd(bag_name='bag6', bag=bag6, dependencies=()),
     ])
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         branch_manager.get_minimal_bag({'bag6'}).merge_fallbacks(),
         bag6,
     )
@@ -1200,7 +1200,7 @@ class DataBagManagerTest(parameterized.TestCase):
     # The value is a different object in memory, but it is equivalent to the
     # original bag.
     self.assertIsNot(value_and_metadata.value, bag1)
-    kd.testing.assert_equivalent(value_and_metadata.value, bag1)
+    kd.testing.assert_equal(value_and_metadata.value, bag1)
     # The size estimate is the same as when we added the bag to the cache.
     self.assertEqual(
         value_and_metadata.metadata.num_bytes_estimate,
@@ -1260,7 +1260,7 @@ class DataBagManagerTest(parameterized.TestCase):
 
     # Load the bag from the persistence dir.
     loaded_bag1 = manager.get_minimal_bag({'bag1'})
-    kd.testing.assert_equivalent(loaded_bag1.merge_fallbacks(), bag1)
+    kd.testing.assert_equal(loaded_bag1.merge_fallbacks(), bag1)
 
     # Verify that the global cache is still empty.
     self.assertEqual(global_cache.get_total_bytes_of_entries_in_cache(), 0)

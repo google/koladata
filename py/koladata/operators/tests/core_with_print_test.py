@@ -95,7 +95,7 @@ class CoreWithPrintTest(parameterized.TestCase):
     self.assertEqual(
         printed.getvalue(), 'some message to log\nsome message to log\n'
     )
-    testing.assert_equivalent(eval_result, x)
+    testing.assert_equal(eval_result, x)
 
   @parameterized.parameters(
       ([], dict(), '\n'),

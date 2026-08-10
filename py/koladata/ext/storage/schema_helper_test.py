@@ -1208,7 +1208,7 @@ class SchemaHelperTest(absltest.TestCase):
         doc=kd.list_schema(doc_schema),  # pyrefly: ignore[missing-attribute]
     )
     helper = schema_helper.SchemaHelper(query_schema)
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         helper.get_schema_bag(helper.get_all_schema_node_names()),
         query_schema.get_bag(),
     )
@@ -1310,7 +1310,7 @@ class SchemaHelperTest(absltest.TestCase):
     )
     helper = schema_helper.SchemaHelper(schema)
 
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         helper.get_minimal_schema_bag_for_parent_child_relationship(
             parent_schema_node_name=schema_node_name(schema),
             child_schema_node_name=schema_node_name(
@@ -1320,7 +1320,7 @@ class SchemaHelperTest(absltest.TestCase):
         # The bag does not mention 'bar' or 'zoo':
         kd.attrs(kd.schema.named_schema('SomeSchema'), foo=kd.INT32),  # pyrefly: ignore[missing-attribute]
     )
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         helper.get_minimal_schema_bag_for_parent_child_relationship(
             parent_schema_node_name=schema_node_name(schema),
             child_schema_node_name=schema_node_name(schema.bar),
@@ -1334,7 +1334,7 @@ class SchemaHelperTest(absltest.TestCase):
 
     schema = schema.with_attrs(bar2=schema.bar)
     helper = schema_helper.SchemaHelper(schema)
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         helper.get_minimal_schema_bag_for_parent_child_relationship(
             parent_schema_node_name=schema_node_name(schema),
             child_schema_node_name=schema_node_name(schema.bar),
@@ -1349,7 +1349,7 @@ class SchemaHelperTest(absltest.TestCase):
 
     schema = schema.with_attrs(loop=schema)
     helper = schema_helper.SchemaHelper(schema)
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         helper.get_minimal_schema_bag_for_parent_child_relationship(
             parent_schema_node_name=schema_node_name(schema),
             child_schema_node_name=schema_node_name(schema),

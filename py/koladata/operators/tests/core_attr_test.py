@@ -59,7 +59,7 @@ class CoreAttrTest(parameterized.TestCase):
       attr_name = attr_name.to_py()
     x.set_attr(attr_name, value)
     self.assertNotEqual(res.fingerprint, db.fingerprint)
-    testing.assert_equivalent(res, db)
+    testing.assert_equal(res, db)
     self.assertFalse(res.is_mutable())
 
   def test_entity_as_obj_conflict(self):

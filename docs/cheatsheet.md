@@ -5133,6 +5133,15 @@ AssertionError: QValues not equal by fingerprint:
   expected:
     JaggedShape()
 
+# It works for DataBags and checks DataBag contents are exactly equal (including fallbacks)
+>>> bag1 = kd.bag()
+>>> bag2 = kd.bag()
+>>> kd.testing.assert_equal(bag1, bag2)
+
+# It checks that DataBags have the same fallback structure and content.
+>>> kd.testing.assert_equal(ds1.get_bag(),
+...                         ds2.get_bag())
+
 # Use assert_equal_by_fingerprint to check if they are the same instance
 >>> db1 = kd.bag()
 >>> db2 = kd.bag()
@@ -5162,13 +5171,7 @@ AssertionError: QValues not equal by fingerprint:
 
 >>> kd.testing.assert_equivalent(ds1, ds3.S[0])
 
-# It works for DataBags too, it checks that DataBags have the same content and
-# their fallbacks have the same content respectively.
->>> kd.testing.assert_equivalent(ds1.get_bag(),
-...                              ds2.get_bag())
-
-# DataBag comparison is tricky so it is not
-# recommended to compare their contents directly.
+# Note: assert_equivalent does not support DataBags. Use assert_equal instead.
 ```
 
 </section>

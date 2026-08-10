@@ -88,14 +88,16 @@ Raises:
 Compares the argument by their fingerprint:
 * 2 DataSlice(s) are equal if their contents and JaggedShape(s) are
   equal / equivalent and they reference the same DataBag instance.
+* 2 DataBag(s) are equal if their contents are the same (including fallback
+  DataBag structure).
 * 2 JaggedShape(s) are equal if they have the same number of dimensions and
   all &#34;sizes&#34; in each dimension are equal.
 
 NOTE: For JaggedShape equality and equivalence are the same thing.
 
 Args:
-  actual_value: DataSlice or JaggedShape.
-  expected_value: DataSlice or JaggedShape.
+  actual_value: DataSlice, DataBag or JaggedShape.
+  expected_value: DataSlice, DataBag or JaggedShape.
   msg: A custom error message.
 
 Raises:
@@ -130,14 +132,12 @@ Raises:
 * 2 DataSlice(s) are equivalent if their contents and JaggedShape(s) are
   equivalent and their DataBag(s) have the same contents (including the
   distribution of data in fallback DataBag(s)).
-* 2 DataBag(s) are equivalent if their contents are the same (including the
-  distribution of data in fallback DataBag(s).
 * 2 JaggedShape(s) are equivalent if they are equal, i.e. if sizes / edges
   across all their dimensions are the same.
 
 Args:
-  actual_value: DataSlice, DataBag or JaggedShape.
-  expected_value: DataSlice, DataBag or JaggedShape.
+  actual_value: DataSlice or JaggedShape.
+  expected_value: DataSlice or JaggedShape.
   partial: (default: False) Whether to check only the attributes present in
     the expected_value (affects only DataSlice case).
   ids_equality: (default: False) Whether to check ids equality (affects only

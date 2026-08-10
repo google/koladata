@@ -2259,7 +2259,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     ):
       # The bags at the same position of the total order are equivalent.
       for i in range(1, len(bags)):
-        kd.testing.assert_equivalent(bags[0], bags[i])
+        kd.testing.assert_equal(bags[0], bags[i])
 
   @parameterized.named_parameters(
       ('dsm', DataSliceManager),

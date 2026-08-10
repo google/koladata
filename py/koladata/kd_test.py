@@ -68,7 +68,7 @@ class KdTest(absltest.TestCase):
   def test_bag_returns_new_instance(self):
     db1 = kd.bag()
     db2 = kd.bag()
-    kd.testing.assert_equivalent(db1, db2)
+    kd.testing.assert_equal(db1, db2)
     kd.testing.assert_not_equal(db1, db2)
 
   def test_data_slice_and_data_item_magic_methods(self):

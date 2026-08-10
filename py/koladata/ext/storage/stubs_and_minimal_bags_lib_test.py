@@ -167,7 +167,7 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
         list_with_no_info_about_items,
         missing_list,
     ])
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         stubs_and_minimal_bags_lib.minimal_bag_associating_list_with_its_items(
             list_ds
         ),
@@ -191,7 +191,7 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
     # A nested list.
     inner_list = kd.list([1, 2, 3])  # pyrefly: ignore[missing-attribute]
     nested_list = kd.list([inner_list])  # pyrefly: ignore[missing-attribute]
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         stubs_and_minimal_bags_lib.minimal_bag_associating_list_with_its_items(
             nested_list
         ),
@@ -232,7 +232,7 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
           standard_list,
           standard_list.no_bag(),
       ])
-      kd.testing.assert_equivalent(
+      kd.testing.assert_equal(
           stubs_and_minimal_bags_lib.minimal_bag_associating_list_with_its_items(
               list_ds
           ),
@@ -248,7 +248,7 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
           kd.INT32,
           kd.named_schema('foo', bar=kd.INT32),  # pyrefly: ignore[missing-attribute]
       ])
-      kd.testing.assert_equivalent(
+      kd.testing.assert_equal(
           stubs_and_minimal_bags_lib.minimal_bag_associating_list_with_its_items(
               list_ds
           ),
@@ -258,7 +258,7 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
     with self.subTest('works_for_shared_lists_in_deep_dimensions'):
       shared_list = kd.list([1, 2])  # pyrefly: ignore[missing-attribute]
       list_ds = kd.slice([[[shared_list], [shared_list]]])  # pyrefly: ignore[missing-attribute]
-      kd.testing.assert_equivalent(
+      kd.testing.assert_equal(
           stubs_and_minimal_bags_lib.minimal_bag_associating_list_with_its_items(
               list_ds
           ),
@@ -297,7 +297,7 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
         dict_with_no_info_about_keys_and_values,
         missing_dict,
     ])
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         stubs_and_minimal_bags_lib.minimal_bag_associating_dict_with_its_keys_and_values(
             dict_ds
         ),
@@ -327,7 +327,7 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
           standard_dict,
           standard_dict.no_bag(),
       ])
-      kd.testing.assert_equivalent(
+      kd.testing.assert_equal(
           stubs_and_minimal_bags_lib.minimal_bag_associating_dict_with_its_keys_and_values(
               dict_ds
           ),
@@ -343,7 +343,7 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
       value2 = kd.new(y=2, schema='foo')  # pyrefly: ignore[missing-attribute]
       shared_dict = kd.dict({'key1': value1, 'key2': value2})  # pyrefly: ignore[missing-attribute]
       dict_ds = kd.slice([[[shared_dict], [shared_dict]]])  # pyrefly: ignore[missing-attribute]
-      kd.testing.assert_equivalent(
+      kd.testing.assert_equal(
           stubs_and_minimal_bags_lib.minimal_bag_associating_dict_with_its_keys_and_values(
               dict_ds
           ),
@@ -360,7 +360,7 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
           'key2': kd.INT32,
           'key3': kd.named_schema('foo', bar=kd.INT32),  # pyrefly: ignore[missing-attribute]
       })
-      kd.testing.assert_equivalent(
+      kd.testing.assert_equal(
           stubs_and_minimal_bags_lib.minimal_bag_associating_dict_with_its_keys_and_values(
               dict_ds
           ),
@@ -397,13 +397,13 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
         entity_with_no_info_about_attr_values,
         missing_entity,
     ])
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         stubs_and_minimal_bags_lib.minimal_bag_associating_entity_with_its_attr_value(
             entity_ds, 'x'
         ),
         kd.attrs(standard_entity, x=1),  # pyrefly: ignore[missing-attribute]
     )
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         stubs_and_minimal_bags_lib.minimal_bag_associating_entity_with_its_attr_value(
             entity_ds, 'y'
         ),
@@ -428,13 +428,13 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
           standard_entity,
           standard_entity.no_bag(),
       ])
-      kd.testing.assert_equivalent(
+      kd.testing.assert_equal(
           stubs_and_minimal_bags_lib.minimal_bag_associating_entity_with_its_attr_value(
               entity_ds, 'x'
           ),
           kd.attrs(standard_entity, x=1),  # pyrefly: ignore[missing-attribute]
       )
-      kd.testing.assert_equivalent(
+      kd.testing.assert_equal(
           stubs_and_minimal_bags_lib.minimal_bag_associating_entity_with_its_attr_value(
               entity_ds, 'y'
           ),
@@ -470,7 +470,7 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
           entity_schema.new(s=recursive_schema),
           None,
       ])
-      kd.testing.assert_equivalent(
+      kd.testing.assert_equal(
           stubs_and_minimal_bags_lib.minimal_bag_associating_entity_with_its_attr_value(
               entity_ds, 's'
           ),

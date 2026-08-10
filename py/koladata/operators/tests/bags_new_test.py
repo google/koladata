@@ -34,7 +34,7 @@ class BagsNewTest(absltest.TestCase):
 
   def test_eval(self):
     self.assertIsInstance(kd.bags.new(), data_bag.DataBag)
-    testing.assert_equivalent(
+    testing.assert_equal(
         kd.core.with_bag(ds(42), kd.bags.new()).get_bag(),
         data_bag.DataBag.empty(),
     )
@@ -43,13 +43,13 @@ class BagsNewTest(absltest.TestCase):
     res_1 = kd.bags.new()
     res_2 = kd.bags.new()
     self.assertNotEqual(res_1.fingerprint, res_2.fingerprint)
-    testing.assert_equivalent(res_1, res_2)
+    testing.assert_equal(res_1, res_2)
 
     expr = kde.bags.new()
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
     self.assertNotEqual(res_1.fingerprint, res_2.fingerprint)
-    testing.assert_equivalent(res_1, res_2)
+    testing.assert_equal(res_1, res_2)
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

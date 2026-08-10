@@ -79,7 +79,7 @@ class CoreExtractTest(parameterized.TestCase):
 
     self.assertFalse(result.get_bag().is_mutable())
     expected_bag = o.freeze_bag().enriched(fb).get_bag().merge_fallbacks()
-    testing.assert_equivalent(result.get_bag(), expected_bag)
+    testing.assert_equal(result.get_bag(), expected_bag)
 
   @parameterized.product(
       noise_positioned_in_front=[True, False],
@@ -117,7 +117,7 @@ class CoreExtractTest(parameterized.TestCase):
 
     self.assertFalse(result.get_bag().is_mutable())
     expected_bag = o.enriched(fb).get_bag().merge_fallbacks()
-    testing.assert_equivalent(result.get_bag(), expected_bag)
+    testing.assert_equal(result.get_bag(), expected_bag)
 
   @parameterized.parameters(
       (True,),
@@ -181,7 +181,7 @@ class CoreExtractTest(parameterized.TestCase):
         .get_present_count(),
         0,
     )
-    testing.assert_equivalent(result.get_bag(), expected_bag)
+    testing.assert_equal(result.get_bag(), expected_bag)
 
   def test_eval_nofollow(self):
     db = data_bag.DataBag.empty_mutable()
@@ -208,7 +208,7 @@ class CoreExtractTest(parameterized.TestCase):
     self.assertFalse(data_bag.exactly_equal(result.get_bag(), db))
     o.a.set_attr('d', fb_d.no_bag())
     o.a.get_attr('__schema__').set_attr('d', fb_d.get_schema().no_bag())
-    testing.assert_equivalent(result.get_bag(), db)
+    testing.assert_equal(result.get_bag(), db)
 
   def test_eval_lists(self):
     db = data_bag.DataBag.empty_mutable()

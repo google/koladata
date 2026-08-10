@@ -39,6 +39,9 @@ class TestUtilsTest(parameterized.TestCase):
     test_utils.assert_equal(
         ds([1, 2, 3]).get_shape(), ds([1, 2, 3]).get_shape()
     )
+    db = bag()
+    test_utils.assert_equal(db, db)
+    test_utils.assert_equal(bag(), bag())
     test_utils.assert_equal(None, None)
 
   def test_assert_equal_by_fingerprint(self):
@@ -105,10 +108,9 @@ class TestUtilsTest(parameterized.TestCase):
       test_utils.assert_equal(
           ds([1, 2, 3]).get_shape(), ds([[1, 2], [3]]).get_shape()
       )
-    with self.assertRaisesWithLiteralMatch(
+    with self.assertRaisesRegex(
         AssertionError,
-        '`assert_equal` does not support DataBags; use'
-        ' `assert_equal_by_fingerprint`',
+        r'DataBags are not exactly equal',
     ):
       test_utils.assert_equal(bag(), bag().new(a=1).get_bag())
 
@@ -210,6 +212,26 @@ class TestUtilsTest(parameterized.TestCase):
     with self.assertRaisesRegex(AssertionError, 'my error'):
       test_utils.assert_not_equal(ds([1, 2, 3]), ds([1, 2, 3]), msg='my error')
 
+  def test_assert_equal_databags_complex(self):
+    obj = bag().obj(a=1)
+    db1 = obj.get_bag()
+    db2 = bag()
+    obj.with_bag(db2).set_attr('__schema__', obj.get_attr('__schema__'))
+    obj.with_bag(db2).a = 1
+    test_utils.assert_equal(db1, db2)
+    obj.with_bag(db2).b = 'a'
+    with self.assertRaises(AssertionError):
+      test_utils.assert_equal(db1, db2)
+    obj.b = 'a'
+    test_utils.assert_equal(db1, db2)
+
+    # NaNs in DataBags count as equal.
+    obj.c = float('nan')
+    with self.assertRaises(AssertionError):
+      test_utils.assert_equal(db1, db2)
+    obj.with_bag(db2).c = float('nan')
+    test_utils.assert_equal(db1, db2)
+
   def test_assert_equivalent(self):
     test_utils.assert_equivalent(ds([1, 2, 3]), ds([1, 2, 3]))
     test_utils.assert_equivalent(
@@ -217,18 +239,18 @@ class TestUtilsTest(parameterized.TestCase):
     )
     db = bag()
     test_utils.assert_equivalent(None, None)
-    test_utils.assert_equivalent(db, db)
-    test_utils.assert_equivalent(bag(), bag())
-    with self.assertRaises(AssertionError):
-      test_utils.assert_equal(bag(), bag())
+    with self.assertRaisesRegex(
+        AssertionError, '`assert_equivalent` does not support DataBags'
+    ):
+      test_utils.assert_equivalent(db, db)
+    with self.assertRaisesRegex(
+        AssertionError, '`assert_equivalent` does not support DataBags'
+    ):
+      test_utils.assert_equivalent(bag(), bag())
     test_utils.assert_equivalent(ds([1, 2, 3]), ds([1, 2, 3]))
     test_utils.assert_equivalent(
         ds([1, 2, 3]).with_bag(bag()), ds([1, 2, 3]).with_bag(bag())
     )
-    with self.assertRaises(AssertionError):
-      test_utils.assert_equivalent(
-          bag().new(a=1).get_bag(), bag().new(a=1).get_bag()
-      )
 
     # NaNs count as equivalent.
     test_utils.assert_equivalent(
@@ -236,26 +258,6 @@ class TestUtilsTest(parameterized.TestCase):
     )
     with self.assertRaises(AssertionError):
       test_utils.assert_equivalent(ds(float('nan')), ds(1.0))
-
-  def test_assert_equivalent_complex(self):
-    obj = bag().obj(a=1)
-    db1 = obj.get_bag()
-    db2 = bag()
-    obj.with_bag(db2).set_attr('__schema__', obj.get_attr('__schema__'))
-    obj.with_bag(db2).a = 1
-    test_utils.assert_equivalent(db1, db2)
-    obj.with_bag(db2).b = 'a'
-    with self.assertRaises(AssertionError):
-      test_utils.assert_equivalent(db1, db2)
-    obj.b = 'a'
-    test_utils.assert_equivalent(db1, db2)
-
-    # NaNs in DataBags count as equivalent.
-    obj.c = float('nan')
-    with self.assertRaises(AssertionError):
-      test_utils.assert_equivalent(db1, db2)
-    obj.with_bag(db2).c = float('nan')
-    test_utils.assert_equivalent(db1, db2)
 
   def test_assert_equivalent_data_slice_with_noise_in_bag(self):
     test_utils.assert_equivalent(
@@ -314,26 +316,24 @@ class TestUtilsTest(parameterized.TestCase):
   def test_assert_equivalent_error(self):
     with self.assertRaisesRegex(
         AssertionError,
-        r'DataBags are not equivalent.*\n\n.*DataBag \$[0-9a-f]{4}:(\n|.)* !='
-        r' DataBag \$[0-9a-f]{4}:(\n|.)*',
+        'Expected: is equal to',
     ):
-      test_utils.assert_equivalent(bag(), bag().new(a=1).get_bag())
+      test_utils.assert_equivalent(ds([1, 2]), ds([1, 3]))
 
   def test_assert_equivalent_error_custom_error_msg(self):
     with self.assertRaisesRegex(AssertionError, 'my error'):
-      test_utils.assert_equivalent(
-          bag(), bag().new(a=1).get_bag(), msg='my error'
-      )
+      test_utils.assert_equivalent(ds([1, 2]), ds([1, 3]), msg='my error')
 
   def test_assert_equivalent_unexpected_args(self):
+    s = arolla.types.Slice(0, 1)
     with self.assertRaisesRegex(
         AssertionError, '`partial` is only supported for DataSlices'
     ):
-      test_utils.assert_equivalent(bag(), bag(), partial=True)
+      test_utils.assert_equivalent(s, s, partial=True)
     with self.assertRaisesRegex(
         AssertionError, '`max_count` is only supported for DataSlices'
     ):
-      test_utils.assert_equivalent(bag(), bag(), max_count=1)
+      test_utils.assert_equivalent(s, s, max_count=1)
 
   def test_assert_equivalent_max_count(self):
     actual = ds([1, 2])

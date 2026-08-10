@@ -53,17 +53,17 @@ class MutableBagTest(absltest.TestCase):
     testing.assert_equal_by_fingerprint(db, db)
 
   def test_equivalence(self):
-    testing.assert_equivalent(
+    testing.assert_equal(
         object_factories.mutable_bag(), object_factories.mutable_bag()
     )
     db1 = object_factories.mutable_bag()
     db2 = object_factories.mutable_bag()
     entity = db1.new(a=1, b='text')
     with self.assertRaises(AssertionError):
-      testing.assert_equivalent(db1, db2)
+      testing.assert_equal(db1, db2)
     entity.with_bag(db2).set_attr('a', 1)
     entity.with_bag(db2).set_attr('b', 'text')
-    testing.assert_equivalent(db1, db2)
+    testing.assert_equal(db1, db2)
 
 
 if __name__ == '__main__':

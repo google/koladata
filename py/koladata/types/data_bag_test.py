@@ -909,7 +909,7 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
           a=schema_constants.INT32,
           b=[1, 2, 3],
       )
-    testing.assert_equivalent(db, bag())
+    testing.assert_equal(db, bag())
 
     db = bag()
     with self.assertRaisesRegex(
@@ -920,7 +920,7 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
           a=schema_constants.INT32,
           b={'a': 1},
       )
-    testing.assert_equivalent(db, bag())
+    testing.assert_equal(db, bag())
 
     db = bag()
     with self.assertRaisesRegex(
@@ -931,7 +931,7 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
           a=schema_constants.INT32,
           b=arolla.text('hello'),
       )
-    testing.assert_equivalent(db, bag())
+    testing.assert_equal(db, bag())
 
     db = bag()
     with self.assertRaisesRegex(
@@ -943,7 +943,7 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
           a=schema_constants.INT32,
           b=db2.obj(a=schema_constants.INT32),
       )
-    testing.assert_equivalent(db, bag())
+    testing.assert_equal(db, bag())
 
     db = bag()
     schema = db.new_schema(a=db.new_schema(b=schema_constants.INT32))
@@ -2192,10 +2192,10 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     self.assertTrue(db1.is_mutable())
     db2 = db1.freeze()
     self.assertFalse(db2.is_mutable())
-    testing.assert_equivalent(db2, db1)
+    testing.assert_equal(db2, db1)
     db3 = db2.freeze()
     self.assertFalse(db3.is_mutable())
-    testing.assert_equivalent(db3, db1)
+    testing.assert_equal(db3, db1)
 
   def test_with_name(self):
     x = bag()

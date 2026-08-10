@@ -44,7 +44,7 @@ class CoreFreezeTest(parameterized.TestCase):
   )
   def test_eval(self, s):
     res = kd.core.freeze(s)
-    testing.assert_equivalent(res, s)
+    testing.assert_equal(res, s)
     self.assertFalse(res.is_mutable())
 
   def test_unsupported_input(self):

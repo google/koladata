@@ -100,7 +100,7 @@ class DumpsLoadsTest(parameterized.TestCase):
     input_slice_with_bag = input_slice.with_bag(db())
     dumped_bytes = s11n.dumps(input_slice_with_bag.get_bag())
     loaded_bag = s11n.loads(dumped_bytes)
-    testing.assert_equivalent(loaded_bag, input_slice_with_bag.get_bag())
+    testing.assert_equal(loaded_bag, input_slice_with_bag.get_bag())
 
   def test_dumps_loads_named_schema(self):
     bag = db()
@@ -108,20 +108,20 @@ class DumpsLoadsTest(parameterized.TestCase):
         [bag.named_schema('A', a=kd.INT64), bag.named_schema('B', b=kd.INT64)]
     )
     loaded = s11n.loads(s11n.dumps(schemas))
-    testing.assert_equivalent(loaded.get_bag(), schemas.get_bag())
+    testing.assert_equal(loaded.get_bag(), schemas.get_bag())
 
   def test_dumps_loads_objects(self):
     bag = db()
     objs = bag.obj(a=ds([1, 2, 3] * 10))
     loaded = s11n.loads(s11n.dumps(objs))
-    testing.assert_equivalent(loaded.get_bag(), objs.get_bag())
+    testing.assert_equal(loaded.get_bag(), objs.get_bag())
     self.assertTrue(loaded.is_mutable())
 
   def test_dumps_preserves_immutability(self):
     bag = db()
     objs = bag.obj(a=ds([1, 2, 3] * 10))
     loaded = s11n.loads(s11n.dumps(kd.freeze_bag(objs)))
-    testing.assert_equivalent(loaded.get_bag(), objs.get_bag())
+    testing.assert_equal(loaded.get_bag(), objs.get_bag())
     self.assertFalse(loaded.is_mutable())
 
   def test_dumps_with_riegeli_options(self):
@@ -153,7 +153,7 @@ class DumpsLoadsTest(parameterized.TestCase):
     bag = db()
     nested = bag.new(a=bag.new(b=1))
     loaded_a = s11n.loads(s11n.dumps(nested.a))
-    testing.assert_equivalent(loaded_a.get_bag(), nested.a.extract().get_bag())
+    testing.assert_equal(loaded_a.get_bag(), nested.a.extract().get_bag())
 
   def test_dumps_no_bag(self):
     bag = db()
@@ -231,7 +231,7 @@ class ExperimentalSaferLoadsTest(parameterized.TestCase):
     input_slice_with_bag = input_slice.with_bag(db())
     dumped_bytes = s11n.dumps(input_slice_with_bag.get_bag())
     loaded_bag = s11n.experimental_safer_loads(dumped_bytes)
-    testing.assert_equivalent(loaded_bag, input_slice_with_bag.get_bag())
+    testing.assert_equal(loaded_bag, input_slice_with_bag.get_bag())
 
   def test_dumps_loads_named_schema(self):
     bag = db()
@@ -239,13 +239,13 @@ class ExperimentalSaferLoadsTest(parameterized.TestCase):
         [bag.named_schema('A', a=kd.INT64), bag.named_schema('B', b=kd.INT64)]
     )
     loaded = s11n.experimental_safer_loads(s11n.dumps(schemas))
-    testing.assert_equivalent(loaded.get_bag(), schemas.get_bag())
+    testing.assert_equal(loaded.get_bag(), schemas.get_bag())
 
   def test_dumps_loads_objects(self):
     bag = db()
     objs = bag.obj(a=ds([1, 2, 3] * 10))
     loaded = s11n.experimental_safer_loads(s11n.dumps(objs))
-    testing.assert_equivalent(loaded.get_bag(), objs.get_bag())
+    testing.assert_equal(loaded.get_bag(), objs.get_bag())
     self.assertTrue(loaded.is_mutable())
 
   def test_dumps_loads_jagged_shape(self):
@@ -292,7 +292,7 @@ class DumpLoadTest(absltest.TestCase):
     path = os.path.join(self.create_tempdir().full_path, 'test.kd')
     s11n.dump(bag, path)
     loaded = s11n.load(path)
-    testing.assert_equivalent(loaded, bag)
+    testing.assert_equal(loaded, bag)
 
   def test_dump_load_with_riegeli_options(self):
     ds_input = data_slice.DataSlice.from_vals(list(range(1000)))
@@ -338,7 +338,7 @@ class DumpLoadTest(absltest.TestCase):
     self.assertEqual(fs_method_names_called, ['open'])
     mocked_fs.open.assert_called_once_with(path, 'rb')
 
-    testing.assert_equivalent(loaded, bag)
+    testing.assert_equal(loaded, bag)
 
   def test_dump_overwrite_false_raises_with_fs(self):
     ds_input = data_slice.DataSlice.from_vals([1, 2, 3])

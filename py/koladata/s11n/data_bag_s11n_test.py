@@ -50,14 +50,14 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     db = kd.mutable_bag()
     data = arolla.s11n.dumps(db)
     res = arolla.s11n.loads(data)
-    kd.testing.assert_equivalent(res, db)
+    kd.testing.assert_equal(res, db)
 
   def test_single_object(self):
     db = kd.mutable_bag()
     db.obj(a=1, b='2', c=kd.list([3, 4]), d=kd.dict({'a': 'b', 'c': 'd'}))
     data = arolla.s11n.dumps(db)
     res = arolla.s11n.loads(data)
-    kd.testing.assert_equivalent(res, db)
+    kd.testing.assert_equal(res, db)
 
   def test_objects(self):
     db = kd.mutable_bag()
@@ -66,7 +66,7 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     db.obj(a=kd.slice([1, 2]), b=kd.slice([3, 4]), c=kd.slice([l1, l2]))
     data = arolla.s11n.dumps(db)
     res = arolla.s11n.loads(data)
-    kd.testing.assert_equivalent(res, db)
+    kd.testing.assert_equal(res, db)
 
   def test_entities(self):
     db = kd.mutable_bag()
@@ -75,7 +75,7 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     db.new(a=kd.slice([1, 2]), b=kd.slice([3, 4]), c=kd.slice([d1, d2]))
     data = arolla.s11n.dumps(db)
     res = arolla.s11n.loads(data)
-    kd.testing.assert_equivalent(res, db)
+    kd.testing.assert_equal(res, db)
 
   def test_complicated_case_with_fallbacks(self):
     db1 = kd.mutable_bag()
@@ -91,8 +91,8 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     data = arolla.s11n.dumps_many([db1, db2, slice_with_fallback], [])
     values, _ = arolla.s11n.loads_many(data)
     self.assertLen(values, 3)
-    kd.testing.assert_equivalent(values[0], db1)
-    kd.testing.assert_equivalent(values[1], db2)
+    kd.testing.assert_equal(values[0], db1)
+    kd.testing.assert_equal(values[1], db2)
     kd.testing.assert_equivalent(values[2], slice_with_fallback)
 
   def test_removed_values(self):
@@ -125,8 +125,8 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     )
     values, _ = arolla.s11n.loads_many(data)
     self.assertLen(values, 4)
-    kd.testing.assert_equivalent(values[0], db)
-    kd.testing.assert_equivalent(values[1], fb)
+    kd.testing.assert_equal(values[0], db)
+    kd.testing.assert_equal(values[1], fb)
     kd.testing.assert_equivalent(values[2], obj_single_with_fb)
     for attr in ['a', 'c', 'd']:
       with self.subTest(f'single_object_{attr}'):

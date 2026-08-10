@@ -89,7 +89,7 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
           item,
           ids_equality=True,
       )
-      kd.testing.assert_equivalent(root.get_bag(), item.get_bag())
+      kd.testing.assert_equal(root.get_bag(), item.get_bag())
 
   def test_initialization_error_messages(self):
 
@@ -339,14 +339,14 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
   def test_get_data_bag_for_schema_node_names(self):
     manager = BareRootInitialDataManager.create_new()
 
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         manager.get_data_bag_for_schema_node_names([]),
         kd.bag(),  # pyrefly: ignore[missing-attribute]
     )
 
     all_snns = manager.get_all_schema_node_names()
     self.assertLen(all_snns, 1)
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         manager.get_data_bag_for_schema_node_names(all_snns),
         manager.get_data_slice_for_schema_node_names(all_snns).get_bag(),
     )

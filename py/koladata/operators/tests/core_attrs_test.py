@@ -129,20 +129,20 @@ class CoreAttrsTest(absltest.TestCase):
     db = kd.core.attrs(entity, x=ds([], schema_constants.OBJECT))
     expected_db = bag()
     expected_db[entity.get_schema()].x = schema_constants.OBJECT
-    testing.assert_equivalent(db, expected_db)
+    testing.assert_equal(db, expected_db)
 
     db = kd.core.attrs(kd.obj_like(ds([])), x=ds([]))
-    testing.assert_equivalent(db, bag())
+    testing.assert_equal(db, bag())
 
   def test_empty_item(self):
     entity = kd.new_like(ds(None))
     db = kd.core.attrs(entity, x=42)
     expected_db = bag()
     expected_db[entity.get_schema()].x = schema_constants.INT32
-    testing.assert_equivalent(db, expected_db)
+    testing.assert_equal(db, expected_db)
 
     db = kd.core.attrs(kd.obj_like(ds(None)), x=42)
-    testing.assert_equivalent(db, bag())
+    testing.assert_equal(db, bag())
 
   def test_non_bool_overwrite_schema(self):
     o = bag().new(x=1)

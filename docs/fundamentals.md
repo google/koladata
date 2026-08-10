@@ -3224,7 +3224,7 @@ AttributeError: failed to get attribute 'v'...
  ...
 
 # kd.attrs creates the same bag whether we use a or a1.
->>> kd.testing.assert_equivalent(kd.attrs(a1, c=2), kd.attrs(a, c=2))
+>>> kd.testing.assert_equal(kd.attrs(a1, c=2), kd.attrs(a, c=2))
 
 # Enrich with the attributes from the original.
 >>> _ = a1.enriched(a.get_bag()) # equivalent to just a

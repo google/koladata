@@ -545,7 +545,7 @@ class DataSlicePathTest(parameterized.TestCase):
     dict_schema = kd.dict_schema(  # pyrefly: ignore[missing-attribute]
         kd.INT32, kd.named_schema('MyDictValue', x=kd.INT32)  # pyrefly: ignore[missing-attribute]
     )
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         DictGetKeys().get_subschema_bag(dict_schema),
         # The bag contains exactly one entity-attribute-value triple, namely:
         # * entity = dict_schema.get_itemid()
@@ -553,7 +553,7 @@ class DataSlicePathTest(parameterized.TestCase):
         # * value = kd.INT32.
         kd.attrs(dict_schema, **{'__keys__': kd.INT32}),  # pyrefly: ignore[missing-attribute]
     )
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         DictGetValues().get_subschema_bag(dict_schema),
         # The bag contains exactly one entity-attribute-value triple, namely:
         # * entity = dict_schema.get_itemid()
@@ -567,7 +567,7 @@ class DataSlicePathTest(parameterized.TestCase):
     )
 
     list_schema = kd.list_schema(kd.named_schema('MyListItem', x=kd.INT32))  # pyrefly: ignore[missing-attribute]
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         ListExplode().get_subschema_bag(list_schema),
         # Again, the subschema bag is minimal for the action - it does not
         # mention 'x' or its schema kd.INT32:
@@ -577,12 +577,12 @@ class DataSlicePathTest(parameterized.TestCase):
     entity_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'MyEntity', x=kd.INT32, y=kd.named_schema('MyInnerEntity', z=kd.STRING)  # pyrefly: ignore[missing-attribute]
     )
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         GetAttr('x').get_subschema_bag(entity_schema),
         # The subschema bag mentions only attribute 'x' and not 'y':
         kd.attrs(entity_schema, **{'x': kd.INT32}),  # pyrefly: ignore[missing-attribute]
     )
-    kd.testing.assert_equivalent(
+    kd.testing.assert_equal(
         GetAttr('y').get_subschema_bag(entity_schema),
         # The subschema bag mentions only attribute 'y' and not 'x'. Moreover,
         # it does not mention 'z' or its schema:

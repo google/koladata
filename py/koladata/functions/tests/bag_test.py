@@ -37,7 +37,7 @@ class BagTest(absltest.TestCase):
     testing.assert_not_equal(db, fns.bag())
 
   def test_equivalence(self):
-    testing.assert_equivalent(fns.bag(), fns.bag())
+    testing.assert_equal(fns.bag(), fns.bag())
 
   def test_alias(self):
     self.assertIs(fns.bag, fns.bags.new)
