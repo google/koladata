@@ -537,25 +537,33 @@ class ErrorTest(parameterized.TestCase):
       kd.matrix.solve(a, b)
 
   def test_solve_overflow_matrix_n_times_nrhs_fails(self):
-    # A is 2x2 (square), B is 2×(2^62). n * nrhs = 2 * 2^62 = 2^63 overflows.
-    with self.assertRaisesRegex(
-        ValueError, r'arguments cause integer overflow'
-    ):
-      kd.matrix.solve(
-          kd.empty_shaped(kd.shapes.new(2, 2), schema_constants.FLOAT32),
-          kd.empty_shaped(kd.shapes.new(2, 2**62), schema_constants.FLOAT32),
-      )
-
-  def test_solve_overflow_accumulation_across_batches_fails(self):
-    # Each batch: A is 1×1, B is 1×(2^62). n * nrhs = 1 * 2^62 = 2^62 (fits).
-    # But the sum across 2 batches (2 * 2^62 = 2^63) overflows int64.
-    # Uses (2, 1, N) shapes so JaggedShape edge arrays stay tiny.
+    # The solution X has the same shape as B, so a single B whose size
+    # overflows int64 could not be constructed in the first place (building
+    # its JaggedShape split points would already overflow int64). We therefore
+    # broadcast B across a batch of A: each batch element contributes
+    # n * nrhs = 1 * 2^62 = 2^62 output elements (which fits in int64), while
+    # the total output size across the 2 batch elements (2 * 2^62 = 2^63)
+    # overflows int64. `a` is (2, 1, 1) and `b` is (1, 2^62) broadcast across
+    # the batch, so both inputs stay representable.
     with self.assertRaisesRegex(
         ValueError, r'arguments cause integer overflow'
     ):
       kd.matrix.solve(
           kd.empty_shaped(kd.shapes.new(2, 1, 1), schema_constants.FLOAT32),
-          kd.empty_shaped(kd.shapes.new(2, 1, 2**62), schema_constants.FLOAT32),
+          kd.empty_shaped(kd.shapes.new(1, 2**62), schema_constants.FLOAT32),
+      )
+
+  def test_solve_overflow_accumulation_across_batches_fails(self):
+    # Each of the 4 batch elements produces n * nrhs = 1 * 2^61 = 2^61 output
+    # elements (which fits in int64), but the total across all batches
+    # (4 * 2^61 = 2^63) overflows int64. `a` is (4, 1, 1) and `b` is (1, 2^61)
+    # broadcast across the batch, so both inputs stay representable.
+    with self.assertRaisesRegex(
+        ValueError, r'arguments cause integer overflow'
+    ):
+      kd.matrix.solve(
+          kd.empty_shaped(kd.shapes.new(4, 1, 1), schema_constants.FLOAT32),
+          kd.empty_shaped(kd.shapes.new(1, 2**61), schema_constants.FLOAT32),
       )
 
   # --- solve singular matrix (implementation behavior, not API guarantees) ---
