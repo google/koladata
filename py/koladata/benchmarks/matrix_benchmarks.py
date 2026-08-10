@@ -77,12 +77,33 @@ def _make_uniform_matrices_np():
   ]
 
 
+def _make_uniform_invertible_np():
+  a = np.random.randn(BATCH_SIZE, UNIFORM_SIZE, UNIFORM_SIZE)
+  a += np.eye(UNIFORM_SIZE) * UNIFORM_SIZE
+  # ~10% missing, but keep the diagonal present to preserve invertibility.
+  mask = np.random.random((BATCH_SIZE, UNIFORM_SIZE, UNIFORM_SIZE)) < 0.1
+  mask[:, np.arange(UNIFORM_SIZE), np.arange(UNIFORM_SIZE)] = False
+  return np.ma.array(a, mask=mask)
+
+
 def _make_jagged_vectors_np(sizes):
   return [_make_masked_vector_np(s) for s in sizes]
 
 
 def _make_jagged_matrices_np(sizes):
   return [_make_masked_matrix_np(s, s) for s in sizes]
+
+
+def _make_jagged_invertible_np(sizes):
+  mats = []
+  for s in sizes:
+    m = np.random.randn(s, s)
+    m += np.eye(s) * s
+    # ~10% missing, but keep the diagonal present to preserve invertibility.
+    mask = np.random.random((s, s)) < 0.1
+    np.fill_diagonal(mask, False)
+    mats.append(np.ma.array(m, mask=mask))
+  return mats
 
 
 def _np_to_kd_vectors(vecs_np):
@@ -528,6 +549,54 @@ def koda_diag_vector(state):
   )
   while state:
     _ = kd.matrix.diag_vector(a_kd)
+
+
+# ---- solve ----
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def numpy_solve(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    a_np = _make_uniform_invertible_np()
+    b_np = _make_uniform_vectors_np()
+  else:
+    sizes = _make_jagged_sizes()
+    a_np = _make_jagged_invertible_np(sizes)
+    b_np = _make_jagged_vectors_np(sizes)
+  while state:
+    _ = [np.linalg.solve(a_np[i], b_np[i]) for i in range(BATCH_SIZE)]
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def koda_solve(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    a_np = _make_uniform_invertible_np()
+    b_np = _make_uniform_vectors_np()
+  else:
+    sizes = _make_jagged_sizes()
+    a_np = _make_jagged_invertible_np(sizes)
+    b_np = _make_jagged_vectors_np(sizes)
+  a_kd = _np_to_kd_matrices(a_np)
+  b_kd = _np_to_kd_vectors(b_np)
+  # Check that Koda and NumPy agree on a functional level.
+  kd.testing.assert_allclose(
+      kd.matrix.solve(a_kd, b_kd, b_ndim=1),
+      _np_to_kd_vectors(
+          [np.linalg.solve(a_np[i].filled(0), b_np[i].filled(0))
+           for i in range(BATCH_SIZE)]
+      ),
+      rtol=1e-12,
+  )
+  while state:
+    _ = kd.matrix.solve(a_kd, b_kd, b_ndim=1)
 
 
 if __name__ == '__main__':

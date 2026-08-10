@@ -163,6 +163,43 @@ Args:
 Returns:
   The outer product matrix (or batch of matrices).</code></pre>
 
+### `kd.matrix.solve(a, b, *, b_ndim=-1)` {#kd.matrix.solve}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Solve the linear equation Ax = b for x.
+
+Uses LU decomposition. Produces floating point output. Missing values in a and
+b are treated as 0.
+Supports leading batch dimensions with Koda-style prefix broadcasting.
+The batch dimensions of a (all except last 2) and b (all except last
+`b_ndim`) must be prefix-compatible — one must be a prefix of the other.
+The shorter-batch input is implicitly broadcast.
+
+The `b_ndim` parameter controls how many trailing dimensions of b are
+treated as the right-hand-side (1 for vector, 2 for matrix). When set to
+-1 (the default), defaults to 2 if rank(b) &gt;= 2, or 1 if rank(b) == 1.
+
+NOTE: This function is designed for invertible (non-singular) matrices.
+For singular or near-singular matrices, results are undefined — they may
+contain inf, nan, or large finite values that do not represent meaningful
+solutions. In batched mode, each batch element is solved independently, so
+a singular matrix only affects its own batch element.
+
+Examples:
+  solve(shape (n, n), shape (n,)) -&gt; shape (n,): basic vector solve.
+  solve(shape (n, n), shape (B, n, m)) -&gt; shape (B, n, m): a is broadcast.
+  solve(shape (B, n, n), shape (n, m)) -&gt; shape (B, n, m): b is broadcast.
+  solve(shape (B, n, n), shape (B, n), b_ndim=1) -&gt; shape (B, n):
+    batched vector solve.
+
+Args:
+  a: A square matrix (..., n, n).
+  b: A vector (..., n) or matrix (..., n, m) right-hand side.
+  b_ndim: Scalar integer. Number of trailing dimensions of `b` to use as the
+    RHS (1 or 2). Defaults to -1, meaning min(rank(b), 2).
+
+Returns:
+  The solution x with the same shape as b after broadcasting.</code></pre>
+
 ### `kd.matrix.transpose(x)` {#kd.matrix.transpose}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Transpose a matrix (swap last two dimensions).

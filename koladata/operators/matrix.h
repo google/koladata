@@ -50,6 +50,13 @@ absl::StatusOr<DataSlice> MatrixDiagMatrix(const DataSlice& x,
 absl::StatusOr<DataSlice> MatrixDiagVector(const DataSlice& x,
                                            const DataSlice& k);
 
+// kd.matrix.solve: Solve Ax = b for x using LU decomposition.
+// Supports batch dimensions with Koda-style prefix broadcasting.
+// b_ndim controls whether b is a vector (1) or matrix (2) RHS. A value of -1
+// means auto-detect: min(rank(b), 2).
+absl::StatusOr<DataSlice> MatrixSolve(const DataSlice& a, const DataSlice& b,
+                                      const DataSlice& b_ndim);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_MATRIX_H_

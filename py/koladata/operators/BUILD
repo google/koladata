@@ -444,8 +444,6 @@ py_library(
     name = "matrix",
     srcs = ["matrix.py"],
     deps = [
-        ":jagged_shape",
-        ":math",
         ":optools",
         ":qtype_utils",
         "//py:python_path",

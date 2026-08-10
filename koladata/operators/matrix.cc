@@ -29,6 +29,7 @@
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
 #include "Eigen/Core"
+#include "Eigen/LU"
 #include "koladata/casting.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -557,6 +558,200 @@ absl::StatusOr<DataSlice> MatrixDiagVector(const DataSlice& x,
   auto result_impl = std::move(builder).Build();
   return DataSlice::Create(std::move(result_impl), std::move(out_shape),
                            x.GetSchemaImpl(), x.GetBag());
+}
+
+absl::StatusOr<DataSlice> MatrixSolve(const DataSlice& a, const DataSlice& b,
+                                      const DataSlice& b_ndim_ds) {
+  const int a_rank = a.GetShape().rank();
+  const int b_rank = b.GetShape().rank();
+
+  if (a_rank < 2) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("A must be at least 2D, got ", a_rank, "D"));
+  }
+  if (b_rank < 1) {
+    return absl::InvalidArgumentError("b must have at least 1 dimension");
+  }
+
+  RETURN_IF_ERROR(ExpectPresentScalar("b_ndim", b_ndim_ds, schema::kInt64));
+  ASSIGN_OR_RETURN(auto b_ndim_int64,
+                   CastToNarrow(b_ndim_ds, internal::DataItem(schema::kInt64)));
+  // -1 means auto-detect: use min(rank(b), 2).
+  const int64_t b_ndim = [&] {
+    int64_t v = b_ndim_int64.item().value<int64_t>();
+    return v == -1 ? std::min(b_rank, 2) : v;
+  }();
+  if (b_ndim < 1 || b_ndim > 2) {
+    return absl::InvalidArgumentError("b_ndim must be 1, 2, or -1 (auto)");
+  }
+  if (b_rank < b_ndim) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("b has rank ", b_rank, " but b_ndim=", b_ndim,
+                     " requires at least that many"));
+  }
+
+  const bool b_is_vector = (b_ndim == 1);
+
+  ASSIGN_OR_RETURN(auto setup, matrix_helpers::SetupBroadcastBinaryOp(
+                                   a.GetShape(), b.GetShape(), 2, b_ndim));
+  const auto& broadcast_result = setup.broadcast_result;
+  const auto& a_infos = setup.x_infos;
+  const auto& b_infos = setup.y_infos;
+
+  // Precomputed metadata for one output batch element. We collect these in a
+  // single pass that also validates squareness and dimension compatibility,
+  // then reuse them when building the output shape and solving the systems.
+  struct PerBatch {
+    // Index into a_infos_vec for this batch element's a matrix.
+    int64_t a_idx;
+    // Index into b_infos_vec for this batch element's b vector or matrix.
+    int64_t b_idx;
+    // System size (A is n×n, b has n rows/elements).
+    int64_t n;
+    // Number of right-hand sides (1 for vector, b_cols for matrix).
+    int64_t nrhs;
+  };
+  std::vector<PerBatch> pbs(broadcast_result.out_batch_size);
+  int64_t out_total = 0;
+  bool overflow = false;
+  for (int64_t batch = 0; batch < broadcast_result.out_batch_size; ++batch) {
+    const int64_t a_b = broadcast_result.x_batch_map[batch];
+    const int64_t b_b = broadcast_result.y_batch_map[batch];
+    if (a_infos[a_b].m != a_infos[a_b].n) {
+      return absl::InvalidArgumentError(
+          absl::StrCat("matrix A at batch ", batch, " is not square (",
+                       a_infos[a_b].m, ", ", a_infos[a_b].n, ")"));
+    }
+    const int64_t n = a_infos[a_b].m;
+    const int64_t b_n = b_infos[b_b].m;
+    if (b_n != n) {
+      return absl::InvalidArgumentError(absl::StrCat(
+          "dimension mismatch at batch ", batch, ": A is ", n, "x", n,
+          " but b has ", b_n, b_is_vector ? " elements" : " rows"));
+    }
+    const int64_t nrhs = b_is_vector ? 1 : b_infos[b_b].n;
+    pbs[batch] = {a_b, b_b, n, nrhs};
+    out_total = safe_add(
+        out_total, b_is_vector ? n : safe_mul(n, nrhs, &overflow), &overflow);
+  }
+  if (overflow) {
+    return absl::InvalidArgumentError("arguments cause integer overflow");
+  }
+
+  // Determine output type from the narrowed schemas of both inputs.
+  // Computation always proceeds in float64 for numerical stability; the
+  // result is cast to the output type that is the common schema of the inputs'
+  // narrowed schemas and float32. In this way, we have e.g.
+  // int64 inputs → float32 output, float32 inputs → float32 output,
+  // int32 and float64 inputs → float64 output.
+  // The treatment is consistent with that of kd.math.divide, where e.g. int64 /
+  // int64 results in float32.
+  const bool is_object_schema =
+      a.GetSchemaImpl() == internal::DataItem(schema::kObject) ||
+      b.GetSchemaImpl() == internal::DataItem(schema::kObject);
+  ASSIGN_OR_RETURN(auto a_narrowed_schema,
+                   matrix_helpers::GetNarrowedMatrixSchema(a));
+  ASSIGN_OR_RETURN(auto b_narrowed_schema,
+                   matrix_helpers::GetNarrowedMatrixSchema(b));
+  ASSIGN_OR_RETURN(auto common_narrowed_schema,
+                   schema::CommonSchema(a_narrowed_schema, b_narrowed_schema));
+  ASSIGN_OR_RETURN(auto desired_float_schema,
+                   schema::CommonSchema(common_narrowed_schema,
+                                        internal::DataItem(schema::kFloat32)));
+  const bool output_float32 =
+      desired_float_schema == internal::DataItem(schema::kFloat32);
+
+  ASSIGN_OR_RETURN(auto float_a,
+                   CastToExplicit(a, internal::DataItem(schema::kFloat64)));
+  ASSIGN_OR_RETURN(auto float_b,
+                   CastToExplicit(b, internal::DataItem(schema::kFloat64)));
+  auto a_flat = matrix_helpers::ExtractFlat<double>(float_a);
+  auto b_flat = matrix_helpers::ExtractFlat<double>(float_b);
+
+  // Solve Ax = b where b is a vector.
+  auto do_solve_vector = [&]<typename OutputT>() -> absl::StatusOr<DataSlice> {
+    std::vector<OutputT> result(out_total);
+    int64_t out_off = 0;
+    std::vector<double> tmp(out_total);
+    for (int64_t batch = 0; batch < broadcast_result.out_batch_size; ++batch) {
+      const auto& pb = pbs[batch];
+      const int64_t n = pb.n;
+      Eigen::Map<const RowMajorMatrix<double>> mat_a(
+          a_flat.data() + a_infos[pb.a_idx].offset, n, n);
+      Eigen::Map<const Eigen::VectorXd> vec_b(
+          b_flat.data() + b_infos[pb.b_idx].offset, n);
+      Eigen::Map<Eigen::VectorXd> out_vec(tmp.data() + out_off, n);
+      out_vec = mat_a.partialPivLu().solve(vec_b);
+      // Safe: n was already validated by the overflow check above.
+      out_off += n;
+    }
+    for (int64_t i = 0; i < out_total; ++i) {
+      result[i] = static_cast<OutputT>(tmp[i]);
+    }
+    auto batch_shape = broadcast_result.out_batch_shape;
+    std::vector<int64_t> counts(broadcast_result.out_batch_size);
+    for (int64_t b = 0; b < broadcast_result.out_batch_size; ++b) {
+      counts[b] = pbs[b].n;
+    }
+    ASSIGN_OR_RETURN(auto shape, matrix_helpers::BuildBatchedVectorShape(
+                                     std::move(batch_shape), counts));
+    ASSIGN_OR_RETURN(auto result_ds, matrix_helpers::BuildFromFlat<OutputT>(
+                                         std::move(result), std::move(shape)));
+    if (is_object_schema) {
+      return result_ds.WithSchema(internal::DataItem(schema::kObject));
+    }
+    return result_ds;
+  };
+
+  // Solve AX = B where B is a matrix.
+  auto do_solve_matrix = [&]<typename OutputT>() -> absl::StatusOr<DataSlice> {
+    std::vector<OutputT> result(out_total);
+    int64_t out_off = 0;
+    std::vector<double> tmp(out_total);
+    for (int64_t batch = 0; batch < broadcast_result.out_batch_size; ++batch) {
+      const auto& pb = pbs[batch];
+      const int64_t n = pb.n;
+      const int64_t nrhs = pb.nrhs;
+      Eigen::Map<const RowMajorMatrix<double>> mat_a(
+          a_flat.data() + a_infos[pb.a_idx].offset, n, n);
+      Eigen::Map<const RowMajorMatrix<double>> mat_b(
+          b_flat.data() + b_infos[pb.b_idx].offset, n, nrhs);
+      Eigen::Map<RowMajorMatrix<double>> out_mat(tmp.data() + out_off, n, nrhs);
+      out_mat = mat_a.partialPivLu().solve(mat_b);
+      // Safe: n * nrhs was already validated by safe_mul above.
+      out_off += n * nrhs;
+    }
+    for (int64_t i = 0; i < out_total; ++i) {
+      result[i] = static_cast<OutputT>(tmp[i]);
+    }
+    auto batch_shape = broadcast_result.out_batch_shape;
+    std::vector<int64_t> row_counts(broadcast_result.out_batch_size);
+    std::vector<int64_t> col_counts(broadcast_result.out_batch_size);
+    for (int64_t b = 0; b < broadcast_result.out_batch_size; ++b) {
+      row_counts[b] = pbs[b].n;
+      col_counts[b] = pbs[b].nrhs;
+    }
+    ASSIGN_OR_RETURN(auto shape,
+                     matrix_helpers::BuildBatchedMatrixShape(
+                         std::move(batch_shape), row_counts, col_counts));
+    ASSIGN_OR_RETURN(auto result_ds, matrix_helpers::BuildFromFlat<OutputT>(
+                                         std::move(result), std::move(shape)));
+    if (is_object_schema) {
+      return result_ds.WithSchema(internal::DataItem(schema::kObject));
+    }
+    return result_ds;
+  };
+
+  if (b_is_vector) {
+    if (output_float32) {
+      return do_solve_vector.operator()<float>();
+    }
+    return do_solve_vector.operator()<double>();
+  }
+  if (output_float32) {
+    return do_solve_matrix.operator()<float>();
+  }
+  return do_solve_matrix.operator()<double>();
 }
 
 }  // namespace koladata::ops
