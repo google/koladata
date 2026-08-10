@@ -324,13 +324,12 @@ class YieldMultithreadedTest(absltest.TestCase):
 
   def test_non_iterable_return_value(self):
     fn = functor_factories.expr_fn(I.x)
-    # TODO: Make this error mention call_multithreaded.
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'The functor was called with `STREAM[DATA_SLICE]` as the output'
-            ' type, but the computation resulted in type `FUTURE[DATA_SLICE]`'
-            ' instead.'
+            'the functor expects a stream as the output type, but the'
+            ' computation resulted in type `FUTURE[DATA_SLICE]` instead;'
+            ' did you mean to use call_multithreaded?'
         ),
     ):
       _ = list(
@@ -342,14 +341,12 @@ class YieldMultithreadedTest(absltest.TestCase):
 
   def test_structured_return_value(self):
     fn = functor_factories.expr_fn(kde.tuples.tuple(kde.iterables.make(I.x)))
-    # TODO: Make this error say that structured return values
-    # with a stream inside are not supported yet.
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'The functor was called with `STREAM[DATA_SLICE]` as the output'
-            ' type, but the computation resulted in type'
-            ' `tuple<STREAM[DATA_SLICE]>` instead.'
+            'the functor expects a stream as the output type, but the'
+            ' computation resulted in type `tuple<STREAM[DATA_SLICE]>` instead;'
+            ' structured return values with a stream inside are not supported'
         ),
     ):
       _ = list(

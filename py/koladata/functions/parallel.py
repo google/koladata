@@ -19,32 +19,33 @@ import types as py_types
 from typing import Any, Iterator
 
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import view as _
+from koladata.functor import py_functors_py_ext
 from koladata.functor.parallel import clib
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import py_boxing
 
 
-kde = kde_operators.kde
-koda_internal_parallel = kde_operators.internal.parallel
+kd_internal = eager_op_utils.operators_container(
+    top_level_arolla_container=kde_operators.internal
+)
 
 
 def _create_executor(max_threads: int | None) -> clib.Executor:
   if max_threads is None:
-    expr = koda_internal_parallel.get_default_executor()
+    return kd_internal.parallel.get_default_executor()
   else:
-    expr = koda_internal_parallel.make_executor(max_threads)
-  return expr_eval.eval(expr)
+    return kd_internal.parallel.make_executor(max_threads)
 
 
 def call_multithreaded(
     fn: data_item.DataItem,
     /,
     *args: Any,
-    return_type_as: Any = data_slice.DataSlice,
+    return_type_as: Any = data_slice.DataSlice,  # pylint: disable=unused-argument
     max_threads: int | None = None,
     timeout: float | None = None,
     **kwargs: Any,
@@ -83,21 +84,31 @@ def call_multithreaded(
   """
   executor = _create_executor(max_threads)
   transformed_fn = transform(fn, allow_runtime_transforms=True)
-  res_stream = koda_internal_parallel.stream_from_future(
-      koda_internal_parallel.future_from_parallel(
-          executor,
-          kde.functor.call(
-              transformed_fn,
-              executor,
-              *[koda_internal_parallel.as_parallel(arg) for arg in args],
-              return_type_as=koda_internal_parallel.as_parallel(return_type_as),
-              **{
-                  k: koda_internal_parallel.as_parallel(v)
-                  for k, v in kwargs.items()
-              },
-          ),
-      )
-  ).eval()
+
+  res = py_functors_py_ext.call_functor(
+      transformed_fn,
+      [executor]
+      + [kd_internal.parallel.as_parallel(arg) for arg in args]
+      + [kd_internal.parallel.as_parallel(v) for v in kwargs.values()],
+      list(kwargs.keys()),
+  )
+
+  try:
+    arolla.abc.infer_attr(
+        kde_operators.internal.parallel.future_from_parallel,
+        (executor.qtype, res.qtype),
+    )
+  except ValueError as e:
+    suggestion = ""
+    if kd_internal.parallel.is_stream_qtype(res.qtype):
+      suggestion = "; did you mean to use yield_multithreaded?"
+    raise ValueError(
+        "future_from_parallel can only be applied to a parallel non-stream"
+        f" type, got {res.qtype.name}{suggestion}"
+    ) from e
+
+  res_future = kd_internal.parallel.future_from_parallel(executor, res)
+  res_stream = kd_internal.parallel.stream_from_future(res_future)
   return res_stream.read_all(timeout=timeout)[0]
 
 
@@ -114,7 +125,7 @@ def yield_multithreaded(
     fn: data_item.DataItem,
     /,
     *args: Any,
-    value_type_as: Any = data_slice.DataSlice,
+    value_type_as: Any = data_slice.DataSlice,  # pylint: disable=unused-argument
     max_threads: int | None = None,
     timeout: float | None = None,
     **kwargs: Any,
@@ -152,16 +163,39 @@ def yield_multithreaded(
   """
   executor = _create_executor(max_threads)
   transformed_fn = transform(fn, allow_runtime_transforms=True)
-  res_stream = kde.functor.call(
+
+  res = py_functors_py_ext.call_functor(
       transformed_fn,
-      executor,
-      *[koda_internal_parallel.as_parallel(arg) for arg in args],
-      return_type_as=koda_internal_parallel.stream_make(
-          value_type_as=value_type_as
-      ),
-      **{k: koda_internal_parallel.as_parallel(v) for k, v in kwargs.items()},
-  ).eval()
-  return _wrap_yield_all(executor, res_stream, timeout=timeout)
+      [executor]
+      + [kd_internal.parallel.as_parallel(arg) for arg in args]
+      + [kd_internal.parallel.as_parallel(v) for v in kwargs.values()],
+      list(kwargs.keys()),
+  )
+
+  if kd_internal.parallel.is_stream_qtype(res.qtype):
+    return _wrap_yield_all(executor, res, timeout=timeout)
+
+  common_error_msg = (
+      "the functor expects a stream as the output type, but the"
+      f" computation resulted in type `{res.qtype.name}` instead"
+  )
+
+  try:
+    arolla.abc.infer_attr(
+        kde_operators.internal.parallel.future_from_parallel,
+        (executor.qtype, res.qtype),
+    )
+  except ValueError as e:
+    raise ValueError(
+        f"{common_error_msg}; structured return values with a stream inside"
+        " are not supported"
+    ) from e
+  else:
+    raise ValueError(
+        f"{common_error_msg}; did you mean to use call_multithreaded?"
+    )
+
+  return _wrap_yield_all(executor, res, timeout=timeout)
 
 
 def get_default_transform_config(*, allow_runtime_transforms: bool = False):
@@ -194,4 +228,4 @@ def transform(
   config = get_default_transform_config(
       allow_runtime_transforms=allow_runtime_transforms
   )
-  return arolla.eval(koda_internal_parallel.transform(config, fn))
+  return kd_internal.parallel.transform(config, fn)

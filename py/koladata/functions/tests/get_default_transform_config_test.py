@@ -1833,9 +1833,10 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'The functor was called with `FUTURE[DATA_SLICE]` as the output'
+            'the functor was called with `FUTURE[DATA_SLICE]` as the output'
             ' type, but the computation resulted in type `FUTURE[DATA_BAG]`'
-            ' instead.'
+            ' instead; you can specify the expected output type via the'
+            ' `return_type_as=` parameter to the functor call'
         ),
     ):
       _ = _parallel_eval(

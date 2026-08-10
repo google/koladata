@@ -80,10 +80,10 @@ class CallOperator : public arolla::QExprOperator {
                                fn_data_slice, arg_refs, kwnames));
           if (result.GetType() != output_slot.GetType()) {
             return absl::InvalidArgumentError(absl::StrFormat(
-                "The functor was called with `%s` as the output type, but the"
-                " computation resulted in type `%s` instead. You can specify"
+                "the functor was called with `%s` as the output type, but the"
+                " computation resulted in type `%s` instead; you can specify"
                 " the expected output type via the `return_type_as=` parameter"
-                " to the functor call.",
+                " to the functor call",
                 output_slot.GetType()->name(), result.GetType()->name()));
           }
           return result.CopyToSlot(output_slot, frame);

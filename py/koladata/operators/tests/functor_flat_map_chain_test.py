@@ -116,7 +116,7 @@ class FlatMapChainTest(absltest.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        'The functor was called with .+ as the output type, but the computation'
+        'the functor was called with .+ as the output type, but the computation'
         ' resulted in type .+ instead',
     ):
       _ = expr.eval(input_seq=iterable_qvalue.Iterable(*range(2, 5)), fn=py_fn)
@@ -173,7 +173,7 @@ class FlatMapChainTest(absltest.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        'The functor was called with .+ as the output type,'
+        'the functor was called with .+ as the output type,'
         ' but the computation resulted in type .+ instead',
     ):
       _ = expr.eval(input_seq=iterable_qvalue.Iterable(*range(2, 5)), fn=py_fn)

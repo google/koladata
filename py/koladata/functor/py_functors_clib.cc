@@ -18,6 +18,7 @@
 #include "arolla/util/fingerprint.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor/auto_variables.h"
+#include "koladata/functor/call.h"
 #include "py/arolla/abc/pybind11_utils.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/wrap_utils.h"
@@ -64,6 +65,28 @@ PYBIND11_MODULE(py_functors_py_ext, m) {
       py::arg("fn"),
       "Returns the topologically-sorted variable evaluation order of a "
       "functor.");
+
+  m.def(
+      "call_functor",
+      [](py::object py_fn, const std::vector<arolla::TypedValue>& args,
+         const std::vector<std::string>& kwnames) {
+        arolla::python::PyCancellationScope cancellation_scope;
+        const DataSlice* fn = UnwrapDataSlice(py_fn.ptr(), "fn");
+        if (fn == nullptr) {
+          throw py::error_already_set();
+        }
+        std::vector<arolla::TypedRef> arg_refs;
+        arg_refs.reserve(args.size());
+        for (const auto& arg : args) {
+          arg_refs.push_back(arg.AsRef());
+        }
+        return arolla::python::pybind11_unstatus_or(
+            functor::CallFunctorWithCompilationCache(*fn, arg_refs, kwnames));
+      },
+      py::arg("fn"), py::arg("args") = std::vector<arolla::TypedValue>{},
+      py::arg("kwnames") = std::vector<std::string>{},
+      "Calls a functor with the given arguments and returns the result "
+      "QValue.");
 }
 
 }  // namespace

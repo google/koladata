@@ -204,10 +204,10 @@ class FunctorCallTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'The functor was called with `DATA_SLICE` as the output type, but'
-            ' the computation resulted in type `tuple<INT32,INT32>` instead.'
-            ' You can specify the expected output type via the'
-            ' `return_type_as=` parameter to the functor call.'
+            'the functor was called with `DATA_SLICE` as the output type, but'
+            ' the computation resulted in type `tuple<INT32,INT32>` instead;'
+            ' you can specify the expected output type via the'
+            ' `return_type_as=` parameter to the functor call'
         ),
     ):
       _ = kd.call(fn, x=arolla.tuple(1, 2))

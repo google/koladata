@@ -58,6 +58,8 @@ koladata_pybind_extension(
     deps = [
         "//koladata:data_slice",
         "//koladata/functor:auto_variables",
+        "//koladata/functor:call",
+        "//koladata/functor/parallel:executor",
         "//py/koladata/base:wrap_utils",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_arolla//arolla/util",

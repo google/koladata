@@ -315,11 +315,11 @@ class CallMultithreadedTest(absltest.TestCase):
 
   def test_iterable_return_value(self):
     fn = functor_factories.expr_fn(kde.iterables.make(I.x))
-    # TODO: Make this error mention yield_multithreaded.
     with self.assertRaisesRegex(
         ValueError,
-        'future_from_parallel can only be applied to a parallel non-stream'
-        ' type',
+        r'future_from_parallel can only be applied to a parallel non-stream'
+        r' type, got .*STREAM\[DATA_SLICE\]; did you mean to use'
+        r' yield_multithreaded\?',
     ):
       _ = parallel.call_multithreaded(
           fn,

@@ -208,10 +208,10 @@ class TracingDecoratorTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'The functor was called with `DATA_SLICE` as the output type, but'
-            ' the computation resulted in type `DATA_BAG` instead. You can'
+            'the functor was called with `DATA_SLICE` as the output type, but'
+            ' the computation resulted in type `DATA_BAG` instead; you can'
             ' specify the expected output type via the `return_type_as=`'
-            ' parameter to the functor call.'
+            ' parameter to the functor call'
         ),
     ):
       fn(5)
