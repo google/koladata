@@ -57,7 +57,7 @@ class FunctorBindTest(absltest.TestCase):
     fn = functor_factories.expr_fn(I.x.get_bag())
     x = fns.obj(q=1)
     bound_fn = kde.functor.bind(fn, return_type_as=data_bag.DataBag).eval()
-    testing.assert_equal(
+    testing.assert_equal_by_fingerprint(
         bound_fn(x=x, return_type_as=data_bag.DataBag), x.get_bag()
     )
 

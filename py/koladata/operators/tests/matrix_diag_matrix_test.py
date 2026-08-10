@@ -198,7 +198,9 @@ class MatrixDiagMatrixTest(parameterized.TestCase):
         ds([[1, None, None], [None, kd.obj('foo'), None], [None, None, 3.0]]),
     )
     self.assertEqual(result.get_schema(), schema_constants.OBJECT)
-    testing.assert_equal(x.get_bag(), result.get_bag())  # Same bag.
+    testing.assert_equal_by_fingerprint(
+        x.get_bag(), result.get_bag()
+    )  # Same bag.
 
   def test_k_positive(self):
     x = ds([1.0, 2.0, 3.0])

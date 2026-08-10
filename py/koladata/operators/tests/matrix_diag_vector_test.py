@@ -143,7 +143,7 @@ class MatrixDiagVectorTest(parameterized.TestCase):
     m = ds([[e1, e2], [e3, e4]])
     result = kd.matrix.diag_vector(m)
     testing.assert_equivalent(result, ds([e1, e4]))
-    testing.assert_equal(result.get_bag(), m.get_bag())
+    testing.assert_equal_by_fingerprint(result.get_bag(), m.get_bag())
 
   def test_none_schema(self):
     x = ds([[None, None], [None, None]])
@@ -155,7 +155,9 @@ class MatrixDiagVectorTest(parameterized.TestCase):
     result = kd.matrix.diag_vector(x)
     testing.assert_equivalent(result, ds([1, b'bar']))
     self.assertEqual(result.get_schema(), schema_constants.OBJECT)
-    testing.assert_equal(result.get_bag(), x.get_bag())  # Same bag.
+    testing.assert_equal_by_fingerprint(
+        result.get_bag(), x.get_bag()
+    )  # Same bag.
 
   def test_k_positive(self):
     # Extract the k=1 super-diagonal from a 3x3 matrix.

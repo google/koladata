@@ -5133,16 +5133,16 @@ AssertionError: QValues not equal by fingerprint:
   expected:
     JaggedShape()
 
-# It works for DataBags and it checks DataBags are the same instance
+# Use assert_equal_by_fingerprint to check if they are the same instance
 >>> db1 = kd.bag()
 >>> db2 = kd.bag()
->>> kd.testing.assert_equal(db1, db2)
+>>> kd.testing.assert_equal_by_fingerprint(db1, db2)
 Traceback (most recent call last):
 ...
 AssertionError: QValues not equal by fingerprint:
 ...
 
->>> kd.testing.assert_equal(db1, db1)
+>>> kd.testing.assert_equal_by_fingerprint(db1, db1)
 ```
 
 </section>

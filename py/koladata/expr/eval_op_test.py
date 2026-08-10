@@ -98,11 +98,11 @@ class EvalOpTest(absltest.TestCase):
 
     with self.subTest('bag'):
       db = data_bag.DataBag.empty_mutable()
-      testing.assert_equal(eval_op(op, db), db)
+      testing.assert_equal_by_fingerprint(eval_op(op, db), db)
       self.assertTrue(db.is_mutable())
 
       db = db.freeze()
-      testing.assert_equal(eval_op(op, db), db)
+      testing.assert_equal_by_fingerprint(eval_op(op, db), db)
       self.assertFalse(db.is_mutable())
 
     with self.subTest('slice'):

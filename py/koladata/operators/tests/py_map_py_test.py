@@ -150,7 +150,7 @@ class PyMapPyTest(parameterized.TestCase):
     self.assertEqual(res.get_schema(), schema)
     testing.assert_equal(res.v.no_bag(), ds([], schema_constants.INT32))
     self.assertTrue(res.is_mutable())
-    testing.assert_equal(res.get_bag(), schema.get_bag())
+    testing.assert_equal_by_fingerprint(res.get_bag(), schema.get_bag())
 
     res = kd.py.map_py(
         my_func_correct_schema, val, schema=schema_constants.OBJECT
@@ -219,7 +219,7 @@ assigned schema: ENTITY(u=INT64)"""),
         res.v.no_bag(), ds([[2, 3, None, 5], [None, None], [8, 9, 10]])
     )
     self.assertTrue(res.is_mutable())
-    testing.assert_equal(res.get_bag(), db)
+    testing.assert_equal_by_fingerprint(res.get_bag(), db)
 
     res = kd.py.map_py(
         functools.partial(my_func_same_bag, schema), val, schema=schema

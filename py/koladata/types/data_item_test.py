@@ -285,7 +285,9 @@ class DataItemTest(parameterized.TestCase):
 
     fn = functor_factories.expr_fn(I.x)
     my_bag = bag()
-    testing.assert_equal(fn(x=my_bag, return_type_as=data_bag.DataBag), my_bag)
+    testing.assert_equal_by_fingerprint(
+        fn(x=my_bag, return_type_as=data_bag.DataBag), my_bag
+    )
 
   def test_bind(self):
     fn = functor_factories.trace_py_fn(lambda x, y: x + y).bind(y=2)

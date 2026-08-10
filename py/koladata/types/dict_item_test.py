@@ -55,7 +55,7 @@ class DictItemTest(parameterized.TestCase):
 
   def test_bag(self):
     db = bag()
-    testing.assert_equal(db.dict({'a': 42}).get_bag(), db)
+    testing.assert_equal_by_fingerprint(db.dict({'a': 42}).get_bag(), db)
 
   def test_get_shape(self):
     d = bag().dict({'a': 42})

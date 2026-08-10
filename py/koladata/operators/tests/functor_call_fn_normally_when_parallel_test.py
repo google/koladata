@@ -69,7 +69,7 @@ class FunctorCallNormallyWhenParallelTest(absltest.TestCase):
         x=obj1,
         return_type_as=data_bag.DataBag,
     )
-    testing.assert_equal(res, obj1.get_bag())
+    testing.assert_equal_by_fingerprint(res, obj1.get_bag())
 
   def test_qtype_deduction_without_fn(self):
     testing.assert_equal(

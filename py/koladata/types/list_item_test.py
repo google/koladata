@@ -54,7 +54,7 @@ class ListItemTest(parameterized.TestCase):
 
   def test_bag(self):
     db = bag()
-    testing.assert_equal(db.list([1, 2, 3]).get_bag(), db)
+    testing.assert_equal_by_fingerprint(db.list([1, 2, 3]).get_bag(), db)
 
   def test_get_shape(self):
     l = bag().list([1, 2, 3])

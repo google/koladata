@@ -672,7 +672,7 @@ class KdTest(absltest.TestCase):
 
     with self.subTest('DataBag'):
       fn = kdf.expr_fn(returns=I.x.get_bag())
-      kd.testing.assert_equal(
+      kd.testing.assert_equal_by_fingerprint(
           fn(x=obj, return_type_as=kd.types.DataBag), obj.get_bag()
       )
 

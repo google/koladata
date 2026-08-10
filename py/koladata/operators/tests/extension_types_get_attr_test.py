@@ -67,7 +67,7 @@ class ExtensionTypesGetAttrTest(parameterized.TestCase):
     result = expr_eval.eval(
         kde.extension_types.get_attr(a, "y", qtypes.DATA_BAG)
     )
-    testing.assert_equal(result, db)
+    testing.assert_equal_by_fingerprint(result, db)
 
   def test_get_attr_wrong_type(self):
     a = A(ds(1), bag())

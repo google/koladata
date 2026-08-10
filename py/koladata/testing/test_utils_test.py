@@ -39,9 +39,13 @@ class TestUtilsTest(parameterized.TestCase):
     test_utils.assert_equal(
         ds([1, 2, 3]).get_shape(), ds([1, 2, 3]).get_shape()
     )
-    db = bag()
-    test_utils.assert_equal(db, db)
     test_utils.assert_equal(None, None)
+
+  def test_assert_equal_by_fingerprint(self):
+    test_utils.assert_equal_by_fingerprint(ds([1, 2, 3]), ds([1, 2, 3]))
+    db = bag()
+    test_utils.assert_equal_by_fingerprint(db, db)
+    test_utils.assert_equal_by_fingerprint(None, None)
 
   def test_assert_equal_ellipsis(self):
     test_utils.assert_equal(ellipsis.ellipsis(), ellipsis.ellipsis())
@@ -101,16 +105,22 @@ class TestUtilsTest(parameterized.TestCase):
       test_utils.assert_equal(
           ds([1, 2, 3]).get_shape(), ds([[1, 2], [3]]).get_shape()
       )
+    with self.assertRaisesWithLiteralMatch(
+        AssertionError,
+        '`assert_equal` does not support DataBags; use'
+        ' `assert_equal_by_fingerprint`',
+    ):
+      test_utils.assert_equal(bag(), bag().new(a=1).get_bag())
+
     with self.assertRaisesRegex(
         AssertionError,
         re.compile(
-            r'not equal by fingerprint:.*DataBag\(empty, \$[0-9a-f]{4}\)(\n|.)*'
-            r' DataBag'
-            r' \$[0-9a-f]{4}(\n|.)*',
+            r'QValues not equal by fingerprint:.*DataBag\(empty,'
+            r' \$[0-9a-f]{4}\).*DataBag\(empty, \$[0-9a-f]{4}\)',
             re.MULTILINE | re.DOTALL,
         ),
     ):
-      test_utils.assert_equal(bag(), bag().new(a=1).get_bag())
+      test_utils.assert_equal_by_fingerprint(bag(), bag())
 
   def test_assert_equal_error_custom_error_msg(self):
     with self.assertRaisesRegex(AssertionError, 'my error'):

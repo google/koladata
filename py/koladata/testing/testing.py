@@ -18,6 +18,7 @@ from koladata.operators.tests.util import qtypes as _test_qtypes
 from koladata.testing import test_utils as _test_utils
 
 assert_equal = _test_utils.assert_equal
+assert_equal_by_fingerprint = _test_utils.assert_equal_by_fingerprint
 assert_not_equal = _test_utils.assert_not_equal
 assert_equivalent = _test_utils.assert_equivalent
 assert_allclose = _test_utils.assert_allclose

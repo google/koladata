@@ -98,7 +98,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         )
     )
     transformed_fn = kde_internal.parallel.transform(config, fn)
-    testing.assert_equal(
+    testing.assert_equal_by_fingerprint(
         expr_eval.eval(
             kde_internal.parallel.get_future_value_for_testing(
                 transformed_fn(

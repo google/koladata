@@ -235,7 +235,7 @@ class CoreGetAttrTest(parameterized.TestCase):
     default = db.new(a=42).with_schema(entity.get_schema())
     entity = db.new(e=entity & ds([arolla.present(), None, None]))
     result = eager.get_attr(entity, 'e', default)
-    testing.assert_equal(result.get_bag(), db)
+    testing.assert_equal_by_fingerprint(result.get_bag(), db)
     testing.assert_equal(result.a, ds([1, 42, 42]).with_bag(entity.get_bag()))
 
   def test_missing(self):

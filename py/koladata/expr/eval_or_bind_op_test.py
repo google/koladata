@@ -104,10 +104,10 @@ class EvalOrBindOpTest(parameterized.TestCase):
 
     with self.subTest('bag'):
       db = data_bag.DataBag.empty_mutable()
-      testing.assert_equal(eval_or_bind_op(op, db), db)
+      testing.assert_equal_by_fingerprint(eval_or_bind_op(op, db), db)
 
       db = db.freeze()
-      testing.assert_equal(eval_or_bind_op(op, db), db)
+      testing.assert_equal_by_fingerprint(eval_or_bind_op(op, db), db)
 
     with self.subTest('slice'):
       x = data_bag.DataBag.empty_mutable().new()

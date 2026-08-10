@@ -49,8 +49,8 @@ class IterablesMakeTest(absltest.TestCase):
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_BAG)
     res_list = list(res)
     self.assertLen(res_list, 2)
-    testing.assert_equal(res_list[0], db1)
-    testing.assert_equal(res_list[1], db2)
+    testing.assert_equal_by_fingerprint(res_list[0], db1)
+    testing.assert_equal_by_fingerprint(res_list[1], db2)
 
   def test_make_with_bags_explicit_value_type_as(self):
     db1 = data_bag.DataBag.empty_mutable()
@@ -60,8 +60,8 @@ class IterablesMakeTest(absltest.TestCase):
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_BAG)
     res_list = list(res)
     self.assertLen(res_list, 2)
-    testing.assert_equal(res_list[0], db1)
-    testing.assert_equal(res_list[1], db2)
+    testing.assert_equal_by_fingerprint(res_list[0], db1)
+    testing.assert_equal_by_fingerprint(res_list[1], db2)
 
   def test_make_with_bags_wrong_value_type_as(self):
     db1 = data_bag.DataBag.empty_mutable()

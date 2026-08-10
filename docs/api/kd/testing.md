@@ -88,6 +88,26 @@ Raises:
 Compares the argument by their fingerprint:
 * 2 DataSlice(s) are equal if their contents and JaggedShape(s) are
   equal / equivalent and they reference the same DataBag instance.
+* 2 JaggedShape(s) are equal if they have the same number of dimensions and
+  all &#34;sizes&#34; in each dimension are equal.
+
+NOTE: For JaggedShape equality and equivalence are the same thing.
+
+Args:
+  actual_value: DataSlice or JaggedShape.
+  expected_value: DataSlice or JaggedShape.
+  msg: A custom error message.
+
+Raises:
+  AssertionError: If actual_qvalue and expected_qvalue are not equal.</code></pre>
+
+### `kd.testing.assert_equal_by_fingerprint(actual_value: DataBag | DataSlice | JaggedShape | QValue | Slice | Expr | None, expected_value: DataBag | DataSlice | JaggedShape | QValue | Slice | Expr | None, *, msg: str | None = None) -> None` {#kd.testing.assert_equal_by_fingerprint}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Koda equality check by fingerprint.
+
+Compares the argument by their fingerprint:
+* 2 DataSlice(s) are equal if their contents and JaggedShape(s) are
+  equal / equivalent and they reference the same DataBag instance.
 * 2 DataBag(s) are equal if they are the same DataBag instance.
 * 2 JaggedShape(s) are equal if they have the same number of dimensions and
   all &#34;sizes&#34; in each dimension are equal.
@@ -95,12 +115,13 @@ Compares the argument by their fingerprint:
 NOTE: For JaggedShape equality and equivalence are the same thing.
 
 Args:
-  actual_value: DataSlice, DataBag or JaggedShape.
-  expected_value: DataSlice, DataBag or JaggedShape.
+  actual_value: DataSlice, DataBag, JaggedShape or Expr.
+  expected_value: DataSlice, DataBag, JaggedShape or Expr.
   msg: A custom error message.
 
 Raises:
-  AssertionError: If actual_qvalue and expected_qvalue are not equal.</code></pre>
+  AssertionError: If actual_value and expected_value are not equal by
+    fingerprint.</code></pre>
 
 ### `kd.testing.assert_equivalent(actual_value: DataBag | DataSlice | JaggedShape | QValue | Slice | Expr | None, expected_value: DataBag | DataSlice | JaggedShape | QValue | Slice | Expr | None, *, partial: bool | None = None, ids_equality: bool | None = None, schemas_equality: bool | None = None, max_count: int | None = None, msg: str | None = None)` {#kd.testing.assert_equivalent}
 

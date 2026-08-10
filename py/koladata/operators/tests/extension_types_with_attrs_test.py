@@ -53,7 +53,7 @@ class ExtensionTypesWithAttrsTest(parameterized.TestCase):
     a = A(ds(1), db)
     result = expr_eval.eval(kde.extension_types.with_attrs(a, x=ds(2)))
     testing.assert_equal(result.x, ds(2))
-    testing.assert_equal(result.y, db)
+    testing.assert_equal_by_fingerprint(result.y, db)
 
   def test_qtype_signatures(self):
     empty_nt = arolla.make_namedtuple_qtype()
@@ -90,7 +90,7 @@ class ExtensionTypesWithAttrsTest(parameterized.TestCase):
       _ = res.x
     unwrapped_res = arolla.eval(kde.extension_types.unwrap(res))
     x = unwrapped_res.get_attr("x", qtypes.DATA_BAG)
-    testing.assert_equal(x, new_bag)
+    testing.assert_equal_by_fingerprint(x, new_bag)
 
   def test_with_attrs_non_existent_attr(self):
     a = A(ds(1), bag())

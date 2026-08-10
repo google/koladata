@@ -54,7 +54,7 @@ class SchemaItemTest(absltest.TestCase):
 
   def test_bag(self):
     db = bag()
-    testing.assert_equal(db.new().get_schema().get_bag(), db)
+    testing.assert_equal_by_fingerprint(db.new().get_schema().get_bag(), db)
 
   def test_get_shape(self):
     testing.assert_equal(

@@ -87,8 +87,8 @@ class ParallelCallFnReturningStreamTest(absltest.TestCase):
     )
     db = data_bag.DataBag.empty_mutable().freeze()
     res = call_expr.eval(foo=db).read_all(timeout=5.0)
-    testing.assert_equal(res[0], db)
-    testing.assert_equal(res[1], db)
+    testing.assert_equal_by_fingerprint(res[0], db)
+    testing.assert_equal_by_fingerprint(res[1], db)
 
   def test_view(self):
     self.assertTrue(

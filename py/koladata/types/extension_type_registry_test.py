@@ -284,7 +284,7 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
         extension_type_registry.get_attr(a, 'x', qtypes.DATA_SLICE),
         ds(1),
     )
-    testing.assert_equal(
+    testing.assert_equal_by_fingerprint(
         extension_type_registry.get_attr(a, 'y', qtypes.DATA_BAG),
         db,
     )

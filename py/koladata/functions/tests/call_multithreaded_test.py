@@ -200,7 +200,7 @@ class CallMultithreadedTest(absltest.TestCase):
         x=obj,
         return_type_as=data_bag.DataBag,
     )
-    testing.assert_equal(res, obj.get_bag())
+    testing.assert_equal_by_fingerprint(res, obj.get_bag())
 
   def test_call_with_functor_as_input(self):
     fn = functor_factories.expr_fn(I.x + I.y)

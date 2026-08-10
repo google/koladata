@@ -131,7 +131,7 @@ class SlicesTranslateTest(parameterized.TestCase):
   def test_eval(self, keys_to, keys_from, values_from, expected):
     result = kd.slices.translate(keys_to, keys_from, values_from)
     testing.assert_equal(result, expected)
-    testing.assert_equal(result.get_bag(), values_from.get_bag())
+    testing.assert_equal_by_fingerprint(result.get_bag(), values_from.get_bag())
 
   def test_incompatible_shapes(self):
     with self.assertRaisesRegex(

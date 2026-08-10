@@ -217,6 +217,45 @@ def assert_equal(
   Compares the argument by their fingerprint:
   * 2 DataSlice(s) are equal if their contents and JaggedShape(s) are
     equal / equivalent and they reference the same DataBag instance.
+  * 2 JaggedShape(s) are equal if they have the same number of dimensions and
+    all "sizes" in each dimension are equal.
+
+  NOTE: For JaggedShape equality and equivalence are the same thing.
+
+  Args:
+    actual_value: DataSlice or JaggedShape.
+    expected_value: DataSlice or JaggedShape.
+    msg: A custom error message.
+
+  Raises:
+    AssertionError: If actual_qvalue and expected_qvalue are not equal.
+  """
+  # NOTE: None occurs frequently when comparing DataBag(s) from DataSlice(s).
+  if actual_value is None and expected_value is None:
+    return
+  if isinstance(actual_value, _arolla.Expr) and isinstance(
+      expected_value, _arolla.Expr
+  ):
+    _assert_expr_equal_by_fingerprint(actual_value, expected_value, msg=msg)
+    return
+  if isinstance(actual_value, _data_bag.DataBag) or isinstance(
+      expected_value, _data_bag.DataBag
+  ):
+    raise AssertionError(
+        '`assert_equal` does not support DataBags; use'
+        ' `assert_equal_by_fingerprint`'
+    )
+  _assert_qvalue_equal_by_fingerprint(actual_value, expected_value, msg=msg)
+
+
+def assert_equal_by_fingerprint(
+    actual_value: _KodaVal, expected_value: _KodaVal, *, msg: str | None = None
+) -> None:
+  """Koda equality check by fingerprint.
+
+  Compares the argument by their fingerprint:
+  * 2 DataSlice(s) are equal if their contents and JaggedShape(s) are
+    equal / equivalent and they reference the same DataBag instance.
   * 2 DataBag(s) are equal if they are the same DataBag instance.
   * 2 JaggedShape(s) are equal if they have the same number of dimensions and
     all "sizes" in each dimension are equal.
@@ -224,12 +263,13 @@ def assert_equal(
   NOTE: For JaggedShape equality and equivalence are the same thing.
 
   Args:
-    actual_value: DataSlice, DataBag or JaggedShape.
-    expected_value: DataSlice, DataBag or JaggedShape.
+    actual_value: DataSlice, DataBag, JaggedShape or Expr.
+    expected_value: DataSlice, DataBag, JaggedShape or Expr.
     msg: A custom error message.
 
   Raises:
-    AssertionError: If actual_qvalue and expected_qvalue are not equal.
+    AssertionError: If actual_value and expected_value are not equal by
+      fingerprint.
   """
   # NOTE: None occurs frequently when comparing DataBag(s) from DataSlice(s).
   if actual_value is None and expected_value is None:
@@ -465,7 +505,7 @@ def assert_allclose(
       f'actual: {actual_value._debug_repr()}\n'  # pylint: disable=protected-access
       f'expected: {expected_value._debug_repr()}',  # pylint: disable=protected-access
   )
-  assert_equal(
+  assert_equal_by_fingerprint(
       actual_value.get_bag(),
       expected_value.get_bag(),
       msg='inputs have different DataBags',
@@ -503,7 +543,7 @@ def assert_unordered_equal(
   _expect_data_slice(expected_value)
   _assert_equal_shape(actual_value, expected_value)
   _assert_equal_schema(actual_value, expected_value)
-  assert_equal(
+  assert_equal_by_fingerprint(
       actual_value.get_bag(),
       expected_value.get_bag(),
       msg='inputs have different DataBags',

@@ -275,7 +275,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
 
     x = ds([1, 2, 3]).with_bag(db.freeze())
     result = expr_eval.eval(I.x, x=x)
-    testing.assert_equal(x.get_bag(), result.get_bag())
+    testing.assert_equal_by_fingerprint(x.get_bag(), result.get_bag())
     self.assertFalse(result.get_bag().is_mutable())
 
   def test_freeze_input_databag(self):
@@ -286,7 +286,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
 
     frozen_db = db.freeze()
     result = expr_eval.eval(I.x, x=frozen_db)
-    testing.assert_equal(frozen_db, result)
+    testing.assert_equal_by_fingerprint(frozen_db, result)
     self.assertFalse(result.is_mutable())
 
 

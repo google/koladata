@@ -350,7 +350,7 @@ class FromPyTest(parameterized.TestCase):
     o2 = db.obj()
 
     res = from_py(o1)
-    testing.assert_equal(res.get_bag(), db)
+    testing.assert_equal_by_fingerprint(res.get_bag(), db)
 
     res = from_py([[o1, o2], [42]], from_dim=2)
     self.assertTrue(res.get_bag().is_mutable())

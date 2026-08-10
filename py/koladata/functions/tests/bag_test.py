@@ -33,7 +33,7 @@ class BagTest(absltest.TestCase):
 
   def test_equality(self):
     db = fns.bag()
-    testing.assert_equal(db, db)
+    testing.assert_equal_by_fingerprint(db, db)
     testing.assert_not_equal(db, fns.bag())
 
   def test_equivalence(self):

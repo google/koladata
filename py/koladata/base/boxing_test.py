@@ -387,7 +387,9 @@ The cause is the values of attribute '__schema__' are different: ENTITY\(\) with
     # Same schema and db for items from internal_as_py.
     x = db.new(x=ds([1, 2, 3]), y=ds(['a', 'b', 'c']))
     self.assertIsInstance(x.internal_as_py()[0], data_item.DataItem)
-    testing.assert_equal(x.internal_as_py()[0].get_bag(), x.get_bag())
+    testing.assert_equal_by_fingerprint(
+        x.internal_as_py()[0].get_bag(), x.get_bag()
+    )
     testing.assert_equal(x.internal_as_py()[0].get_schema(), x.get_schema())
 
   def test_scalars_overflow_handling(self):

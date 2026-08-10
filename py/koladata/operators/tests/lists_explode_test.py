@@ -45,7 +45,7 @@ class ListsExplodeTest(parameterized.TestCase):
   def test_eval(self, x, ndim, expected):
     result = kd.lists.explode(x, ndim)
     testing.assert_equivalent(result, expected)
-    testing.assert_equal(result.get_bag(), x.get_bag())
+    testing.assert_equal_by_fingerprint(result.get_bag(), x.get_bag())
 
     # Also check that the operator can take mutable inputs.
     db = data_bag.DataBag.empty_mutable()

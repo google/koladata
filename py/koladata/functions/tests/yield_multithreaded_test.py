@@ -168,7 +168,9 @@ class YieldMultithreadedTest(absltest.TestCase):
         x=obj,
         value_type_as=data_bag.DataBag,
     )
-    testing.assert_equal(arolla.tuple(*res), arolla.tuple(obj.get_bag()))
+    testing.assert_equal_by_fingerprint(
+        arolla.tuple(*res), arolla.tuple(obj.get_bag())
+    )
 
   def test_functor_as_input(self):
     fn = functor_factories.expr_fn(kde.iterables.make(I.x + I.y))

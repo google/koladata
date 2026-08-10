@@ -47,10 +47,10 @@ class MutableBagTest(absltest.TestCase):
 
   def test_equality(self):
     db = object_factories.mutable_bag()
-    testing.assert_equal(db, db)
+    testing.assert_equal_by_fingerprint(db, db)
     testing.assert_not_equal(db, object_factories.mutable_bag())
     db.new(a=1, b='text')
-    testing.assert_equal(db, db)
+    testing.assert_equal_by_fingerprint(db, db)
 
   def test_equivalence(self):
     testing.assert_equivalent(

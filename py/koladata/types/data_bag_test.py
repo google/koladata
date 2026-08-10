@@ -83,14 +83,15 @@ class DataBagTest(parameterized.TestCase):
     x = db2.obj()
     self.assertIsNot(x.get_bag(), db2)
     self.assertEqual(x.get_bag().fingerprint, db2.fingerprint)
+    testing.assert_equal_by_fingerprint(x.get_bag(), db2)
 
   def test_getitem(self):
     db = bag()
     x = db[ds([1, 2, 3])]
-    testing.assert_equal(x.get_bag(), db)
+    testing.assert_equal_by_fingerprint(x.get_bag(), db)
 
     x = db[ds(42)]
-    testing.assert_equal(x.get_bag(), db)
+    testing.assert_equal_by_fingerprint(x.get_bag(), db)
 
     with self.assertRaisesRegex(TypeError, 'expected DataSlice, got list'):
       _ = db[[1, 2, 3]]  # pytype: disable=unsupported-operands
@@ -1516,7 +1517,7 @@ Assigned schema for keys: INT32""",
     item_schema = l.get_schema()
     for _ in range(depth):
       item_schema = item_schema.get_attr('__items__')
-    testing.assert_equal(item_schema.get_bag(), db)
+    testing.assert_equal_by_fingerprint(item_schema.get_bag(), db)
     testing.assert_equal(
         item_schema.no_bag(),
         schema_constants.INT32 if values else schema_constants.NONE,
@@ -2028,7 +2029,7 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     ).embed_schema()
     db2 = bag()
     x_stub = db2.adopt_stub(x)
-    testing.assert_equal(x_stub.get_bag(), db2)
+    testing.assert_equal_by_fingerprint(x_stub.get_bag(), db2)
     testing.assert_equal(x_stub.no_bag(), x.no_bag())
     testing.assert_equal(
         x_stub.get_obj_schema().no_bag(), x.get_obj_schema().no_bag()
@@ -2042,7 +2043,7 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     x = bag().dict({1: 2, 3: 4})
     db = bag()
     x_stub = db.adopt_stub(x)
-    testing.assert_equal(x_stub.get_bag(), db)
+    testing.assert_equal_by_fingerprint(x_stub.get_bag(), db)
     testing.assert_equal(x_stub.no_bag(), x.no_bag())
 
   def test_lshift(self):
@@ -2402,6 +2403,9 @@ class NullDataBagTest(absltest.TestCase):
         data_bag.null_bag().fingerprint, data_bag.null_bag().fingerprint
     )
     self.assertNotEqual(data_bag.null_bag().fingerprint, bag().fingerprint)
+    testing.assert_equal_by_fingerprint(
+        data_bag.null_bag(), data_bag.null_bag()
+    )
 
   def test_with_bag(self):
     x = ds([1, 2, 3]).with_bag(data_bag.null_bag())

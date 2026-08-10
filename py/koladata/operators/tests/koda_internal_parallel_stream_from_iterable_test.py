@@ -53,8 +53,8 @@ class KodaInternalParallelStreamFromIterableTest(absltest.TestCase):
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_BAG)
     res_list = res.read_all(timeout=0)
     self.assertLen(res_list, 2)
-    testing.assert_equal(res_list[0], db1)
-    testing.assert_equal(res_list[1], db2)
+    testing.assert_equal_by_fingerprint(res_list[0], db1)
+    testing.assert_equal_by_fingerprint(res_list[1], db2)
 
   def test_from_empty_iterable(self):
     res = kd_internal.parallel.stream_from_iterable(kd.iterables.make())

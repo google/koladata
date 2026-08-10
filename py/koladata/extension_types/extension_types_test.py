@@ -388,13 +388,13 @@ class ExtensionTypesTest(parameterized.TestCase):
 
     with self.subTest('eager'):
       ext = MyExtensionType(value)  # pyrefly: ignore[bad-argument-count]
-      testing.assert_equal(ext.x, value)
+      testing.assert_equal_by_fingerprint(ext.x, value)
 
     with self.subTest('lazy'):
       ext = MyExtensionType(I.x)  # pyrefly: ignore[bad-argument-count]
       # NOTE: We use `expr_eval.eval` since for e.g. arolla.INT32, the output
       # doesn't have a Koda-like view with `.eval`.
-      testing.assert_equal(expr_eval.eval(ext.x, x=value), value)
+      testing.assert_equal_by_fingerprint(expr_eval.eval(ext.x, x=value), value)
 
   def test_unsupported_annotation(self):
     class MyExtensionType:
@@ -899,12 +899,12 @@ class ExtensionTypesTest(parameterized.TestCase):
     with self.subTest('eager'):
       db = data_bag.DataBag.empty()
       a = A(db)
-      testing.assert_equal(a.fn(), db)
+      testing.assert_equal_by_fingerprint(a.fn(), db)
 
     with self.subTest('lazy'):
       db = data_bag.DataBag.empty()
       a = A(I.db)  # pyrefly: ignore[bad-argument-type]
-      testing.assert_equal(a.fn().eval(db=db), db)
+      testing.assert_equal_by_fingerprint(a.fn().eval(db=db), db)
 
   def test_virtual_method_qvalue_return_annotation(self):
 

@@ -1105,6 +1105,7 @@ DataItem(INT32, schema: SCHEMA)
 Note, `kd.new` auto-allocates new schemas, and to make schemas to be the same,
 we can pass a schema name as a string, create schemas explicitly, or use uu
 items.
+
 ```py
 
 >>> a1 = kd.new(x=1, y=2)
@@ -3316,11 +3317,11 @@ DataItem(2, schema: INT32, bag_id:...)
 ```
 
 To quickly check if two DataSlices use the same bag of attributes, one can use
-bags' fingerprint.
+`kd.testing.assert_equal_by_fingerprint` or bags' fingerprint.
 
 ```py
 >>> t = kd.obj(x=kd.obj(a=1, b=2), y=kd.obj(c=3, d=4))
->>> assert t.x.get_bag().fingerprint == t.y.get_bag().fingerprint
+>>> kd.testing.assert_equal_by_fingerprint(t.x.get_bag(), t.y.get_bag())
 
 >>> x1 = t.x.with_attrs(z=5)
 >>> y1 = t.x.with_attrs(z=6)
@@ -3329,7 +3330,7 @@ bags' fingerprint.
 >>> db = x1.get_bag() << y1.get_bag()
 >>> x2 = x1.with_bag(db)
 >>> y2 = y1.with_bag(db)
->>> assert x2.get_bag().fingerprint == y2.get_bag().fingerprint
+>>> kd.testing.assert_equal_by_fingerprint(x2.get_bag(), y2.get_bag())
 ```
 
 ### Immutable Workflows

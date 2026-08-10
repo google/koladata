@@ -43,11 +43,13 @@ class CoreGetBagTest(parameterized.TestCase):
       ds([bag().obj(a=1)]),
   )
   def test_eval(self, x):
-    testing.assert_equal(eval_op('kd.core.get_bag', x), x.get_bag())
+    testing.assert_equal_by_fingerprint(
+        eval_op('kd.core.get_bag', x), x.get_bag()
+    )
 
   def test_no_databag(self):
     null_db = kd.core.get_bag(ds([1, 2, 3]))
-    testing.assert_equal(null_db, data_bag.null_bag())
+    testing.assert_equal_by_fingerprint(null_db, data_bag.null_bag())
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
