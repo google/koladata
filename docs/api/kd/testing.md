@@ -130,14 +130,15 @@ Raises:
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Koda equivalency check.
 
 * 2 DataSlice(s) are equivalent if their contents and JaggedShape(s) are
-  equivalent and their DataBag(s) have the same contents (including the
-  distribution of data in fallback DataBag(s)).
+  equivalent (ignoring fallback DataBag structure).
+* 2 DataBag(s) are equivalent if their contents are the same (ignoring
+  fallback DataBag structure).
 * 2 JaggedShape(s) are equivalent if they are equal, i.e. if sizes / edges
   across all their dimensions are the same.
 
 Args:
-  actual_value: DataSlice or JaggedShape.
-  expected_value: DataSlice or JaggedShape.
+  actual_value: DataSlice, DataBag or JaggedShape.
+  expected_value: DataSlice, DataBag or JaggedShape.
   partial: (default: False) Whether to check only the attributes present in
     the expected_value (affects only DataSlice case).
   ids_equality: (default: False) Whether to check ids equality (affects only

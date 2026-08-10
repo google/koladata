@@ -347,6 +347,30 @@ def _assert_exactly_equal_bags(
   )
 
 
+def _assert_equivalent_bags(
+    actual_value: _data_bag.DataBag,
+    expected_value: _data_bag.DataBag,
+    *,
+    msg: str | None = None,
+):
+  """Asserts that DataBags are equivalent."""
+  if actual_value is None and expected_value is None:
+    return
+  if (
+      actual_value is not None
+      and expected_value is not None
+      and _data_bag.content_equal(actual_value, expected_value)
+  ):
+    return
+  raise AssertionError(
+      msg
+      or (
+          'DataBags are not equivalent\n\n'
+          f'{_bag_content(actual_value)} != {_bag_content(expected_value)}'
+      )
+  )
+
+
 def assert_equivalent(
     actual_value: _KodaVal,
     expected_value: _KodaVal,
@@ -360,14 +384,15 @@ def assert_equivalent(
   """Koda equivalency check.
 
   * 2 DataSlice(s) are equivalent if their contents and JaggedShape(s) are
-    equivalent and their DataBag(s) have the same contents (including the
-    distribution of data in fallback DataBag(s)).
+    equivalent (ignoring fallback DataBag structure).
+  * 2 DataBag(s) are equivalent if their contents are the same (ignoring
+    fallback DataBag structure).
   * 2 JaggedShape(s) are equivalent if they are equal, i.e. if sizes / edges
     across all their dimensions are the same.
 
   Args:
-    actual_value: DataSlice or JaggedShape.
-    expected_value: DataSlice or JaggedShape.
+    actual_value: DataSlice, DataBag or JaggedShape.
+    expected_value: DataSlice, DataBag or JaggedShape.
     partial: (default: False) Whether to check only the attributes present in
       the expected_value (affects only DataSlice case).
     ids_equality: (default: False) Whether to check ids equality (affects only
@@ -382,10 +407,6 @@ def assert_equivalent(
     AssertionError: If actual_value.fingerprint and expected_value.fingerprint
       are not equal.
   """
-  if isinstance(actual_value, _data_bag.DataBag) or isinstance(
-      expected_value, _data_bag.DataBag
-  ):
-    raise AssertionError('`assert_equivalent` does not support DataBags')
   # NOTE: None occurs frequently when comparing DataBag(s) from DataSlice(s).
   if actual_value is None and expected_value is None:
     return
@@ -418,6 +439,11 @@ def assert_equivalent(
     raise AssertionError('`schemas_equality` is only supported for DataSlices')
   if max_count is not None:
     raise AssertionError('`max_count` is only supported for DataSlices')
+  if isinstance(actual_value, _data_bag.DataBag) and isinstance(
+      expected_value, _data_bag.DataBag
+  ):
+    _assert_equivalent_bags(actual_value, expected_value, msg=msg)
+    return
   _assert_qvalue_equal_by_fingerprint(actual_value, expected_value, msg=msg)
 
 

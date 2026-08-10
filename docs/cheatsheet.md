@@ -5171,7 +5171,10 @@ AssertionError: QValues not equal by fingerprint:
 
 >>> kd.testing.assert_equivalent(ds1, ds3.S[0])
 
-# Note: assert_equivalent does not support DataBags. Use assert_equal instead.
+# It works for DataBags too, checking that DataBags have the same content after
+# flattening their fallbacks.
+>>> kd.testing.assert_equivalent(ds1.get_bag(),
+...                              ds2.get_bag())
 ```
 
 </section>
