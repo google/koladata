@@ -34,7 +34,7 @@ DataBagManager = dbm.DataBagManager
 class DataBagManagerTest(parameterized.TestCase):
 
   def assert_equivalent_bags(self, bag0, bag1):
-    kd.testing.assert_equal(bag0.merge_fallbacks(), bag1.merge_fallbacks())
+    kd.testing.assert_equivalent(bag0, bag1)
 
   def test_typical_usage(self):
     persistence_dir = os.path.join(self.create_tempdir().full_path, 'bags')
@@ -864,10 +864,8 @@ class DataBagManagerTest(parameterized.TestCase):
         # we did not request with_all_dependents=True when creating the twig.
         {'trunk1', 'trunk2', 'branch1'},
     )
-    kd.testing.assert_equal(
-        twig_manager.get_minimal_bag(
-            twig_manager.get_available_bag_names()
-        ).merge_fallbacks(),
+    kd.testing.assert_equivalent(
+        twig_manager.get_minimal_bag(twig_manager.get_available_bag_names()),
         kd.attrs(entity, a=4),  # pyrefly: ignore[missing-attribute]
     )
     twig_manager.add_bags([
@@ -1067,8 +1065,8 @@ class DataBagManagerTest(parameterized.TestCase):
 
     # But the manager can still perform reads, but at 1 version behind the
     # latest revision.
-    kd.testing.assert_equal(
-        manager.get_minimal_bag({'bag1'}).merge_fallbacks(),
+    kd.testing.assert_equivalent(
+        manager.get_minimal_bag({'bag1'}),
         bag1,
     )
 
@@ -1083,8 +1081,8 @@ class DataBagManagerTest(parameterized.TestCase):
     branch_manager.add_bags([
         dbm.BagToAdd(bag_name='bag6', bag=bag6, dependencies=()),
     ])
-    kd.testing.assert_equal(
-        branch_manager.get_minimal_bag({'bag6'}).merge_fallbacks(),
+    kd.testing.assert_equivalent(
+        branch_manager.get_minimal_bag({'bag6'}),
         bag6,
     )
 
@@ -1260,7 +1258,7 @@ class DataBagManagerTest(parameterized.TestCase):
 
     # Load the bag from the persistence dir.
     loaded_bag1 = manager.get_minimal_bag({'bag1'})
-    kd.testing.assert_equal(loaded_bag1.merge_fallbacks(), bag1)
+    kd.testing.assert_equivalent(loaded_bag1, bag1)
 
     # Verify that the global cache is still empty.
     self.assertEqual(global_cache.get_total_bytes_of_entries_in_cache(), 0)

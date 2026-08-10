@@ -167,7 +167,7 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
         list_with_no_info_about_items,
         missing_list,
     ])
-    kd.testing.assert_equal(
+    kd.testing.assert_equivalent(
         stubs_and_minimal_bags_lib.minimal_bag_associating_list_with_its_items(
             list_ds
         ),
@@ -180,7 +180,7 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
             .no_bag()
             .implode(itemid=standard_list.get_itemid())
             .extract_update(),
-        ).merge_fallbacks(),
+        ),
     )
     # At the time of writing, list_ds.stub().get_bag() would additionally
     # associate list_with_no_info_about_items with an empty list of items. That
