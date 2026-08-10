@@ -741,36 +741,40 @@ class ErrorTest(parameterized.TestCase):
       kd.matrix.matmul(a, b)
 
   def test_overflow_fails(self):
-    a = kd.empty_shaped(kd.shapes.new(2, 2), schema_constants.FLOAT32)
-    b = kd.empty_shaped(kd.shapes.new(2, 2**62), schema_constants.FLOAT32)
+    # The output would have 2 * 2^62 = 2^63 elements, which overflows int64.
+    # The inputs themselves must stay representable: constructing a DataSlice
+    # with 2^63 elements (e.g. kd.shapes.new(2, 2**62)) would already overflow
+    # int64 while building its JaggedShape split points. We therefore keep the
+    # inputs small and rely on broadcasting so that only the *output* size
+    # overflows, which is what kd.matrix.matmul must detect.
+    a = kd.empty_shaped(kd.shapes.new(2, 1), schema_constants.FLOAT32)
+    b = kd.empty_shaped(kd.shapes.new(1, 2**62), schema_constants.FLOAT32)
     with self.assertRaisesRegex(
         ValueError, r'arguments cause integer overflow'
     ):
       kd.matrix.matmul(a, b)
 
+    # Same, but with `a` treated as a batch of vectors (a_ndim=1). The output
+    # is (2, 2^62), which still overflows int64.
     with self.assertRaisesRegex(
         ValueError, r'arguments cause integer overflow'
     ):
       kd.matrix.matmul(
-          kd.empty_shaped(kd.shapes.new(2, 2), schema_constants.FLOAT32),
-          kd.empty_shaped(kd.shapes.new(2, 2**62), schema_constants.FLOAT32),
+          kd.empty_shaped(kd.shapes.new(2, 1), schema_constants.FLOAT32),
+          kd.empty_shaped(kd.shapes.new(1, 2**62), schema_constants.FLOAT32),
           a_ndim=1,
       )
 
-    # Each batch produces 1 * 2^62 = 2^62 output elements (fits in int64),
-    # but the sum across 2 batches (2 * 2^62 = 2^63) overflows int64.
-    # Uses (2, 1, N) shapes so JaggedShape edge arrays have only 3 entries
-    # (unlike (2, N, 1) which would need N+1 entries and OOM).
+    # Batched: each of the 2 batch elements produces 1 * 2^62 = 2^62 output
+    # elements (which fits in int64), but the total across both batches
+    # (2 * 2^62 = 2^63) overflows int64. `a` is (2, 1, 1) and `b` is (1, 2^62)
+    # broadcast across the batch, so both inputs stay representable.
     with self.assertRaisesRegex(
         ValueError, r'arguments cause integer overflow'
     ):
       kd.matrix.matmul(
-          kd.empty_shaped(
-              kd.shapes.new(2, 1, 1), schema_constants.FLOAT32
-          ),
-          kd.empty_shaped(
-              kd.shapes.new(2, 1, 2**62), schema_constants.FLOAT32
-          ),
+          kd.empty_shaped(kd.shapes.new(2, 1, 1), schema_constants.FLOAT32),
+          kd.empty_shaped(kd.shapes.new(1, 2**62), schema_constants.FLOAT32),
       )
 
 
