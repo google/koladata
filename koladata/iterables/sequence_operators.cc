@@ -52,7 +52,7 @@ absl::StatusOr<arolla::Sequence> SequenceFrom1DSlice(const DataSlice& x) {
                    arolla::MutableSequence::Make(arolla::GetQType<DataSlice>(),
                                                  x.GetShape().size()));
   auto span = res.UnsafeSpan<DataSlice>();
-  for (int i = 0; i < span.size(); ++i) {
+  for (size_t i = 0; i < span.size(); ++i) {
     ASSIGN_OR_RETURN(span[i], DataSlice::Create(x.slice()[i], x.GetSchemaImpl(),
                                                 x.GetBag()));
   }

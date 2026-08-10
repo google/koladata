@@ -15,9 +15,10 @@
 #ifndef KOLADATA_DATA_BAG_COMPARISON_H_
 #define KOLADATA_DATA_BAG_COMPARISON_H_
 
+#include <cstddef>
+
 #include "koladata/data_bag.h"
 #include "koladata/internal/triples.h"
-
 
 namespace koladata {
 
@@ -39,7 +40,7 @@ class DataBagComparison {
     if (a_fallbacks.size() != b_fallbacks.size()) {
       return false;
     }
-    for (int i = 0; i < a_fallbacks.size(); ++i) {
+    for (size_t i = 0; i < a_fallbacks.size(); ++i) {
       if (Triples(a_fallbacks[i]->ExtractContent().value()) !=
           Triples(b_fallbacks[i]->ExtractContent().value())) {
         return false;

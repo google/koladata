@@ -666,7 +666,7 @@ TYPED_TEST(DataBagMergeTest, MergeObjectsOverwriteOnlyDenseSources) {
 
     auto b_value = DataSliceImpl::AllocateEmptyObjects(kSize);
     SliceBuilder a_but_one(a.size());
-    for (int i = 0; i < a.size(); ++i) {
+    for (size_t i = 0; i < a.size(); ++i) {
       if (i != 5) {
         a_but_one.InsertIfNotSetAndUpdateAllocIds(i, a[i]);
       }
@@ -687,7 +687,7 @@ TYPED_TEST(DataBagMergeTest, MergeObjectsOverwriteOnlyDenseSources) {
 
     auto b_value = DataSliceImpl::AllocateEmptyObjects(kSize);
     SliceBuilder a_but_one(a.size());
-    for (int i = 0; i < a.size(); ++i) {
+    for (size_t i = 0; i < a.size(); ++i) {
       if (i != 5) {
         a_but_one.InsertIfNotSetAndUpdateAllocIds(i, a[i]);
       }

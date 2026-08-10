@@ -14,6 +14,7 @@
 //
 #include "koladata/uuid_utils.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -40,8 +41,7 @@ namespace {
 
 absl::StatusOr<DataSlice> CreateUuidFromFieldsImpl(
     absl::string_view seed, absl::Span<const absl::string_view> attr_names,
-    absl::Span<const DataSlice> values,
-    internal::UuidType uuid_type) {
+    absl::Span<const DataSlice> values, internal::UuidType uuid_type) {
   DCHECK_EQ(attr_names.size(), values.size());
   if (values.empty()) {
     return DataSlice::Create(
@@ -55,7 +55,7 @@ absl::StatusOr<DataSlice> CreateUuidFromFieldsImpl(
   return aligned_values.begin()->VisitImpl([&]<class T>(const T& impl) {
     std::vector<std::reference_wrapper<const T>> values_impl;
     values_impl.reserve(values.size());
-    for (int i = 0; i < attr_names.size(); ++i) {
+    for (size_t i = 0; i < attr_names.size(); ++i) {
       values_impl.push_back(std::cref(aligned_values[i].impl<T>()));
     }
     return DataSlice::Create(internal::CreateUuidFromFields(

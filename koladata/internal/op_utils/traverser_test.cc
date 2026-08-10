@@ -15,6 +15,7 @@
 #include "koladata/internal/op_utils/traverser.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <initializer_list>
 #include <limits>
@@ -143,7 +144,7 @@ class NoOpVisitor : AbstractVisitor {
 
  private:
   absl::Status CheckValues(const DataSliceImpl& items) {
-    for (int i = 0; i < items.size(); ++i) {
+    for (size_t i = 0; i < items.size(); ++i) {
       if (items[i] != value_item_) {
         return absl::InvalidArgumentError(absl::StrFormat(
             "expected result of GetValue call, got %v", items[i]));
@@ -317,7 +318,7 @@ class SaveParentVisitor : AbstractVisitor {
   absl::Status CheckValues(const DataItem& from_item,
                            const DataItem& from_schema,
                            const DataSliceImpl& items) {
-    for (int i = 0; i < items.size(); ++i) {
+    for (size_t i = 0; i < items.size(); ++i) {
       if (!items[i].holds_value<int64_t>()) {
         continue;
       }
@@ -577,7 +578,7 @@ TEST_P(NoOpTraverserTest, SkipTraversing) {
   SetDataTriples(*db, GenDataTriplesForTest());
 
   auto visitor = std::make_shared<NoOpVisitor>(
-    std::vector<std::pair<DataItem, DataItem>>{{a2, schema_a}});
+      std::vector<std::pair<DataItem, DataItem>>{{a2, schema_a}});
   EXPECT_OK(TraverseSlice(ds, schema_a, *GetMainDb(db),
                           {GetFallbackDb(db).get()}, visitor));
 

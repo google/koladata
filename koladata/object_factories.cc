@@ -621,7 +621,7 @@ absl::StatusOr<DataSlice> EntityCreator::FromAttrs(
   if (schema_item.has_value()) {
     std::vector<DataSlice> casted_values;
     casted_values.reserve(values.size());
-    for (int i = 0; i < values.size(); ++i) {
+    for (size_t i = 0; i < values.size(); ++i) {
       ASSIGN_OR_RETURN(
           casted_values.emplace_back(),
           CastOrUpdateSchema(values[i], schema_item, attr_names[i],
@@ -842,7 +842,7 @@ absl::StatusOr<DataSlice> CreateUu(
                                                -> absl::StatusOr<DataSlice> {
     std::vector<std::reference_wrapper<const ImplT>> aligned_values_impl;
     aligned_values_impl.reserve(aligned_values.size());
-    for (int i = 0; i < attr_names.size(); ++i) {
+    for (size_t i = 0; i < attr_names.size(); ++i) {
       aligned_values_impl.push_back(std::cref(aligned_values[i].impl<ImplT>()));
     }
 
@@ -898,7 +898,7 @@ absl::StatusOr<DataSlice> CreateUuObject(
                                                -> absl::StatusOr<DataSlice> {
     std::vector<std::reference_wrapper<const ImplT>> aligned_values_impl;
     aligned_values_impl.reserve(aligned_values.size());
-    for (int i = 0; i < attr_names.size(); ++i) {
+    for (size_t i = 0; i < attr_names.size(); ++i) {
       aligned_values_impl.push_back(std::cref(aligned_values[i].impl<ImplT>()));
     }
 
@@ -912,7 +912,7 @@ absl::StatusOr<DataSlice> CreateUuObject(
     }
     ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                      db->GetMutableImpl());
-    for (int i = 0; i < attr_names.size(); ++i) {
+    for (size_t i = 0; i < attr_names.size(); ++i) {
       RETURN_IF_ERROR(db_mutable_impl.SetAttr(*impl_res, attr_names[i],
                                               aligned_values_impl[i]));
     }

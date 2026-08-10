@@ -654,7 +654,7 @@ absl::Status DecodeDictProto(const KodaV1Proto::DictProto& dict_proto,
   if (dict_id.IsSchema()) {
     if (dict_id.IsSmallAlloc()) {
       internal::DataItem schema(dict_id);
-      for (int i = 0; i < keys.size(); ++i) {
+      for (size_t i = 0; i < keys.size(); ++i) {
         if (!keys[i].holds_value<arolla::Text>()) {
           return absl::InvalidArgumentError("schema key must be arolla::Text");
         }

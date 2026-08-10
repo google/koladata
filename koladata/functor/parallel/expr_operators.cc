@@ -14,6 +14,7 @@
 //
 #include "koladata/functor/parallel/expr_operators.h"
 
+#include <cstddef>
 #include <vector>
 
 #include "absl/status/status.h"
@@ -76,7 +77,7 @@ absl::StatusOr<arolla::expr::ExprAttributes> AsyncEvalOp::InferAttributes(
       inputs[1].qvalue()->UnsafeAs<arolla::expr::ExprOperatorPtr>();
   std::vector<arolla::expr::ExprAttributes> op_inputs;
   op_inputs.reserve(inputs.size() - 2);
-  for (int i = 2; i < inputs.size(); ++i) {
+  for (size_t i = 2; i < inputs.size(); ++i) {
     arolla::QTypePtr tpe = inputs[i].qtype();
     if (IsFutureQType(tpe)) {
       if (IsFutureQType(tpe->value_qtype())) {

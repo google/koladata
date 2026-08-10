@@ -15,6 +15,7 @@
 #include "koladata/internal/uuid_object.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -56,7 +57,7 @@ TEST(UuidTest, CreateUuidObject) {
                        UuidType::kList),
       CreateUuidObject(arolla::FingerprintHasher("").Combine(42).Finish(),
                        UuidType::kDict)};
-  for (int i = 0; i < uuids.size(); ++i) {
+  for (size_t i = 0; i < uuids.size(); ++i) {
     EXPECT_FALSE(uuids[i].IsAllocated());
     EXPECT_TRUE(uuids[i].IsUuid());
   }
@@ -87,8 +88,8 @@ TEST(UuidTest, CreateUuidFromFields_List_DataItem) {
   // Not equal to regular uuid.
   EXPECT_NE(l, CreateUuidFromFields("", {"x", "y"}, {x, y}));
   // Not equal to seeded uuid.
-  EXPECT_NE(l, CreateUuidFromFields("seed", {"x", "y"}, {x, y},
-                                           UuidType::kList));
+  EXPECT_NE(l,
+            CreateUuidFromFields("seed", {"x", "y"}, {x, y}, UuidType::kList));
 }
 
 TEST(UuidTest, CreateUuidFromFields_List_DataSliceImpl) {
@@ -145,8 +146,8 @@ TEST(UuidTest, CreateUuidFromFields_Seed) {
   DataItem y(7.0f);
   DataItem seeded_uuid_1 = CreateUuidFromFields("seed_1", {"x", "y"}, {x, y});
   DataItem seeded_uuid_2 = CreateUuidFromFields("seed_2", {"x", "y"}, {x, y});
-  DataItem seeded_uuid_2_again = CreateUuidFromFields(
-      "seed_2", {"x", "y"}, {x, y});
+  DataItem seeded_uuid_2_again =
+      CreateUuidFromFields("seed_2", {"x", "y"}, {x, y});
 
   ASSERT_EQ(seeded_uuid_1.dtype(), arolla::GetQType<ObjectId>());
   EXPECT_TRUE(seeded_uuid_1.value<ObjectId>().IsUuid());
@@ -175,9 +176,9 @@ TEST(UuidTest, CreateUuidFromFields_MixedTypes) {
       arolla::CreateDenseArray<double>(
           std::vector<OptionalValue<double>>{std::nullopt, 7.0}));
 
-  ASSERT_OK_AND_ASSIGN(DataSliceImpl uuid_slice,
-                       CreateUuidFromFields("",
-                                            {"x", "y"}, {x_slice, y_slice}));
+  ASSERT_OK_AND_ASSIGN(
+      DataSliceImpl uuid_slice,
+      CreateUuidFromFields("", {"x", "y"}, {x_slice, y_slice}));
 
   EXPECT_EQ(uuid_slice[0], q);
   EXPECT_EQ(uuid_slice[1], w);
@@ -206,9 +207,9 @@ TEST(UuidTest, CreateUuidFromFields_MixedTypes_Seed) {
       arolla::CreateDenseArray<double>(
           std::vector<OptionalValue<double>>{std::nullopt, 7.0}));
 
-  ASSERT_OK_AND_ASSIGN(DataSliceImpl uuid_slice,
-                       CreateUuidFromFields("seed",
-                                            {"x", "y"}, {x_slice, y_slice}));
+  ASSERT_OK_AND_ASSIGN(
+      DataSliceImpl uuid_slice,
+      CreateUuidFromFields("seed", {"x", "y"}, {x_slice, y_slice}));
 
   EXPECT_NE(uuid_slice[0], q);
   EXPECT_EQ(uuid_slice[1], w);
@@ -311,8 +312,7 @@ TEST(UuidTest, CreateListUuidFromItemsAndFieldsOrderInList) {
 TEST(UuidTest, CreateListUuidFromItemsAndFieldsAndFieldsNoAttrs) {
   auto list = DataSliceImpl::Create(
       arolla::CreateDenseArray<int>(std::vector<OptionalValue<int>>{5, 7}));
-  DataItem uuid_a =
-      CreateListUuidFromItemsAndFields("", list, {}, {});
+  DataItem uuid_a = CreateListUuidFromItemsAndFields("", list, {}, {});
   ASSERT_EQ(uuid_a.dtype(), arolla::GetQType<ObjectId>());
   EXPECT_TRUE(uuid_a.value<ObjectId>().IsUuid());
   EXPECT_TRUE(uuid_a.value<ObjectId>().IsList());
@@ -326,8 +326,7 @@ TEST(UuidTest, CreateListUuidFromItemsAndFieldsMixedTypes) {
           std::vector<OptionalValue<int>>{5, std::nullopt}),
       arolla::CreateDenseArray<float>(
           std::vector<OptionalValue<float>>{std::nullopt, 7.0f}));
-  DataItem uuid_int =
-    CreateListUuidFromItemsAndFields("", list_int, {}, {});
+  DataItem uuid_int = CreateListUuidFromItemsAndFields("", list_int, {}, {});
   DataItem uuid_mixed =
       CreateListUuidFromItemsAndFields("", list_mixed, {}, {});
   EXPECT_NE(uuid_int, uuid_mixed);
@@ -341,8 +340,7 @@ TEST(UuidTest, CreateListUuidFromItemsAndFieldsMixedInts) {
           std::vector<OptionalValue<int>>{5, std::nullopt}),
       arolla::CreateDenseArray<int64_t>(
           std::vector<OptionalValue<int64_t>>{std::nullopt, 7}));
-  DataItem uuid_int =
-    CreateListUuidFromItemsAndFields("", list_int, {}, {});
+  DataItem uuid_int = CreateListUuidFromItemsAndFields("", list_int, {}, {});
   DataItem uuid_mixed =
       CreateListUuidFromItemsAndFields("", list_mixed, {}, {});
   EXPECT_NE(uuid_int, uuid_mixed);
@@ -358,9 +356,9 @@ TEST(UuidTest, CreateDictUuidFromKeysValuesAndFields) {
   DataItem z(10);
   DataItem w(14.0f);
   DataItem uuid_a = CreateDictUuidFromKeysValuesAndFields("", keys, values,
-                                                           {"x", "y"}, {x, y});
+                                                          {"x", "y"}, {x, y});
   DataItem uuid_b = CreateDictUuidFromKeysValuesAndFields("", keys, values,
-                                                           {"x", "y"}, {x, y});
+                                                          {"x", "y"}, {x, y});
   ASSERT_EQ(uuid_a.dtype(), arolla::GetQType<ObjectId>());
   EXPECT_TRUE(uuid_a.value<ObjectId>().IsUuid());
   EXPECT_TRUE(uuid_a.value<ObjectId>().IsDict());
@@ -378,10 +376,10 @@ TEST(UuidTest, CreateDictUuidFromKeysValuesAndFieldsOrderIgnored) {
       arolla::CreateDenseArray<int>(std::vector<OptionalValue<int>>{14, 10}));
   DataItem x(1);
   DataItem y(2.0f);
-  DataItem uuid_a = CreateDictUuidFromKeysValuesAndFields(
-      "", keys_a, values_a, {"x", "y"}, {x, y});
-  DataItem uuid_b = CreateDictUuidFromKeysValuesAndFields(
-      "", keys_b, values_b, {"y", "x"}, {y, x});
+  DataItem uuid_a = CreateDictUuidFromKeysValuesAndFields("", keys_a, values_a,
+                                                          {"x", "y"}, {x, y});
+  DataItem uuid_b = CreateDictUuidFromKeysValuesAndFields("", keys_b, values_b,
+                                                          {"y", "x"}, {y, x});
   EXPECT_EQ(uuid_a, uuid_b);
 }
 
@@ -394,10 +392,10 @@ TEST(UuidTest, CreateDictUuidFromKeysValuesAndFieldsDifferentMappings) {
       arolla::CreateDenseArray<int>(std::vector<OptionalValue<int>>{10, 14}));
   DataItem x(1);
   DataItem y(2.0f);
-  DataItem uuid_a = CreateDictUuidFromKeysValuesAndFields(
-      "", keys_a, values_a, {"x", "y"}, {x, y});
-  DataItem uuid_b = CreateDictUuidFromKeysValuesAndFields(
-      "", keys_b, values_a, {"x", "y"}, {x, y});
+  DataItem uuid_a = CreateDictUuidFromKeysValuesAndFields("", keys_a, values_a,
+                                                          {"x", "y"}, {x, y});
+  DataItem uuid_b = CreateDictUuidFromKeysValuesAndFields("", keys_b, values_a,
+                                                          {"x", "y"}, {x, y});
   EXPECT_NE(uuid_a, uuid_b);
 }
 
@@ -407,10 +405,10 @@ TEST(UuidTest, CreateDictUuidFromKeysValuesAndFieldsDifferentAttrs) {
   auto values = DataSliceImpl::Create(
       arolla::CreateDenseArray<int>(std::vector<OptionalValue<int>>{10, 14}));
   DataItem x(1);
-  DataItem uuid_a = CreateDictUuidFromKeysValuesAndFields(
-      "", keys, values, {"x"}, {x});
-  DataItem uuid_b = CreateDictUuidFromKeysValuesAndFields(
-      "", keys, values, {"y"}, {x});
+  DataItem uuid_a =
+      CreateDictUuidFromKeysValuesAndFields("", keys, values, {"x"}, {x});
+  DataItem uuid_b =
+      CreateDictUuidFromKeysValuesAndFields("", keys, values, {"y"}, {x});
   EXPECT_NE(uuid_a, uuid_b);
 }
 
@@ -421,10 +419,10 @@ TEST(UuidTest, CreateDictUuidFromKeysValuesAndFieldsDifferentAttrValues) {
       arolla::CreateDenseArray<int>(std::vector<OptionalValue<int>>{10, 14}));
   DataItem x(1);
   DataItem y(2.0f);
-  DataItem uuid_a = CreateDictUuidFromKeysValuesAndFields(
-      "", keys, values, {"x"}, {x});
-  DataItem uuid_b = CreateDictUuidFromKeysValuesAndFields(
-      "", keys, values, {"x"}, {y});
+  DataItem uuid_a =
+      CreateDictUuidFromKeysValuesAndFields("", keys, values, {"x"}, {x});
+  DataItem uuid_b =
+      CreateDictUuidFromKeysValuesAndFields("", keys, values, {"x"}, {y});
   EXPECT_NE(uuid_a, uuid_b);
 }
 
@@ -454,12 +452,10 @@ TEST(UuidTest, CreateSchemaUuidFromFields) {
   DataItem x(schema::kInt32);
   DataItem y(schema::kFloat32);
   DataItem z(AllocateExplicitSchema());
-  DataItem uuid_1 =
-      CreateSchemaUuidFromFields("", {"x", "y", "z"}, {x, y, z});
+  DataItem uuid_1 = CreateSchemaUuidFromFields("", {"x", "y", "z"}, {x, y, z});
   DataItem uuid_2 =
       CreateSchemaUuidFromFields("seed", {"x", "y", "z"}, {x, y, z});
-  DataItem uuid_3 =
-      CreateSchemaUuidFromFields("", {"y", "x", "z"}, {y, x, z});
+  DataItem uuid_3 = CreateSchemaUuidFromFields("", {"y", "x", "z"}, {y, x, z});
   DataItem uuid_4 =
       CreateSchemaUuidFromFields("seed", {"y", "x", "z"}, {y, x, z});
   EXPECT_THAT(uuid_1, IsEquivalentTo(uuid_3));
@@ -608,8 +604,7 @@ TEST(UuidTest, CreateUuidWithMainObjectDataSlice_ImplicitSchema) {
       AllocationIdSet({alloc1, alloc2}),
       arolla::CreateDenseArray<ObjectId>(std::vector<OptionalValue<ObjectId>>{
           std::nullopt, alloc1.ObjectByOffset(5), std::nullopt,
-          alloc1.ObjectByOffset(7), alloc2.ObjectByOffset(13),
-          std::nullopt}));
+          alloc1.ObjectByOffset(7), alloc2.ObjectByOffset(13), std::nullopt}));
   ASSERT_OK_AND_ASSIGN(
       auto schema_slice,
       CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(main_obj,
@@ -617,13 +612,13 @@ TEST(UuidTest, CreateUuidWithMainObjectDataSlice_ImplicitSchema) {
 
   EXPECT_EQ(schema_slice.dtype(), arolla::GetQType<ObjectId>());
   EXPECT_EQ(schema_slice.allocation_ids().size(), 2);
-  for (int i = 0; i < 2; ++i) {
+  for (size_t i = 0; i < 2; ++i) {
     EXPECT_EQ(schema_slice.allocation_ids().ids()[i].Capacity(),
               main_obj.allocation_ids().ids()[i].Capacity());
     EXPECT_TRUE(schema_slice.allocation_ids().ids()[i].IsSchemasAlloc());
   }
 
-  for (int i = 0; i < schema_slice.size(); ++i) {
+  for (size_t i = 0; i < schema_slice.size(); ++i) {
     EXPECT_EQ(schema_slice[i].has_value(), main_obj[i].has_value());
     if (!schema_slice[i].has_value()) {
       continue;

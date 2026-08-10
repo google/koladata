@@ -112,7 +112,7 @@ absl::Status ZipCallForEachDataItem(absl::Span<const DataSlice> slices, Fn fn) {
   for (int64_t i_item = 0; i_item < slices[0].size(); ++i_item) {
     std::vector<DataSlice> items;
     items.reserve(slices.size());
-    for (int64_t i_slice = 0; i_slice < slices.size(); ++i_slice) {
+    for (size_t i_slice = 0; i_slice < slices.size(); ++i_slice) {
       auto optional_item = data_item_arrays[i_slice][i_item];
       ASSIGN_OR_RETURN(auto item,
                        DataSlice::Create(optional_item.present
@@ -314,7 +314,7 @@ absl::StatusOr<internal::DataItem> JsonObjectToEntity(
   if (should_add_keys_attr) {
     keys_array_builder.emplace(json_object_keys.size());
   }
-  for (int64_t i = 0; i < json_object_keys.size(); ++i) {
+  for (size_t i = 0; i < json_object_keys.size(); ++i) {
     const auto& key = json_object_keys[i];
     if (key != keys_attr && key != values_attr &&
         (entity_has_obj_schema || entity_schema_attr_names.contains(key))) {

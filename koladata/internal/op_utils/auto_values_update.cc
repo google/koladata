@@ -477,7 +477,7 @@ class AutoValuesVisitor : public AbstractVisitor {
       const absl::flat_hash_map<IdWithAttrName, ObjectIdWithSchema>&
           assigned_ids) {
     SliceBuilder ref_bldr(items.size());
-    for (int i = 0; i < items.size(); ++i) {
+    for (size_t i = 0; i < items.size(); ++i) {
       if (!items[i].has_value()) {
         continue;
       }

@@ -14,6 +14,7 @@
 //
 #include "koladata/operators/memory.h"
 
+#include <cstddef>
 #include <cstdint>
 
 #include "absl/base/no_destructor.h"
@@ -88,7 +89,7 @@ absl::StatusOr<DataSlice> GetAttrMemoryStats(const DataSlice& ds,
       internal::DataSliceImpl::AllocateEmptyObjects(stats.size());
   auto res_db = DataBag::EmptyMutable();
   ASSIGN_OR_RETURN(auto& db_impl, res_db->GetMutableImpl());
-  for (int i = 0; i < stats.size(); ++i) {
+  for (size_t i = 0; i < stats.size(); ++i) {
     internal::DataItem c = res_impl[i];
     RETURN_IF_ERROR(db_impl.SetAttr(
         c, kAttrContainer,

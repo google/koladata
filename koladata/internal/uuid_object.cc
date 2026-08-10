@@ -15,6 +15,7 @@
 #include "koladata/internal/uuid_object.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <utility>
@@ -120,8 +121,7 @@ arolla::Fingerprint ComputeFingerprintFromFields(
 }
 
 DataItem CreateUuidFromFields(
-    absl::string_view seed,
-    absl::Span<const absl::string_view> attr_names,
+    absl::string_view seed, absl::Span<const absl::string_view> attr_names,
     absl::Span<const std::reference_wrapper<const DataItem>> values,
     UuidType uuid_type) {
   return DataItem(CreateUuidObject(
@@ -129,8 +129,7 @@ DataItem CreateUuidFromFields(
 }
 
 absl::StatusOr<DataSliceImpl> CreateUuidFromFields(
-    absl::string_view seed,
-    absl::Span<const absl::string_view> attr_names,
+    absl::string_view seed, absl::Span<const absl::string_view> attr_names,
     absl::Span<const std::reference_wrapper<const DataSliceImpl>> values,
     UuidType uuid_type) {
   DCHECK_EQ(attr_names.size(), values.size());
@@ -222,13 +221,13 @@ DataItem CreateDictUuidFromKeysValuesAndFields(
       CreateUuidObject(std::move(hasher).Finish(), UuidType::kDict));
 }
 
-DataItem CreateSchemaUuidFromFields(absl::string_view seed,
-    absl::Span<const absl::string_view> attr_names,
+DataItem CreateSchemaUuidFromFields(
+    absl::string_view seed, absl::Span<const absl::string_view> attr_names,
     absl::Span<const std::reference_wrapper<const DataItem>> items) {
   DCHECK_EQ(attr_names.size(), items.size());
   std::vector<std::pair<absl::string_view, arolla::Fingerprint>> fingerprints;
   fingerprints.reserve(attr_names.size());
-  for (int i = 0; i < attr_names.size(); ++i) {
+  for (size_t i = 0; i < attr_names.size(); ++i) {
     fingerprints.emplace_back(attr_names[i],
                               items[i].get().StableFingerprint());
   }
@@ -252,8 +251,7 @@ absl::StatusOr<DataItem> CreateUuidWithMainObject(const DataItem& main_object,
   return absl::FailedPreconditionError("Main object must be ObjectId");
 }
 
-template absl::StatusOr<DataItem>
-CreateUuidWithMainObject<ObjectId::kUuidFlag>(
+template absl::StatusOr<DataItem> CreateUuidWithMainObject<ObjectId::kUuidFlag>(
     const DataItem& main_objects, absl::string_view salt);
 
 template absl::StatusOr<DataItem>
@@ -314,8 +312,8 @@ absl::StatusOr<DataSliceImpl> CreateUuidWithMainObject(
 }
 
 template absl::StatusOr<DataSliceImpl>
-CreateUuidWithMainObject<ObjectId::kUuidFlag>(
-    const DataSliceImpl& main_objects, absl::string_view salt);
+CreateUuidWithMainObject<ObjectId::kUuidFlag>(const DataSliceImpl& main_objects,
+                                              absl::string_view salt);
 
 template absl::StatusOr<DataSliceImpl>
 CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(

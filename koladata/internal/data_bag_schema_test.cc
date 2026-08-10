@@ -52,7 +52,6 @@ using ::testing::MatchesRegex;
 using ::testing::Not;
 using ::testing::UnorderedElementsAre;
 
-
 const internal::DataItem& GetObjSchema() {
   static const absl::NoDestructor<internal::DataItem> kObjSchema(
       schema::kObject);
@@ -296,7 +295,7 @@ TEST(DataBagTest, SetSchemaAttrOverwrite_Slice) {
   EXPECT_THAT(schema_get_a,
               ElementsAre(GetObjSchema(), GetObjSchema(), GetObjSchema()));
 
-  for (int i = 0; i < schema.size(); ++i) {
+  for (size_t i = 0; i < schema.size(); ++i) {
     EXPECT_THAT(db->GetSchemaAttrs(schema[i]),
                 IsOkAndHolds(UnorderedElementsAre(arolla::Text("a"))));
   }
@@ -502,7 +501,7 @@ TEST(DataBagTest, GetPresentSchemaAttrs_ImplicitSchema) {
   ASSERT_OK(db->SetSchemaAttr(schema, "a", values_a));
   ASSERT_OK(db->SetSchemaAttr(schema, "b", values_b));
 
-  for (int i = 0; i < schema.size(); ++i) {
+  for (size_t i = 0; i < schema.size(); ++i) {
     EXPECT_THAT(db->GetPresentSchemaAttrs(schema[i]),
                 IsOkAndHolds(UnorderedElementsAre(arolla::Text("a"),
                                                   arolla::Text("b"))));
@@ -661,7 +660,7 @@ TEST(DataBagTest, DelSchemaAttr_Slice) {
   EXPECT_THAT(db->GetSchemaAttr(schema, "a"),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("the attribute 'a' is missing")));
-  for (int i = 0; i < schema.size(); ++i) {
+  for (size_t i = 0; i < schema.size(); ++i) {
     EXPECT_THAT(db->GetSchemaAttrs(schema[i]),
                 IsOkAndHolds(ElementsAre(DataItem(arolla::Text("a")))));
   }
@@ -917,22 +916,20 @@ TEST(DataBagTest, SetSchemaFields) {
             schema::kImplicitSchemaSeed));
 
     ASSERT_OK(
-        db->SetSchemaFields<DataSliceImpl>(
-            schema_slice, attrs_1, items_1));
-    for (int i = 0; i < schema_slice.size(); ++i) {
+        db->SetSchemaFields<DataSliceImpl>(schema_slice, attrs_1, items_1));
+    for (size_t i = 0; i < schema_slice.size(); ++i) {
       ASSERT_OK_AND_ASSIGN(auto ds_impl, db->GetSchemaAttrs(schema_slice[i]));
-      EXPECT_THAT(ds_impl, UnorderedElementsAre(arolla::Text("a"),
-                                                arolla::Text("b")));
+      EXPECT_THAT(ds_impl,
+                  UnorderedElementsAre(arolla::Text("a"), arolla::Text("b")));
     }
 
     ASSERT_OK(
-        db->SetSchemaFields<DataSliceImpl>(
-            schema_slice, attrs_2, items_2));
-    for (int i = 0; i < schema_slice.size(); ++i) {
+        db->SetSchemaFields<DataSliceImpl>(schema_slice, attrs_2, items_2));
+    for (size_t i = 0; i < schema_slice.size(); ++i) {
       ASSERT_OK_AND_ASSIGN(auto ds_impl, db->GetSchemaAttrs(schema_slice[i]));
-      EXPECT_THAT(ds_impl, UnorderedElementsAre(arolla::Text("a"),
-                                                arolla::Text("b"),
-                                                arolla::Text("c")));
+      EXPECT_THAT(ds_impl,
+                  UnorderedElementsAre(arolla::Text("a"), arolla::Text("b"),
+                                       arolla::Text("c")));
     }
 
     EXPECT_THAT(db->GetSchemaAttr(schema_slice, "a"),

@@ -147,7 +147,7 @@ absl::InlinedVector<bool, 16> GetPrimaryOperandMask(
       input_size, !primary_operand_indices.has_value());
   if (primary_operand_indices.has_value()) {
     for (int index : *primary_operand_indices) {
-      DCHECK(index >= 0 && index < input_size);
+      DCHECK(index >= 0 && static_cast<size_t>(index) < input_size);
       is_primary_operand[index] = true;
     }
   }
@@ -166,7 +166,7 @@ absl::StatusOr<PrimaryOperandSchemaInfo> GetPrimaryOperandSchemaInfo(
       GetPrimaryOperandMask(inputs.size(), primary_operand_indices);
   schema::CommonSchemaAggregator schema_agg;
   internal::DataItem first_primitive_schema;
-  for (int i = 0; i < inputs.size(); ++i) {
+  for (size_t i = 0; i < inputs.size(); ++i) {
     const DataSlice& x = inputs[i];
     if (!is_primary_operand[i]) {
       internal::DataItem narrowed_schema = GetNarrowedSchema(x);
@@ -237,8 +237,8 @@ absl::StatusOr<DataSlice> SimpleAggEval(
       aligned_ds.size() + 1, arolla::TypedRef::UnsafeFromRawPointer(
                                  arolla::GetNothingQType(), nullptr));
   typed_value_holder.reserve(aligned_ds.size());
-  for (int i = 0; i < aligned_ds.size(); ++i) {
-    int typed_ref_i = i < edge_arg_index ? i : i + 1;
+  for (size_t i = 0; i < aligned_ds.size(); ++i) {
+    size_t typed_ref_i = i < edge_arg_index ? i : i + 1;
     ASSIGN_OR_RETURN(typed_refs[typed_ref_i],
                      DataSliceToOwnedArollaRef(
                          aligned_ds[i], typed_value_holder,
@@ -356,7 +356,7 @@ class ArollaExprEvalOperator : public arolla::QExprOperator {
           std::vector<std::pair<std::string, arolla::QTypePtr>> types_in_order;
           arg_values.reserve(args_slot.SubSlotCount());
           types_in_order.reserve(args_slot.SubSlotCount());
-          for (int i = 0; i < args_slot.SubSlotCount(); ++i) {
+          for (size_t i = 0; i < args_slot.SubSlotCount(); ++i) {
             ASSIGN_OR_RETURN(
                 arolla::TypedValue tv,
                 DataSliceToArollaValue(
@@ -463,7 +463,7 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
   std::vector<arolla::TypedRef> typed_refs;
   typed_value_holder.reserve(aligned_ds.size());
   typed_refs.reserve(aligned_ds.size());
-  for (int i = 0; i < aligned_ds.size(); ++i) {
+  for (size_t i = 0; i < aligned_ds.size(); ++i) {
     const auto& x = aligned_ds[i];
     // For non-primary operands, the fallback schema won't be used, because
     // they are guaranteed to have a primitive schema.

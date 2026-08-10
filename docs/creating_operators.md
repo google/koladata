@@ -226,7 +226,7 @@ absl::StatusOr<DataSlice> ApplyMask(
   const internal::DataSliceImpl& obj_slice = broadcasted_obj.slice();
   const internal::DataSliceImpl& mask_slice = broadcasted_mask.slice();
   internal::SliceBuilder bldr(/*size=*/broadcasted_obj.size());
-  for (int i = 0; i < broadcasted_obj.size(); ++i) {
+  for (size_t i = 0; i < broadcasted_obj.size(); ++i) {
     if (mask_slice[i].IsEmpty()) {
       bldr.InsertIfNotSet(i, DataItem());
     } else {

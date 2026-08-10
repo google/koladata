@@ -206,7 +206,7 @@ absl::StatusOr<DataSlice> ConcatOrStackImpl(bool stack, int64_t ndim,
     // Special case: rank == 0 iff all inputs are DataItems.
     DCHECK(stack);  // Implied by error checking above.
     internal::SliceBuilder impl_builder(args.size());
-    for (int i = 0; i < args.size(); ++i) {
+    for (size_t i = 0; i < args.size(); ++i) {
       impl_builder.InsertIfNotSetAndUpdateAllocIds(i, args[i].item());
     }
     return DataSlice::Create(std::move(impl_builder).Build(),
@@ -580,7 +580,7 @@ absl::StatusOr<std::vector<subslice::SlicingArgType>> ExtractSlicingArgs(
     const int64_t x_rank) {
   std::vector<subslice::SlicingArgType> slices;
   std::optional<int64_t> ellipsis_pos;
-  for (auto i = 0; i < slots.size(); ++i) {
+  for (size_t i = 0; i < slots.size(); ++i) {
     const auto qtype = slots[i].GetType();
     if (qtype == arolla::GetQType<DataSlice>()) {
       slices.push_back(frame.Get(slots[i].UnsafeToSlot<DataSlice>()));

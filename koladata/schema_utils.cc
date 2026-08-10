@@ -260,7 +260,7 @@ absl::Status ExpectConsistentStringOrBytesImpl(
 
   std::optional<size_t> string_arg_index;
   std::optional<size_t> bytes_arg_index;
-  for (int i = 0; i < args.size(); ++i) {
+  for (size_t i = 0; i < args.size(); ++i) {
     internal::DataItem narrowed_schema = GetNarrowedSchema(*args[i]);
     bool is_string = schema::IsImplicitlyCastableTo(
         narrowed_schema, internal::DataItem(schema::kString));

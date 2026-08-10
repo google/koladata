@@ -20,6 +20,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "koladata/data_slice.h"
 #include "koladata/test_utils.h"
@@ -29,6 +30,9 @@ namespace koladata::subslice {
 namespace {
 
 using ::absl_testing::IsOkAndHolds;
+using ::absl_testing::StatusIs;
+using ::testing::HasSubstr;
+
 using ::koladata::testing::IsEquivalentTo;
 
 // Most of the tests for Subslice are in Python, in slices_subslice_test.py.
@@ -94,6 +98,16 @@ TEST(SubsliceUtilsTest, Subslice2DRange) {
       indices2_shape);
   EXPECT_THAT(Subslice(ds, {subslice::Slice{low, high}, indices2_ds}),
               IsOkAndHolds(IsEquivalentTo(expected_ds)));
+}
+
+TEST(SubsliceUtilsTest, SubsliceTooManyIndices) {
+  auto ds = test::DataSlice<int>({1, 2, 3});
+  auto indices1 = test::DataItem(0);
+  auto indices2 = test::DataItem(1);
+  EXPECT_THAT(
+      Subslice(ds, {indices1, indices2}),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("too many indices 2 for a DataSlice with rank=1")));
 }
 
 }  // namespace

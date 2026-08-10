@@ -16,6 +16,7 @@
 #define KOLADATA_OPERATORS_MATRIX_HELPERS_H_
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <utility>
@@ -56,7 +57,7 @@ using Edge = JaggedShape::Edge;
 template <typename T>
 std::vector<T> ExtractFlat(const DataSlice& ds) {
   auto flat_ds = ds.Flatten();
-  int64_t n = flat_ds.GetShape().size();
+  size_t n = flat_ds.size();
   if (flat_ds.impl_empty_and_unknown() || n == 0) {
     return std::vector<T>(n, 0);
   }

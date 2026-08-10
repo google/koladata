@@ -15,14 +15,13 @@
 #include "koladata/internal/object_id.h"
 
 #include <algorithm>
-#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <limits>
 #include <set>
 #include <string>
-#include <thread>
+#include <thread>  // NOLINT
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -31,7 +30,8 @@
 #include "absl/numeric/int128.h"
 #include "absl/random/random.h"
 #include "absl/strings/str_cat.h"
-#include "absl/strings/str_format.h"
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
@@ -140,10 +140,10 @@ TEST(ObjectIdTest, UuidAndAllocatedFlagsAreExclusive) {
       &ObjectId::IsDict,
       &ObjectId::IsSchema,
   };
-  for (int i = 0; i < alloc_cases.size(); ++i) {
+  for (size_t i = 0; i < alloc_cases.size(); ++i) {
     EXPECT_FALSE(alloc_cases[i].IsUuid());
     EXPECT_TRUE((alloc_cases[i].*checks[i])());
-    for (int j = 0; j < alloc_cases.size(); ++j) {
+    for (size_t j = 0; j < alloc_cases.size(); ++j) {
       if (i != j) {
         EXPECT_FALSE((alloc_cases[i].*checks[j])());
       }
@@ -170,8 +170,7 @@ TEST(ObjectIdTest, DictAllocation) {
 }
 
 TEST(ObjectIdTest, NewAllocationIdLike) {
-  for (size_t size = 1; size <= 257; ++size)
-  {
+  for (size_t size = 1; size <= 257; ++size) {
     AllocationId base_alloc_id = Allocate(size);
     AllocationId alloc_id = NewAllocationIdLike(base_alloc_id);
     EXPECT_EQ(alloc_id.IsSmall(), size <= kSmallAllocMaxCapacity);
@@ -484,7 +483,7 @@ TEST(ObjectIdTest, AllocationIdMultithreading) {
 #endif /* NDEBUG */
 
   auto allocate_fn = [](std::vector<AllocationId>* allocs) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    absl::SleepFor(absl::Milliseconds(5));
     allocs->reserve(kAllocPerThread * 2);
     for (int64_t i = 0; i != kAllocPerThread; ++i) {
       allocs->push_back(Allocate(kAllocSize));
@@ -658,10 +657,9 @@ TEST(ObjectIdTest, AllocationIdSetWithSmall) {
   }
   {
     AllocationIdSet id_set;
-    ObjectId id =
-        CreateUuidObjectWithMetadata(
-            arolla::FingerprintHasher("").Combine(57).Finish(),
-            ObjectId::kUuidFlag);
+    ObjectId id = CreateUuidObjectWithMetadata(
+        arolla::FingerprintHasher("").Combine(57).Finish(),
+        ObjectId::kUuidFlag);
     EXPECT_TRUE(id_set.Insert(AllocationId(id)));
     EXPECT_TRUE(id_set.contains_small_allocation_id());
     EXPECT_TRUE(id_set.empty());
@@ -686,10 +684,8 @@ TEST(ObjectIdTest, AllocationIdSetWithSmall) {
 }
 
 TEST(ObjectIdTest, AllocationIdSetSmallFromSpan) {
-  ObjectId uuid =
-      CreateUuidObjectWithMetadata(
-          arolla::FingerprintHasher("").Combine(57).Finish(),
-          ObjectId::kUuidFlag);
+  ObjectId uuid = CreateUuidObjectWithMetadata(
+      arolla::FingerprintHasher("").Combine(57).Finish(), ObjectId::kUuidFlag);
   {
     auto alloc = Allocate(17);
     AllocationIdSet id_set({alloc, AllocationId(uuid)});
@@ -714,10 +710,8 @@ TEST(ObjectIdTest, AllocationIdSetSmallFromSpan) {
 }
 
 TEST(ObjectIdTest, AllocationIdSetUnionSmall) {
-  ObjectId uuid =
-      CreateUuidObjectWithMetadata(
-          arolla::FingerprintHasher("").Combine(57).Finish(),
-          ObjectId::kUuidFlag);
+  ObjectId uuid = CreateUuidObjectWithMetadata(
+      arolla::FingerprintHasher("").Combine(57).Finish(), ObjectId::kUuidFlag);
   auto alloc1 = Allocate(17);
   auto alloc2 = Allocate(170);
   AllocationIdSet id_set1(alloc1);
@@ -844,7 +838,6 @@ TEST(ObjectIdTest, AllocationIdSetManyAllocsMergeOneBeforeOther) {
     ASSERT_TRUE(id_set2 == id_set_union);
   }
 }
-
 
 TEST(ObjectIdTest, AllocationIdSetManyAllocsMergeWithBigCommonPrefix) {
   for (int64_t size = 1; size < 500; ++size) {

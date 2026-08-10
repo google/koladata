@@ -14,6 +14,7 @@
 //
 #include "koladata/operators/shapes.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -148,7 +149,7 @@ class JaggedShapeCreateOperator : public arolla::QExprOperator {
 absl::StatusOr<int> GetPlaceholderDimension(
     arolla::FramePtr frame, absl::Span<const arolla::TypedSlot> input_slots) {
   int dim = -1;
-  for (int i = 0; i < input_slots.size(); ++i) {
+  for (size_t i = 0; i < input_slots.size(); ++i) {
     const auto& input_slot = input_slots[i];
     if (input_slot.GetType() == arolla::GetQType<Edge>()) {
       continue;

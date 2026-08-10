@@ -1831,7 +1831,7 @@ absl::Status DataSlice::SetAttrs(absl::Span<const absl::string_view> attr_names,
                                  absl::Span<const DataSlice> values,
                                  bool overwrite_schema) const {
   DCHECK_EQ(attr_names.size(), values.size());
-  for (int i = 0; i < attr_names.size(); ++i) {
+  for (size_t i = 0; i < attr_names.size(); ++i) {
     RETURN_IF_ERROR(SetAttr(attr_names[i], values[i], overwrite_schema));
   }
   return absl::OkStatus();

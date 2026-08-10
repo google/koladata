@@ -16,6 +16,7 @@
 #define KOLADATA_INTERNAL_TESTING_DEEP_OP_UTILS_H_
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <initializer_list>
 #include <string_view>
@@ -175,7 +176,7 @@ class DeepOpTest : public ::testing::TestWithParam<DeepOpTestParam> {
     std::vector<arolla::OptionalValue<int64_t>> split_points;
     split_points.push_back(0);
     int64_t remaining_size = values.size();
-    for (int i = 0; i < lists.size() - 1; ++i) {
+    for (size_t i = 0; i + 1 < lists.size(); ++i) {
       split_points.push_back(1);
       --remaining_size;
     }

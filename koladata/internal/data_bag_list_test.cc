@@ -13,6 +13,7 @@
 // limitations under the License.
 //
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <initializer_list>
 #include <numeric>
@@ -226,8 +227,8 @@ TEST(DataBagTest, ExtendAndReplaceInLists) {
   DataSliceImpl lists = DataSliceImpl::ObjectsFromAllocation(alloc_id, 3);
 
   {  // extend
-    auto values = DataSliceImpl::Create(arolla::CreateDenseArray<int>(
-        {2, std::nullopt, 8, 10, 11, 12}));
+    auto values = DataSliceImpl::Create(
+        arolla::CreateDenseArray<int>({2, std::nullopt, 8, 10, 11, 12}));
     auto edge = test::EdgeFromSplitPoints({0, 2, 3, 6});
     ASSERT_OK(db->ExtendLists(lists, values, edge));
   }
@@ -252,8 +253,8 @@ TEST(DataBagTest, ExtendAndReplaceInLists) {
         arolla::CreateDenseArray<int>({{}, 1, {}, {}}),
         arolla::CreateDenseArray<float>({3.0f, {}, 2.0f, {}}));
     auto edge = test::EdgeFromSplitPoints({0, 1, 3, 4});
-    ASSERT_OK(db->ReplaceInLists(lists, DataBagImpl::ListRange(1, 3),
-                                 values, edge));
+    ASSERT_OK(
+        db->ReplaceInLists(lists, DataBagImpl::ListRange(1, 3), values, edge));
   }
 
   EXPECT_THAT(db->ExplodeList(lists[0]), IsOkAndHolds(ElementsAre(1, 3.0f)));
@@ -339,7 +340,7 @@ TEST(DataBagTest, ReplaceInListsEmptyAndUnknown) {
     SCOPED_TRACE("replace [:]");
     ASSERT_OK(db->ReplaceInLists(lists, DataBagImpl::ListRange(), empty_values,
                                  edge));
-    for (int i = 0; i < lists.size(); ++i) {
+    for (size_t i = 0; i < lists.size(); ++i) {
       EXPECT_THAT(db->ExplodeList(lists[i]),
                   IsOkAndHolds(ElementsAre(std::nullopt)))
           << i;
@@ -349,7 +350,7 @@ TEST(DataBagTest, ReplaceInListsEmptyAndUnknown) {
         db->ReplaceInLists(lists, DataBagImpl::ListRange(), values, edge));
     ASSERT_OK(db->ReplaceInLists(lists, DataBagImpl::ListRange(), empty_values,
                                  edge));
-    for (int i = 0; i < lists.size(); ++i) {
+    for (size_t i = 0; i < lists.size(); ++i) {
       EXPECT_THAT(db->ExplodeList(lists[i]),
                   IsOkAndHolds(ElementsAre(std::nullopt)))
           << i;
@@ -362,7 +363,7 @@ TEST(DataBagTest, ReplaceInListsEmptyAndUnknown) {
         db->ReplaceInLists(lists, DataBagImpl::ListRange(), values, edge));
     ASSERT_OK(db->ReplaceInLists(lists, DataBagImpl::ListRange(0, 1),
                                  empty_values, edge));
-    for (int i = 0; i < lists.size(); ++i) {
+    for (size_t i = 0; i < lists.size(); ++i) {
       EXPECT_THAT(db->ExplodeList(lists[i]),
                   IsOkAndHolds(ElementsAre(std::nullopt)))
           << i;
@@ -375,7 +376,7 @@ TEST(DataBagTest, ReplaceInListsEmptyAndUnknown) {
         db->ReplaceInLists(lists, DataBagImpl::ListRange(), values, edge));
     ASSERT_OK(db->ReplaceInLists(lists, DataBagImpl::ListRange(0, 0),
                                  empty_values, edge));
-    for (int i = 0; i < lists.size(); ++i) {
+    for (size_t i = 0; i < lists.size(); ++i) {
       EXPECT_THAT(db->ExplodeList(lists[i]),
                   IsOkAndHolds(ElementsAre(std::nullopt, values[i])))
           << i;
@@ -388,7 +389,7 @@ TEST(DataBagTest, ReplaceInListsEmptyAndUnknown) {
         db->ReplaceInLists(lists, DataBagImpl::ListRange(), values, edge));
     ASSERT_OK(db->ReplaceInLists(lists, DataBagImpl::ListRange(1, 1),
                                  empty_values, edge));
-    for (int i = 0; i < lists.size(); ++i) {
+    for (size_t i = 0; i < lists.size(); ++i) {
       EXPECT_THAT(db->ExplodeList(lists[i]),
                   IsOkAndHolds(ElementsAre(values[i], std::nullopt)))
           << i;
@@ -491,13 +492,13 @@ TEST(DataBagTest, EmptySingleListOps) {
 TEST(DataBagTest, NotListError) {
   auto db = DataBagImpl::CreateEmptyDatabag();
 
-  EXPECT_THAT(db->GetFromList(DataItem(42), 0),
-              StatusIs(absl::StatusCode::kFailedPrecondition,
-                       "list expected, got 42"));
+  EXPECT_THAT(
+      db->GetFromList(DataItem(42), 0),
+      StatusIs(absl::StatusCode::kFailedPrecondition, "list expected, got 42"));
 
   EXPECT_THAT(
-      db->GetListSize(DataSliceImpl::Create(
-          arolla::CreateDenseArray<int>({1, 2}))),
+      db->GetListSize(
+          DataSliceImpl::Create(arolla::CreateDenseArray<int>({1, 2}))),
       StatusIs(absl::StatusCode::kFailedPrecondition, "lists expected"));
 }
 

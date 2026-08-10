@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include <cstddef>
 #include <cstdint>
 #include <numeric>
 #include <string>
@@ -92,7 +93,7 @@ TEST(SerializationTest, DataItem) {
                        arolla::serialization::Decode(proto));
   ASSERT_EQ(decode_result.exprs.size(), 0);
   ASSERT_EQ(decode_result.values.size(), items.size());
-  for (int i = 0; i < items.size(); ++i) {
+  for (size_t i = 0; i < items.size(); ++i) {
     ASSERT_OK_AND_ASSIGN(DataItem res_item,
                          decode_result.values[i].As<DataItem>());
     EXPECT_EQ(res_item, items[i]);
@@ -187,7 +188,7 @@ absl::StatusOr<arolla::Sequence> SequenceFromVector(
   ASSIGN_OR_RETURN(auto res, arolla::MutableSequence::Make(
                                  arolla::GetQType<int64_t>(), values.size()));
   auto span = res.UnsafeSpan<int64_t>();
-  for (int i = 0; i < span.size(); ++i) {
+  for (size_t i = 0; i < span.size(); ++i) {
     span[i] = values[i];
   }
   return std::move(res).Finish();
@@ -345,7 +346,7 @@ TEST(SerializationTest, DataSliceImplObjectLinkToParentIdBytesSize) {
   items.reserve(kSize);
   for (const auto& item : slice) {
     for (int i = 0; i < kPerParent; ++i) {
-     items.push_back(DataItem(item));
+      items.push_back(DataItem(item));
     }
   }
   slice = DataSliceImpl::Create(items);
@@ -455,8 +456,7 @@ TEST(SerializationTest, Wholeness) {
   ASSERT_EQ(decode_result.exprs.size(), 0);
   ASSERT_EQ(decode_result.values.size(), 2);
 
-  ASSERT_OK_AND_ASSIGN(DataSlice res1,
-                       decode_result.values[0].As<DataSlice>());
+  ASSERT_OK_AND_ASSIGN(DataSlice res1, decode_result.values[0].As<DataSlice>());
   ASSERT_OK_AND_ASSIGN(DataSlice res2, decode_result.values[1].As<DataSlice>());
 
   EXPECT_TRUE(res1.IsWhole());

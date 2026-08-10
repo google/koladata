@@ -14,6 +14,7 @@
 //
 #include "koladata/internal/schema_utils.h"
 
+#include <cstddef>
 #include <functional>
 #include <optional>
 #include <utility>
@@ -27,7 +28,6 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/util/meta.h"
 #include "arolla/util/status.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
@@ -78,7 +78,6 @@ TEST(SchemaUtilsTest, DTypeLatticeIsAcyclic) {
     visit(dtype);
   }
 }
-
 
 struct CommonDTypeTestCase {
   std::vector<schema::DType> input_dtypes;
@@ -388,7 +387,7 @@ TEST(SchemaUtilsTest, CommonSchema_DataSliceImpl_DTypes) {
 
   // Behaves the same as CommonSchemaAggregator on DataItems.
   CommonSchemaAggregator agg;
-  for (int i = 0; i < schemas.size(); ++i) {
+  for (size_t i = 0; i < schemas.size(); ++i) {
     agg.Add(schemas[i]);
   }
   ASSERT_OK_AND_ASSIGN(auto agg_res, std::move(agg).Get());
@@ -422,7 +421,6 @@ TEST(SchemaUtilsTest, DefaultIfMissing) {
     EXPECT_THAT(CommonSchemaAggregator().Get(), IsOkAndHolds(DataItem()));
   }
 }
-
 
 TEST(SchemaUtilsTest, IsImplicitlyCastableTo) {
   {

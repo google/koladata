@@ -14,6 +14,7 @@
 //
 #include "koladata/internal/dict.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -29,9 +30,9 @@
 namespace koladata::internal {
 namespace {
 
+using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::testing::Optional;
-using ::testing::ElementsAre;
 using ::testing::UnorderedElementsAre;
 
 MATCHER_P(RefWrap, value, "") { return arg.get() == value; }
@@ -40,7 +41,7 @@ void AssertKVsAreAligned(const Dict& dict) {
   auto keys = dict.GetKeys();
   auto values = dict.GetValues();
   ASSERT_EQ(keys.size(), values.size());
-  for (int i = 0; i < keys.size(); ++i) {
+  for (size_t i = 0; i < keys.size(); ++i) {
     EXPECT_THAT(dict.Get(keys[i]), Optional(RefWrap(values[i])));
   }
 }
@@ -309,8 +310,7 @@ TEST(DictTest, GetKeysAndValuesWithFallback) {
   fb_dict.Set(1, DataItem(2));
 
   EXPECT_THAT(derived_dict.GetKeys({&fb_dict}),
-              UnorderedElementsAre(1, 2, arolla::Text("a"),
-              arolla::Text("b")));
+              UnorderedElementsAre(1, 2, arolla::Text("a"), arolla::Text("b")));
   EXPECT_THAT(derived_dict.GetValues({&fb_dict}),
               UnorderedElementsAre(DataItem(9), DataItem(10), DataItem(7.f),
                                    DataItem(7.f)));
@@ -405,8 +405,7 @@ TEST(DictTest, GetKeysWithUpdatesFromParent) {
     SCOPED_TRACE("parent is the same dict");
     Dict dict;
     dict.Set(DataItem(1), DataItem(10));
-    EXPECT_THAT(dict.GetModifiedKeys(&dict),
-                UnorderedElementsAre());
+    EXPECT_THAT(dict.GetModifiedKeys(&dict), UnorderedElementsAre());
   }
 
   {

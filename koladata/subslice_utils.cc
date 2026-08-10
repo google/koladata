@@ -15,6 +15,7 @@
 #include "koladata/subslice_utils.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <utility>
@@ -24,6 +25,7 @@
 #include "absl/status/status.h"
 #include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/ops/dense_ops.h"
@@ -179,17 +181,21 @@ absl::StatusOr<DataSlice> Subslice(const DataSlice& x,
     // Fast path for the most common case.
     return AtImpl(x, *std::get_if<DataSlice>(&slice_args[0]));
   }
+  if (slice_args.size() > shape.rank()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("too many indices %zu for a DataSlice with rank=%zu",
+                        slice_args.size(), shape.rank()));
+  }
   arolla::EvaluationContext ctx;
+  size_t retained_rank = shape.rank() - slice_args.size();
   ASSIGN_OR_RETURN(
       auto chosen_indices,
       DataSlice::Create(
           internal::DataSliceImpl::Create(arolla::DenseArrayIotaOp()(
-              &ctx,
-              {shape.edges()[shape.rank() - slice_args.size()].parent_size()})),
-          shape.RemoveDims(shape.rank() - slice_args.size()),
-          internal::DataItem(schema::kInt64)));
-  for (int i = 0; i < slice_args.size(); ++i) {
-    const auto& edge = shape.edges()[shape.rank() - slice_args.size() + i];
+              &ctx, {shape.edges()[retained_rank].parent_size()})),
+          shape.RemoveDims(retained_rank), internal::DataItem(schema::kInt64)));
+  for (size_t i = 0; i < slice_args.size(); ++i) {
+    const auto& edge = shape.edges()[retained_rank + i];
     auto slice_arg = std::move(slice_args[i]);
     if (std::holds_alternative<DataSlice>(slice_arg)) {
       ASSIGN_OR_RETURN(

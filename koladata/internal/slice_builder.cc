@@ -91,7 +91,7 @@ void SliceBuilder::RemoveEmptyTypes(DataSliceImpl::Internal& impl,
       v = new_idx[v];
     }
   }
-  for (int i = 0; i < impl.types_buffer.type_count(); ++i) {
+  for (size_t i = 0; i < impl.types_buffer.type_count(); ++i) {
     if (uint8_t ni = new_idx[i]; ni != TypesBuffer::kUnset) {
       impl.types_buffer.types[ni] = impl.types_buffer.types[i];
       impl.values[ni] = std::move(impl.values[i]);

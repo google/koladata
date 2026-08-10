@@ -14,6 +14,7 @@
 //
 #include "koladata/operators/json_stream_parser.h"
 
+#include <cstddef>
 #include <string>
 #include <utility>
 #include <vector>
@@ -221,7 +222,7 @@ TEST(JsonStreamParserTest, OutputStreaming) {
 
   std::string json = R"({"query": {"docs": [{"id": 1}, {"id": 2}]}})";
   // Send bytes in small chunks.
-  for (int i = 0; i < json.size(); i += 3) {
+  for (size_t i = 0; i < json.size(); i += 3) {
     EXPECT_THAT(parser.AddChunk(json.substr(i, 3)), IsOk());
     if (streaming) {
       output += parser.ConsumeChunk();
@@ -503,7 +504,7 @@ TEST(JsonStreamParserTest, ConsumeChunkWithQuoting) {
       });
 
   std::string json = R"({"a": [true, 123, "abc", foo_bar]})";
-  for (int i = 0; i < json.size(); i += 2) {
+  for (size_t i = 0; i < json.size(); i += 2) {
     EXPECT_THAT(parser.AddChunk(json.substr(i, 2)), IsOk());
     if (streaming) {
       receive_chunk();

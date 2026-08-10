@@ -14,6 +14,7 @@
 //
 #include "koladata/operators/matrix_helpers.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <utility>
@@ -467,7 +468,7 @@ namespace {
 // A simple element-wise add, suitable as a compute_fn for
 // DispatchNumericBinaryOp.
 auto kAddFn = [](const auto& x, const auto& y, auto& result) {
-  for (int i = 0; i < x.size(); ++i) {
+  for (size_t i = 0; i < x.size(); ++i) {
     result[i] = x[i] + y[i];
   }
 };
@@ -685,7 +686,7 @@ TEST(DispatchNumericBinaryOpTest, OutputSizeDiffersFromInput) {
   // Compute a dot product (sum of element-wise products) as a 1-element output.
   auto dot_fn = [](const auto& xd, const auto& yd, auto& result) {
     result[0] = 0;
-    for (int i = 0; i < xd.size(); ++i) {
+    for (size_t i = 0; i < xd.size(); ++i) {
       result[0] += xd[i] * yd[i];
     }
   };

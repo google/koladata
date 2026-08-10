@@ -1046,12 +1046,12 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::CreateObjectsFromFields(
   AllocationId alloc_id = Allocate(ds_size);
   auto objects = DataSliceImpl::ObjectsFromAllocation(alloc_id, ds_size);
   if (alloc_id.IsSmall()) {
-    for (int i = 0; i < attr_names.size(); ++i) {
+    for (size_t i = 0; i < attr_names.size(); ++i) {
       RETURN_IF_ERROR(SetAttr(objects, attr_names[i], slices[i].get()));
     }
     return objects;
   }
-  for (int i = 0; i < attr_names.size(); ++i) {
+  for (size_t i = 0; i < attr_names.size(); ++i) {
     std::shared_ptr<DenseSource> source = nullptr;
     if (!slices[i].get().is_empty_and_unknown()) {
       ASSIGN_OR_RETURN(
@@ -1072,7 +1072,7 @@ absl::StatusOr<DataItem> DataBagImpl::CreateObjectsFromFields(
   RETURN_IF_ERROR(CheckNotFrozen());
   DCHECK_EQ(attr_names.size(), items.size());
   ObjectId object_id = AllocateSingleObject();
-  for (int i = 0; i < attr_names.size(); ++i) {
+  for (size_t i = 0; i < attr_names.size(); ++i) {
     auto& source = GetMutableSmallAllocSource(attr_names[i]);
     source.Set(object_id, items[i].get());
   }
@@ -1121,7 +1121,7 @@ absl::Status DataBagImpl::CreateMutableDenseSource(
     } else {
       mutable_data = std::make_unique<absl::flat_hash_map<ObjectId, DataItem>>(
           sparse_sources.front()->GetAll());
-      for (int i = 1; i < sparse_sources.size(); ++i) {
+      for (size_t i = 1; i < sparse_sources.size(); ++i) {
         for (const auto& [obj, data_item] : sparse_sources[i]->GetAll()) {
           mutable_data->try_emplace(obj, data_item);
         }
@@ -3234,7 +3234,7 @@ absl::Status DataBagImpl::SetSchemaFields(
   for (const auto& item : items) {
     RETURN_IF_ERROR(VerifyIsSchemaOrNone(item.get()));
   }
-  for (int i = 0; i < attr_names.size(); ++i) {
+  for (size_t i = 0; i < attr_names.size(); ++i) {
     RETURN_IF_ERROR(SetSchemaAttr(schema_item, attr_names[i], items[i]));
   }
   return absl::OkStatus();
@@ -3275,7 +3275,7 @@ absl::Status DataBagImpl::SetSchemaFieldsForEntireAllocation(
         items);
   }
   Dict& schema_dict = GetOrCreateMutableDicts(schema_alloc_id, /*size=*/1)[0];
-  for (int i = 0; i < attr_names.size(); ++i) {
+  for (size_t i = 0; i < attr_names.size(); ++i) {
     schema_dict.Set(DataItem::View<arolla::Text>(attr_names[i]),
                     DataItem(arolla::kPresent));
     ASSIGN_OR_RETURN(

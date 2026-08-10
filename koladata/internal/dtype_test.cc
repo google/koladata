@@ -14,6 +14,7 @@
 //
 #include "koladata/internal/dtype.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <vector>
@@ -73,15 +74,15 @@ using internal::StableFingerprintHasher;
 
 std::vector<arolla::QTypePtr> SupportedQTypes() {
   return {
-    arolla::GetQType<int64_t>(),
-    arolla::GetQType<int>(),
-    arolla::GetQType<float>(),
-    arolla::GetQType<double>(),
-    arolla::GetQType<bool>(),
-    arolla::GetQType<arolla::Unit>(),
-    arolla::GetQType<arolla::Bytes>(),
-    arolla::GetQType<arolla::Text>(),
-    arolla::GetQType<arolla::expr::ExprQuote>(),
+      arolla::GetQType<int64_t>(),
+      arolla::GetQType<int>(),
+      arolla::GetQType<float>(),
+      arolla::GetQType<double>(),
+      arolla::GetQType<bool>(),
+      arolla::GetQType<arolla::Unit>(),
+      arolla::GetQType<arolla::Bytes>(),
+      arolla::GetQType<arolla::Text>(),
+      arolla::GetQType<arolla::expr::ExprQuote>(),
   };
 }
 
@@ -104,8 +105,9 @@ std::vector<DType> SupportedDTypes() {
 // Make sure that all dtypes defined for DataItem and DataSlice (without DType)
 // can also be stored in DType itself.
 TEST(DType, TypesCoverage) {
-  using dtypes_and_dtype = arolla::meta::concat_t<
-      supported_dtype_values, arolla::meta::type_list<DType>>;
+  using dtypes_and_dtype =
+      arolla::meta::concat_t<supported_dtype_values,
+                             arolla::meta::type_list<DType>>;
   arolla::meta::foreach_type(
       internal::supported_primitives_list(), [&](auto tpe) {
         static_assert(arolla::meta::contains_v<dtypes_and_dtype,
@@ -121,9 +123,7 @@ TEST(DType, DType2TypeMapping) {
   arolla::meta::foreach_type(supported_dtype_values(), verify);
 }
 
-TEST(DType, DefaultDType) {
-  EXPECT_EQ(DType(), kNone);
-}
+TEST(DType, DefaultDType) { EXPECT_EQ(DType(), kNone); }
 
 TEST(DType, VerifyQTypeSupported) {
   for (const auto& qtype : SupportedQTypes()) {
@@ -214,10 +214,10 @@ TEST(DType, IsPrimitive) {
 
 TEST(DType, Fingerprint) {
   auto dtypes = SupportedDTypes();
-  for (int i = 0; i < dtypes.size() - 1; ++i) {
+  for (size_t i = 0; i + 1 < dtypes.size(); ++i) {
     EXPECT_EQ(FingerprintHasher("salt").Combine(dtypes[i]).Finish(),
               FingerprintHasher("salt").Combine(dtypes[i]).Finish());
-    for (int j = i + 1; j < dtypes.size(); ++j) {
+    for (size_t j = i + 1; j < dtypes.size(); ++j) {
       EXPECT_NE(FingerprintHasher("salt").Combine(dtypes[i]).Finish(),
                 FingerprintHasher("salt").Combine(dtypes[j]).Finish());
     }
@@ -226,14 +226,12 @@ TEST(DType, Fingerprint) {
 
 TEST(DType, StableFingerprint) {
   auto dtypes = SupportedDTypes();
-  for (int i = 0; i < dtypes.size() - 1; ++i) {
-    EXPECT_EQ(
-        StableFingerprintHasher("salt").Combine(dtypes[i]).Finish(),
-        StableFingerprintHasher("salt").Combine(dtypes[i]).Finish());
-    for (int j = i + 1; j < dtypes.size(); ++j) {
-      EXPECT_NE(
-          StableFingerprintHasher("salt").Combine(dtypes[i]).Finish(),
-          StableFingerprintHasher("salt").Combine(dtypes[j]).Finish());
+  for (size_t i = 0; i + 1 < dtypes.size(); ++i) {
+    EXPECT_EQ(StableFingerprintHasher("salt").Combine(dtypes[i]).Finish(),
+              StableFingerprintHasher("salt").Combine(dtypes[i]).Finish());
+    for (size_t j = i + 1; j < dtypes.size(); ++j) {
+      EXPECT_NE(StableFingerprintHasher("salt").Combine(dtypes[i]).Finish(),
+                StableFingerprintHasher("salt").Combine(dtypes[j]).Finish());
     }
   }
 }
