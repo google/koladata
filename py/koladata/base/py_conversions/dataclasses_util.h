@@ -38,8 +38,9 @@ namespace koladata::python {
 class DataClassesUtil {
  public:
   // Descriptor of a Python type, returned by `GetClassFieldType` and
-  // `MaybeDecayOptional`. `type` is the underlying type and `is_optional`
-  // indicates whether the field is optional (e.g. `SomeType | None`).
+  // `MaybeDecayOptional`. `type` is the underlying type (or `Py_None` for
+  // `Any` / unannotated fields), and `is_optional` indicates whether the field
+  // is optional (e.g. `SomeType | None`).
   struct FieldTypeDescriptor {
     arolla::python::PyObjectPtr type;
     bool is_optional;
@@ -72,6 +73,7 @@ class DataClassesUtil {
   // If the class field is not present, `std::nullopt` is returned.
   // If the class field is a SimpleNamespace, the SimpleNamespace class is
   // returned.
+  // If the class field is typed as `Any` or unannotated, `type` is `Py_None`.
   // Please note if the field is optional (e.g. `SomeType | None`), the
   // underlying type is returned.
   // - `list[SomeType]` and `attr_name==__items__` -> SomeType is returned.
@@ -82,8 +84,8 @@ class DataClassesUtil {
   // `for_primitive` indicates whether the caller's intention is to use it for a
   // primitive type. This is added to support the SimpleNamespace case: its
   // fields are not typed, so with `for_primitive=True` the type of the field is
-  // considered to be `None`, so that any type can be assigned to it; otherwise
-  // it will be `SimpleNamespace`.
+  // considered to be `Py_None` (so that any type can be assigned to it);
+  // otherwise it will be `SimpleNamespace`.
   absl::StatusOr<std::optional<FieldTypeDescriptor>> GetClassFieldType(
       arolla::python::PyObjectPtr absl_nonnull py_class,
       absl::string_view attr_name, bool for_primitive = false);

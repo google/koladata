@@ -132,10 +132,13 @@ class DataclassesUtilTest(absltest.TestCase):
     @dataclasses.dataclass
     class Obj2:
       a: Obj1
+      c: Any = None
 
     self.assertEqual(util.get_class_field_type(Obj2, 'a', False), (Obj1, False))
     self.assertIsNone(util.get_class_field_type(Obj2, 'b', False))
     self.assertIsNone(util.get_class_field_type(Obj2, 'b', True))
+    self.assertEqual(util.get_class_field_type(Obj2, 'c', False), (None, True))
+    self.assertEqual(util.get_class_field_type(Obj2, 'c', True), (None, True))
 
   def test_get_class_field_type_optional(self):
     util = testing_clib.DataClassesUtil()

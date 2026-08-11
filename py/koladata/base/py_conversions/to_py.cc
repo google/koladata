@@ -86,7 +86,6 @@ std::string PyObjectTypeName(PyObject* py_obj) {
   return ((PyTypeObject*)py_obj)->tp_name;
 }
 
-
 // Implementation of the "To Python" visitor.
 // This visitor should be used to traverse DataSlice and convert it to a
 // Python object. After traversing, one can call
@@ -120,108 +119,103 @@ class ToPyVisitor : internal::AbstractVisitor {
     return item;
   }
 
-  // Returns true if the field type is present, i.e. not `std::nullopt` and not
-  // `None`.
-  // std::nullopt means that the field is not present in the parent class;
-  // Py_IsNone means that the field is present, but is of type `Any`.
-  // so we need to go through the default logic without any output class for
-  // this object.
-  bool DescribesPresentFieldType(
-      const std::optional<DataClassesUtil::FieldTypeDescriptor>& field_type) {
-    return field_type.has_value() && !Py_IsNone(field_type->type.get());
-  }
+  // Result of FindAndStoreClass.
+  enum class FindAndStoreClassResult {
+    // The field does not exist in the output class; the subtree should be
+    // pruned (not traversed).
+    kIgnored,
+    // A target class was computed and stored in the cache.
+    kStoredClass,
+    // The field exists in the output class, but is of type `Any` or
+    // unannotated, so the default conversion logic should be used.
+    kUnspecifiedClass,
+  };
 
-  // If output_class_descriptor_ is provided (which is always the case when we
-  // call this method), we need to compute the class for the `item` and store it
-  // in the `class_cache_by_object_id` and `classes_by_path_`.
-  // Returns true if the class was computed and stored successfully,
-  // false otherwise (which is the case when:
-  // 1. there is no corresponding field in the output class, i.e. the field
-  // does not exist and should not be created).
-  // 2. the field exists, but is of type `Any`.
-  absl::StatusOr<bool> MaybeComputeAndStoreClassForItem(
+  // Computes the target class for `item` that is reached from `from_item` by
+  // `transition_key`. The result is stored in `class_cache_by_object_id_` and
+  // `classes_by_path_`.
+  absl::StatusOr<FindAndStoreClassResult> FindAndStoreClass(
       const DataItem& from_item,
-      const TransitionKey& transition_key,
+      const std::optional<TransitionKey>& transition_key,
       const DataItem& item) {
-    const ObjectId& object_id = item.value<ObjectId>();
-    DCHECK(output_class_descriptor_.has_value());
+    if (!output_class_descriptor_.has_value()) {
+      return FindAndStoreClassResult::kUnspecifiedClass;
+    }
 
-    if (transition_key.type == TransitionType::kSliceItem) {
+    const ObjectId& object_id = item.value<ObjectId>();
+    if (!transition_key.has_value() ||
+        transition_key->type == TransitionType::kSliceItem) {
       // Root case; take the output object as is.
       class_cache_by_object_id_[object_id] = *output_class_descriptor_;
-      return true;
+      return Py_IsNone(output_class_descriptor_->type.get())
+                 ? FindAndStoreClassResult::kUnspecifiedClass
+                 : FindAndStoreClassResult::kStoredClass;
     }
 
     std::string attr_name;
-    if (transition_key.type == TransitionType::kAttributeName) {
-      DCHECK(transition_key.value.holds_value<arolla::Text>());
+    if (transition_key->type == TransitionType::kAttributeName) {
+      DCHECK(transition_key->value.holds_value<arolla::Text>());
       attr_name =
-          std::string(transition_key.value.value<arolla::Text>().view());
-    } else if (transition_key.type == TransitionType::kListItem) {
+          std::string(transition_key->value.value<arolla::Text>().view());
+    } else if (transition_key->type == TransitionType::kListItem) {
       attr_name = std::string(schema::kListItemsSchemaAttr);
-    } else if (transition_key.type == TransitionType::kDictKey) {
+    } else if (transition_key->type == TransitionType::kDictKey) {
       attr_name = std::string(schema::kDictKeysSchemaAttr);
-    } else if (transition_key.type == TransitionType::kDictValue) {
-      if (transition_key.value.holds_value<arolla::Text>()) {
+    } else if (transition_key->type == TransitionType::kDictValue) {
+      if (transition_key->value.holds_value<arolla::Text>()) {
         attr_name =
-            std::string(transition_key.value.value<arolla::Text>().view());
+            std::string(transition_key->value.value<arolla::Text>().view());
       } else {
         attr_name = std::string(schema::kDictValuesSchemaAttr);
       }
     } else {
       // Other transition types (e.g. kSchemaAttributeName, kObjectSchema,
       // kSchema, etc.) do not correspond to attributes in Python dataclasses.
-      return false;
+      // If the class for this object was already computed (e.g. during a
+      // previous previsit before transitioning to object schema), return it.
+      auto it = class_cache_by_object_id_.find(object_id);
+      if (it != class_cache_by_object_id_.end()) {
+        return Py_IsNone(it->second->type.get())
+                   ? FindAndStoreClassResult::kUnspecifiedClass
+                   : FindAndStoreClassResult::kStoredClass;
+      }
+      return FindAndStoreClassResult::kUnspecifiedClass;
     }
 
     ASSIGN_OR_RETURN(PyObject * parent_class, GetCachedClass(from_item));
     std::pair<PyObject*, std::string> path_key(parent_class, attr_name);
+
+    std::optional<DataClassesUtil::FieldTypeDescriptor> field_type;
     auto class_cached_by_path_it = classes_by_path_.find(path_key);
     if (class_cached_by_path_it != classes_by_path_.end()) {
-      // We have already computed the class for this path.
-      auto& class_cached_by_path = class_cached_by_path_it->second;
-      if (DescribesPresentFieldType(class_cached_by_path)) {
-        class_cache_by_object_id_[object_id] = class_cached_by_path;
-        return true;
-      }
-      return false;
+      field_type = class_cached_by_path_it->second;
+    } else {
+      ASSIGN_OR_RETURN(field_type,
+                       dataclasses_util_.GetClassFieldType(
+                           PyObjectPtr::NewRef(parent_class), attr_name,
+                           /*for_primitive=*/false));
+      classes_by_path_[std::move(path_key)] = field_type;
     }
-
-    // In this case we are going to get class field type for an object, so
-    // it is not a primitive here.
-    ASSIGN_OR_RETURN(
-        std::optional<DataClassesUtil::FieldTypeDescriptor> field_type,
-        dataclasses_util_.GetClassFieldType(PyObjectPtr::NewRef(parent_class),
-                                            attr_name,
-                                            /*for_primitive=*/false));
-
-    classes_by_path_[std::move(path_key)] = field_type;
 
     if (!field_type.has_value()) {
-      return false;
+      return FindAndStoreClassResult::kIgnored;
     }
 
-    // We need to check that the same object is not reached with different
-    // paths. We do this check only if this path was not visited before.
-    auto class_cached_by_object_id_it =
-        class_cache_by_object_id_.find(object_id);
-
-    if (class_cached_by_object_id_it == class_cache_by_object_id_.end()) {
-      const bool describes_present_field_type =
-          DescribesPresentFieldType(field_type);
-      class_cache_by_object_id_[object_id] = std::move(field_type);
-      return describes_present_field_type;
-    }
-      // Koda object is the same, but Python class is different.
-    PyObject* cached_type = class_cached_by_object_id_it->second->type.get();
-    PyObject* new_type = field_type->type.get();
-    if (cached_type != new_type) {
-      return absl::InternalError(absl::StrFormat(
-          "same object is reached with different classes: %s and %s",
-          PyObjectTypeName(cached_type), PyObjectTypeName(new_type)));
+    auto [it, inserted] =
+        class_cache_by_object_id_.try_emplace(object_id, field_type);
+    if (!inserted) {
+      PyObject* cached_type = it->second->type.get();
+      PyObject* new_type = field_type->type.get();
+      if (cached_type != new_type) {
+        return absl::InternalError(absl::StrFormat(
+            "same object is reached with different classes: %s and %s",
+            PyObjectTypeName(cached_type), PyObjectTypeName(new_type)));
+      }
     }
 
-    return DescribesPresentFieldType(field_type);
+    return Py_IsNone(field_type->type.get())
+               ? FindAndStoreClassResult::kUnspecifiedClass
+               : FindAndStoreClassResult::kStoredClass;
   }
 
   // Pre-visiting Entities in order to decide whether we need to create a
@@ -241,8 +235,8 @@ class ToPyVisitor : internal::AbstractVisitor {
   // not be called for this item. And the item would not be traversed further.
   absl::StatusOr<bool> Previsit(
       const DataItem& from_item, const DataItem& from_schema,
-      const std::optional<TransitionKey>& transition_key,
-      const DataItem& item, const DataItem& schema) final {
+      const std::optional<TransitionKey>& transition_key, const DataItem& item,
+      const DataItem& schema) final {
     if (from_schema == schema::kSchema && schema == schema::kObject) {
       // The `item` is schema_metadata for `from_item`.
       return false;
@@ -256,28 +250,18 @@ class ToPyVisitor : internal::AbstractVisitor {
           "itemid is not supported together with output_class");
     }
 
-    const ObjectId& object_id = item.value<ObjectId>();
-    if (output_class_descriptor_.has_value()) {
-      // `output_class` is provided, so we need to compute the class for
-      // the `item`.
-      if (transition_key.has_value()) {
-        ASSIGN_OR_RETURN(bool class_computed,
-                         MaybeComputeAndStoreClassForItem(
-                             from_item, *transition_key, item));
-        if (class_computed) {
-          return true;
-        }
-      }
-      auto class_cached_by_object_id_it =
-          class_cache_by_object_id_.find(object_id);
-      if (class_cached_by_object_id_it != class_cache_by_object_id_.end() &&
-          DescribesPresentFieldType(class_cached_by_object_id_it->second)) {
+    ASSIGN_OR_RETURN(auto result,
+                     FindAndStoreClass(from_item, transition_key, item));
+    switch (result) {
+      case FindAndStoreClassResult::kIgnored:
+        return false;
+      case FindAndStoreClassResult::kStoredClass:
         return true;
-      }
-      // Fall through to the default logic, because the output class for this
-      // field turned out to be `Any` or the field is not present in the output
-      // class, we did not store it and need to create the actual object here.
+      case FindAndStoreClassResult::kUnspecifiedClass:
+        break;
     }
+
+    const ObjectId& object_id = item.value<ObjectId>();
 
     if (schema.holds_value<ObjectId>()) {
       auto schema_object_id = schema.value<ObjectId>();
@@ -475,8 +459,8 @@ class ToPyVisitor : internal::AbstractVisitor {
     DCHECK(!Py_IsNone(target_class));
 
     return (PyType_Check(target_class) &&
-         PyType_HasFeature(reinterpret_cast<PyTypeObject*>(target_class),
-                           Py_TPFLAGS_DICT_SUBCLASS));
+            PyType_HasFeature(reinterpret_cast<PyTypeObject*>(target_class),
+                              Py_TPFLAGS_DICT_SUBCLASS));
   }
 
   absl::Status VisitDict(const DataItem& dict, const DataItem& schema,
@@ -622,7 +606,7 @@ class ToPyVisitor : internal::AbstractVisitor {
       return std::nullopt;
     }
 
-    std::pair<PyObject*, std::string> key{result_class, attr_name};
+    std::pair<PyObject*, std::string> key{result_class, std::string(attr_name)};
     auto attr_class_it = classes_by_path_.find(key);
     if (attr_class_it == classes_by_path_.end()) {
       // If the attr would have been an object, it would have been already
@@ -1022,8 +1006,7 @@ PyObject* absl_nullable PyDataSlice_to_py(PyObject* self,
     return nullptr;
   }
   if (!PyBool_Check(py_obj_as_dict)) {
-    PyErr_Format(PyExc_TypeError,
-                 "expecting obj_as_dict to be a bool, got %s",
+    PyErr_Format(PyExc_TypeError, "expecting obj_as_dict to be a bool, got %s",
                  Py_TYPE(py_obj_as_dict)->tp_name);
     return nullptr;
   }

@@ -224,6 +224,31 @@ class ToPyTest(parameterized.TestCase):
     converted = py_conversions.to_py(root, output_class=Obj2)
     self.assertEqual(converted, root_obj)
 
+  def test_output_class_with_any_field(self):
+    @dataclasses.dataclass
+    class ObjWithAny:
+      data_entity: Any
+      data_obj: Any
+      items: list[Any]
+      mapping: dict[str, Any]
+
+    root = fns.new(
+        data_entity=fns.new(a=1, b='x'),
+        data_obj=fns.obj(a=2, b='y'),
+        items=[fns.obj(c=2), fns.obj(c=3)],
+        mapping=fns.dict({'k': fns.obj(e=4)}),
+    )
+
+    converted = py_conversions.to_py(root, output_class=ObjWithAny)
+    self.assertIsInstance(converted, ObjWithAny)
+    self.assertEqual(converted.data_entity.a, 1)
+    self.assertEqual(converted.data_entity.b, 'x')
+    self.assertEqual(converted.data_obj.a, 2)
+    self.assertEqual(converted.data_obj.b, 'y')
+    self.assertEqual(converted.items[0].c, 2)
+    self.assertEqual(converted.items[1].c, 3)
+    self.assertEqual(converted.mapping['k'].e, 4)
+
   def test_output_class_empty_entity(self):
     @dataclasses.dataclass
     class SomeClass:
@@ -941,13 +966,9 @@ class ToPyTest(parameterized.TestCase):
     docs = fns.list([inner])
     root = fns.new(text='hello', docs=docs)
 
-    with self.assertRaisesRegex(ValueError, 'INTERNAL'):
-      _ = py_conversions.to_py(root, output_class=Target)
-
-    # TODO: This is the desired behavior:
-    # converted = py_conversions.to_py(root, output_class=Target)
-    # self.assertEqual(converted.text, 'hello')
-    # self.assertFalse(hasattr(converted, 'docs'))
+    converted = py_conversions.to_py(root, output_class=Target)
+    self.assertEqual(converted.text, 'hello')
+    self.assertFalse(hasattr(converted, 'docs'))
 
   def test_to_py_untyped_cache_pollution(self):
     @dataclasses.dataclass
