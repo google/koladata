@@ -104,6 +104,18 @@ class ShapesNewTest(parameterized.TestCase):
     ):
       kd.shapes.new(ds(2), ds([1]))
 
+  def test_overflow_error(self):
+    # 2 * 2^62 = 2^63 overflows int64 when constructing the uniform edge.
+    with self.assertRaisesRegex(
+        ValueError, 'integer overflow in multiplication'
+    ):
+      kd.shapes.new(2, 2**62)
+    # 2^32 * 2^32 = 2^64 overflows int64.
+    with self.assertRaisesRegex(
+        ValueError, 'integer overflow in multiplication'
+    ):
+      kd.shapes.new(2**32, 2**32)
+
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.shapes.new()))
 
