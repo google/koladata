@@ -28,12 +28,12 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/util/overflow.h"
 #include "koladata/casting.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/schema_utils.h"
-#include "koladata/overflow_utils.h"
 #include "koladata/schema_utils.h"
 
 namespace koladata::ops::matrix_helpers {
@@ -227,7 +227,8 @@ absl::StatusOr<JaggedShape> BuildBatchedMatrixShape(
   std::vector<int64_t> row_splits(num_matrices + 1);
   row_splits[0] = 0;
   for (int64_t b = 0; b < num_matrices; ++b) {
-    row_splits[b + 1] = safe_add(row_splits[b], row_counts[b], &overflow);
+    row_splits[b + 1] =
+        arolla::safe_add(row_splits[b], row_counts[b], &overflow);
   }
   if (overflow) {
     return absl::InvalidArgumentError("arguments cause integer overflow");
@@ -240,7 +241,8 @@ absl::StatusOr<JaggedShape> BuildBatchedMatrixShape(
   int64_t ri = 0;
   for (int64_t b = 0; b < num_matrices; ++b) {
     for (int64_t r = 0; r < row_counts[b]; ++r) {
-      col_splits[ri + 1] = safe_add(col_splits[ri], col_counts[b], &overflow);
+      col_splits[ri + 1] =
+          arolla::safe_add(col_splits[ri], col_counts[b], &overflow);
       ++ri;
     }
   }
@@ -259,7 +261,7 @@ absl::StatusOr<JaggedShape> BuildBatchedVectorShape(
   std::vector<int64_t> splits(num_batches + 1);
   splits[0] = 0;
   for (int64_t b = 0; b < num_batches; ++b) {
-    splits[b + 1] = safe_add(splits[b], counts[b], &overflow);
+    splits[b + 1] = arolla::safe_add(splits[b], counts[b], &overflow);
   }
   if (overflow) {
     return absl::InvalidArgumentError("arguments cause integer overflow");

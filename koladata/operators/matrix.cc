@@ -28,6 +28,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/util/overflow.h"
 #include "Eigen/Core"
 #include "Eigen/LU"
 #include "koladata/casting.h"
@@ -38,7 +39,6 @@
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/operators/matrix_helpers.h"
-#include "koladata/overflow_utils.h"
 #include "koladata/schema_utils.h"
 
 namespace koladata::ops {
@@ -208,8 +208,9 @@ absl::StatusOr<DataSlice> MatrixMatmul(const DataSlice& a, const DataSlice& b,
                        ": ", a_cols, " vs ", b_rows));
     }
     pbs[batch] = {a_b, b_b, a_infos_vec[a_b].m, a_cols, b_infos_vec[b_b].n};
-    out_total = safe_add(
-        out_total, safe_mul(pbs[batch].a_rows, pbs[batch].b_cols, &overflow),
+    out_total = arolla::safe_add(
+        out_total,
+        arolla::safe_mul(pbs[batch].a_rows, pbs[batch].b_cols, &overflow),
         &overflow);
   }
   if (overflow) {
@@ -345,7 +346,8 @@ absl::StatusOr<DataSlice> MatrixOuter(const DataSlice& x, const DataSlice& y) {
     pbs[b] = {x_info.offset, y_info.offset, m, n};
     out_m_vals[b] = m;
     out_n_vals[b] = n;
-    out_total = safe_add(out_total, safe_mul(m, n, &overflow), &overflow);
+    out_total = arolla::safe_add(out_total, arolla::safe_mul(m, n, &overflow),
+                                 &overflow);
   }
   if (overflow) {
     return absl::InvalidArgumentError("arguments cause integer overflow");
@@ -403,9 +405,11 @@ absl::StatusOr<DataSlice> MatrixDiagMatrix(const DataSlice& x,
   bool overflow = false;
   for (int64_t v = 0; v < num_vectors; ++v) {
     int64_t n = vec_infos[v].m;  // input vector length
-    int64_t abs_k = safe_abs(k_vals[v], &overflow);
-    int64_t d = safe_add(n, abs_k, &overflow);  // output matrix is d x d
-    out_total = safe_add(out_total, safe_mul(d, d, &overflow), &overflow);
+    int64_t abs_k = arolla::safe_abs(k_vals[v], &overflow);
+    int64_t d =
+        arolla::safe_add(n, abs_k, &overflow);  // output matrix is d x d
+    out_total = arolla::safe_add(out_total, arolla::safe_mul(d, d, &overflow),
+                                 &overflow);
     dim_counts[v] = d;
   }
   if (overflow) {
@@ -497,7 +501,7 @@ absl::StatusOr<DataSlice> MatrixDiagVector(const DataSlice& x,
     const int64_t k = k_vals[p];
     // Validate that |k| is representable (rejects INT64_MIN which would cause
     // UB in `i - k` inside the VisitValues lambda below).
-    RETURN_IF_ERROR(SafeAbs(k).status());
+    RETURN_IF_ERROR(arolla::SafeAbs(k).status());
     int64_t diag_len;
     if (k >= 0) {
       diag_len = std::max<int64_t>(0, std::min(mat_info.m, mat_info.n - k));
@@ -505,7 +509,7 @@ absl::StatusOr<DataSlice> MatrixDiagVector(const DataSlice& x,
       diag_len = std::max<int64_t>(0, std::min(mat_info.m + k, mat_info.n));
     }
     diag_length[p] = diag_len;
-    out_total = safe_add(out_total, diag_len, &overflow);
+    out_total = arolla::safe_add(out_total, diag_len, &overflow);
   }
   if (overflow) {
     return absl::InvalidArgumentError("arguments cause integer overflow");
@@ -631,8 +635,9 @@ absl::StatusOr<DataSlice> MatrixSolve(const DataSlice& a, const DataSlice& b,
     }
     const int64_t nrhs = b_is_vector ? 1 : b_infos[b_b].n;
     pbs[batch] = {a_b, b_b, n, nrhs};
-    out_total = safe_add(
-        out_total, b_is_vector ? n : safe_mul(n, nrhs, &overflow), &overflow);
+    out_total = arolla::safe_add(
+        out_total, b_is_vector ? n : arolla::safe_mul(n, nrhs, &overflow),
+        &overflow);
   }
   if (overflow) {
     return absl::InvalidArgumentError("arguments cause integer overflow");

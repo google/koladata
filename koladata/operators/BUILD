@@ -54,7 +54,6 @@ cc_library(
     deps = [
         ":matrix_helpers",
         "//koladata:data_slice",
-        "//koladata:overflow_utils",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
@@ -65,6 +64,7 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util:status_backport",
         "@eigen",
     ],
@@ -428,7 +428,6 @@ cc_library(
     hdrs = ["matrix_helpers.h"],
     deps = [
         "//koladata:data_slice",
-        "//koladata:overflow_utils",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
@@ -441,6 +440,7 @@ cc_library(
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util:status_backport",
     ],
 )
