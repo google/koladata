@@ -613,6 +613,8 @@ class DataSlice {
   // DataBag.
   [[nodiscard]] DataSlice UnsafeMakeWholeOnImmutableDb() const;
 
+  int64_t GetApproxByteSizeWithBag() const;
+
  private:
   using ImplVariant = std::variant<internal::DataItem, internal::DataSliceImpl>;
 

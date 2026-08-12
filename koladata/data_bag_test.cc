@@ -14,6 +14,7 @@
 //
 #include "koladata/data_bag.h"
 
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -494,6 +495,29 @@ TEST(DataBagTest, IsEmpty_DeepFallbackChain) {
     ASSERT_OK_AND_ASSIGN(db, DataBag::ImmutableEmptyWithFallbacks({db}));
   }
   EXPECT_TRUE(db->IsEmpty());
+}
+
+TEST(DataBagTest, GetApproxByteSize) {
+  auto db = DataBag::EmptyMutable();
+  int64_t empty_size = db->GetApproxByteSize();
+  EXPECT_GE(empty_size, 0);
+
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
+  int64_t populated_size = db->GetApproxByteSize();
+  EXPECT_GT(populated_size, empty_size);
+
+  db->UnsafeMakeImmutable();
+  auto db2 = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(
+      auto ds2, EntityCreator::FromAttrs(db2, {"b"}, {test::DataItem(2)}));
+  db2->UnsafeMakeImmutable();
+
+  ASSERT_OK_AND_ASSIGN(
+      auto combined_db,
+      DataBag::ImmutableEmptyWithFallbacks({db, db2}));
+  EXPECT_EQ(combined_db->GetApproxByteSize(),
+            db->GetApproxByteSize() + db2->GetApproxByteSize());
 }
 
 }  // namespace

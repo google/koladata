@@ -6122,6 +6122,47 @@ TEST(DataSliceTest, PresentCount) {
   }
 }
 
+TEST(DataSliceTest, GetApproxByteSizeWithBag) {
+  {
+    auto ds_text_empty = test::DataItem(arolla::Text(""));
+    auto ds_text = test::DataItem(arolla::Text("hello world"));
+    EXPECT_EQ(ds_text.GetApproxByteSizeWithBag() -
+                  ds_text_empty.GetApproxByteSizeWithBag(),
+              11);
+  }
+  {
+    auto ds_bytes_empty = test::DataItem(arolla::Bytes(""));
+    auto ds_bytes = test::DataItem(arolla::Bytes("byte data"));
+    EXPECT_EQ(ds_bytes.GetApproxByteSizeWithBag() -
+                  ds_bytes_empty.GetApproxByteSizeWithBag(),
+              9);
+  }
+  {
+    auto ds_texts_empty =
+        test::DataSlice<arolla::Text>({"", "", ""});
+    auto ds_texts =
+        test::DataSlice<arolla::Text>({"alpha", "beta", "gamma"});
+    EXPECT_EQ(ds_texts.GetApproxByteSizeWithBag() -
+                  ds_texts_empty.GetApproxByteSizeWithBag(),
+              14);
+  }
+  {
+    auto ds_without_bag = test::DataSlice<int>({10, 20});
+    auto db = DataBag::EmptyMutable();
+    auto ds_with_bag = ds_without_bag.WithBag(db);
+    EXPECT_EQ(ds_with_bag.GetApproxByteSizeWithBag(),
+              ds_without_bag.GetApproxByteSizeWithBag() +
+                  db->GetApproxByteSize());
+
+    ASSERT_OK_AND_ASSIGN(
+        auto entity,
+        EntityCreator::FromAttrs(db, {"x"}, {test::DataItem(100)}));
+    EXPECT_EQ(ds_with_bag.GetApproxByteSizeWithBag(),
+              ds_without_bag.GetApproxByteSizeWithBag() +
+                  db->GetApproxByteSize());
+  }
+}
+
 TEST(DataSliceTest, Repr) {
   // NOTE: More extensive repr tests are done in data_slice_repr_test.cc and in
   // Python.

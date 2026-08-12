@@ -6,10 +6,18 @@
 </code></pre>
 
 
+Subcategory | Description
+----------- | ------------
+[Mode](lru_cache/mode.md) | Mode for LruCache.
 
 
 
-### `LruCache.__init__(self, capacity: int)` {#kd.caching.LruCache.__init__}
+
+### `LruCache.Mode(*values)` {#kd.caching.LruCache.Mode}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Mode for LruCache.</code></pre>
+
+### `LruCache.__init__(self, capacity: int, mode: Mode)` {#kd.caching.LruCache.__init__}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Initialize self.  See help(type(self)) for accurate signature.</code></pre>
 

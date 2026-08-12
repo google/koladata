@@ -15,6 +15,7 @@
 #include "koladata/data_bag.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <string>
 #include <utility>
@@ -275,6 +276,16 @@ bool DataBag::IsEmpty() const {
     }
   }
   return true;
+}
+
+int64_t DataBag::GetApproxByteSize() const {
+  FlattenFallbackFinder fallback_finder(*this);
+  int64_t size = GetImpl().GetApproxTotalByteSize();
+  for (const internal::DataBagImpl* fallback :
+       fallback_finder.GetFlattenFallbacks()) {
+    size += fallback->GetApproxTotalByteSize();
+  }
+  return size;
 }
 
 }  // namespace koladata

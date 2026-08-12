@@ -13,6 +13,6 @@ Subcategory | Description
 
 
 
-### `kd.caching.LruCache(capacity: int)` {#kd.caching.LruCache}
+### `kd.caching.LruCache(capacity: int, mode: Mode)` {#kd.caching.LruCache}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">LRU cache Object/Entity -&gt; DataSlice.</code></pre>

@@ -23,6 +23,7 @@
 #include "absl/status/status.h"
 #include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -32,6 +33,7 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/extract_utils.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
@@ -50,14 +52,16 @@ namespace py = ::pybind11;
 using ::arolla::TypedValue;
 using ::koladata::DataSlice;
 using ::koladata::internal::DataItem;
-using ::koladata::internal::DataSliceImpl;
 using ::koladata::internal::ObjectId;
 
 // It is a wrapper around `arolla::LruCache<ObjectId, DataSlice>` with batched
 // Get and Set operations.
 class LruCacheWrapper {
  public:
-  explicit LruCacheWrapper(size_t capacity) : cache_(capacity) {}
+  // extract_and_track_size=false => `capacity` is the number of elements.
+  // extract_and_track_size=true  => `capacity` is the number of bytes.
+  explicit LruCacheWrapper(size_t capacity, bool extract_and_track_size)
+      : cache_(capacity), extract_and_track_size_(extract_and_track_size) {}
 
   // `keys_tv` must be a DataSlice of ObjectIds (i.e. entities or objects).
   // For each ObjectId `Get` looks up the corresponding value in the cache (or
@@ -132,11 +136,13 @@ class LruCacheWrapper {
   // If the cache reaches max capacity, then the values not accessed for the
   // longest time  are removed.
   absl::Status Set(arolla::TypedValue keys_tv, arolla::TypedValue values_tv) {
+    arolla::python::PyCancellationScope cancellation_scope;
     arolla::python::ReleasePyGIL guard;
     ASSIGN_OR_RETURN(const DataSlice& keys_slice, keys_tv.As<DataSlice>());
     ASSIGN_OR_RETURN(DataSlice values_slice, values_tv.As<DataSlice>());
     ASSIGN_OR_RETURN(values_slice,
                      BroadcastToShape(values_slice, keys_slice.GetShape()));
+    DCHECK_EQ(values_slice.size(), keys_slice.size());
     if (keys_slice.IsEmpty() || values_slice.IsEmpty()) {
       return absl::OkStatus();
     }
@@ -144,26 +150,45 @@ class LruCacheWrapper {
       return absl::InvalidArgumentError("ObjectId expected");
     }
 
-    absl::MutexLock lock(mutex_);
-
     if (keys_slice.is_item()) {
-      (void)cache_.Put(keys_slice.item().value<ObjectId>(), values_slice);
+      int64_t item_size = 1;
+      if (extract_and_track_size_) {
+        if (values_slice.GetBag() != nullptr) {
+          ASSIGN_OR_RETURN(values_slice,
+                           extract_utils_internal::Extract(values_slice));
+        }
+        item_size = values_slice.GetApproxByteSizeWithBag();
+      }
+      absl::MutexLock lock(mutex_);
+      cache_.Put(keys_slice.item().value<ObjectId>(), std::move(values_slice),
+                 item_size);
       return absl::OkStatus();
     }
 
     const arolla::DenseArray<ObjectId>& keys =
         keys_slice.slice().values<ObjectId>();
     const auto& values = values_slice.slice();
-    keys.ForEachPresent([&](int64_t offset,
-                            ObjectId key) ABSL_NO_THREAD_SAFETY_ANALYSIS {
+    for (size_t offset = 0; offset < keys.size(); ++offset) {
+      if (!keys.present(offset)) {
+        continue;
+      }
       DataItem val = values[offset];
       if (!val.has_value()) {
-        return;
+        continue;
       }
       DataSlice val_slice = DataSlice::UnsafeCreate(
           std::move(val), values_slice.GetSchemaImpl(), values_slice.GetBag());
-      (void)cache_.Put(key, std::move(val_slice));
-    });
+      int64_t item_size = 1;
+      if (extract_and_track_size_) {
+        if (val_slice.GetBag() != nullptr) {
+          ASSIGN_OR_RETURN(val_slice,
+                           extract_utils_internal::Extract(val_slice));
+        }
+        item_size = val_slice.GetApproxByteSizeWithBag();
+      }
+      absl::MutexLock lock(mutex_);
+      cache_.Put(keys.values[offset], std::move(val_slice), item_size);
+    }
     return absl::OkStatus();
   }
 
@@ -175,21 +200,22 @@ class LruCacheWrapper {
  private:
   absl::Mutex mutex_;
   arolla::LruCache<ObjectId, DataSlice> cache_ ABSL_GUARDED_BY(mutex_);
+  const bool extract_and_track_size_;
 };
 
 PYBIND11_MODULE(clib, m) {
   py::class_<LruCacheWrapper>(m, "LruCache", R"doc(
 LRU cache Object/Entity -> DataSlice
 )doc")
-      .def(py::init<size_t>(), py::arg("capacity"))
+      .def(py::init<size_t, bool>(), py::arg("capacity"),
+           py::arg("extract_and_track_size"))
       .def("__getitem__",
            [](LruCacheWrapper& self, TypedValue keys_tv) {
              return arolla::python::pybind11_unstatus_or(
                  self.Get(std::move(keys_tv)));
            })
       .def("__setitem__",
-           [](LruCacheWrapper& self, TypedValue keys_tv,
-              TypedValue values_tv) {
+           [](LruCacheWrapper& self, TypedValue keys_tv, TypedValue values_tv) {
              arolla::python::pybind11_throw_if_error(
                  self.Set(std::move(keys_tv), std::move(values_tv)));
            })

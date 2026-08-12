@@ -16,6 +16,7 @@
 #define KOLADATA_DATA_BAG_H_
 
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <typeindex>
@@ -218,6 +219,8 @@ class DataBag : public arolla::RefcountedBase {
   std::shared_ptr<const T> SetCachedMetadata(internal::ObjectId key, T v) {
     return SetCachedMetadata<T>(key, std::make_shared<T>(std::move(v)));
   }
+
+  int64_t GetApproxByteSize() const;
 
  private:
   friend ::koladata::s11n::DataBagDecoder;

@@ -1568,13 +1568,7 @@ PyObject* absl_nullable PyDataBag_get_approx_byte_size(PyObject* self,
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const DataBagPtr& db = UnsafeDataBagPtr(self);
-  FlattenFallbackFinder fallback_finder(*db);
-  int64_t size = db->GetImpl().GetApproxTotalByteSize();
-  for (const internal::DataBagImpl* fallback :
-       fallback_finder.GetFlattenFallbacks()) {
-    size += fallback->GetApproxTotalByteSize();
-  }
-  return PyLong_FromLongLong(size);
+  return PyLong_FromLongLong(db->GetApproxByteSize());
 }
 
 PyObject* absl_nullable PyDataBag_is_empty(PyObject* self, PyObject*) {

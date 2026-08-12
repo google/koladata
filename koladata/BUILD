@@ -218,6 +218,7 @@ cc_library(
         "//koladata/internal:dtype",
         "//koladata/internal:error_utils",
         "//koladata/internal:errors",
+        "//koladata/internal:memory_stats",
         "//koladata/internal:missing_value",
         "//koladata/internal:object_id",
         "//koladata/internal:schema_attrs",

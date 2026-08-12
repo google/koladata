@@ -44,6 +44,7 @@
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/bytes.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/status.h"
 #include "arolla/util/text.h"
@@ -62,6 +63,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error_utils.h"
 #include "koladata/internal/errors.h"
+#include "koladata/internal/memory_stats.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/coalesce_with_filtered.h"
@@ -2709,4 +2711,25 @@ DataSlice DataSlice::UnsafeMakeWholeOnImmutableDb() const {
   return DataSlice(internal_->impl, internal_->shape, internal_->schema,
                    internal_->db, true);
 }
+
+int64_t DataSlice::GetApproxByteSizeWithBag() const {
+  int64_t res = sizeof(Internal);
+  if (is_item()) {
+    item().VisitValue([&]<class T>(const T& v) {
+      if constexpr (std::is_same_v<T, arolla::Bytes>) {
+        res += v.size();
+      } else if constexpr (std::is_same_v<T, arolla::Text>) {
+        res += v.view().size();
+      }
+    });
+  } else {
+    internal::MemoryStatsEntry stats = slice().GetMemoryStats();
+    res += stats.shallow_size + stats.strings_size;
+  }
+  if (GetBag() != nullptr) {
+    res += GetBag()->GetApproxByteSize();
+  }
+  return res;
+}
+
 }  // namespace koladata

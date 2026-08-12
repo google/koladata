@@ -18,10 +18,16 @@ from koladata import kd
 from koladata.caching import lru_cache
 
 
+Mode = lru_cache.LruCache.Mode
+
+
 class LruCacheTest(parameterized.TestCase):
 
-  def test_delegation(self):
-    cache = lru_cache.LruCache(10)
+  @parameterized.parameters(
+      Mode.CAPACITY_IS_ELEMENT_COUNT, Mode.CAPACITY_IS_BYTE_SIZE
+  )
+  def test_delegation(self, mode):
+    cache = lru_cache.LruCache(10000, mode)
     k1 = kd.uuid(x=1)
     v1 = kd.item(42)
 
@@ -32,8 +38,11 @@ class LruCacheTest(parameterized.TestCase):
     cache.clear()
     kd.testing.assert_equivalent(cache[k1], kd.item(None))
 
-  def test_cache_fn_basic(self):
-    cache = lru_cache.LruCache(10)
+  @parameterized.parameters(
+      Mode.CAPACITY_IS_ELEMENT_COUNT, Mode.CAPACITY_IS_BYTE_SIZE
+  )
+  def test_cache_fn_basic(self, mode):
+    cache = lru_cache.LruCache(10000, mode)
     calls = []
 
     @cache.cache_fn('test_basic')
@@ -69,8 +78,11 @@ class LruCacheTest(parameterized.TestCase):
     kd.testing.assert_equivalent(res4, kd.slice([10, 20, 30, 40, 50]))
     self.assertLen(calls, 2)
 
-  def test_cache_fn_empty_or_all_missing_args(self):
-    cache = lru_cache.LruCache(10)
+  @parameterized.parameters(
+      Mode.CAPACITY_IS_ELEMENT_COUNT, Mode.CAPACITY_IS_BYTE_SIZE
+  )
+  def test_cache_fn_empty_or_all_missing_args(self, mode):
+    cache = lru_cache.LruCache(10000, mode)
     calls = []
 
     @cache.cache_fn('test_empty')
@@ -86,8 +98,11 @@ class LruCacheTest(parameterized.TestCase):
     kd.testing.assert_equivalent(res2, kd.slice([None, None]))
     self.assertEmpty(calls)
 
-  def test_cache_fn_func_id_separation(self):
-    cache = lru_cache.LruCache(10)
+  @parameterized.parameters(
+      Mode.CAPACITY_IS_ELEMENT_COUNT, Mode.CAPACITY_IS_BYTE_SIZE
+  )
+  def test_cache_fn_func_id_separation(self, mode):
+    cache = lru_cache.LruCache(10000, mode)
 
     @cache.cache_fn('func_1')
     def fn1(x):
@@ -103,8 +118,11 @@ class LruCacheTest(parameterized.TestCase):
     kd.testing.assert_equivalent(res1, kd.slice([11, 12]))
     kd.testing.assert_equivalent(res2, kd.slice([10, 20]))
 
-  def test_cache_fn_func_id_reuse_override(self):
-    cache = lru_cache.LruCache(10)
+  @parameterized.parameters(
+      Mode.CAPACITY_IS_ELEMENT_COUNT, Mode.CAPACITY_IS_BYTE_SIZE
+  )
+  def test_cache_fn_func_id_reuse_override(self, mode):
+    cache = lru_cache.LruCache(10000, mode)
     calls1 = []
     calls2 = []
 
@@ -151,8 +169,11 @@ class LruCacheTest(parameterized.TestCase):
     ):
       _ = fn3(kd.slice([1, 4]))
 
-  def test_cache_fn_is_hit_fn(self):
-    cache = lru_cache.LruCache(10)
+  @parameterized.parameters(
+      Mode.CAPACITY_IS_ELEMENT_COUNT, Mode.CAPACITY_IS_BYTE_SIZE
+  )
+  def test_cache_fn_is_hit_fn(self, mode):
+    cache = lru_cache.LruCache(10000, mode)
     calls = []
 
     # Only cache positive results.
@@ -175,8 +196,11 @@ class LruCacheTest(parameterized.TestCase):
     self.assertLen(calls, 2)
     kd.testing.assert_equivalent(calls[1], kd.slice([None, -5, None]))
 
-  def test_cache_fn_is_hit_fn_on_lookup(self):
-    cache = lru_cache.LruCache(10)
+  @parameterized.parameters(
+      Mode.CAPACITY_IS_ELEMENT_COUNT, Mode.CAPACITY_IS_BYTE_SIZE
+  )
+  def test_cache_fn_is_hit_fn_on_lookup(self, mode):
+    cache = lru_cache.LruCache(10000, mode)
     calls = []
     min_val = 0
 
@@ -199,8 +223,11 @@ class LruCacheTest(parameterized.TestCase):
     self.assertLen(calls, 2)
     kd.testing.assert_equivalent(calls[1], kd.slice([1, 2, None]))
 
-  def test_cache_fn_with_objects_and_entities(self):
-    cache = lru_cache.LruCache(10)
+  @parameterized.parameters(
+      Mode.CAPACITY_IS_ELEMENT_COUNT, Mode.CAPACITY_IS_BYTE_SIZE
+  )
+  def test_cache_fn_with_objects_and_entities(self, mode):
+    cache = lru_cache.LruCache(10000, mode)
     calls = []
 
     @cache.cache_fn('test_objects')
@@ -226,8 +253,11 @@ class LruCacheTest(parameterized.TestCase):
     self.assertLen(calls, 2)
     kd.testing.assert_equivalent(calls[1].x, kd.slice([None, 20]))
 
-  def test_cache_fn_multidimensional_slice(self):
-    cache = lru_cache.LruCache(10)
+  @parameterized.parameters(
+      Mode.CAPACITY_IS_ELEMENT_COUNT, Mode.CAPACITY_IS_BYTE_SIZE
+  )
+  def test_cache_fn_multidimensional_slice(self, mode):
+    cache = lru_cache.LruCache(10000, mode)
     calls = []
 
     @cache.cache_fn('test_multidim')
@@ -248,7 +278,7 @@ class LruCacheTest(parameterized.TestCase):
     )
 
   def test_cache_fn_eviction(self):
-    cache = lru_cache.LruCache(capacity=2)
+    cache = lru_cache.LruCache(capacity=2, mode=Mode.CAPACITY_IS_ELEMENT_COUNT)
     calls = []
 
     @cache.cache_fn('test_eviction')
@@ -269,8 +299,11 @@ class LruCacheTest(parameterized.TestCase):
     self.assertLen(calls, 3)
     kd.testing.assert_equivalent(calls[2], kd.slice([1]))
 
-  def test_cache_fn_update_wrapper(self):
-    cache = lru_cache.LruCache(10)
+  @parameterized.parameters(
+      Mode.CAPACITY_IS_ELEMENT_COUNT, Mode.CAPACITY_IS_BYTE_SIZE
+  )
+  def test_cache_fn_update_wrapper(self, mode):
+    cache = lru_cache.LruCache(10000, mode)
 
     @cache.cache_fn('test_wrapper')
     def my_custom_fn(x):

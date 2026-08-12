@@ -16,6 +16,7 @@
 """
 
 from collections.abc import Callable
+import enum
 import functools
 from koladata.caching import clib
 from koladata.expr import py_expr_eval_py_ext
@@ -33,8 +34,22 @@ class LruCache:
 
   __slots__ = ('_cache',)
 
-  def __init__(self, capacity: int):
-    self._cache = clib.LruCache(capacity)
+  class Mode(enum.Enum):
+    """Mode for LruCache."""
+
+    # Low performance overhead, unpredictable memory usage.
+    # (no extraction on __setitem__)
+    CAPACITY_IS_ELEMENT_COUNT = 0
+
+    # High performance overhead, predictable memory usage.
+    # (extraction + size estimation on __setitem__)
+    CAPACITY_IS_BYTE_SIZE = 1
+
+  def __init__(self, capacity: int, mode: Mode):
+    self._cache = clib.LruCache(
+        capacity,
+        extract_and_track_size=(mode == self.Mode.CAPACITY_IS_BYTE_SIZE),
+    )
 
   def __getitem__(self, keys: DataSlice) -> DataSlice:
     return self._cache[keys]
