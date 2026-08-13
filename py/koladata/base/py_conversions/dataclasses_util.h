@@ -54,6 +54,7 @@ class DataClassesUtil {
   DataClassesUtil() = default;
 
   absl::StatusOr<arolla::python::PyObjectPtr> MakeDataClassInstance(
+      absl::string_view class_name,
       absl::Span<const absl::string_view> attr_names);
 
   // Returns attribute names and values on success and if `py_obj` represents a
@@ -110,6 +111,7 @@ class DataClassesUtil {
 
  private:
   absl::StatusOr<arolla::python::PyObjectPtr> MakeDataClass(
+      absl::string_view class_name,
       absl::Span<const absl::string_view> attr_names);
 
   absl::Status InitFns();

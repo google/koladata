@@ -1408,9 +1408,15 @@ class ToPyTest(parameterized.TestCase):
 
   def test_named_schema(self):
     x = fns.new(x=123, schema='named_schema')
+    res = py_conversions.to_py(x)
+    expected = dataclasses.make_dataclass('named_schema', [('x', Any)])(x=123)
     self.assertEqual(
-        py_conversions.to_py(x),
-        dataclasses.make_dataclass('Obj', [('x', Any)])(x=123),
+        res,
+        expected,
+    )
+    self.assertEqual(
+        res.__class__.__name__,
+        'named_schema',
     )
 
   def test_itemid_dataslice(self):

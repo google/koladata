@@ -311,18 +311,30 @@ class ToPyVisitor : internal::AbstractVisitor {
       if (attr_names.present_count() != attr_names.size()) {
         return absl::InternalError("attributes must be non-empty");
       }
+      std::string schema_name = "Obj";
+
       attr_names.values<arolla::Text>().ForEachPresent(
           [&](int64_t id, absl::string_view attr) {
-            if (attr != schema::kSchemaNameAttr &&
-                attr != schema::kSchemaMetadataAttr) {
+            if (attr == schema::kSchemaNameAttr) {
+              absl::StatusOr<internal::DataItem> assigned_name =
+                  db_->GetImpl().GetSchemaAttr(schema, schema::kSchemaNameAttr,
+                                               {});
+              if (assigned_name.ok() && assigned_name->has_value() &&
+                  assigned_name->holds_value<arolla::Text>()) {
+                schema_name =
+                    std::string(assigned_name->value<arolla::Text>().view());
+              }
+            } else if (attr != schema::kSchemaNameAttr &&
+                       attr != schema::kSchemaMetadataAttr) {
               // TODO: Add tests for metadata support.
               attr_names_vec.push_back(attr);
             }
           });
 
       // Do not store the class in the cache, just create an instance.
-      ASSIGN_OR_RETURN(converted_object_cache_[object_id],
-                       dataclasses_util_.MakeDataClassInstance(attr_names_vec));
+      ASSIGN_OR_RETURN(
+          converted_object_cache_[object_id],
+          dataclasses_util_.MakeDataClassInstance(schema_name, attr_names_vec));
       return true;
     }
     if (item.is_dict() || (obj_as_dict_ && item.is_entity())) {

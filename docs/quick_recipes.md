@@ -764,9 +764,9 @@ create hierarchical data:
 # Group by year
 >>> grouped_books = kd.group_by(books, books.year)
 >>> grouped_books.to_py()
-[[Obj(pages=212, year=1997)],
-  [Obj(pages=918, year=2001), Obj(pages=331, year=2001)],
-  [Obj(pages=331, year=1928), Obj(pages=512, year=1928)]]
+[[Book(pages=212, year=1997)],
+  [Book(pages=918, year=2001), Book(pages=331, year=2001)],
+  [Book(pages=331, year=1928), Book(pages=512, year=1928)]]
 
 # Computing the average page count per year
 >>> kd.math.agg_mean(grouped_books.pages).to_py()
@@ -817,10 +817,10 @@ is a powerful combination that can be tweaked for more advanced transformations:
 ```py
 >>> groups = kd.group_by(docs, docs.domain)
 >>> groups.to_py()
-[[Obj(domain='a', id=0, visits=11), Obj(domain='a', id=2, visits=99)],
-  [Obj(domain='b', id=1, visits=212)],
-  [Obj(domain='c', id=3, visits=123)],
-  [Obj(domain='d', id=4, visits=44)]]
+[[Doc(domain='a', id=0, visits=11), Doc(domain='a', id=2, visits=99)],
+  [Doc(domain='b', id=1, visits=212)],
+  [Doc(domain='c', id=3, visits=123)],
+  [Doc(domain='d', id=4, visits=44)]]
 
 >>> keys_from = groups.S[0].domain
 >>> keys_from.to_py()

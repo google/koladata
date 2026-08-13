@@ -29,9 +29,9 @@ def _eq(x, y):
   ) == dataclasses.asdict(y)
 
 
-def make_dataclass(attr_names):
+def make_dataclass(class_name: str, attr_names):
   obj_class = dataclasses.make_dataclass(
-      'Obj',
+      class_name,
       [
           (attr_name, Any, dataclasses.field(default=None))
           for attr_name in attr_names

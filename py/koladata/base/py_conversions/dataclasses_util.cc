@@ -58,9 +58,11 @@ std::vector<absl::string_view> GetSortedAttrNames(
   return sorted_attr_names;
 }
 
-arolla::Fingerprint GetAttrNamesFingerprint(
+arolla::Fingerprint GetDataClassFingerprint(
+    absl::string_view class_name,
     absl::Span<const absl::string_view> sorted_attr_names) {
   arolla::FingerprintHasher hasher("dataclass");
+  hasher.Combine(class_name);
   for (absl::string_view attr_name : sorted_attr_names) {
     hasher.Combine(attr_name);
   }
@@ -100,13 +102,15 @@ absl::StatusOr<PyObjectPtr> InitFnFromModule(absl::string_view fn_name) {
 }  // namespace
 
 absl::StatusOr<PyObjectPtr> DataClassesUtil::MakeDataClass(
+    absl::string_view class_name,
     absl::Span<const absl::string_view> attr_names) {
   RETURN_IF_ERROR(InitFns());
 
   const std::vector<absl::string_view> sorted_attr_names =
       GetSortedAttrNames(attr_names);
   const size_t attr_names_size = sorted_attr_names.size();
-  const arolla::Fingerprint fp = GetAttrNamesFingerprint(sorted_attr_names);
+  const arolla::Fingerprint fp =
+      GetDataClassFingerprint(class_name, sorted_attr_names);
   if (auto it = dataclasses_cache_.find(fp); it != dataclasses_cache_.end()) {
     return it->second;
   }
@@ -118,14 +122,25 @@ absl::StatusOr<PyObjectPtr> DataClassesUtil::MakeDataClass(
         absl::StrFormat("could not create a new list of size %d",
                         attr_names_size));
   }
+  PyObjectPtr py_class_name = PyObjectPtr::Own(
+      PyUnicode_FromStringAndSize(class_name.data(), class_name.size()));
+
+  if (py_class_name == nullptr) {
+    return arolla::python::StatusCausedByPyErr(
+        absl::StatusCode::kInternal,
+        absl::StrFormat("could not create a new string for class name %s",
+                        class_name));
+  }
 
   for (size_t i = 0; i < attr_names_size; ++i) {
     ASSIGN_OR_RETURN(auto py_str, GetPyStr(sorted_attr_names[i]));
     PyList_SET_ITEM(py_list.get(), i, py_str.release());
   }
 
+  PyObject* args[] = {py_class_name.get(), py_list.get()};
+
   PyObjectPtr dataclass = PyObjectPtr::Own(
-      PyObject_CallOneArg(fn_make_dataclass_.get(), /*args=*/py_list.get()));
+      PyObject_Vectorcall(fn_make_dataclass_.get(), args, 2, nullptr));
   if (dataclass == nullptr) {
     return arolla::python::StatusCausedByPyErr(
         absl::StatusCode::kInternal, "could not create a new dataclass");
@@ -189,8 +204,10 @@ absl::StatusOr<PyObjectPtr> DataClassesUtil::GetSimpleNamespaceClass() {
 }
 
 absl::StatusOr<PyObjectPtr> DataClassesUtil::MakeDataClassInstance(
+    absl::string_view class_name,
     absl::Span<const absl::string_view> attr_names) {
-  ASSIGN_OR_RETURN(PyObjectPtr py_dataclass, MakeDataClass(attr_names));
+  ASSIGN_OR_RETURN(PyObjectPtr py_dataclass,
+                   MakeDataClass(class_name, attr_names));
 
   PyObjectPtr py_instance =
       PyObjectPtr::Own(PyObject_CallNoArgs(py_dataclass.get()));
