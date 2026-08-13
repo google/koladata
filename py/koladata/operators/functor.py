@@ -559,8 +559,6 @@ def _switch_bind_args(
     case_keys = eval_clib.eval_or_bind_op('kd.slices.slice', list(cases.keys()))
     case_fns = eval_clib.eval_or_bind_op(
         'kd.slices.slice',
-        # TODO: Should this inner as_qvalue_or_expr be done by
-        # kd.slices.slice?
         [py_boxing.as_qvalue_or_expr(v) for v in cases.values()],
     )
   elif isinstance(cases, data_slice.DataSlice | arolla.Expr):
