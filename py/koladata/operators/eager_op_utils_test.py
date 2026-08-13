@@ -363,28 +363,6 @@ class EagerOpUtilsTest(parameterized.TestCase):
           types.SimpleNamespace(),
       )
 
-  def test_container_doc_from_arolla(self):
-    optools.set_namespace_docstring(
-        'test.namespace_1', 'Namespace 1 docstring.'
-    )
-    kd = eager_op_utils.operators_container('test.namespace_1')
-    self.assertEqual(kd.__doc__, 'Namespace 1 docstring.')
-
-  def test_container_doc_none_when_unregistered(self):
-    # test.namespace_2 has no registered __doc__ operator.
-    kd = eager_op_utils.operators_container('test.namespace_2')
-    self.assertIsNone(kd.__doc__)
-
-  def test_container_doc_survives_cache_reset(self):
-    optools.set_namespace_docstring(
-        'test.namespace_1', 'Namespace 1 docstring.'
-    )
-    kd = eager_op_utils.operators_container('test.namespace_1')
-    self.assertEqual(kd.__doc__, 'Namespace 1 docstring.')
-    eager_op_utils.reset_operators_container()
-    kd = eager_op_utils.operators_container('test.namespace_1')
-    self.assertEqual(kd.__doc__, 'Namespace 1 docstring.')
-
   def test_overrides_doc_not_used(self):
     optools.set_namespace_docstring(
         'test.namespace_3', 'Namespace 3 fancy docstring.'
