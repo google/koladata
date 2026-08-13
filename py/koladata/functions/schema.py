@@ -115,6 +115,8 @@ def schema_from_py(tpe: type[Any]) -> schema_item.SchemaItem:
       return schema_constants.FLOAT32
     if tpe == Any:
       return schema_constants.OBJECT
+    if tpe == py_types.NoneType:
+      return schema_constants.NONE
     if tpe == bool:
       return schema_constants.BOOLEAN
     raise TypeError(f'unsupported type in kd.schema_from_py: {tpe}.')
@@ -133,13 +135,15 @@ _koda_to_py_type_map = {
     schema_constants.STRING: str,
     schema_constants.BYTES: bytes,
 }
-_PRIMITIVETYPE = type[Union[bool, bytes, float, int, str]]
+_PRIMITIVETYPE = type[Union[bool, bytes, float, int, str, py_types.NoneType]]
 
 
 def _primitive_schema_to_py(
     schema: schema_item.SchemaItem,
 ) -> _PRIMITIVETYPE | None:
   """Returns the Python type corresponding to the given Koda primitive schema."""
+  if schema == schema_constants.NONE:
+    return py_types.NoneType
   if schema == schema_constants.OBJECT:
     return Any  # pyrefly: ignore[bad-return]
   if schema not in _koda_to_py_type_map:

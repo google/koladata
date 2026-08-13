@@ -14,6 +14,7 @@
 
 import dataclasses
 import enum
+import types as py_types
 from typing import Annotated, Mapping, Optional, Sequence
 
 from absl.testing import absltest
@@ -51,6 +52,9 @@ class SchemaFromPyTest(absltest.TestCase):
     self.assertEqual(schema.schema_from_py(bytes), schema_constants.BYTES)
     self.assertEqual(
         schema.schema_from_py(bytes | None), schema_constants.BYTES
+    )
+    self.assertEqual(
+        schema.schema_from_py(py_types.NoneType), schema_constants.NONE
     )
 
   def test_schema_from_py_collections(self):

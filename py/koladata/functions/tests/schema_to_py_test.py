@@ -150,6 +150,10 @@ class SchemaToPyTest(parameterized.TestCase):
           schema=kd.OBJECT,
           expected_tpe=Any,
       ),
+      dict(
+          schema=kd.NONE,
+          expected_tpe=types.NoneType,
+      ),
   )
   def test_primitives(self, schema, expected_tpe):
     self.assertEqual(kd_schema.schema_to_py(schema), expected_tpe)
@@ -180,9 +184,6 @@ class SchemaToPyTest(parameterized.TestCase):
       ),
       dict(
           kd_type=kd.ITEMID,
-      ),
-      dict(
-          kd_type=kd.NONE,
       ),
   )
   def test_unsupported_types(self, kd_type):
