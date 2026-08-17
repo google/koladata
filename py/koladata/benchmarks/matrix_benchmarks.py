@@ -599,5 +599,49 @@ def koda_solve(state):
     _ = kd.matrix.solve(a_kd, b_kd, b_ndim=1)
 
 
+# ---- inverse ----
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def numpy_inverse(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    a_np = _make_uniform_invertible_np()
+  else:
+    sizes = _make_jagged_sizes()
+    a_np = _make_jagged_invertible_np(sizes)
+  while state:
+    _ = [np.linalg.inv(a_np[i]) for i in range(BATCH_SIZE)]
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def koda_inverse(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    a_np = _make_uniform_invertible_np()
+  else:
+    sizes = _make_jagged_sizes()
+    a_np = _make_jagged_invertible_np(sizes)
+  a_kd = _np_to_kd_matrices(a_np)
+  # Check that Koda and NumPy agree on a functional level.
+  # Koda treats missing values as 0. Use relaxed tolerance because matrix
+  # inversion amplifies floating-point differences between Eigen and LAPACK.
+  kd.testing.assert_allclose(
+      kd.matrix.inverse(a_kd),
+      _np_to_kd_matrices(
+          [np.linalg.inv(a_np[i].filled(0)) for i in range(BATCH_SIZE)]
+      ),
+      rtol=1e-10,
+  )
+  while state:
+    _ = kd.matrix.inverse(a_kd)
+
+
 if __name__ == '__main__':
   google_benchmark.main()

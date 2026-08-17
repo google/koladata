@@ -347,3 +347,31 @@ def solve(
     The solution x with the same shape as b after broadcasting.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
+    'kd.matrix.inverse',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.a),
+    ],
+)
+def inverse(a):  # pylint: disable=unused-argument
+  """Compute the matrix inverse.
+
+  Produces floating point output. Missing values are treated as 0.
+  Supports leading batch dimensions: (..., n, n) -> (..., n, n).
+
+  NOTE: This function is designed for invertible (non-singular) matrices.
+  For singular or near-singular matrices, results are undefined — they may
+  contain inf, nan, or large finite values that do not represent meaningful
+  solutions. In batched mode, each batch element is solved independently, so
+  a singular matrix only affects its own batch element.
+
+  Args:
+    a: A square matrix (..., n, n).
+
+  Returns:
+    The inverse matrix with the same shape.
+  """
+  raise NotImplementedError('implemented in the backend')

@@ -92,6 +92,25 @@ Args:
 Returns:
   A DataSlice with the dot product value(s).</code></pre>
 
+### `kd.matrix.inverse(a)` {#kd.matrix.inverse}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Compute the matrix inverse.
+
+Produces floating point output. Missing values are treated as 0.
+Supports leading batch dimensions: (..., n, n) -&gt; (..., n, n).
+
+NOTE: This function is designed for invertible (non-singular) matrices.
+For singular or near-singular matrices, results are undefined — they may
+contain inf, nan, or large finite values that do not represent meaningful
+solutions. In batched mode, each batch element is solved independently, so
+a singular matrix only affects its own batch element.
+
+Args:
+  a: A square matrix (..., n, n).
+
+Returns:
+  The inverse matrix with the same shape.</code></pre>
+
 ### `kd.matrix.matmul(a, b, *, a_ndim=-1, b_ndim=-1)` {#kd.matrix.matmul}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Matrix multiplication.

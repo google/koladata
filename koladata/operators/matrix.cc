@@ -759,4 +759,60 @@ absl::StatusOr<DataSlice> MatrixSolve(const DataSlice& a, const DataSlice& b,
   return do_solve_matrix.operator()<double>();
 }
 
+absl::StatusOr<DataSlice> MatrixInverse(const DataSlice& a) {
+  const int rank = a.GetShape().rank();
+  if (rank < 2) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("expected at least 2D, got ", rank, "D"));
+  }
+
+  ASSIGN_OR_RETURN(auto mat_infos,
+                   matrix_helpers::ExtractMatrix2DInfos(a.GetShape()));
+  const int64_t num_matrices = mat_infos.size();
+  for (int64_t p = 0; p < num_matrices; ++p) {
+    if (mat_infos[p].m != mat_infos[p].n) {
+      return absl::InvalidArgumentError(
+          absl::StrCat("matrix ", p, " is not square (", mat_infos[p].m, ", ",
+                       mat_infos[p].n, ")"));
+    }
+  }
+
+  const bool is_object_schema =
+      a.GetSchemaImpl() == internal::DataItem(schema::kObject);
+  ASSIGN_OR_RETURN(auto a_narrowed_schema,
+                   matrix_helpers::GetNarrowedMatrixSchema(a));
+  ASSIGN_OR_RETURN(auto desired_float_schema,
+                   schema::CommonSchema(a_narrowed_schema,
+                                        internal::DataItem(schema::kFloat32)));
+  const bool output_float32 =
+      desired_float_schema == internal::DataItem(schema::kFloat32);
+
+  ASSIGN_OR_RETURN(auto float_a,
+                   CastToExplicit(a, internal::DataItem(schema::kFloat64)));
+  auto flat_data = matrix_helpers::ExtractFlat<double>(float_a);
+
+  auto do_inverse = [&]<typename OutputT>() -> absl::StatusOr<DataSlice> {
+    std::vector<OutputT> result(a.GetShape().size());
+    for (int64_t p = 0; p < num_matrices; ++p) {
+      const int64_t n = mat_infos[p].m;
+      Eigen::Map<const RowMajorMatrix<double>> mat(
+          flat_data.data() + mat_infos[p].offset, n, n);
+      Eigen::Map<RowMajorMatrix<OutputT>> out_mat(
+          result.data() + mat_infos[p].offset, n, n);
+      out_mat = mat.inverse().template cast<OutputT>();
+    }
+    ASSIGN_OR_RETURN(auto result_ds, matrix_helpers::BuildFromFlat<OutputT>(
+                                         std::move(result), a.GetShape()));
+    if (is_object_schema) {
+      return result_ds.WithSchema(internal::DataItem(schema::kObject));
+    }
+    return result_ds;
+  };
+
+  if (output_float32) {
+    return do_inverse.operator()<float>();
+  }
+  return do_inverse.operator()<double>();
+}
+
 }  // namespace koladata::ops

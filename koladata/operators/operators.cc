@@ -387,6 +387,7 @@ OPERATOR("kd.math.t_distribution_inverse_cdf", TDistributionInverseCdf);
 //
 OPERATOR("kd.matrix.diag_matrix", MatrixDiagMatrix);
 OPERATOR("kd.matrix.diag_vector", MatrixDiagVector);
+OPERATOR("kd.matrix.inverse", MatrixInverse);
 OPERATOR("kd.matrix.matmul", MatrixMatmul);
 OPERATOR("kd.matrix.outer", MatrixOuter);
 OPERATOR("kd.matrix.solve", MatrixSolve);

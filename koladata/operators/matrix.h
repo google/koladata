@@ -57,6 +57,10 @@ absl::StatusOr<DataSlice> MatrixDiagVector(const DataSlice& x,
 absl::StatusOr<DataSlice> MatrixSolve(const DataSlice& a, const DataSlice& b,
                                       const DataSlice& b_ndim);
 
+// kd.matrix.inverse: Compute matrix inverse.
+// (..., n, n) -> (..., n, n). Supports batch dimensions.
+absl::StatusOr<DataSlice> MatrixInverse(const DataSlice& a);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_MATRIX_H_
