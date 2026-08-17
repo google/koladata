@@ -77,7 +77,7 @@ class MathDivideTest(parameterized.TestCase):
       (
           ds([8, None, 0], schema_constants.OBJECT),
           ds([4, 1, 3], schema_constants.INT64),
-          ds([2.0, None, 0.0]).with_schema(schema_constants.OBJECT),
+          ds([2.0, None, 0.0], schema=schema_constants.OBJECT),
       ),
       # Empty and unknown inputs.
       (

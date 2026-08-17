@@ -64,7 +64,7 @@ class MathSqrtTest(parameterized.TestCase):
       # OBJECT
       (
           ds([4, None, 0], schema_constants.OBJECT),
-          ds([2.0, None, 0.0]).with_schema(schema_constants.OBJECT),
+          ds([2.0, None, 0.0], schema=schema_constants.OBJECT),
       ),
       # Empty and unknown inputs.
       (

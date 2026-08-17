@@ -75,8 +75,9 @@ class MathFloorDivTest(parameterized.TestCase):
       (
           ds([5, None, -5], schema_constants.OBJECT),
           ds([2, 1, 2], schema_constants.INT64),
-          ds([2, None, -3], schema_constants.INT64).with_schema(
-              schema_constants.OBJECT
+          ds(
+              [arolla.int64(2), None, arolla.int64(-3)],
+              schema=schema_constants.OBJECT,
           ),
       ),
       # Empty and unknown inputs.

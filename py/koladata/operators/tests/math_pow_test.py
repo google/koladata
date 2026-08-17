@@ -75,7 +75,7 @@ class MathPowTest(parameterized.TestCase):
       (
           ds([2, None, 0], schema_constants.OBJECT),
           ds([2, 1, 3], schema_constants.INT64),
-          ds([4.0, None, 0.0]).with_schema(schema_constants.OBJECT),
+          ds([4.0, None, 0.0], schema=schema_constants.OBJECT),
       ),
       # Empty and unknown inputs.
       (

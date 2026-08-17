@@ -76,8 +76,9 @@ class MathModTest(parameterized.TestCase):
       (
           ds([5, None, -5], schema_constants.OBJECT),
           ds([2, 1, 2], schema_constants.INT64),
-          ds([1, None, 1], schema_constants.INT64).with_schema(
-              schema_constants.OBJECT
+          ds(
+              [arolla.int64(1), None, arolla.int64(1)],
+              schema=schema_constants.OBJECT,
           ),
       ),
       # Empty and unknown inputs.
