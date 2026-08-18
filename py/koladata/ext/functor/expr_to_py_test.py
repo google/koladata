@@ -733,12 +733,50 @@ class ExprToPyTest(parameterized.TestCase):
     ):
       expr_to_py.expr_to_py(expr, 'my_func', sig, set())
 
-  def test_non_deterministic_ops_not_supported(self):
+  # Non-deterministic operators have an extra hidden dep with
+  # NON_DETERMINISTIC_TOKEN qtype. For operators using unified binding policy,
+  # this dep is stripped in _assemble_unified_operator and the operator is
+  # converted normally. Operators with other binding policies (e.g. adhoc) will
+  # be supported on a case-by-case basis as non-determinism is supported
+  # uniformly only in unified binding policy.
+
+  def test_non_deterministic_op(self):
+    expr = kd.lazy.bags.new()
+    sig = inspect.signature(lambda: None)
+    ast_node = expr_to_py.expr_to_py(expr, 'my_func', sig, set())
+    expected_code = textwrap.dedent("""\
+      def my_func():
+          return kd.bags.new()
+    """).strip()
+    self.assertEqual(ast.unparse(ast_node), expected_code)
+
+  def test_non_deterministic_op_with_args(self):
+    expr = kd.lazy.allocation.new_itemid_shaped(kd.I.shape)
+    sig = inspect.signature(lambda *, shape: None)
+    ast_node = expr_to_py.expr_to_py(expr, 'my_func', sig, set())
+    expected_code = textwrap.dedent("""\
+      def my_func(*, shape):
+          return kd.allocation.new_itemid_shaped(shape)
+    """).strip()
+    self.assertEqual(ast.unparse(ast_node), expected_code)
+
+  def test_non_deterministic_op_with_kwargs(self):
+    expr = kd.lazy.new(x=kd.I.x, y=kd.I.y)
+    sig = inspect.signature(lambda *, x, y: None)
+    ast_node = expr_to_py.expr_to_py(expr, 'my_func', sig, set())
+    expected_code = textwrap.dedent("""\
+      def my_func(*, x, y):
+          return kd.new(schema=arolla.unspecified(), overwrite_schema=False, itemid=arolla.unspecified(), x=x, y=y)
+    """).strip()
+    self.assertEqual(ast.unparse(ast_node), expected_code)
+
+  def test_non_deterministic_op_with_unsupported_aux_policy(self):
+    # kd.lists.new uses koladata_adhoc_binding_policy, which is not supported.
     expr = kd.lazy.list()
     sig = inspect.signature(lambda x: None)
     with self.assertRaisesRegex(
         ValueError,
-        r'\[my_func\] non-deterministic operators are not supported',
+        r'\[my_func\] operator with unsupported aux policy: kd.list',
     ):
       expr_to_py.expr_to_py(expr, 'my_func', sig, set())
 

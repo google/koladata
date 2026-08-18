@@ -260,13 +260,6 @@ def _get_variable_name(node: kd.types.Expr) -> str:
   return var_name
 
 
-def _is_non_deterministic_op(node: kd.types.Expr) -> bool:
-  for dep in node.node_deps:
-    if dep.qtype == kd.qtypes.NON_DETERMINISTIC_TOKEN:
-      return True
-  return False
-
-
 def _get_in_degrees(expr: kd.types.Expr) -> dict[arolla.abc.Fingerprint, int]:
   """Computes the in-degree of each node in the expression graph."""
   in_degrees = collections.defaultdict(int)
@@ -871,6 +864,9 @@ class _Expr2PyAst:
       op: The operator to convert.
       node_deps: The operator's dependencies.
     """
+    # Remove non-deterministic token if it's present.
+    if node_deps and node_deps[-1].qtype == kd.qtypes.NON_DETERMINISTIC_TOKEN:
+      node_deps = node_deps[:-1]
     func = ast.Name(id=op.display_name, ctx=ast.Load())
     positional_args = []
     keyword_args = []
@@ -947,7 +943,6 @@ class _Expr2PyAst:
   def _convert_operator(self, node: kd.types.Expr) -> ast.expr:
     """Converts a Koda operator expression into a Python AST."""
     assert node.is_operator
-    op_name = node.op.display_name
 
     if (lst := _get_multidim_literal(node)) is not None:
       return qvalue_to_py(lst)
@@ -983,12 +978,6 @@ class _Expr2PyAst:
       # Map internal slice/constructor operators back to their user-facing Koda
       # Python names (e.g. 'kd.slice', 'kd.float32').
       ast_node = self._convert_slice_op(node, slice_op_name)
-
-    elif _is_non_deterministic_op(node):
-      raise ValueError(
-          f'[{self._name}] non-deterministic operators are not supported:'
-          f' {op_name}'
-      )
 
     else:
       ast_node = self._assemble_python_operator(node.op, node.node_deps)

@@ -1,0 +1,20 @@
+"""Auto-generated Python code representing a Koda Functor converted to evaluation-equivalent Python.
+
+Do not edit manually.
+"""
+
+from arolla import arolla
+from koladata import kd
+
+
+def top(x, y):
+  _1 = kd.new(
+      schema=kd.uu_schema('', a=kd.INT32, b=kd.INT32),
+      overwrite_schema=False,
+      itemid=kd.allocation.new_itemid(),
+      a=x,
+      b=y,
+  )
+  return kd.get_attr(_1, 'a', arolla.unspecified()) + kd.get_attr(
+      _1, 'b', arolla.unspecified()
+  )
