@@ -7269,8 +7269,8 @@ koda_operator_coverage_test(
     arolla_op = "core.equal",
     koda_op = "comparison.equal",
     skip_test_patterns = [
-        ".*weak_float.*",
-        ".*uint64.*",
+        "(?i:.*weak_float.*)",
+        "(?i:.*uint64.*)",
         ".*INT32.*",  # Unsupported test with qtypes comparison.
     ],
 )
@@ -7280,8 +7280,8 @@ koda_operator_coverage_test(
     arolla_op = "core.not_equal",
     koda_op = "comparison.not_equal",
     skip_test_patterns = [
-        ".*weak_float.*",
-        ".*uint64.*",
+        "(?i:.*weak_float.*)",
+        "(?i:.*uint64.*)",
         ".*INT32.*",  # Unsupported test with qtypes comparison.
     ],
 )
@@ -7291,8 +7291,8 @@ koda_operator_coverage_test(
     arolla_op = "core.greater",
     koda_op = "comparison.greater",
     skip_test_patterns = [
-        ".*weak_float.*",
-        ".*uint64.*",
+        "(?i:.*weak_float.*)",
+        "(?i:.*uint64.*)",
     ],
 )
 
@@ -7301,8 +7301,8 @@ koda_operator_coverage_test(
     arolla_op = "core.greater_equal",
     koda_op = "comparison.greater_equal",
     skip_test_patterns = [
-        ".*weak_float.*",
-        ".*uint64.*",
+        "(?i:.*weak_float.*)",
+        "(?i:.*uint64.*)",
     ],
 )
 
@@ -7311,8 +7311,8 @@ koda_operator_coverage_test(
     arolla_op = "core.less",
     koda_op = "comparison.less",
     skip_test_patterns = [
-        ".*weak_float.*",
-        ".*uint64.*",
+        "(?i:.*weak_float.*)",
+        "(?i:.*uint64.*)",
     ],
 )
 
@@ -7321,8 +7321,8 @@ koda_operator_coverage_test(
     arolla_op = "core.less_equal",
     koda_op = "comparison.less_equal",
     skip_test_patterns = [
-        ".*weak_float.*",
-        ".*uint64.*",
+        "(?i:.*weak_float.*)",
+        "(?i:.*uint64.*)",
     ],
 )
 

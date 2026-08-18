@@ -55,6 +55,9 @@ class DataSliceManagerView:
 
   _HAS_DYNAMIC_ATTRIBUTES = True  # go/pytype-dynamic-attributes
 
+  _data_slice_manager: data_slice_manager_interface.DataSliceManagerInterface
+  _path_from_root: data_slice_path_lib.DataSlicePath
+
   def __init__(
       self,
       manager: data_slice_manager_interface.DataSliceManagerInterface,
@@ -130,14 +133,14 @@ class DataSliceManagerView:
         all their descendants will be populated.
     """
     self._check_path_from_root_is_valid()
-    populate = {v.get_path_from_root() for v in populate or []}  # pyrefly: ignore[bad-assignment]
-    populate.add(self._path_from_root)  # pyrefly: ignore[missing-attribute]
-    populate_including_descendants = {  # pyrefly: ignore[bad-assignment]
+    populate_paths = {v.get_path_from_root() for v in populate or []}
+    populate_paths.add(self._path_from_root)
+    populate_including_descendants_paths = {
         v.get_path_from_root() for v in populate_including_descendants or []
     }
     ds = self._data_slice_manager.get_data_slice(
-        populate=populate,
-        populate_including_descendants=populate_including_descendants,
+        populate=populate_paths,
+        populate_including_descendants=populate_including_descendants_paths,
     )
     return self._path_from_root.evaluate(ds)  # pyrefly: ignore[not-callable]
 
@@ -398,7 +401,7 @@ class DataSliceManagerView:
     DataSliceManager. This method always returns the path, even if the view is
     currently invalid, i.e. even if self.is_view_valid() is False.
     """
-    return self._path_from_root  # pyrefly: ignore[bad-return]
+    return self._path_from_root
 
   def get_manager(
       self,
@@ -408,7 +411,7 @@ class DataSliceManagerView:
     Always succeeds, even if the view is currently invalid, i.e. even if
     self.is_view_valid() is False.
     """
-    return self._data_slice_manager  # pyrefly: ignore[bad-return]
+    return self._data_slice_manager
 
   def is_view_valid(self) -> bool:
     """Returns True iff the view path is valid. Never raises an error."""

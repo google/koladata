@@ -69,7 +69,7 @@ class CompositeInitialDataManager(
     # pinned to the current revision.
     managers = [m.get_readonly_copy() for m in managers]
 
-    return CompositeInitialDataManager(  # pyrefly: ignore[bad-return]
+    return cls(
         internal_call=_INTERNAL_CALL,
         managers=managers,
     )

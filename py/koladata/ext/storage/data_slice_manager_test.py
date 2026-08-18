@@ -94,14 +94,11 @@ class DataSliceManagerTest(parameterized.TestCase):
         len(actual_available_data_slice_paths),
         len(expected_available_data_slice_paths),
     )
-    expected_available_data_slice_paths = set(  # pyrefly: ignore[bad-assignment]
+    expected_paths = set(
         data_slice_path_lib.DataSlicePath.parse_from_string(s)
         for s in expected_available_data_slice_paths
     )
-    self.assertEqual(
-        actual_available_data_slice_paths,
-        expected_available_data_slice_paths,
-    )
+    self.assertEqual(actual_available_data_slice_paths, expected_paths)
 
   def assert_manager_schema_node_names_to_num_bags(
       self,

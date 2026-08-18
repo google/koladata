@@ -1001,10 +1001,11 @@ class OptoolsTest(parameterized.TestCase):
 
     try:
       expr_eval.eval(outer_lambda(I.x, I.y), x=ds(1), y=ds(0))
+      self.fail('ValueError was not raised')
     except ValueError as e:
       ex = e
 
-    tb = '\n'.join(traceback.format_tb(ex.__traceback__))  # pyrefly: ignore[unbound-name]
+    tb = '\n'.join(traceback.format_tb(ex.__traceback__))
     self.assertRegex(tb, 'optools_test.py.*line [0-9]+.*inner_lambda')
     self.assertRegex(tb, 'optools_test.py.*line [0-9]+.*outer_lambda')
 

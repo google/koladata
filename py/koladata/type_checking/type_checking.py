@@ -106,20 +106,22 @@ class _DuckType(object):
   leaves are concrete schemas.
   """
 
+  _fields: dict[str, TypeConstraint]
+
   def __init__(self, **kwargs: TypeConstraint):
     self.__dict__['_fields'] = kwargs
 
   def __iter__(self):
-    return iter(self._fields)  # pyrefly: ignore[no-matching-overload]
+    return iter(self._fields)
 
   def __getattr__(self, key: str) -> TypeConstraint:
     try:
-      return self._fields[key]  # pyrefly: ignore[bad-index, bad-return]
+      return self._fields[key]
     except KeyError as e:
       raise AttributeError(key) from e
 
   def __getitem__(self, key: str):
-    return self._fields[key]  # pyrefly: ignore[bad-index]
+    return self._fields[key]
 
   def __setattr__(self, key: str, value: TypeConstraint):
     raise NotImplementedError(

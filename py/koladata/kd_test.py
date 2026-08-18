@@ -147,7 +147,7 @@ class KdTest(absltest.TestCase):
       self.assertFalse(api_name.startswith('_'))
 
   def test_docstring(self):
-    self.assertIn('Koda API', kd.__doc__)  # pyrefly: ignore[bad-argument-type]
+    self.assertIn('Koda API', str(kd.__doc__))
 
   def test_kdf(self):
     fn = kdf.expr_fn(

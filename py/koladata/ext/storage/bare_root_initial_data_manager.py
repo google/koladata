@@ -70,7 +70,7 @@ class BareRootInitialDataManager(
     # Checks that the root schema is acceptable, e.g. that it does not contain
     # non-primitive metadata attributes:
     schema_helper = schema_helper_lib.SchemaHelper(root_schema)
-    return BareRootInitialDataManager(  # pyrefly: ignore[bad-return]
+    return cls(
         internal_call=_INTERNAL_CALL,
         root_item=root_item,
         schema_helper=schema_helper,

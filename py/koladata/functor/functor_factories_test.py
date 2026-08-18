@@ -1376,14 +1376,12 @@ class FunctorFactoriesTest(parameterized.TestCase):
 
     try:
       kd.call(fn3)
+      self.fail('ValueError was not raised')
     except ValueError as e:
       ex = e
 
-    self.assertEqual(
-        str(ex),  # pylint: disable=undefined-variable  # pyrefly: ignore[unbound-name]
-        'kd.math.floordiv: division by zero',
-    )
-    tb = '\n'.join(traceback.format_tb(ex.__traceback__))  # pylint: disable=undefined-variable
+    self.assertEqual(str(ex), 'kd.math.floordiv: division by zero')
+    tb = '\n'.join(traceback.format_tb(ex.__traceback__))
     self.assertIn('File "my_file.py", line 57, in fn1', tb)
     self.assertIn('File "my_file.py", line 58, in', tb)
     self.assertNotIn('File ""', tb)

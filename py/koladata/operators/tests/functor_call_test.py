@@ -185,10 +185,11 @@ class FunctorCallTest(parameterized.TestCase):
     )
     try:
       expr_eval.eval(kde.call(fn, fns.new(bar=57)))
+      self.fail('ValueError was not raised')
     except ValueError as e:
       ex = e
 
-    self.assertIn("failed to get attribute 'foo'", str(ex))  # pyrefly: ignore[unbound-name]
+    self.assertIn("failed to get attribute 'foo'", str(ex))
     tb = '\n'.join(traceback.format_tb(ex.__traceback__))
     self.assertIn('File "test_file.py", line 57, in test_function', tb)
     self.assertIn('py/koladata/expr/expr_eval.py', tb)

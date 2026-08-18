@@ -323,15 +323,14 @@ class TracingDecoratorTest(parameterized.TestCase):
 
     try:
       f(0)
+      self.fail('ValueError was not raised')
     except ValueError as e:
       ex = e
 
     formatted_message = '\n'.join(
         ultratb.VerboseTB(
             color_scheme='NoColor', include_vars=False
-        ).structured_traceback(
-            type(ex), ex, ex.__traceback__  # pylint: disable=undefined-variable  # pyrefly: ignore[unbound-name]
-        )
+        ).structured_traceback(type(ex), ex, ex.__traceback__)
     )
     self.assertNotIn('/tracing_decorator.py', formatted_message)
     self.assertIn('/tracing_decorator_test.py', formatted_message)
@@ -354,10 +353,11 @@ class TracingDecoratorTest(parameterized.TestCase):
 
     try:
       baz(0)
+      self.fail('ValueError was not raised')
     except ValueError as e:
       ex = e
 
-    self.assertEqual(str(ex), 'kd.math.floordiv: division by zero')  # pylint: disable=undefined-variable  # pyrefly: ignore[unbound-name]
+    self.assertEqual(str(ex), 'kd.math.floordiv: division by zero')
 
     tb = '\n'.join(
         ultratb.VerboseTB(
@@ -395,10 +395,11 @@ class TracingDecoratorTest(parameterized.TestCase):
 
     try:
       foo(0)
+      self.fail('ValueError was not raised')
     except ValueError as e:
       ex = e
 
-    self.assertEqual(str(ex), 'kd.math.floordiv: division by zero')  # pylint: disable=undefined-variable  # pyrefly: ignore[unbound-name]
+    self.assertEqual(str(ex), 'kd.math.floordiv: division by zero')
 
     tb = '\n'.join(
         ultratb.VerboseTB(

@@ -120,10 +120,11 @@ class AnnotationSourceLocationTest(absltest.TestCase):
 
     try:
       expr_eval.eval(expr, x=1, y=0)
+      self.fail('ValueError was not raised')
     except ValueError as e:
       ex = e
 
-    self.assertEqual(str(ex), 'kd.math.floordiv: division by zero')  # pyrefly: ignore[unbound-name]
+    self.assertEqual(str(ex), 'kd.math.floordiv: division by zero')
     tb = '\n'.join(traceback.format_tb(ex.__traceback__))
     self.assertRegex(tb, 'file.py.*line 57.*inner_lambda')
     self.assertRegex(tb, 'file.py.*line 58.*outer_lambda')
