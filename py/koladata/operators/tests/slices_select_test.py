@@ -21,7 +21,6 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor import boxing as _
 from koladata.functor import functor_factories
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.testdata import slices_select_testdata
@@ -31,10 +30,9 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
-
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
-kd = eager_op_utils.operators_container('kd')
+kd = kde_operators.kd
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
@@ -184,11 +182,9 @@ class SlicesSelectTest(parameterized.TestCase):
             ' expand_filter=False because its size is always 1.'
         ),
     ):
-
       kd.slices.select(ds([1, 2]), ds(arolla.present()), expand_filter=False)
 
   def test_select_expr_filter(self):
-    kd_select = eager_op_utils.EagerOperator(kde.slices.select)
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         'kd.slices.select: for eager evaluation, all arguments must be eager'
@@ -197,7 +193,7 @@ class SlicesSelectTest(parameterized.TestCase):
         ' Expr into a Koda Functor using kd.fn(expr) or use corresponding'
         ' kd.lazy operator',
     ):
-      kd_select(ds([1, 2, None, 4]), I.x > 1)
+      kd.slices.select(ds([1, 2, None, 4]), I.x > 1)
 
   def test_select_expand_to_shape(self):
     x = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])

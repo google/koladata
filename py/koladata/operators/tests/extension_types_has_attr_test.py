@@ -19,7 +19,6 @@ from arolla.objects import objects
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.extension_types import extension_types
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -30,7 +29,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer("I")
 kde = kde_operators.kde
-kd = eager_op_utils.operators_container("kd")
+kd = kde_operators.kd
 ds = data_slice.DataSlice.from_vals
 bag = data_bag.DataBag.empty
 

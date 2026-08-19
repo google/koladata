@@ -18,7 +18,6 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -28,10 +27,9 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
-eager = eager_op_utils.operators_container('kd')
 I = input_container.InputContainer('I')
+kd = kde_operators.kd
 kde = kde_operators.kde
-kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -45,8 +43,8 @@ class CoreGetAttrTest(parameterized.TestCase):
   def setUp(self):
     super().setUp()
     self.db = data_bag.DataBag.empty_mutable()
-    self.entity = eager.new(a=ds([1, 2, 3]), b=ds(['a', None, 'c']))
-    self.object = eager.obj(a=ds([1, 2, 3]), b=ds(['a', None, 'c']))
+    self.entity = kd.new(a=ds([1, 2, 3]), b=ds(['a', None, 'c']))
+    self.object = kd.obj(a=ds([1, 2, 3]), b=ds(['a', None, 'c']))
 
   @parameterized.parameters(
       (kde.maybe(I.x, 'a'), ds([1, 2, 3])),
@@ -129,8 +127,8 @@ class CoreGetAttrTest(parameterized.TestCase):
       ('multiple', ds(['a', 'a']))
   )
   def test_obj_respects_schema(self, attrs):
-    obj = eager.obj(a=ds([1, None]))
-    obj = obj.with_attr('__schema__', eager.obj().get_obj_schema())
+    obj = kd.obj(a=ds([1, None]))
+    obj = obj.with_attr('__schema__', kd.obj().get_obj_schema())
     res = kd.maybe(obj, attrs)
     testing.assert_equal(res, ds([None, None]).with_bag(obj.get_bag()))
 
@@ -139,8 +137,8 @@ class CoreGetAttrTest(parameterized.TestCase):
       ('multiple', ds(['a', 'a']))
   )
   def test_entity_respects_schema(self, attrs):
-    entity = eager.new(a=ds([1, None]))
-    entity = entity.with_schema(eager.new().get_schema())
+    entity = kd.new(a=ds([1, None]))
+    entity = entity.with_schema(kd.new().get_schema())
     res = kd.maybe(entity, attrs)
     testing.assert_equal(res, ds([None, None]).with_bag(entity.get_bag()))
 
@@ -149,7 +147,7 @@ class CoreGetAttrTest(parameterized.TestCase):
       ('multiple', ds(['__schema__', '__schema__']))
   )
   def test_obj_schema_attr(self, attrs):
-    obj = eager.obj(a=ds([1, None]))
+    obj = kd.obj(a=ds([1, None]))
     res = kd.maybe(obj, attrs)
     testing.assert_equal(res, obj.get_obj_schema())
 
@@ -158,7 +156,7 @@ class CoreGetAttrTest(parameterized.TestCase):
       ('multiple', ds(['__schema__', '__schema__']))
   )
   def test_entity_schema_attr(self, attrs):
-    entity = eager.new(a=ds([1, None]))
+    entity = kd.new(a=ds([1, None]))
     res = kd.maybe(entity, attrs)
     testing.assert_equal(res, ds([None, None]).with_bag(entity.get_bag()))
 
@@ -168,7 +166,7 @@ class CoreGetAttrTest(parameterized.TestCase):
         'argument `attr_name` must be an item holding STRING, got an item of'
         ' INT32',
     ):
-      eager.core.maybe(self.entity, 42)
+      kd.core.maybe(self.entity, 42)
 
   @parameterized.parameters(
       (
@@ -190,8 +188,8 @@ class CoreGetAttrTest(parameterized.TestCase):
 
       kd.core.maybe(
           ds([
-              eager.new(a=eager.new(y=1), b=1),
-              eager.new(a=eager.new(y=2), b=2),
+              kd.new(a=kd.new(y=1), b=1),
+              kd.new(a=kd.new(y=2), b=2),
           ]),
           ds(['a', 'b']),
       )

@@ -27,7 +27,6 @@ from koladata.functions import functions as fns
 from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
 from koladata.functor.parallel import clib as _
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes
@@ -55,7 +54,7 @@ S = I.self
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 kde_internal = kde_operators.internal
-kd = eager_op_utils.operators_container('kd')
+kd = kde_operators.kd
 _PARALLEL_CALL_REPLACEMENT_CONTEXT = expr_eval.eval(
     kde_internal.parallel.create_transform_config(
         fns.obj(

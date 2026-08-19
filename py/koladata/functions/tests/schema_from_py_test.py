@@ -20,12 +20,11 @@ from typing import Annotated, Mapping, Optional, Sequence
 from absl.testing import absltest
 from koladata.functions import attrs
 from koladata.functions import schema
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.types import schema_constants
 
 
-kd = eager_op_utils.operators_container('kd')
+kd = kde_operators.kd
 kde = kde_operators.kde
 
 

@@ -21,7 +21,6 @@ from koladata.functions import functions as fns
 from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
 from koladata.functor.visitor import visitor
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import schema_constants
@@ -29,7 +28,7 @@ from koladata.types import schema_constants
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 
-_kd = eager_op_utils.operators_container('kd')
+_kd = kde_operators.kd
 
 
 class VisitFunctorsTest(absltest.TestCase):

@@ -317,9 +317,7 @@ _same_when_tracing = lambda obj: _tracing_mode.same_when_tracing(
 
 
 def _init_ops_and_containers():
-  eager_ops = _eager_op_utils.operators_container(
-      top_level_arolla_container=_lazy_ops.my_project_ops
-  )
+  eager_ops = _eager_op_utils.operators_container(_lazy_ops.my_project_ops)
   for op_or_container_name in dir(eager_ops):
     globals()[op_or_container_name] = _dispatch(
         eager=getattr(eager_ops, op_or_container_name),

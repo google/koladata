@@ -20,7 +20,6 @@ from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import object_factories
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -30,7 +29,7 @@ from koladata.types import data_slice
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
-kd = eager_op_utils.operators_container('kd')
+kd = kde_operators.kd
 
 
 class PyApplyPyTest(parameterized.TestCase):

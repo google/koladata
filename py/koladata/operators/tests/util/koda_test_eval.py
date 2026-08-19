@@ -30,7 +30,7 @@ from typing import Any, Callable, Sequence
 
 from arolla import arolla
 from arolla.operator_tests import backend_test_base_flags
-from koladata.operators import eager_op_utils
+from koladata.operators import kde_operators
 from koladata.operators.tests.util import data_conversion
 from koladata.types import data_slice
 from koladata.types import jagged_shape
@@ -39,7 +39,7 @@ KodaValue = Any
 # NOTE: We use eager operators instead of lazy operators since they implement a
 # superset of the functionality of lazy operators. This way, we ensure that all
 # paths are stress tested.
-kd = eager_op_utils.operators_container('kd')
+kd = kde_operators.kd
 
 
 @functools.cache

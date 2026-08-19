@@ -19,7 +19,6 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.functor import functor_factories
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -88,7 +87,7 @@ class FunctorIfTest(absltest.TestCase):
       _ = expr_eval.eval(expr, x=ds(1))
 
   def test_eager_mode(self):
-    kd = eager_op_utils.operators_container('kd')
+    kd = kde_operators.kd
     testing.assert_equal(
         kd.functor.if_(
             mask_constants.present, lambda x: x + 1, lambda x: x - 1, 5

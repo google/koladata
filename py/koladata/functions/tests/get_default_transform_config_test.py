@@ -27,7 +27,6 @@ from koladata.functions import parallel as parallel_fns
 from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
 from koladata.functor.parallel import clib
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes
@@ -39,7 +38,7 @@ from koladata.types import mask_constants
 ds = data_slice.DataSlice.from_vals
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
-kd = eager_op_utils.operators_container('kd')
+kd = kde_operators.kd
 kde_internal = kde_operators.internal
 
 

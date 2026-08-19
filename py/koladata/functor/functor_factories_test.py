@@ -32,7 +32,6 @@ from koladata.functions import py_conversions
 from koladata.functions import s11n
 from koladata.functor import boxing as _
 from koladata.functor import functor_factories
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -46,7 +45,7 @@ from koladata.types import signature_utils
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 ds = data_slice.DataSlice.from_vals
-kd = eager_op_utils.operators_container('kd')
+kd = kde_operators.kd
 kde = kde_operators.kde
 kdi = user_facing_kd.eager
 pack_expr = introspection.pack_expr

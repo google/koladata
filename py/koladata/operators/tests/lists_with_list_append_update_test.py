@@ -16,7 +16,6 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -24,10 +23,10 @@ from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import schema_constants
 
-eager = eager_op_utils.operators_container('kd')
 I = input_container.InputContainer('I')
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
+kd = kde_operators.kd
 kde = kde_operators.kde
 
 db = bag()
@@ -81,7 +80,7 @@ class KodaListWithAppendUpdateTest(parameterized.TestCase):
   )
   def test_eval(self, x, append, expected):
     testing.assert_equivalent(
-        eager.with_list_append_update(x.freeze_bag(), append), expected
+        kd.with_list_append_update(x.freeze_bag(), append), expected
     )
 
   def test_db_adoption(self):
@@ -90,7 +89,7 @@ class KodaListWithAppendUpdateTest(parameterized.TestCase):
     x = db1.list([e1]).freeze_bag()
     db2 = bag()
     e2 = db2.obj(a=2)
-    result = eager.lists.with_list_append_update(x, e2)
+    result = kd.lists.with_list_append_update(x, e2)
 
     testing.assert_equal(result[0].a, ds(1).with_bag(result.get_bag()))
     testing.assert_equal(result[1].a, ds(2).with_bag(result.get_bag()))
@@ -136,13 +135,13 @@ class KodaListWithAppendUpdateTest(parameterized.TestCase):
         ValueError,
         err_regex,
     ):
-      _ = eager.with_list_append_update(x, append)
+      _ = kd.with_list_append_update(x, append)
 
   def test_merge_overwrite(self):
     lst = bag().list([bag().uu(a=1)]).freeze_bag()
     e = bag().uu(a=1)
     e.set_attr('a', 2)
-    result = eager.lists.with_list_append_update(lst, e)
+    result = kd.lists.with_list_append_update(lst, e)
 
     testing.assert_equal(result[0].a, ds(2).with_bag(result.get_bag()))
     testing.assert_equal(result[1].a, ds(2).with_bag(result.get_bag()))

@@ -198,6 +198,7 @@ py_library(
         "//py/koladata:kd",
         "//py/koladata/ext/contrib:operators",
         "//py/koladata/ext/ids:operators",
+        "//py/koladata/operators:eager_op_utils",
     ],
 )
 

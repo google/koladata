@@ -101,6 +101,7 @@ py_library(
     ],
     deps = [
         ":cc_operators_py_clib",
+        ":eager_op_utils",
         ":functor",
         ":operators_in_cc_operator_package",
         ":py",
@@ -732,9 +733,9 @@ py_library(
     srcs = ["eager_op_utils.py"],
     visibility = [
         "//koladata:internal",
+        "//py/koladata/ext:__subpackages__",
     ],
     deps = [
-        ":kde_operators",
         "//py:python_path",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
@@ -1062,6 +1063,7 @@ py_test(
     srcs = ["eager_op_utils_test.py"],
     deps = [
         ":eager_op_utils",
+        ":kde_operators",
         ":optools",
         "//py:python_path",
         "//py/koladata/testing",

@@ -21,7 +21,6 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.functions import py_conversions
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -33,9 +32,8 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-eager = eager_op_utils.operators_container('kd')
+kd = kde_operators.kd
 kde = kde_operators.kde
-kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 bag = data_bag.DataBag.empty_mutable
 DATA_SLICE = qtypes.DATA_SLICE
@@ -367,15 +365,15 @@ class JsonFromJsonTest(parameterized.TestCase):
           [None, False, True, 1, 2, 3, 0.0, 1.0, -1.0, '', 'abc'],
       ),
       # LIST schema, array
-      (ds('[]'), {'schema': eager.list_schema(schema_constants.INT32)}, []),
+      (ds('[]'), {'schema': kd.list_schema(schema_constants.INT32)}, []),
       (
           ds('[null]'),
-          {'schema': eager.list_schema(schema_constants.INT32)},
+          {'schema': kd.list_schema(schema_constants.INT32)},
           [None],
       ),
       (
           ds('[1, null, 3]'),
-          {'schema': eager.list_schema(schema_constants.INT32)},
+          {'schema': kd.list_schema(schema_constants.INT32)},
           [1, None, 3],
       ),
       # schema OBJECT, object
@@ -420,20 +418,20 @@ class JsonFromJsonTest(parameterized.TestCase):
       # entity schema, object
       (
           ds('{}'),
-          {'schema': eager.schema.new_schema(a=schema_constants.INT32)},
+          {'schema': kd.schema.new_schema(a=schema_constants.INT32)},
           {'a': None},
       ),
       (
           ds('{"a": 1, "b": 2}'),
-          {'schema': eager.schema.new_schema(a=schema_constants.INT32)},
+          {'schema': kd.schema.new_schema(a=schema_constants.INT32)},
           {'a': 1},
       ),
       (
           ds('{"a": 1, "b": 2}'),
           {
-              'schema': eager.schema.new_schema(
+              'schema': kd.schema.new_schema(
                   a=schema_constants.INT32,
-                  json_object_keys=eager.list_schema(schema_constants.STRING),
+                  json_object_keys=kd.list_schema(schema_constants.STRING),
               )
           },
           {'a': 1, 'json_object_keys': ['a', 'b']},
@@ -441,10 +439,10 @@ class JsonFromJsonTest(parameterized.TestCase):
       (
           ds('{"a": 1, "b": 2}'),
           {
-              'schema': eager.schema.new_schema(
+              'schema': kd.schema.new_schema(
                   a=schema_constants.FLOAT32,
-                  json_object_keys=eager.list_schema(schema_constants.STRING),
-                  json_object_values=eager.list_schema(schema_constants.OBJECT),
+                  json_object_keys=kd.list_schema(schema_constants.STRING),
+                  json_object_values=kd.list_schema(schema_constants.OBJECT),
               )
           },
           {
@@ -457,7 +455,7 @@ class JsonFromJsonTest(parameterized.TestCase):
       (
           ds('{}'),
           {
-              'schema': eager.dict_schema(
+              'schema': kd.dict_schema(
                   key_schema=schema_constants.STRING,
                   value_schema=schema_constants.INT32,
               )
@@ -467,7 +465,7 @@ class JsonFromJsonTest(parameterized.TestCase):
       (
           ds('{"a": 1, "b": 2}'),
           {
-              'schema': eager.dict_schema(
+              'schema': kd.dict_schema(
                   key_schema=schema_constants.STRING,
                   value_schema=schema_constants.INT32,
               )
@@ -477,7 +475,7 @@ class JsonFromJsonTest(parameterized.TestCase):
       (
           ds('{"0": 1, "3": 2}'),
           {
-              'schema': eager.dict_schema(
+              'schema': kd.dict_schema(
                   key_schema=schema_constants.STRING,
                   value_schema=schema_constants.INT32,
               )
@@ -487,7 +485,7 @@ class JsonFromJsonTest(parameterized.TestCase):
       (
           ds('{"0": 1, "3": 2}'),
           {
-              'schema': eager.dict_schema(
+              'schema': kd.dict_schema(
                   key_schema=schema_constants.INT32,
                   value_schema=schema_constants.INT32,
               )
@@ -497,7 +495,7 @@ class JsonFromJsonTest(parameterized.TestCase):
       (
           ds('{"YWJj": 1, "YWJjZA==": 2}'),
           {
-              'schema': eager.dict_schema(
+              'schema': kd.dict_schema(
                   key_schema=schema_constants.BYTES,
                   value_schema=schema_constants.INT32,
               ),
@@ -530,19 +528,17 @@ class JsonFromJsonTest(parameterized.TestCase):
       (
           ds('{"a": {"b": 1}, "c": 2}'),
           {
-              'schema': eager.schema.new_schema(
-                  a=eager.schema.new_schema(
+              'schema': kd.schema.new_schema(
+                  a=kd.schema.new_schema(
                       b=schema_constants.INT32,
-                      json_object_keys=eager.list_schema(
-                          schema_constants.STRING
-                      ),
-                      json_object_values=eager.list_schema(
+                      json_object_keys=kd.list_schema(schema_constants.STRING),
+                      json_object_values=kd.list_schema(
                           schema_constants.OBJECT
                       ),
                   ),
                   c=schema_constants.INT32,
-                  json_object_keys=eager.list_schema(schema_constants.STRING),
-                  json_object_values=eager.list_schema(schema_constants.OBJECT),
+                  json_object_keys=kd.list_schema(schema_constants.STRING),
+                  json_object_values=kd.list_schema(schema_constants.OBJECT),
               )
           },
           {
@@ -568,13 +564,13 @@ class JsonFromJsonTest(parameterized.TestCase):
       (
           ds('{"a": {"b": 1}, "c": 2}'),
           {
-              'schema': eager.schema.new_schema(
-                  a=eager.dict_schema(
+              'schema': kd.schema.new_schema(
+                  a=kd.dict_schema(
                       schema_constants.STRING, schema_constants.INT32
                   ),
                   c=schema_constants.INT32,
-                  json_object_keys=eager.list_schema(schema_constants.STRING),
-                  json_object_values=eager.list_schema(schema_constants.OBJECT),
+                  json_object_keys=kd.list_schema(schema_constants.STRING),
+                  json_object_values=kd.list_schema(schema_constants.OBJECT),
               )
           },
           {
@@ -589,8 +585,8 @@ class JsonFromJsonTest(parameterized.TestCase):
       (
           ds('{"a": {"b": 1}, "c": 2}'),
           {
-              'schema': eager.schema.new_schema(
-                  a=eager.schema.new_schema(b=schema_constants.INT64),
+              'schema': kd.schema.new_schema(
+                  a=kd.schema.new_schema(b=schema_constants.INT64),
                   c=schema_constants.INT32,
               )
           },
@@ -598,9 +594,7 @@ class JsonFromJsonTest(parameterized.TestCase):
       ),
       (
           ds('{"a": {"b": 1}, "c": 2}'),
-          {'schema': eager.schema.new_schema(
-              a=OBJECT, c=schema_constants.INT32
-          )},
+          {'schema': kd.schema.new_schema(a=OBJECT, c=schema_constants.INT32)},
           {
               'a': {
                   'b': 1,
@@ -612,7 +606,7 @@ class JsonFromJsonTest(parameterized.TestCase):
       ),
       (
           ds('{"a": {"b": 1}, "c": 2}'),
-          {'schema': eager.dict_schema(schema_constants.STRING, OBJECT)},
+          {'schema': kd.dict_schema(schema_constants.STRING, OBJECT)},
           {
               'a': {
                   'b': 1,

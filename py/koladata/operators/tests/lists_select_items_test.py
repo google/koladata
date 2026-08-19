@@ -16,11 +16,9 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import input_container
-from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.functor import boxing as _
 from koladata.functor import functor_factories
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -29,9 +27,8 @@ from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import qtypes
 
-eager = eager_op_utils.operators_container('kd')
-eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
+kd = kde_operators.kd
 kde = kde_operators.kde
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -86,7 +83,7 @@ class ListsSelectItemsTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, value, fltr, expected):
-    result = eager.lists.select_items(value, fltr)
+    result = kd.lists.select_items(value, fltr)
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -94,7 +91,7 @@ class ListsSelectItemsTest(parameterized.TestCase):
       (functor_factories.expr_fn(I.self >= 2),),
   )
   def test_eval_with_expr_input(self, fltr):
-    result = eager.lists.select_items(db.list([1, 2, 3]), fltr)
+    result = kd.lists.select_items(db.list([1, 2, 3]), fltr)
     testing.assert_equal(result, ds([2, 3]).with_bag(result.get_bag()))
 
   def test_qtype_signatures(self):

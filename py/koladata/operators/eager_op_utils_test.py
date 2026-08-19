@@ -19,6 +19,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata.operators import eager_op_utils
+from koladata.operators import kde_operators as _
 from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -53,44 +54,36 @@ class EagerOpUtilsTest(parameterized.TestCase):
     def op_4(a, b):
       return (b, a)
 
-    eager_op_utils._GLOBAL_OPERATORS_CONTAINER = (
-        eager_op_utils._OperatorsContainer(
-            arolla.OperatorsContainer(
-                unsafe_extra_namespaces=[
-                    'test.namespace_1',
-                    'test.namespace_2',
-                    'test.namespace_3',
-                ]
-            )
-        )
+    self.arolla_container = arolla.OperatorsContainer(
+        unsafe_extra_namespaces=[
+            'test.namespace_1',
+            'test.namespace_2',
+            'test.namespace_3',
+        ]
     )
 
     self.x = ds(arolla.dense_array([1, 2, 3]))
     self.y = ds(arolla.dense_array([4, 5, 6]))
+    self.container = eager_op_utils.operators_container(self.arolla_container)
 
   def test_dir(self):
     self.assertTrue(
         # Testing for subset here, in order to not depend on registered
         # operators in other test cases.
         set(['op', 'namespace_1', 'namespace_2']).issubset(
-            dir(eager_op_utils.operators_container('test'))
+            dir(self.container.test)
         )
     )
     self.assertTrue(
-        set(['op_1', 'op_2']).issubset(
-            dir(eager_op_utils.operators_container('test.namespace_1'))
-        )
+        set(['op_1', 'op_2']).issubset(dir(self.container.test.namespace_1))
     )
-    self.assertCountEqual(
-        dir(eager_op_utils.operators_container('test.namespace_2')), ['op']
-    )
+    self.assertCountEqual(dir(self.container.test.namespace_2), ['op'])
     # Containers with registered docstrings include '__doc__' in dir().
     optools.set_namespace_docstring(
         'test.namespace_1', 'Namespace 1 docstring.'
     )
     self.assertCountEqual(
-        dir(eager_op_utils.operators_container('test.namespace_1')),
-        ['__doc__', 'op_1', 'op_2'],
+        dir(self.container.test.namespace_1), ['__doc__', 'op_1', 'op_2']
     )
 
   @parameterized.parameters(
@@ -107,13 +100,14 @@ class EagerOpUtilsTest(parameterized.TestCase):
       del b
       return a
 
-    first = getattr(eager_op_utils.operators_container(namespace), op_name)
+    first = getattr(getattr(self.container, namespace), op_name)
     self.assertIsInstance(first, eager_op_utils.EagerOperator)
     testing.assert_equal(first.lazy_op, first_op)
     self.assertEqual(first.getdoc(), 'first_op docstring.')
     self.assertEqual(inspect.signature(first), inspect.signature(first_op))
     self.assertEqual(
-        first, getattr(eager_op_utils.operators_container(namespace), op_name)
+        first.lazy_op,
+        getattr(getattr(self.container, namespace), op_name).lazy_op,
     )
     self.assertEqual(
         inspect.signature(first.__call__), inspect.signature(first_op)
@@ -122,7 +116,7 @@ class EagerOpUtilsTest(parameterized.TestCase):
     testing.assert_equal(first(self.x, self.y), self.x)
 
   def test_operator_added_later(self):
-    kd = eager_op_utils.operators_container('test')
+    kd = self.container.test
     self.assertFalse(hasattr(kd, 'added_later_op'))
 
     @arolla.optools.add_to_registry()
@@ -135,76 +129,37 @@ class EagerOpUtilsTest(parameterized.TestCase):
     testing.assert_equal(kd.added_later_op(self.x, self.y), self.y)
 
   def test_operator_container_nested_access(self):
-    kd = eager_op_utils.operators_container('test')
+    kd = self.container.test
     self.assertEqual(kd.namespace_1.op_1(1, 2), 1)
 
   def test_non_existent_operator(self):
-    kd = eager_op_utils.operators_container('test')
+    kd = self.container.test
     with self.assertRaisesRegex(AttributeError, 'non_existent'):
       _ = kd.non_existent
 
-  def test_not_an_operators_container(self):
-    with self.assertRaisesRegex(
-        ValueError, 'test.namespace_1.op_1 is not an OperatorsContainer'
-    ):
-      eager_op_utils.operators_container('test.namespace_1.op_1')
-
   def test_get_item_op(self):
-    kd = eager_op_utils.operators_container('test')
+    kd = self.container.test
     self.assertEqual(
-        kd.namespace_1.op_1.__doc__, kd['namespace_1.op_1'].__doc__  # pytype: disable=attribute-error
+        kd.namespace_1.op_1.getdoc(), kd['namespace_1.op_1'].getdoc()
     )
     self.assertEqual(
-        inspect.signature(kd.namespace_1.op_1),  # pytype: disable=attribute-error
+        inspect.signature(kd.namespace_1.op_1),
         inspect.signature(kd['namespace_1.op_1']),
     )
     testing.assert_equal(
-        kd.namespace_1.op_1(self.x, self.y),  # pytype: disable=attribute-error
+        kd.namespace_1.op_1(self.x, self.y),
         kd['namespace_1.op_1'](self.x, self.y),
     )
 
   def test_get_item_non_existent_op(self):
-    kd = eager_op_utils.operators_container('test')
+    kd = self.container.test
     with self.assertRaisesRegex(LookupError, 'namespace_1.op_non_existent'):
       _ = kd['namespace_1.op_non_existent']
 
   def test_get_item_not_operator(self):
-    kd = eager_op_utils.operators_container('test')
+    kd = self.container.test
     with self.assertRaisesRegex(LookupError, 'namespace_1'):
       _ = kd['namespace_1']
-
-  def test_reset_cache(self):
-    testing.assert_equal(
-        eager_op_utils.operators_container('test.namespace_2').op(
-            self.x, self.y
-        ),
-        arolla.tuple(self.x, self.y),
-    )
-    self.assertIn('test', eager_op_utils.operators_container().__dict__)
-    self.assertIn(
-        'namespace_2', eager_op_utils.operators_container('test').__dict__
-    )
-    self.assertIn(
-        'op', eager_op_utils.operators_container('test.namespace_2').__dict__
-    )
-
-    eager_op_utils.reset_operators_container()
-    self.assertNotIn(
-        'op', eager_op_utils.operators_container('test.namespace_2').__dict__
-    )
-    eager_op_utils.reset_operators_container()
-    self.assertNotIn(
-        'namespace_2', eager_op_utils.operators_container('test').__dict__
-    )
-    eager_op_utils.reset_operators_container()
-    self.assertNotIn('test', eager_op_utils.operators_container().__dict__)
-
-    testing.assert_equal(
-        eager_op_utils.operators_container('test.namespace_2').op(
-            self.x, self.y
-        ),
-        arolla.tuple(self.x, self.y),
-    )
 
   def test_custom_arolla_container(self):
     arolla_container = arolla.OperatorsContainer(
@@ -215,11 +170,11 @@ class EagerOpUtilsTest(parameterized.TestCase):
         # Testing for subset here, in order to not depend on registered
         # operators in other test cases.
         set(['op', 'namespace_2']).issubset(
-            dir(eager_op_utils.operators_container('test', arolla_container))
+            dir(eager_op_utils.operators_container(arolla_container).test)
         )
     )
     namespace_2_ops = eager_op_utils.operators_container(
-        'test.namespace_2', arolla_container
+        arolla_container.test.namespace_2
     )
     self.assertCountEqual(dir(namespace_2_ops), ['op'])
     testing.assert_equal(
@@ -248,9 +203,7 @@ class EagerOpUtilsTest(parameterized.TestCase):
           arg, increase_counter_op(), increase_counter_op()
       )
 
-    op = getattr(
-        eager_op_utils.operators_container('test'), 'non_deterministic_op'
-    )
+    op = self.container.test.non_deterministic_op
 
     self.assertEqual(op.getdoc(), 'non_deterministic_op docstring.')
     self.assertEqual(
@@ -288,13 +241,11 @@ class EagerOpUtilsTest(parameterized.TestCase):
     self.assertEqual(str(ex), 'takes 1 positional argument but 2 were given')
     tb = ex.__traceback__
     self.assertIsNotNone(tb)
-    self.assertIs(
-        tb.tb_frame.f_code.co_name, 'test_eager_op_call_traceback'
-    )
+    self.assertIs(tb.tb_frame.f_code.co_name, 'test_eager_op_call_traceback')
     self.assertIsNone(tb.tb_next)
 
   def test_overrides(self):
-    kd = eager_op_utils.operators_container('test.namespace_1')
+    kd = self.container.test.namespace_1
     kd_with_overrides = eager_op_utils.add_overrides(
         kd,
         types.SimpleNamespace(
@@ -343,7 +294,7 @@ class EagerOpUtilsTest(parameterized.TestCase):
       _ = kd.op_new_override
 
   def test_overrides_errors(self):
-    kd = eager_op_utils.operators_container('test.namespace_1')
+    kd = self.container.test.namespace_1
     kd_with_overrides = eager_op_utils.add_overrides(
         kd,
         types.SimpleNamespace(),
@@ -367,7 +318,7 @@ class EagerOpUtilsTest(parameterized.TestCase):
     optools.set_namespace_docstring(
         'test.namespace_3', 'Namespace 3 fancy docstring.'
     )
-    kd = eager_op_utils.operators_container('test.namespace_3')
+    kd = self.container.test.namespace_3
     self.assertEqual(kd.__doc__, 'Namespace 3 fancy docstring.')
     kd_with_overrides = eager_op_utils.add_overrides(
         kd,

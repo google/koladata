@@ -16,7 +16,6 @@ import re
 from absl.testing import absltest
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -27,7 +26,7 @@ from koladata.types import qtypes
 I = input_container.InputContainer('I')
 
 ds = data_slice.DataSlice.from_vals
-kd = eager_op_utils.operators_container('kd')
+kd = kde_operators.kd
 kde = kde_operators.kde
 
 

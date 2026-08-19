@@ -15,13 +15,13 @@
 """Common test data for various implementations of core.get_item operator."""
 
 from koladata.functions import functions as fns
-from koladata.operators import eager_op_utils
+from koladata.operators import kde_operators
 from koladata.types import data_slice
 from koladata.types import schema_constants
 
 
 ds = data_slice.DataSlice.from_vals
-kd = eager_op_utils.operators_container('kd')
+kd = kde_operators.kd
 
 list_item = fns.list([1, 2, 3])
 list_item2 = fns.list([4, 5, 6, 7])

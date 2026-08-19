@@ -23,7 +23,6 @@ from koladata.functions import functions as fns
 from koladata.functions import proto_conversions
 from koladata.functions.tests import test_cc_proto_py_ext as _
 from koladata.functions.tests import test_pb2
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -34,7 +33,7 @@ from koladata.types import qtypes
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
-kd = eager_op_utils.operators_container('kd')
+kd = kde_operators.kd
 DATA_SLICE = qtypes.DATA_SLICE
 
 

@@ -22,16 +22,13 @@ from arolla import arolla
 from koladata.expr import view as _
 from koladata.functor import py_functors_py_ext
 from koladata.functor.parallel import clib
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import py_boxing
 
 
-kd_internal = eager_op_utils.operators_container(
-    top_level_arolla_container=kde_operators.internal
-)
+kd_internal = kde_operators.kd_internal
 
 
 def _create_executor(max_threads: int | None) -> clib.Executor:

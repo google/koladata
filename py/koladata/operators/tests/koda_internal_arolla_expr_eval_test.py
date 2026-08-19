@@ -14,7 +14,7 @@
 
 from absl.testing import absltest
 from arolla import arolla
-from koladata.operators import eager_op_utils
+from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import schema_constants as sc
@@ -22,11 +22,8 @@ from koladata.types import schema_constants as sc
 
 L, M = arolla.L, arolla.M
 ds = data_slice.DataSlice.from_vals
-kd = eager_op_utils.operators_container('kd')
-kde_internal = eager_op_utils.operators_container(
-    'koda_internal',
-    top_level_arolla_container=arolla.unsafe_operators_container(),
-)
+kd = kde_operators.kd
+kde_internal = kde_operators.kd_internal
 
 
 class KodaInternalArollaExprEvalTest(absltest.TestCase):

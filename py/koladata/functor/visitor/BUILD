@@ -43,7 +43,6 @@ py_test(
         "//py/koladata/functions",
         "//py/koladata/functor:functor_factories",
         "//py/koladata/functor:tracing_decorator",
-        "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "//py/koladata/types:schema_constants",

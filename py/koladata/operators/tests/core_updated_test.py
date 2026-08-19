@@ -17,7 +17,6 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -27,8 +26,8 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
-eager = eager_op_utils.operators_container('kd')
 I = input_container.InputContainer('I')
+kd = kde_operators.kd
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 bag = data_bag.DataBag.empty_mutable
@@ -48,7 +47,7 @@ class CoreUpdatedTest(parameterized.TestCase):
   def test_eval_no_bag(self):
     x = ds([1, 2, 3])
     db1 = bag()
-    result = eager.core.updated(x, db1)
+    result = kd.core.updated(x, db1)
     testing.assert_equal(x, result.no_bag())
     self.assertNotEqual(result.get_bag().fingerprint, db1.fingerprint)
     self.assertFalse(result.get_bag().is_mutable())
@@ -56,13 +55,13 @@ class CoreUpdatedTest(parameterized.TestCase):
   def test_eval_same_bag(self):
     db1 = data_bag.DataBag.empty()
     x = ds([1, 2, 3]).with_bag(db1)
-    result = eager.core.updated(x, db1)
+    result = kd.core.updated(x, db1)
     testing.assert_equal(x.no_bag(), result.no_bag())
     self.assertNotEqual(result.get_bag().fingerprint, db1.fingerprint)
     self.assertFalse(result.get_bag().is_mutable())
 
   def test_eval_attr_conflict(self):
-    schema = eager.schema.new_schema(
+    schema = kd.schema.new_schema(
         a=schema_constants.INT32, b=schema_constants.INT32
     )
     db1 = bag()
@@ -76,7 +75,7 @@ class CoreUpdatedTest(parameterized.TestCase):
     db3 = schema.get_bag().fork()
     obj1.with_bag(db3).a = 7
 
-    result = eager.core.updated(x, db2, db3)
+    result = kd.core.updated(x, db2, db3)
     self.assertNotEqual(result.get_bag().fingerprint, db1.fingerprint)
     self.assertNotEqual(result.get_bag().fingerprint, db2.fingerprint)
     self.assertFalse(result.get_bag().is_mutable())

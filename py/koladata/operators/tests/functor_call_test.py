@@ -23,7 +23,6 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.functor import functor_factories
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -38,7 +37,7 @@ V = input_container.InputContainer('V')
 S = I.self
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
-kd = eager_op_utils.operators_container('kd')
+kd = kde_operators.kd
 
 SRC_PIN = optools.SRC_PIN
 

@@ -27,7 +27,6 @@ py_library(
         "//py:python_path",
         "//py/koladata/expr:tracing_mode",
         "//py/koladata/functor:functor_factories",
-        "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",

@@ -16,13 +16,13 @@
 
 from arolla import arolla
 from koladata.operators import cc_operators_py_clib as _
+from koladata.operators import eager_op_utils as _eager_op_utils
 from koladata.operators import functor as _functor
 from koladata.operators import py as _
 
 # The Arolla operators are coming from :cc_operators package, importing this
 # module in order to register Koda-specific parts like view and repr.
 from koladata.operators import operators_in_cc_operator_package as _  # pylint: disable=g-bad-import-order
-
 
 kde = arolla.OperatorsContainer(
     unsafe_extra_namespaces=[
@@ -73,6 +73,10 @@ internal = arolla.OperatorsContainer(
         # go/keep-sorted end
     ]
 ).koda_internal
+
+kd = _eager_op_utils.operators_container(kde)
+
+kd_internal = _eager_op_utils.operators_container(internal)
 
 # Individual operator modules are prohibited to include directly, so we
 # re-export constants from them there.

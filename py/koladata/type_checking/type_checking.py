@@ -25,7 +25,6 @@ from typing import Any, TypeAlias
 from arolla import arolla
 from koladata.expr import tracing_mode
 from koladata.functor import functor_factories
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.types import data_item
 from koladata.types import data_slice
@@ -34,7 +33,7 @@ from koladata.types import schema_constants
 from koladata.types import schema_item
 from koladata.types import signature_utils
 
-eager = eager_op_utils.operators_container('kd')
+eager = kde_operators.kd
 lazy = kde_operators.kde
 
 OBJECT_TIP = (

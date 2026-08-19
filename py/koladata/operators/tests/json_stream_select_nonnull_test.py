@@ -22,7 +22,6 @@ from koladata.expr import view
 from koladata.functions import parallel as parallel_fns
 from koladata.functor import functor_factories
 from koladata.functor.parallel import clib as stream_clib
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -31,10 +30,8 @@ from koladata.types import qtypes
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
-kd = eager_op_utils.operators_container(top_level_arolla_container=kde)
-kd_internal = eager_op_utils.operators_container(
-    top_level_arolla_container=kde_operators.internal
-)
+kd = kde_operators.kd
+kd_internal = kde_operators.kd_internal
 DATA_SLICE = qtypes.DATA_SLICE
 
 

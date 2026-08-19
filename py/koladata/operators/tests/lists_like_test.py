@@ -21,7 +21,6 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.functions import object_factories
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes
@@ -35,7 +34,7 @@ I = input_container.InputContainer('I')
 
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
-kd = eager_op_utils.operators_container('kd')
+kd = kde_operators.kd
 kde = kde_operators.kde
 
 

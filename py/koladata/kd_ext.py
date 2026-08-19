@@ -56,9 +56,7 @@ py_cloudpickle = _eager_only(_py_cloudpickle.py_cloudpickle)
 
 
 def _init_ops_and_containers():
-  kd_ext_ops = _eager_op_utils.operators_container(
-      top_level_arolla_container=_kde_operators.kde_ext
-  )
+  kd_ext_ops = _kde_operators.kd_ext
   for op_or_container_name in dir(kd_ext_ops):
     globals()[op_or_container_name] = _dispatch(
         eager=getattr(kd_ext_ops, op_or_container_name),

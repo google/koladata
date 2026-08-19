@@ -283,7 +283,6 @@ py_test(
         "//py:python_path",
         "//py/koladata/functions:attrs",
         "//py/koladata/functions:schema",
-        "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
@@ -1044,7 +1043,6 @@ py_test(
     deps = [
         "//py:python_path",
         "//py/koladata/functions:schema",
-        "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
@@ -1092,7 +1090,6 @@ py_test(
         "//py/koladata/functor:functor_factories",
         "//py/koladata/functor:tracing_decorator",
         "//py/koladata/functor/parallel:clib",
-        "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",

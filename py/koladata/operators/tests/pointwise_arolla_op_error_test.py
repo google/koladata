@@ -16,12 +16,11 @@ import re
 
 from absl.testing import absltest
 from arolla import arolla
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.types import data_bag
 from koladata.types import data_slice
 
-kd = eager_op_utils.operators_container('kd')
+kd = kde_operators.kd
 kde = kde_operators.kde
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals

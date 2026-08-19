@@ -18,7 +18,6 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -27,7 +26,7 @@ from koladata.types import schema_constants
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
-kd = eager_op_utils.operators_container(top_level_arolla_container=kde)
+kd = kde_operators.kd
 
 
 # Primary behavior tests for the underlying code are in

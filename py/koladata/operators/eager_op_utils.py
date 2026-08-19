@@ -23,7 +23,6 @@ from typing import Any, Callable
 
 from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext
-from koladata.operators import kde_operators
 
 
 _eval_op = py_expr_eval_py_ext.eval_op
@@ -108,41 +107,18 @@ class _OperatorsContainer:
     return ret
 
 
-_GLOBAL_OPERATORS_CONTAINER = _OperatorsContainer(arolla.M | kde_operators.kde)
-
-
-def reset_operators_container():
-  _GLOBAL_OPERATORS_CONTAINER.__dict__ = {}
-
-
 def operators_container(
-    namespace: str | None = None,
-    top_level_arolla_container: arolla.OperatorsContainer | None = None,
+    top_level_arolla_container: arolla.OperatorsContainer,
 ) -> _OperatorsContainer:
-  """Gets an eager operator container based on `namespace`.
-
-  `top_level_arolla_container` can be used to pass an Arolla container
-  containing custom Koda operators defined outside the core Koda library.
+  """Gets an eager operator container based on `top_level_arolla_container`.
 
   Args:
-    namespace: name of group of operators grouped by their purpose/function.
-    top_level_arolla_container: Top levelArolla container to use. If None, use
-      the global container by default.
+    top_level_arolla_container: Arolla container to use.
 
   Returns:
     _OperatorsContainer
   """
-  container = (
-      _GLOBAL_OPERATORS_CONTAINER
-      if top_level_arolla_container is None
-      else _OperatorsContainer(top_level_arolla_container)
-  )
-  if namespace is not None:
-    for name in namespace.split('.'):
-      container = getattr(container, name)
-  if not isinstance(container, _OperatorsContainer):
-    raise ValueError(f'{namespace} is not an OperatorsContainer')
-  return container
+  return _OperatorsContainer(top_level_arolla_container)
 
 
 # This is a standalone method since the container's functions are all

@@ -17,7 +17,6 @@ from arolla import arolla
 from koladata.expr import input_container
 from koladata.functions import attrs
 from koladata.functor import boxing as _
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -28,7 +27,7 @@ I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
-kd = eager_op_utils.operators_container('kd')
+kd = kde_operators.kd
 
 
 class FunctorExprFnTest(absltest.TestCase):

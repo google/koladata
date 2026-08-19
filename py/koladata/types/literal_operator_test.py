@@ -18,16 +18,14 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import view
-from koladata.operators import eager_op_utils
-from koladata.operators import kde_operators as _  # pylint: disable=unused-import
+from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import literal_operator
 from koladata.types import qtypes
 
-
-kd = eager_op_utils.operators_container('kd')
+kd = kde_operators.kd
 ds = data_slice.DataSlice.from_vals
 
 

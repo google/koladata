@@ -22,7 +22,7 @@ from absl.testing import absltest
 from absl.testing import flagsaver
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.operators import eager_op_utils
+from koladata.operators import kde_operators
 from koladata.operators.tests.util import data_conversion
 from koladata.operators.tests.util import koda_test_eval
 from koladata.types import data_slice
@@ -31,7 +31,7 @@ from koladata.types import data_slice
 M = arolla.M
 L = arolla.L
 P = arolla.P
-kd = eager_op_utils.operators_container('kd')
+kd = kde_operators.kd
 
 
 @arolla.optools.add_to_registry()

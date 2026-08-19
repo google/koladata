@@ -13,14 +13,14 @@
 # limitations under the License.
 
 from absl.testing import absltest
-from koladata.operators import eager_op_utils
+from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_item
 from koladata.types import mask_constants
 from koladata.types import schema_constants
 
 
-kd = eager_op_utils.operators_container('kd')
+kd = kde_operators.kd
 
 
 class MaskConstantsTest(absltest.TestCase):

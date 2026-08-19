@@ -92,7 +92,7 @@ py_library(
     deps = [
         "//py:python_path",
         "//py/koladata/functions",
-        "//py/koladata/operators:eager_op_utils",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:mask_constants",
         "//py/koladata/types:schema_constants",
@@ -105,7 +105,7 @@ py_library(
     deps = [
         "//py:python_path",
         "//py/koladata/functions",
-        "//py/koladata/operators:eager_op_utils",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:schema_constants",
     ],

@@ -16,7 +16,6 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import introspection
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -28,7 +27,7 @@ from koladata.types import schema_constants
 kde = kde_operators.kde
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
-kd = eager_op_utils.operators_container('kd')
+kd = kde_operators.kd
 
 ds = data_slice.DataSlice.from_vals
 

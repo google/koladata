@@ -19,6 +19,7 @@ Do not use directly, use `from koladata import kd_ext` instead.
 
 from koladata import kd
 from koladata.ext import cc_operators_py_clib as _
+from koladata.operators import eager_op_utils as _eager_op_utils
 
 # The Expr operators are coming from :cc_operators package, importing this
 # module in order to register Koda-specific parts like view and repr.
@@ -28,3 +29,5 @@ from koladata.ext.ids import operators as _  # pylint: disable=g-bad-import-orde
 kde_ext = kd.optools.make_operators_container(
     'kd_ext', 'kd_ext.contrib', 'kd_ext.ids'
 ).kd_ext
+
+kd_ext = _eager_op_utils.operators_container(kde_ext)

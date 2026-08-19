@@ -172,7 +172,6 @@ py_test(
         ":input_container",
         ":introspection",
         "//py:python_path",
-        "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",

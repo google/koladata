@@ -26,7 +26,6 @@ from koladata.functions import functions as fns
 from koladata.functor import boxing as _
 from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -38,7 +37,7 @@ from koladata.types import schema_constants
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 ds = data_slice.DataSlice.from_vals
-kd_eager = eager_op_utils.operators_container('kd')
+kd_eager = kde_operators.kd
 kd_lazy = kde_operators.kde
 
 

@@ -19,7 +19,6 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.testdata import lists_explode_testdata
@@ -31,7 +30,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer("I")
 
-kd = eager_op_utils.operators_container("kd")
+kd = kde_operators.kd
 kde = kde_operators.kde
 
 DATA_SLICE = qtypes.DATA_SLICE

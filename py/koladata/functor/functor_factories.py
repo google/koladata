@@ -26,7 +26,6 @@ from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import tracing
 from koladata.functor import py_functors_py_ext
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.types import data_item
@@ -38,7 +37,7 @@ from koladata.types import signature_utils
 
 _arolla_tracebackhide_ = True
 
-_kd = eager_op_utils.operators_container('kd')
+_kd = kde_operators.kd
 
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')

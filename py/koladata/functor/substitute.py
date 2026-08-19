@@ -19,12 +19,12 @@ from typing import Any
 from koladata.functions import attrs
 from koladata.functor import functor_factories
 from koladata.functor.visitor import visitor
-from koladata.operators import eager_op_utils
+from koladata.operators import kde_operators
 from koladata.types import data_item
 from koladata.types import schema_constants
 from koladata.types import signature_utils
 
-_kd = eager_op_utils.operators_container('kd')
+_kd = kde_operators.kd
 # We use this temporary schema to be able to check if default values
 # exist when their schemas might be incompatible, and therefore just
 # ".default_value" cannot be called on a slice of parameters.

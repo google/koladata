@@ -15,7 +15,6 @@
 from absl.testing import absltest
 from koladata import kd
 from koladata.expr import input_container
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.types import data_bag
 from koladata.types import data_slice
@@ -25,9 +24,7 @@ I = input_container.InputContainer('I')
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 kde_internal = kde_operators.internal
-kd_internal = eager_op_utils.operators_container(
-    top_level_arolla_container=kde_internal
-)
+kd_internal = kde_operators.kd_internal
 
 
 class KodaInternalGetAttrMemoryStatsTest(absltest.TestCase):

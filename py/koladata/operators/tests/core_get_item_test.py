@@ -20,7 +20,6 @@ from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.functions import functions as fns
-from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.testdata import core_get_item_testdata
@@ -33,7 +32,7 @@ DATA_SLICE = qtypes.DATA_SLICE
 ds = data_slice.DataSlice.from_vals
 eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
-kd = eager_op_utils.operators_container('kd')
+kd = kde_operators.kd
 kde = kde_operators.kde
 
 
