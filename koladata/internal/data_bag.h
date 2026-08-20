@@ -992,7 +992,8 @@ class DataBagImpl : public arolla::RefcountedBase {
   // Create (if not yet created) and return DataListVector for given `alloc_id`
   // in `this->lists_`. Uses a corresponding DataListVector from
   // parent_data_bag_ as a parent if available.
-  DataListVector& GetOrCreateMutableLists(AllocationId alloc_id);
+  DataListVector& GetOrCreateMutableLists(AllocationId alloc_id,
+                                          size_t update_size);
 
   // Create (if not yet created) a mutable source in the given `collection`.
   // Modified collection will have either mutable_dense_source or

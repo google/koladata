@@ -1315,7 +1315,8 @@ class DataBagImpl::ReadOnlyListGetter {
 
 class DataBagImpl::MutableListGetter {
  public:
-  explicit MutableListGetter(DataBagImpl* bag) : bag_(bag) {}
+  explicit MutableListGetter(DataBagImpl* bag, size_t update_size)
+      : bag_(bag), update_size_(update_size) {}
 
   DataList* operator()(ObjectId list_id) {
     AllocationId alloc_id(list_id);
@@ -1324,7 +1325,12 @@ class DataBagImpl::MutableListGetter {
         status_ = absl::FailedPreconditionError("lists expected");
         return nullptr;
       }
-      lists_vec_ = &bag_->GetOrCreateMutableLists(alloc_id);
+      if (current_alloc_.has_value()) {
+        // If there are multiple allocations, we do not know the update size per
+        // allocation. Fall back to 1 for subsequent allocations.
+        update_size_ = 1;
+      }
+      lists_vec_ = &bag_->GetOrCreateMutableLists(alloc_id, update_size_);
       current_alloc_ = alloc_id;
     }
     return &lists_vec_->GetMutable(list_id.Offset());
@@ -1334,6 +1340,7 @@ class DataBagImpl::MutableListGetter {
 
  private:
   DataBagImpl* bag_ = nullptr;
+  size_t update_size_ = 1;
   absl::Status status_ = absl::OkStatus();
   std::optional<AllocationId> current_alloc_;
   DataListVector* lists_vec_ = nullptr;
@@ -1417,7 +1424,8 @@ const DataList& DataBagImpl::GetFirstPresentList(
   return kEmptyList;
 }
 
-DataListVector& DataBagImpl::GetOrCreateMutableLists(AllocationId alloc_id) {
+DataListVector& DataBagImpl::GetOrCreateMutableLists(AllocationId alloc_id,
+                                                     size_t update_size) {
   DCHECK(alloc_id.IsListsAlloc());
   auto [it, inserted] = lists_.try_emplace(alloc_id);
   if (inserted) {
@@ -1428,9 +1436,10 @@ DataListVector& DataBagImpl::GetOrCreateMutableLists(AllocationId alloc_id) {
     if (parent_lists) {
       // Create new DataListVector using *parent_lists (which is shared_ptr)
       // as a parent.
-      it->second = std::make_shared<DataListVector>(*parent_lists);
+      it->second = std::make_shared<DataListVector>(*parent_lists, update_size);
     } else {
-      it->second = std::make_shared<DataListVector>(alloc_id.Capacity());
+      it->second =
+          std::make_shared<DataListVector>(alloc_id.Capacity(), update_size);
     }
   }
   return *it->second;
@@ -1532,7 +1541,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::PopFromLists(
     return absl::FailedPreconditionError("lists expected");
   }
 
-  MutableListGetter list_getter(this);
+  MutableListGetter list_getter(this, lists.size());
   SliceBuilder bldr(lists.size());
 
   RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
@@ -1641,7 +1650,7 @@ absl::Status DataBagImpl::ExtendLists(
   absl::Span<const int64_t> split_points =
       splits_edge.edge_values().values.span();
 
-  MutableListGetter list_getter(this);
+  MutableListGetter list_getter(this, lists.size());
 
   lists.values<ObjectId>().ForEachPresent([&](int64_t i, ObjectId list_id) {
     DataList* list = list_getter(list_id);
@@ -1683,7 +1692,7 @@ absl::Status DataBagImpl::ReplaceInLists(
   absl::Span<const int64_t> split_points =
       splits_edge.edge_values().values.span();
 
-  MutableListGetter list_getter(this);
+  MutableListGetter list_getter(this, lists.size());
 
   auto find_and_process_list = [&](int64_t i, ObjectId list_id,
                                    auto process_list_fn) {
@@ -1749,7 +1758,7 @@ absl::Status DataBagImpl::SetInLists(const DataSliceImpl& lists,
     return absl::FailedPreconditionError("lists expected");
   }
 
-  MutableListGetter list_getter(this);
+  MutableListGetter list_getter(this, lists.size());
 
   auto iterate_fn = [&](auto&& set_fn) {
     return arolla::DenseArraysForEachPresent(
@@ -1811,7 +1820,7 @@ absl::Status DataBagImpl::RemoveInList(
     return absl::FailedPreconditionError("lists expected");
   }
 
-  MutableListGetter list_getter(this);
+  MutableListGetter list_getter(this, lists.size());
   RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
       [&](int64_t offset, ObjectId list_id, int64_t pos) {
         DataList* list = list_getter(list_id);
@@ -1845,7 +1854,7 @@ absl::Status DataBagImpl::AppendToList(const DataSliceImpl& lists,
     return absl::FailedPreconditionError("lists expected");
   }
 
-  MutableListGetter list_getter(this);
+  MutableListGetter list_getter(this, lists.size());
 
   auto iterate_fn = [&](auto&& insert_fn) {
     lists.values<ObjectId>().ForEachPresent(
@@ -1890,7 +1899,7 @@ absl::Status DataBagImpl::RemoveInList(const DataSliceImpl& lists,
     return absl::FailedPreconditionError("lists expected");
   }
 
-  MutableListGetter list_getter(this);
+  MutableListGetter list_getter(this, lists.size());
 
   lists.values<ObjectId>().ForEachPresent(
       [&](int64_t offset, ObjectId list_id) {
@@ -1942,8 +1951,9 @@ absl::StatusOr<DataItem> DataBagImpl::PopFromList(const DataItem& list,
     return DataItem();
   }
   ASSIGN_OR_RETURN(ObjectId list_id, ItemToListObjectId(list));
-  DataList& dlist = GetOrCreateMutableLists(AllocationId(list_id))
-                        .GetMutable(list_id.Offset());
+  DataList& dlist =
+      GetOrCreateMutableLists(AllocationId(list_id), /*update_size=*/1)
+          .GetMutable(list_id.Offset());
   if (index < 0) {
     index += dlist.size();
   }
@@ -1978,8 +1988,9 @@ absl::Status DataBagImpl::SetInList(const DataItem& list, int64_t index,
     return absl::OkStatus();
   }
   ASSIGN_OR_RETURN(ObjectId list_id, ItemToListObjectId(list));
-  DataList& dlist = GetOrCreateMutableLists(AllocationId(list_id))
-                        .GetMutable(list_id.Offset());
+  DataList& dlist =
+      GetOrCreateMutableLists(AllocationId(list_id), /*update_size=*/1)
+          .GetMutable(list_id.Offset());
   if (index < 0) {
     index += dlist.size();
   }
@@ -1995,8 +2006,9 @@ absl::Status DataBagImpl::AppendToList(const DataItem& list, DataItem value) {
     return absl::OkStatus();
   }
   ASSIGN_OR_RETURN(ObjectId list_id, ItemToListObjectId(list));
-  DataList& dlist = GetOrCreateMutableLists(AllocationId(list_id))
-                        .GetMutable(list_id.Offset());
+  DataList& dlist =
+      GetOrCreateMutableLists(AllocationId(list_id), /*update_size=*/1)
+          .GetMutable(list_id.Offset());
   dlist.Insert(dlist.size(), std::move(value));
   return absl::OkStatus();
 }
@@ -2011,8 +2023,9 @@ absl::Status DataBagImpl::ExtendList(const DataItem& list,
 
   // `GetMutable` triggers creation of the list if it was UNSET.
   // We do it even if `values.size() == 0`.
-  DataList& dlist = GetOrCreateMutableLists(AllocationId(list_id))
-                        .GetMutable(list_id.Offset());
+  DataList& dlist =
+      GetOrCreateMutableLists(AllocationId(list_id), /*update_size=*/1)
+          .GetMutable(list_id.Offset());
 
   if (values.size() == 0) {
     return absl::OkStatus();
@@ -2035,8 +2048,9 @@ absl::Status DataBagImpl::ReplaceInList(const DataItem& list, ListRange range,
     return absl::OkStatus();
   }
   ASSIGN_OR_RETURN(ObjectId list_id, ItemToListObjectId(list));
-  DataList& dlist = GetOrCreateMutableLists(AllocationId(list_id))
-                        .GetMutable(list_id.Offset());
+  DataList& dlist =
+      GetOrCreateMutableLists(AllocationId(list_id), /*update_size=*/1)
+          .GetMutable(list_id.Offset());
   int64_t from = RemoveAndReserveInList(dlist, range, values.size());
   if (!values.is_single_dtype()) {
     for (int64_t i = 0; i < values.size(); ++i) {
@@ -2075,8 +2089,9 @@ absl::Status DataBagImpl::RemoveInList(const DataItem& list, ListRange range) {
     return absl::OkStatus();
   }
   ASSIGN_OR_RETURN(ObjectId list_id, ItemToListObjectId(list));
-  DataList& dlist = GetOrCreateMutableLists(AllocationId(list_id))
-                        .GetMutable(list_id.Offset());
+  DataList& dlist =
+      GetOrCreateMutableLists(AllocationId(list_id), /*update_size=*/1)
+          .GetMutable(list_id.Offset());
   auto [from, to] = range.Calculate(dlist.size());
   if (to > from) {
     dlist.Remove(from, to - from);
@@ -3659,7 +3674,7 @@ absl::Status DataBagImpl::MergeListsInplace(const DataBagImpl& other,
       other,
       [this, options](AllocationId alloc_id,
                       const DataListVector& other_lists) -> absl::Status {
-        auto& this_lists = GetOrCreateMutableLists(alloc_id);
+        auto& this_lists = GetOrCreateMutableLists(alloc_id, /*update_size=*/1);
         for (size_t i = 0; i < other_lists.size(); ++i) {
           const auto* other_list = other_lists.Get(i);
           if (other_list == nullptr) {
@@ -3705,7 +3720,8 @@ absl::Status DataBagImpl::AddListsOverwritingUpdate(const DataBagImpl& other,
       [&update](AllocationId alloc_id,
                 const DataListVector& other_lists) -> absl::Status {
         auto& this_lists = update.lists_[alloc_id];
-        this_lists = std::make_shared<DataListVector>(other_lists.size());
+        this_lists = std::make_shared<DataListVector>(other_lists.size(),
+                                                      other_lists.size());
         for (size_t i = 0; i < other_lists.size(); ++i) {
           const auto* other_list = other_lists.Get(i);
           if (other_list == nullptr) {

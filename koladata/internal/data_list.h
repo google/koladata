@@ -15,6 +15,7 @@
 #ifndef KOLADATA_INTERNAL_DATA_LIST_H_
 #define KOLADATA_INTERNAL_DATA_LIST_H_
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -286,27 +287,38 @@ class DataListVector {
     return std::holds_alternative<Map>(data_);
   }
 
+  bool ShouldUseArray(size_t update_size) const {
+    return size_ <= kArraySizeThreshold || update_size * 10 > size_ * 3;
+  }
+
   friend struct DataListVectorTestFriend;
 
  public:
-  explicit DataListVector(size_t size) : size_(size) {
-    if (size <= kArraySizeThreshold) {
+  explicit DataListVector(size_t size, size_t update_size) : size_(size) {
+    if (ShouldUseArray(update_size)) {
       data_.emplace<Array>(size);
     } else {
-      data_.emplace<Map>();
+      Map& m = data_.emplace<Map>();
+      if (update_size > 0) {
+        m.map.reserve(std::min(size, update_size));
+      }
     }
   }
 
-  explicit DataListVector(std::shared_ptr<const DataListVector> parent)
+  explicit DataListVector(std::shared_ptr<const DataListVector> parent,
+                          size_t update_size)
       : size_(parent->size()), parent_(std::move(parent)) {
-    if (size_ <= kArraySizeThreshold) {
+    if (ShouldUseArray(update_size)) {
       Array& array = data_.emplace<Array>(size_);
       for (size_t i = 0; i < size_; ++i) {
         // raw pointer is safe since `parent_` holds ownership.
         array[i].ptr = parent_->Get(i);
       }
     } else {
-      data_.emplace<Map>();
+      Map& m = data_.emplace<Map>();
+      if (update_size > 0) {
+        m.map.reserve(update_size);
+      }
     }
   }
 

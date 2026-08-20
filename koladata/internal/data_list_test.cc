@@ -258,7 +258,7 @@ TEST(DataListTest, AddToDataSlice) {
 }
 
 TEST(DataListTest, DataListVectorSmallCapacity) {
-  auto vec = std::make_shared<DataListVector>(4);
+  auto vec = std::make_shared<DataListVector>(4, /*update_size=*/1);
   ASSERT_EQ(vec->size(), 4);
   EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(*vec));
   EXPECT_EQ(vec->Get(2), nullptr);
@@ -268,7 +268,7 @@ TEST(DataListTest, DataListVectorSmallCapacity) {
   EXPECT_THAT(*vec->Get(2), ElementsAre(DataItem(7)));
   EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(*vec));
 
-  auto derived_vec = std::make_shared<DataListVector>(vec);
+  auto derived_vec = std::make_shared<DataListVector>(vec, /*update_size=*/1);
   EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(*derived_vec));
   derived_vec->GetMutable(1).Insert(0, 5);
 
@@ -288,7 +288,7 @@ TEST(DataListTest, DataListVectorSmallCapacity) {
 
 TEST(DataListTest, DataListVectorMapMode) {
   // Capacity 10: 30% of 10 is 3. Up to 3 elements in flat_hash_map.
-  auto vec = std::make_shared<DataListVector>(10);
+  auto vec = std::make_shared<DataListVector>(10, /*update_size=*/1);
   ASSERT_EQ(vec->size(), 10);
   EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*vec));
   EXPECT_EQ(vec->Get(5), nullptr);
@@ -327,12 +327,12 @@ TEST(DataListTest, DataListVectorMapMode) {
 }
 
 TEST(DataListTest, DataListVectorDerivedMap) {
-  auto parent = std::make_shared<DataListVector>(10);
+  auto parent = std::make_shared<DataListVector>(10, /*update_size=*/1);
   parent->GetMutable(2).Insert(0, 20);
   parent->GetMutable(5).Insert(0, 50);
   EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*parent));
 
-  auto derived = std::make_shared<DataListVector>(parent);
+  auto derived = std::make_shared<DataListVector>(parent, /*update_size=*/1);
   EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*derived));
 
   // Read unmodified from parent
@@ -383,7 +383,7 @@ TEST(DataListTest, DataListVectorDerivedMap) {
 
 TEST(DataListTest, DataListVectorCapacityFive) {
   // Capacity 5: 30% of 5 is 1.5. 1 element (20%) fits in map mode.
-  auto vec = std::make_shared<DataListVector>(5);
+  auto vec = std::make_shared<DataListVector>(5, /*update_size=*/1);
   EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*vec));
 
   vec->GetMutable(1).Insert(0, 10);
@@ -403,7 +403,7 @@ TEST(DataListTest, DataListVectorCapacityFive) {
 TEST(DataListTest, DataListVectorEmptyMemoryStats) {
   // Map mode
   {
-    DataListVector vec(10);
+    DataListVector vec(10, /*update_size=*/1);
     EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(vec));
     MemoryStatsEntry stats;
     vec.AppendMemoryStats(stats);
@@ -413,7 +413,7 @@ TEST(DataListTest, DataListVectorEmptyMemoryStats) {
   // Vector mode
   {
     const int kSize = 2;
-    DataListVector vec(kSize);
+    DataListVector vec(kSize, /*update_size=*/1);
     EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(vec));
     MemoryStatsEntry stats;
     vec.AppendMemoryStats(stats);
@@ -421,6 +421,49 @@ TEST(DataListTest, DataListVectorEmptyMemoryStats) {
               sizeof(DataListVector) +
                   kSize * sizeof(DataListVectorTestFriend::ListAndPtr));
     EXPECT_EQ(stats.strings_size, 0);
+  }
+}
+
+TEST(DataListTest, DataListVectorUpdateSize) {
+  // Capacity 10, update_size = 5 (> 30% of 10): directly in Array mode.
+  {
+    auto vec = std::make_shared<DataListVector>(10, /*update_size=*/5);
+    EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(*vec));
+    vec->GetMutable(2).Insert(0, 20);
+    EXPECT_THAT(*vec->Get(2), ElementsAre(DataItem(20)));
+  }
+
+  // Capacity 10, update_size = 2 (<= 30% of 10): in Map mode.
+  {
+    auto vec = std::make_shared<DataListVector>(10, /*update_size=*/2);
+    EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*vec));
+    vec->GetMutable(2).Insert(0, 20);
+    EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*vec));
+    EXPECT_THAT(*vec->Get(2), ElementsAre(DataItem(20)));
+  }
+
+  // Derived vector with large update_size -> directly in Array mode.
+  {
+    auto parent = std::make_shared<DataListVector>(10, /*update_size=*/1);
+    parent->GetMutable(1).Insert(0, 10);
+    auto derived = std::make_shared<DataListVector>(parent, /*update_size=*/4);
+    EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(*derived));
+    EXPECT_THAT(*derived->Get(1), ElementsAre(DataItem(10)));
+    derived->GetMutable(2).Insert(0, 20);
+    EXPECT_THAT(*derived->Get(2), ElementsAre(DataItem(20)));
+    EXPECT_THAT(*derived->Get(1), ElementsAre(DataItem(10)));
+  }
+
+  // Derived vector with small update_size -> in Map mode.
+  {
+    auto parent = std::make_shared<DataListVector>(10, /*update_size=*/1);
+    parent->GetMutable(1).Insert(0, 10);
+    auto derived = std::make_shared<DataListVector>(parent, /*update_size=*/2);
+    EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*derived));
+    EXPECT_THAT(*derived->Get(1), ElementsAre(DataItem(10)));
+    derived->GetMutable(2).Insert(0, 20);
+    EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*derived));
+    EXPECT_THAT(*derived->Get(2), ElementsAre(DataItem(20)));
   }
 }
 

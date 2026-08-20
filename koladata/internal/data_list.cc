@@ -228,19 +228,13 @@ DataList& DataListVector::GetMutableFromArray(size_t index) {
   return lp.list;
 }
 
-namespace {
-bool ShouldConvertToVector(size_t map_size, size_t total_size) {
-  return (map_size + 1) * 10 > total_size * 3;
-}
-}
-
 DataList& DataListVector::GetMutableFromMap(size_t index) {
   auto& map = std::get<Map>(data_).map;
   auto it = map.find(index);
   if (it != map.end()) {
     return it->second;
   }
-  if (ShouldConvertToVector(map.size(), size_)) {
+  if (ShouldUseArray(map.size() + 1)) {
     Map local_map = std::move(std::get<Map>(data_));
     Array& arr = data_.emplace<Array>(size_);
     std::move(local_map).ConvertToArray(arr, parent_.get());
