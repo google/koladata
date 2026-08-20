@@ -17,7 +17,7 @@
 import concurrent.futures
 import functools
 import itertools
-from typing import Any, Callable, Iterable, TypeVar
+from typing import Any, Callable, Iterable
 
 from arolla import arolla
 from koladata.base.py_conversions import clib as base_clib
@@ -31,7 +31,6 @@ from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
-
 
 P = arolla.P
 M = arolla.M
@@ -282,17 +281,14 @@ def apply_py(fn, *args, return_type_as=arolla.unspecified(), **kwargs):
 #
 
 
-_T = TypeVar('_T')
-
-
 class _ThreadPoolExecutor(
     concurrent.futures.ThreadPoolExecutor,
 ):
   """A ThreadPoolExecutor that propagates context to worker threads."""
 
-  def submit(
-      self, fn: Callable[..., _T], /, *args: Any, **kwargs: Any
-  ) -> concurrent.futures.Future[_T]:
+  def submit[**Args, Res](
+      self, fn: Callable[Args, Res], /, *args: Args.args, **kwargs: Args.kwargs
+  ) -> concurrent.futures.Future[Res]:
     cancellation_context = arolla.abc.current_cancellation_context()
     return super().submit(
         arolla.abc.run_in_cancellation_context,

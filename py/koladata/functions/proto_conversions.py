@@ -15,7 +15,7 @@
 """Koda functions for converting to and from protocol buffers."""
 
 from collections.abc import Iterator
-from typing import Any, Type, TypeAlias, TypeVar, cast
+from typing import Any, Type, TypeAlias, cast
 
 from google.protobuf import any as protobuf_any
 from google.protobuf import descriptor_pool as protobuf_descriptor_pool
@@ -31,9 +31,6 @@ from koladata.types import schema_constants
 from koladata.types import schema_item
 
 from google.protobuf import any_pb2
-
-
-_T = TypeVar('_T')
 
 # Note: these are for nested lists/sequences of uniform depth (intentionally).
 # They can also be replaced with PEP 695 `type X[T] = ...` syntax once support

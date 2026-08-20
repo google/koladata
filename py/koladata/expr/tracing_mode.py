@@ -17,9 +17,8 @@
 import contextlib
 import contextvars
 import types
-from typing import Any, Iterator, TypeVar
+from typing import Any, Iterator
 
-_T = TypeVar('_T')
 _TRACING_ENABLED: contextvars.ContextVar[bool] = contextvars.ContextVar(
     '_TRACING_ENABLED', default=False
 )
@@ -59,11 +58,7 @@ class _HashAnythingWrapper:
     return self.obj is other.obj
 
 
-def configure_tracing(
-    configs: dict[Any, Any],
-    eager: _T,
-    tracing: Any,
-) -> _T:
+def configure_tracing[T](configs: dict[Any, Any], eager: T, tracing: Any) -> T:
   """Configures the tracing behavior for the given object in the given dict.
 
   Args:
@@ -85,12 +80,12 @@ def configure_tracing(
   return eager
 
 
-def same_when_tracing(configs: dict[Any, Any], obj: _T) -> _T:
+def same_when_tracing[T](configs: dict[Any, Any], obj: T) -> T:
   """Marks the given object as the same in eager and tracing mode."""
   return configure_tracing(configs, obj, obj)
 
 
-def eager_only(configs: dict[Any, Any], obj: _T) -> _T:
+def eager_only[T](configs: dict[Any, Any], obj: T) -> T:
   """Marks the given object as eager-only."""
   return configure_tracing(configs, obj, None)
 

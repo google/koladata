@@ -17,11 +17,6 @@
 import collections
 import dataclasses
 import threading
-from typing import Generic, TypeVar
-
-K = TypeVar('K', bound=collections.abc.Hashable)
-V = TypeVar('V')
-D = TypeVar('D')
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -31,7 +26,7 @@ class CacheEntryMetadata:
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
-class _CacheValueAndMetadata(Generic[V]):
+class _CacheValueAndMetadata[V]:
   value: V
   metadata: CacheEntryMetadata
 
@@ -39,7 +34,7 @@ class _CacheValueAndMetadata(Generic[V]):
 _NOT_FOUND = object()  # Sentinel for cache misses, to distinguish from None.
 
 
-class LruSizeTrackingCache(Generic[K, V]):
+class LruSizeTrackingCache[K: collections.abc.Hashable, V]:
   """An LRU cache that tracks the size of the entries in the cache.
 
   The cache is thread-safe.
@@ -95,7 +90,7 @@ class LruSizeTrackingCache(Generic[K, V]):
     self._cache = {}
     self._total_bytes_of_entries_in_cache = 0
 
-  def get(self, key: K, default: D = None) -> V | D:
+  def get[D](self, key: K, default: D = None) -> V | D:
     """Returns the value associated with the key, or `default` if the key is not in the cache."""
     with self._rlock:
       try:
