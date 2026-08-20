@@ -25,6 +25,9 @@
 #include <vector>
 
 #include "absl/base/nullability.h"
+#include "absl/container/fixed_array.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/node_hash_map.h"
 #include "absl/log/check.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/quote.h"
@@ -257,48 +260,6 @@ class DataList {
 // Vector of DataLists. Can be created from shared_ptr to another DataListVector
 // and copies content lazily.
 class DataListVector {
- public:
-  explicit DataListVector(size_t size) : data_(size) {
-    for (ListAndPtr& lp : data_) {
-      lp.ptr = nullptr;
-    }
-  }
-
-  explicit DataListVector(std::shared_ptr<const DataListVector> parent)
-      : data_(parent->size()), parent_(std::move(parent)) {
-    for (size_t i = 0; i < data_.size(); ++i) {
-      // raw pointer is safe since `parent_` holds ownership.
-      data_[i].ptr = parent_->Get(i);
-    }
-  }
-
-  DataListVector(const DataListVector&) = delete;
-  DataListVector(DataListVector&&) = delete;
-  void operator=(const DataListVector&) = delete;
-  void operator=(DataListVector&&) = delete;
-
-  size_t size() const { return data_.size(); }
-
-  const DataList* absl_nullable Get(size_t index) const {
-    DCHECK_LT(index, size());
-    return data_[index].ptr;
-  }
-
-  DataList& GetMutable(size_t index) {
-    DCHECK_LT(index, size());
-    ListAndPtr& lp = data_[index];
-    if (lp.ptr == nullptr) {
-      lp.ptr = &lp.list;
-    } else if (!lp.IsMutable()) {
-      lp.list = *lp.ptr;
-      lp.ptr = &lp.list;
-    }
-    return lp.list;
-  }
-
-  // Note: it doesn't include parent's size.
-  void AppendMemoryStats(MemoryStatsEntry& stats) const;
-
  private:
   struct ListAndPtr {
     // ptr_ links either to list_ (mutable) or to a list owned by parent_
@@ -307,10 +268,81 @@ class DataListVector {
     bool IsMutable() const { return ptr == &list; }
 
     DataList list;
-    const DataList* ptr;
+    const DataList* ptr = nullptr;
   };
 
-  std::vector<ListAndPtr> data_;
+  using Array = absl::FixedArray<ListAndPtr, 0>;
+
+  static constexpr size_t kArraySizeThreshold = 4;
+
+  struct Map {
+    using MapType = absl::flat_hash_map<size_t, DataList>;
+    MapType map;
+
+    void ConvertToArray(Array& array, const DataListVector* parent) &&;
+  };
+
+  bool is_map_mode() const {
+    return std::holds_alternative<Map>(data_);
+  }
+
+  friend struct DataListVectorTestFriend;
+
+ public:
+  explicit DataListVector(size_t size) : size_(size) {
+    if (size <= kArraySizeThreshold) {
+      data_.emplace<Array>(size);
+    } else {
+      data_.emplace<Map>();
+    }
+  }
+
+  explicit DataListVector(std::shared_ptr<const DataListVector> parent)
+      : size_(parent->size()), parent_(std::move(parent)) {
+    if (size_ <= kArraySizeThreshold) {
+      Array& array = data_.emplace<Array>(size_);
+      for (size_t i = 0; i < size_; ++i) {
+        // raw pointer is safe since `parent_` holds ownership.
+        array[i].ptr = parent_->Get(i);
+      }
+    } else {
+      data_.emplace<Map>();
+    }
+  }
+
+  DataListVector(const DataListVector&) = delete;
+  DataListVector(DataListVector&&) = delete;
+  void operator=(const DataListVector&) = delete;
+  void operator=(DataListVector&&) = delete;
+
+  size_t size() const { return size_; }
+
+  const DataList* absl_nullable Get(size_t index) const {
+    DCHECK_LT(index, size());
+    if (std::holds_alternative<Array>(data_)) {
+      return std::get<Array>(data_)[index].ptr;
+    }
+    return GetFromMap(index);
+  }
+
+  DataList& GetMutable(size_t index) {
+    DCHECK_LT(index, size());
+    if (std::holds_alternative<Array>(data_)) {
+      return GetMutableFromArray(index);
+    }
+    return GetMutableFromMap(index);
+  }
+
+  // Note: it doesn't include parent's size.
+  void AppendMemoryStats(MemoryStatsEntry& stats) const;
+
+ private:
+  const DataList* absl_nullable GetFromMap(size_t index) const;
+  DataList& GetMutableFromArray(size_t index);
+  DataList& GetMutableFromMap(size_t index);
+
+  size_t size_ = 0;
+  std::variant<Map, Array> data_;
   std::shared_ptr<const DataListVector> parent_;
 };
 

@@ -22,6 +22,9 @@
 #include <variant>
 #include <vector>
 
+#include "absl/base/nullability.h"
+#include "absl/container/fixed_array.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/log/check.h"
 #include "arolla/util/meta.h"
 #include "koladata/internal/data_item.h"
@@ -188,14 +191,93 @@ void DataList::ConvertToDataItems() {
   data_ = std::move(new_data);
 }
 
-void DataListVector::AppendMemoryStats(MemoryStatsEntry& stats) const {
-  for (const ListAndPtr& lptr : data_) {
-    if (lptr.ptr != &lptr.list) {
-      continue;  // link to parent
+void DataListVector::Map::ConvertToArray(Array& array,
+                                         const DataListVector* parent) && {
+  if (parent != nullptr) {
+    for (size_t i = 0; i < array.size(); ++i) {
+      array[i].ptr = parent->Get(i);
     }
-    stats.shallow_size += lptr.list.size() * sizeof(DataItem);
-    for (const auto& v : lptr.list) {
-      stats.AppendStringsSize(v);
+  }
+  for (auto& [idx, list] : map) {
+    array[idx].list = std::move(list);
+    array[idx].ptr = &array[idx].list;
+  }
+}
+
+const DataList* absl_nullable DataListVector::GetFromMap(size_t index) const {
+  const auto& map = std::get<Map>(data_).map;
+  auto it = map.find(index);
+  if (it != map.end()) {
+    return &it->second;
+  }
+  if (parent_ != nullptr) {
+    return parent_->Get(index);
+  }
+  return nullptr;
+}
+
+DataList& DataListVector::GetMutableFromArray(size_t index) {
+  auto& arr = std::get<Array>(data_);
+  ListAndPtr& lp = arr[index];
+  if (lp.ptr == nullptr) {
+    lp.ptr = &lp.list;
+  } else if (!lp.IsMutable()) {
+    lp.list = *lp.ptr;
+    lp.ptr = &lp.list;
+  }
+  return lp.list;
+}
+
+namespace {
+bool ShouldConvertToVector(size_t map_size, size_t total_size) {
+  return (map_size + 1) * 10 > total_size * 3;
+}
+}
+
+DataList& DataListVector::GetMutableFromMap(size_t index) {
+  auto& map = std::get<Map>(data_).map;
+  auto it = map.find(index);
+  if (it != map.end()) {
+    return it->second;
+  }
+  if (ShouldConvertToVector(map.size(), size_)) {
+    Map local_map = std::move(std::get<Map>(data_));
+    Array& arr = data_.emplace<Array>(size_);
+    std::move(local_map).ConvertToArray(arr, parent_.get());
+    return GetMutableFromArray(index);
+  }
+  DataList& list = map[index];
+  if (parent_ != nullptr) {
+    const DataList* parent_list = parent_->Get(index);
+    if (parent_list != nullptr) {
+      list = *parent_list;
+    }
+  }
+  return list;
+}
+
+void DataListVector::AppendMemoryStats(MemoryStatsEntry& stats) const {
+  stats.shallow_size += sizeof(DataListVector);
+  if (std::holds_alternative<Array>(data_)) {
+    const auto& array = std::get<Array>(data_);
+    stats.shallow_size += sizeof(Array::value_type) * array.size();
+    for (const ListAndPtr& lptr : array) {
+      if (lptr.ptr != &lptr.list) {
+        continue;  // link to parent or unset
+      }
+      stats.shallow_size += lptr.list.size() * sizeof(DataItem);
+      for (const auto& v : lptr.list) {
+        stats.AppendStringsSize(v);
+      }
+    }
+  } else {
+    const auto& map = std::get<Map>(data_).map;
+    stats.shallow_size += sizeof(Map::MapType::value_type) * map.size();
+    for (const auto& [idx, list] : map) {
+      stats.shallow_size += list.size() * sizeof(DataItem);
+      for (const auto& v : list) {
+        stats.AppendStringsSize(v);
+      }
     }
   }
 }

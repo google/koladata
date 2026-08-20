@@ -462,6 +462,7 @@ cc_binary(
         ":data_bag",
         ":data_slice",
         ":object_factories",
+        ":subslice_utils",
         ":test_utils",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",

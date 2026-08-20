@@ -33,6 +33,8 @@
 #include "koladata/data_bag_repr.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
+#include "koladata/extract_utils.h"
+#include "koladata/subslice_utils.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
@@ -801,6 +803,29 @@ void BM_MergeFrozenBag(benchmark::State& state) {
 }
 
 BENCHMARK(BM_MergeFrozenBag);
+
+void BM_ExtractSingleLists(benchmark::State& state) {
+  constexpr int64_t kSize = 1000000;
+  DataSlice::JaggedShape::Edge edge_1 = GetEdge(1, kSize);
+  DataSlice::JaggedShape::Edge edge_2 = GetEdge(kSize, 1);
+  DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
+      {std::move(edge_1), std::move(edge_2)});
+  auto values = *DataSlice::CreatePrimitive(
+      arolla::CreateConstDenseArray<int32_t>(kSize, 1), std::move(shape));
+  auto db = DataBag::EmptyMutable();
+  auto a = *CreateListsFromLastDimension(db, values);
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(a);
+    for (int i = 0; i < 100; ++i) {
+      auto single_list = *subslice::Subslice(a, {test::DataItem(i)});
+      auto extracted = *extract_utils_internal::Extract(single_list);
+      benchmark::DoNotOptimize(extracted);
+    }
+  }
+}
+
+BENCHMARK(BM_ExtractSingleLists);
 
 }  // namespace
 }  // namespace koladata

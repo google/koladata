@@ -16,6 +16,7 @@
 
 #include <memory>
 #include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -26,11 +27,19 @@
 #include "arolla/util/bytes.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/memory_stats.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/slice_builder.h"
 
 namespace koladata::internal {
+
+struct DataListVectorTestFriend {
+  using ListAndPtr = DataListVector::ListAndPtr;
+
+  static bool is_map_mode(const DataListVector& v) { return v.is_map_mode(); }
+};
+
 namespace {
 
 using ::testing::ElementsAre;
@@ -248,16 +257,19 @@ TEST(DataListTest, AddToDataSlice) {
   }
 }
 
-TEST(DataListTest, DataListVector) {
-  auto vec = std::make_shared<DataListVector>(3);
-  ASSERT_EQ(vec->size(), 3);
+TEST(DataListTest, DataListVectorSmallCapacity) {
+  auto vec = std::make_shared<DataListVector>(4);
+  ASSERT_EQ(vec->size(), 4);
+  EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(*vec));
   EXPECT_EQ(vec->Get(2), nullptr);
 
   vec->GetMutable(2).Insert(0, 7);
   EXPECT_NE(vec->Get(2), nullptr);
   EXPECT_THAT(*vec->Get(2), ElementsAre(DataItem(7)));
+  EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(*vec));
 
   auto derived_vec = std::make_shared<DataListVector>(vec);
+  EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(*derived_vec));
   derived_vec->GetMutable(1).Insert(0, 5);
 
   EXPECT_EQ(derived_vec->Get(0), nullptr);
@@ -272,6 +284,144 @@ TEST(DataListTest, DataListVector) {
   EXPECT_NE(vec->Get(2), derived_vec->Get(2));
   EXPECT_THAT(*vec->Get(2), ElementsAre(DataItem(7)));
   EXPECT_THAT(*derived_vec->Get(2), ElementsAre(DataItem(9), DataItem(7)));
+}
+
+TEST(DataListTest, DataListVectorMapMode) {
+  // Capacity 10: 30% of 10 is 3. Up to 3 elements in flat_hash_map.
+  auto vec = std::make_shared<DataListVector>(10);
+  ASSERT_EQ(vec->size(), 10);
+  EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*vec));
+  EXPECT_EQ(vec->Get(5), nullptr);
+
+  // 1st element (10%)
+  vec->GetMutable(1).Insert(0, 100);
+  EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*vec));
+  EXPECT_THAT(*vec->Get(1), ElementsAre(DataItem(100)));
+  EXPECT_EQ(vec->Get(0), nullptr);
+
+  // 2nd element (20%)
+  vec->GetMutable(4).Insert(0, 400);
+  EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*vec));
+  EXPECT_THAT(*vec->Get(4), ElementsAre(DataItem(400)));
+
+  // 3rd element (30%)
+  vec->GetMutable(7).Insert(0, 700);
+  EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*vec));
+  EXPECT_THAT(*vec->Get(7), ElementsAre(DataItem(700)));
+
+  // 4th element (40% > 30%) -> triggers transition to vector
+  vec->GetMutable(9).Insert(0, 900);
+  EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(*vec));
+
+  // Verify all elements after transition to vector
+  EXPECT_EQ(vec->Get(0), nullptr);
+  EXPECT_THAT(*vec->Get(1), ElementsAre(DataItem(100)));
+  EXPECT_EQ(vec->Get(2), nullptr);
+  EXPECT_EQ(vec->Get(3), nullptr);
+  EXPECT_THAT(*vec->Get(4), ElementsAre(DataItem(400)));
+  EXPECT_EQ(vec->Get(5), nullptr);
+  EXPECT_EQ(vec->Get(6), nullptr);
+  EXPECT_THAT(*vec->Get(7), ElementsAre(DataItem(700)));
+  EXPECT_EQ(vec->Get(8), nullptr);
+  EXPECT_THAT(*vec->Get(9), ElementsAre(DataItem(900)));
+}
+
+TEST(DataListTest, DataListVectorDerivedMap) {
+  auto parent = std::make_shared<DataListVector>(10);
+  parent->GetMutable(2).Insert(0, 20);
+  parent->GetMutable(5).Insert(0, 50);
+  EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*parent));
+
+  auto derived = std::make_shared<DataListVector>(parent);
+  EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*derived));
+
+  // Read unmodified from parent
+  EXPECT_EQ(derived->Get(0), nullptr);
+  EXPECT_EQ(derived->Get(2), parent->Get(2));
+  EXPECT_THAT(*derived->Get(2), ElementsAre(DataItem(20)));
+  EXPECT_EQ(derived->Get(5), parent->Get(5));
+  EXPECT_THAT(*derived->Get(5), ElementsAre(DataItem(50)));
+
+  // Modify 1 element in derived (copy-on-write from parent)
+  derived->GetMutable(2).Insert(0, 21);
+  EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*derived));
+  EXPECT_NE(derived->Get(2), parent->Get(2));
+  EXPECT_THAT(*parent->Get(2), ElementsAre(DataItem(20)));
+  EXPECT_THAT(*derived->Get(2), ElementsAre(DataItem(21), DataItem(20)));
+
+  // Modify a previously unset element in derived
+  derived->GetMutable(0).Insert(0, 1);
+  EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*derived));
+  EXPECT_THAT(*derived->Get(0), ElementsAre(DataItem(1)));
+  EXPECT_EQ(parent->Get(0), nullptr);
+
+  // Modify 3rd element in derived (3/10 = 30%)
+  derived->GetMutable(3).Insert(0, 30);
+  EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*derived));
+
+  // Modify 4th element in derived (4/10 = 40% > 30%) -> triggers transition to
+  // vector
+  derived->GetMutable(4).Insert(0, 40);
+  EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(*derived));
+
+  // Verify all elements in derived after vector transition
+  EXPECT_THAT(*derived->Get(0), ElementsAre(DataItem(1)));
+  EXPECT_THAT(*derived->Get(2), ElementsAre(DataItem(21), DataItem(20)));
+  EXPECT_THAT(*derived->Get(3), ElementsAre(DataItem(30)));
+  EXPECT_THAT(*derived->Get(4), ElementsAre(DataItem(40)));
+  EXPECT_EQ(derived->Get(5), parent->Get(5));
+  EXPECT_THAT(*derived->Get(5), ElementsAre(DataItem(50)));
+  EXPECT_EQ(derived->Get(1), nullptr);
+  EXPECT_EQ(derived->Get(6), nullptr);
+
+  // Parent should remain unaffected
+  EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*parent));
+  EXPECT_EQ(parent->Get(0), nullptr);
+  EXPECT_THAT(*parent->Get(2), ElementsAre(DataItem(20)));
+  EXPECT_THAT(*parent->Get(5), ElementsAre(DataItem(50)));
+}
+
+TEST(DataListTest, DataListVectorCapacityFive) {
+  // Capacity 5: 30% of 5 is 1.5. 1 element (20%) fits in map mode.
+  auto vec = std::make_shared<DataListVector>(5);
+  EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*vec));
+
+  vec->GetMutable(1).Insert(0, 10);
+  EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*vec));
+  EXPECT_THAT(*vec->Get(1), ElementsAre(DataItem(10)));
+
+  // 2nd element (40% > 30%) -> converts to array
+  vec->GetMutable(2).Insert(0, 20);
+  EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(*vec));
+  EXPECT_THAT(*vec->Get(1), ElementsAre(DataItem(10)));
+  EXPECT_THAT(*vec->Get(2), ElementsAre(DataItem(20)));
+  EXPECT_EQ(vec->Get(0), nullptr);
+  EXPECT_EQ(vec->Get(3), nullptr);
+  EXPECT_EQ(vec->Get(4), nullptr);
+}
+
+TEST(DataListTest, DataListVectorEmptyMemoryStats) {
+  // Map mode
+  {
+    DataListVector vec(10);
+    EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(vec));
+    MemoryStatsEntry stats;
+    vec.AppendMemoryStats(stats);
+    EXPECT_EQ(stats.shallow_size, sizeof(DataListVector));
+    EXPECT_EQ(stats.strings_size, 0);
+  }
+  // Vector mode
+  {
+    const int kSize = 2;
+    DataListVector vec(kSize);
+    EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(vec));
+    MemoryStatsEntry stats;
+    vec.AppendMemoryStats(stats);
+    EXPECT_EQ(stats.shallow_size,
+              sizeof(DataListVector) +
+                  kSize * sizeof(DataListVectorTestFriend::ListAndPtr));
+    EXPECT_EQ(stats.strings_size, 0);
+  }
 }
 
 }  // namespace
