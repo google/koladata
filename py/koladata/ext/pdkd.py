@@ -71,7 +71,9 @@ def from_dataframe(
   if not kwargs:
     raise ValueError('DataFrame has no columns.')
 
-  res = kdi.obj(**kwargs) if as_obj else kdi.new(**kwargs)
+  res = (
+      kdi.obj(**kwargs) if as_obj else kdi.new(overwrite_schema=False, **kwargs)
+  )
 
   if isinstance(df_.index, pd.MultiIndex):
     indices = [
