@@ -432,6 +432,7 @@ class TraverseHelper {
   // Calls the given function for each directly reachable object.
   // fn should be a callable taking three arguments: const DataItem& to_item,
   // const DataItem& to_schema, const TransitionKey& transition_key.
+  // fn would be also called on ItemId attributes and dtype schema attributes.
   template <typename Fn>
   absl::Status ForEachObject(const DataItem& item, const DataItem& schema,
                              const TransitionsSet& transitions_set, Fn&& fn) {
@@ -605,7 +606,8 @@ class TraverseHelper {
             status = transition_or.status();
             return;
           }
-          if (transition_or->item.holds_value<ObjectId>()) {
+          if (transition_or->item.holds_value<ObjectId>() ||
+              transition_or->item.holds_value<schema::DType>()) {
             fn(transition_or->item, transition_or->schema,
                TransitionKey{.type = TransitionType::kSchemaAttributeName,
                              .value = DataItem(arolla::Text(attr_name))});

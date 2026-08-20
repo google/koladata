@@ -42,24 +42,164 @@
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/uuid_object.h"
+#include "koladata/internal/uuid_schemas.h"
 
 namespace koladata::internal {
 
 namespace {
 
-class DeepCloneVisitor : AbstractVisitor {
+// Visitor used in a secondary Traverser to resolve derived list and dict schema
+// ObjectIds in topological post-order.
+class DerivedIdVisitor : public AbstractVisitor {
  public:
-  explicit DeepCloneVisitor(DataBagImplPtr new_databag, bool is_schema_slice)
-      : new_databag_(std::move(new_databag)),
-        is_schema_slice_(is_schema_slice),
-        allocation_tracker_(),
-        allocations_with_metadata_(),
-        explicit_schemas_() {}
+  explicit DerivedIdVisitor(
+      absl::flat_hash_map<AllocationId, AllocationId>& allocation_tracker)
+      : allocation_tracker_(allocation_tracker) {}
 
   absl::StatusOr<bool> Previsit(
       const DataItem& from_item, const DataItem& from_schema,
       const std::optional<AbstractVisitor::TransitionKey>& transition_key,
       const DataItem& item, const DataItem& schema) override {
+    if (schema != schema::kSchema) {
+      return false;
+    }
+    if (transition_key.has_value() &&
+        transition_key->type == TransitionType::kSliceItem) {
+      return true;
+    }
+    if (transition_key.has_value() &&
+        transition_key->type == TransitionType::kSchemaAttributeName) {
+      DCHECK(transition_key->value.holds_value<arolla::Text>());
+      absl::string_view attr_name =
+          transition_key->value.value<arolla::Text>().view();
+      if (attr_name == schema::kListItemsSchemaAttr ||
+          attr_name == schema::kDictKeysSchemaAttr ||
+          attr_name == schema::kDictValuesSchemaAttr) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  absl::StatusOr<DataItem> GetValue(const DataItem& item,
+                                    const DataItem& schema) override {
+    if (!item.holds_value<ObjectId>() || schema != schema::kSchema) {
+      return item;
+    }
+    if (item.value<ObjectId>().IsNoFollowSchema()) {
+      ASSIGN_OR_RETURN(
+          auto original_item_clone,
+          GetValue(
+              DataItem(GetOriginalFromNoFollow(item.value<ObjectId>())),
+              schema));
+      return DataItem(
+          CreateNoFollowWithMainObject(original_item_clone.value<ObjectId>()));
+    }
+    auto item_it =
+        allocation_tracker_.find(AllocationId(item.value<ObjectId>()));
+    if (item_it != allocation_tracker_.end() &&
+        item_it->second != AllocationId()) {
+      return DataItem(
+          item_it->second.ObjectByOffset(item.value<ObjectId>().Offset()));
+    }
+    return item;
+  }
+
+  absl::Status VisitSchema(
+      const DataItem& item, const DataItem& schema, bool is_object_schema,
+      const arolla::DenseArray<arolla::Text>& attr_names,
+      const arolla::DenseArray<DataItem>& attr_schemas) override {
+    if (!item.holds_value<ObjectId>()) {
+      return absl::OkStatus();
+    }
+    DataItem orig_item =
+        item.value<ObjectId>().IsNoFollowSchema()
+            ? DataItem(GetOriginalFromNoFollow(item.value<ObjectId>()))
+            : item;
+    AllocationId old_alloc = AllocationId(orig_item.value<ObjectId>());
+
+    std::optional<DataItem> list_items_schema;
+    std::optional<DataItem> dict_keys_schema;
+    std::optional<DataItem> dict_values_schema;
+
+    for (size_t i = 0; i < attr_names.size(); ++i) {
+      if (!attr_names.present(i) || !attr_schemas.present(i)) {
+        continue;
+      }
+      absl::string_view attr_name = attr_names[i].value;
+      if (attr_name == schema::kListItemsSchemaAttr) {
+        list_items_schema = attr_schemas.values[i];
+      } else if (attr_name == schema::kDictKeysSchemaAttr) {
+        dict_keys_schema = attr_schemas.values[i];
+      } else if (attr_name == schema::kDictValuesSchemaAttr) {
+        dict_values_schema = attr_schemas.values[i];
+      }
+    }
+
+    if (list_items_schema.has_value()) {
+      DataItem new_schema_item = CreateListSchemaId(*list_items_schema);
+      allocation_tracker_[old_alloc] =
+          AllocationId(new_schema_item.value<ObjectId>());
+    } else if (dict_keys_schema.has_value() && dict_values_schema.has_value()) {
+      DataItem new_schema_item =
+          CreateDictSchemaId(*dict_keys_schema, *dict_values_schema);
+      allocation_tracker_[old_alloc] =
+          AllocationId(new_schema_item.value<ObjectId>());
+    }
+    return absl::OkStatus();
+  }
+
+  absl::Status VisitList(const DataItem&, const DataItem&, bool,
+                         const DataSliceImpl&) override {
+    return absl::OkStatus();
+  }
+
+  absl::Status VisitDict(const DataItem&, const DataItem&, bool,
+                         const DataSliceImpl&, const DataSliceImpl&) override {
+    return absl::OkStatus();
+  }
+
+  absl::Status VisitObject(
+      const DataItem&, const DataItem&, bool,
+      const arolla::DenseArray<arolla::Text>&,
+      const arolla::DenseArray<DataItem>&) override {
+    return absl::OkStatus();
+  }
+
+ private:
+  absl::flat_hash_map<AllocationId, AllocationId>& allocation_tracker_;
+};
+
+class DeepCloneVisitor : AbstractVisitor {
+ public:
+  explicit DeepCloneVisitor(DataBagImplPtr new_databag, bool is_schema_slice,
+                            const DataBagImpl& databag,
+                            DataBagImpl::FallbackSpan fallbacks)
+      : new_databag_(std::move(new_databag)),
+        is_schema_slice_(is_schema_slice),
+        derived_id_traverser_(
+            databag, fallbacks,
+            std::make_shared<DerivedIdVisitor>(allocation_tracker_)) {}
+
+  absl::StatusOr<bool> Previsit(
+      const DataItem& from_item, const DataItem& from_schema,
+      const std::optional<AbstractVisitor::TransitionKey>& transition_key,
+      const DataItem& item, const DataItem& schema) override {
+    if (schema == schema::kSchema) {
+      if (is_schema_slice_ && from_schema == schema::kSchema &&
+          transition_key.has_value() &&
+          transition_key->type == TransitionType::kSchemaAttributeName) {
+        DCHECK(transition_key->value.holds_value<arolla::Text>());
+        absl::string_view attr_name =
+            transition_key->value.value<arolla::Text>().view();
+        if (attr_name == schema::kListItemsSchemaAttr ||
+            attr_name == schema::kDictKeysSchemaAttr) {
+          schemas_with_derived_ids_.push_back(from_item);
+        }
+      }
+      return PrevisitSchema(item);
+    }
+
     if (schema == schema::kObject && from_schema == schema::kSchema) {
       // The `item` is schema_metadata for `from_item`.
       RETURN_IF_ERROR(PrevisitSchemaMetadata(from_item, item));
@@ -79,8 +219,6 @@ class DeepCloneVisitor : AbstractVisitor {
       if (schema == schema::kObject) {
         RETURN_IF_ERROR(PrevisitObject(item));
         return true;
-      } else if (schema == schema::kSchema) {
-        return PrevisitSchema(item);
       }
       return true;
     }
@@ -103,8 +241,12 @@ class DeepCloneVisitor : AbstractVisitor {
   // Then we go through all these starting schemas, and for each of them we
   // create a chain of new ids metadata objects and implicit schemas.
   absl::Status AssignMetadataIds() {
+    if (allocations_with_metadata_.empty()) {
+      return absl::OkStatus();
+    }
     std::vector<AllocationId> derived_allocations;
-    for (const AllocationId& schema_allocation : allocations_with_metadata_) {
+    for (const AllocationId& schema_allocation :
+         allocations_with_metadata_) {
       ASSIGN_OR_RETURN(DataItem metadata,
                        CreateUuidWithMainObject(
                            DataItem(schema_allocation.ObjectByOffset(0)),
@@ -168,16 +310,17 @@ class DeepCloneVisitor : AbstractVisitor {
 
   absl::StatusOr<DataItem> GetValue(const DataItem& item,
                                     const DataItem& schema) override {
-    if (!allocations_with_metadata_.empty()) {
-      // On first GetValue or Visit* call, we reassign metadata ids.
+    if (!resolved_derived_ids_) {
+      // On first GetValue or Visit* call, we reassign metadata and list/dict
+      // schema ids.
       //
       // GetValue is called only after all Previsits are done. And we call
       // GetValue (and not GetValueImpl) from each of the Visit* methods, thus
       // ensuring that we would reassign derived ids once, after all Previsits
-      // are done, and before we start using cloned ids to srore in the new
+      // are done, and before we start using cloned ids to store in the new
       // databag.
-      RETURN_IF_ERROR(AssignMetadataIds());
-      DCHECK(allocations_with_metadata_.empty());
+      RETURN_IF_ERROR(ResolveDerivedObjectIds());
+      resolved_derived_ids_ = true;
     }
     return GetValueImpl(item, schema);
   }
@@ -194,9 +337,9 @@ class DeepCloneVisitor : AbstractVisitor {
     DCHECK(list_size.holds_value<int64_t>());
     if (list_size.value<int64_t>() != 0) {
       if (items.size() != list_size.value<int64_t>()) {
-          return absl::InvalidArgumentError(absl::StrFormat(
-              "Different numbers of items provided for the list %v: %d vs %d",
-              list, list_size.value<int64_t>(), items.size()));
+        return absl::InvalidArgumentError(absl::StrFormat(
+            "Different numbers of items provided for the list %v: %d vs %d",
+            list, list_size.value<int64_t>(), items.size()));
       }
       return absl::OkStatus();
     }
@@ -208,7 +351,7 @@ class DeepCloneVisitor : AbstractVisitor {
                          bool is_object_schema, const DataSliceImpl& keys,
                          const DataSliceImpl& values) override {
     DCHECK(dict.holds_value<ObjectId>() && dict.value<ObjectId>().IsDict());
-    DCHECK(keys.size() == values.size());
+    DCHECK_EQ(keys.size(), values.size());
     ASSIGN_OR_RETURN(auto new_dict, GetValue(dict, schema));
     if (is_object_schema) {
       RETURN_IF_ERROR(SetSchemaAttr(new_dict, schema));
@@ -227,7 +370,7 @@ class DeepCloneVisitor : AbstractVisitor {
     if (is_object_schema) {
       RETURN_IF_ERROR(SetSchemaAttr(new_object, schema));
     }
-    DCHECK(attr_names.size() == attr_values.size());
+    DCHECK_EQ(attr_names.size(), attr_values.size());
     DCHECK(attr_names.IsAllPresent());
     for (size_t i = 0; i < attr_names.size(); ++i) {
       if (attr_values.present(i)) {
@@ -254,9 +397,7 @@ class DeepCloneVisitor : AbstractVisitor {
     return VisitObject(item, schema, is_object_schema, attr_names, attr_schema);
   }
 
-  std::vector<ObjectId> get_explicit_schemas() {
-    return explicit_schemas_;
-  }
+  std::vector<ObjectId> get_explicit_schemas() { return explicit_schemas_; }
 
  private:
   DataItem GetValueFromTrackedAllocation(const DataItem& item) {
@@ -321,8 +462,8 @@ class DeepCloneVisitor : AbstractVisitor {
                                       const DataItem& item) {
     DCHECK(item.holds_value<ObjectId>());
     DCHECK(from_item.holds_value<ObjectId>());
-    AllocationId item_allocation = AllocationId(item.value<ObjectId>());
-    allocation_tracker_[item_allocation] = item_allocation;
+    allocation_tracker_.emplace(AllocationId(item.value<ObjectId>()),
+                                AllocationId());
     allocations_with_metadata_.insert(
         AllocationId(from_item.value<ObjectId>()));
     return absl::OkStatus();
@@ -382,9 +523,25 @@ class DeepCloneVisitor : AbstractVisitor {
     if (!inserted) {
       return absl::OkStatus();
     }
-    AllocationId new_allocation_id =
-        AllocateExplicitSchemas(allocation_id.Capacity());
-    alloc_it->second = new_allocation_id;
+    alloc_it->second = AllocateExplicitSchemas(allocation_id.Capacity());
+    return absl::OkStatus();
+  }
+
+  absl::Status ResolveListDictSchemaIds() {
+    if (schemas_with_derived_ids_.empty()) {
+      return absl::OkStatus();
+    }
+    auto schemas_slice = DataSliceImpl::Create(
+        arolla::CreateFullDenseArray<DataItem>(schemas_with_derived_ids_));
+    RETURN_IF_ERROR(derived_id_traverser_.TraverseSlice(
+        schemas_slice, DataItem(schema::kSchema)));
+    schemas_with_derived_ids_.clear();
+    return absl::OkStatus();
+  }
+
+  absl::Status ResolveDerivedObjectIds() {
+    RETURN_IF_ERROR(ResolveListDictSchemaIds());
+    RETURN_IF_ERROR(AssignMetadataIds());
     return absl::OkStatus();
   }
 
@@ -396,12 +553,14 @@ class DeepCloneVisitor : AbstractVisitor {
     return absl::OkStatus();
   }
 
- private:
   DataBagImplPtr new_databag_;
   bool is_schema_slice_;
   absl::flat_hash_map<AllocationId, AllocationId> allocation_tracker_;
+  Traverser<DerivedIdVisitor> derived_id_traverser_;
   absl::flat_hash_set<AllocationId> allocations_with_metadata_;
   std::vector<ObjectId> explicit_schemas_;
+  std::vector<DataItem> schemas_with_derived_ids_;
+  bool resolved_derived_ids_ = false;
 };
 
 }  // namespace
@@ -411,7 +570,7 @@ absl::StatusOr<DataSliceImpl> DeepCloneOp::operator()(
     DataBagImpl::FallbackSpan fallbacks) const {
   auto visitor = std::make_shared<DeepCloneVisitor>(
       DataBagImplPtr::NewRef(new_databag_),
-      /*is_schema_slice=*/schema == schema::kSchema);
+      /*is_schema_slice=*/schema == schema::kSchema, databag, fallbacks);
   auto traverse_op = Traverser<DeepCloneVisitor>(databag, fallbacks, visitor);
   RETURN_IF_ERROR(traverse_op.TraverseSlice(ds, schema));
   SliceBuilder result_items(ds.size());

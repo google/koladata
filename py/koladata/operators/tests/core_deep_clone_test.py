@@ -453,6 +453,35 @@ class CoreDeepCloneTest(parameterized.TestCase):
       else:
         kd.deep_clone(o.no_bag())
 
+  def test_clone_list_schema_slice(self):
+    db = data_bag.DataBag.empty_mutable()
+    entity_schema = db.new_schema(x=schema_constants.INT32)
+    list_schema = db.list_schema(entity_schema)
+    cloned_schema = kd.deep_clone(list_schema)
+    testing.assert_not_equal(cloned_schema.no_bag(), list_schema.no_bag())
+    testing.assert_not_equal(
+        cloned_schema.get_item_schema().no_bag(), entity_schema.no_bag()
+    )
+    testing.assert_equal(
+        cloned_schema.get_item_schema().x.no_bag(), schema_constants.INT32
+    )
+
+  def test_clone_dict_schema_slice(self):
+    db = data_bag.DataBag.empty_mutable()
+    entity_schema = db.new_schema(x=schema_constants.INT32)
+    dict_schema = db.dict_schema(schema_constants.STRING, entity_schema)
+    cloned_schema = kd.deep_clone(dict_schema)
+    testing.assert_not_equal(cloned_schema.no_bag(), dict_schema.no_bag())
+    testing.assert_equal(
+        cloned_schema.get_key_schema().no_bag(), schema_constants.STRING
+    )
+    testing.assert_not_equal(
+        cloned_schema.get_value_schema().no_bag(), entity_schema.no_bag()
+    )
+    testing.assert_equal(
+        cloned_schema.get_value_schema().x.no_bag(), schema_constants.INT32
+    )
+
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.deep_clone(I.x)))
 

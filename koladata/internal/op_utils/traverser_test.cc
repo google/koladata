@@ -493,6 +493,13 @@ TEST_P(NoOpTraverserTest, PrevisitTransitionKeys) {
                          .value = DataItem(arolla::Text("child"))},
        .item = child_schema,
        .schema = DataItem(schema::kSchema)},
+      {.from_item = child_schema,
+       .from_schema = DataItem(schema::kSchema),
+       .transition_key =
+           TransitionKey{.type = TransitionType::kSchemaAttributeName,
+                         .value = DataItem(arolla::Text("val"))},
+       .item = DataItem(schema::kInt32),
+       .schema = DataItem(schema::kSchema)},
   };
 
   EXPECT_THAT(visitor->records(),

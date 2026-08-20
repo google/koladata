@@ -15,6 +15,7 @@
 #include "koladata/internal/op_utils/deep_clone.h"
 
 #include <cstdint>
+#include <functional>
 #include <initializer_list>
 #include <utility>
 
@@ -35,6 +36,7 @@
 #include "koladata/internal/testing/deep_op_utils.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/internal/uuid_object.h"
+#include "koladata/internal/uuid_schemas.h"
 #include "koladata/test_utils.h"
 
 namespace koladata::internal {
@@ -1207,6 +1209,233 @@ TEST_P(DeepCloneTest, ObjectListReachableAsEntity) {
   SetDataTriples(*expected_db, expected_data_triples);
   SetSchemaTriples(*expected_db, expected_schema_triples);
   EXPECT_THAT(result_db, DataBagEqual(expected_db));
+}
+
+TEST_P(DeepCloneTest, ListSchemaSlice_PrimitiveItems) {
+  // LIST[INT32] — list schema is a UUID derived from INT32.
+  // After cloning, INT32 doesn't change, so the list schema UUID should be
+  // the same as the original (re-derived from the same sub-schema).
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto item_schema = DataItem(schema::kInt32);
+  auto list_schema = CreateListSchemaId(item_schema);
+
+  TriplesT schema_triples = {
+      {list_schema,
+       {{schema::kListItemsSchemaAttr, item_schema}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto ds = DataSliceImpl::Create(/*size=*/1, list_schema);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN(
+      auto result_slice,
+      DeepCloneOp(result_db.get())(ds, DataItem(schema::kSchema),
+                                   *GetMainDb(db), {GetFallbackDb(db).get()}));
+  // The cloned list schema should be re-derived from the same INT32 sub-schema,
+  // producing the same UUID.
+  auto expected_list_schema = CreateSchemaUuidFromFields(
+      schema::kListSchemaSeed,
+      {schema::kListItemsSchemaAttr}, {std::cref(item_schema)});
+  EXPECT_EQ(result_slice[0], expected_list_schema);
+  EXPECT_EQ(result_slice[0], list_schema);
+}
+
+TEST_P(DeepCloneTest, ListSchemaSlice_EntityItems) {
+  // LIST[EntitySchema] — list schema UUID should be re-derived from the
+  // cloned entity schema.
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto entity_schema = AllocateSchema();
+  auto item_schema = DataItem(entity_schema);
+  auto list_schema = CreateListSchemaId(item_schema);
+
+  TriplesT schema_triples = {
+      {list_schema,
+       {{schema::kListItemsSchemaAttr, entity_schema}}},
+      {entity_schema, {{"x", DataItem(schema::kInt32)}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto ds = DataSliceImpl::Create(/*size=*/1, list_schema);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN(
+      auto result_slice,
+      DeepCloneOp(result_db.get())(ds, DataItem(schema::kSchema),
+                                   *GetMainDb(db), {GetFallbackDb(db).get()}));
+  // The cloned list schema should differ from the original because the entity
+  // schema was cloned (got a new allocation).
+  EXPECT_NE(result_slice[0], list_schema);
+
+  // Verify the list schema is a proper UUID re-derived from the cloned entity.
+  ASSERT_OK_AND_ASSIGN(
+      auto result_entity_schema,
+      result_db->GetSchemaAttr(result_slice[0], schema::kListItemsSchemaAttr));
+  EXPECT_NE(result_entity_schema, entity_schema);
+  auto result_item = result_entity_schema;
+  auto expected_list_schema = CreateListSchemaId(result_item);
+  EXPECT_EQ(result_slice[0], expected_list_schema);
+
+  // Entity attrs should be preserved.
+  ASSERT_OK_AND_ASSIGN(
+      auto result_x_schema,
+      result_db->GetSchemaAttr(result_entity_schema, "x"));
+  EXPECT_EQ(result_x_schema, DataItem(schema::kInt32));
+}
+
+TEST_P(DeepCloneTest, DictSchemaSlice_PrimitiveKeysValues) {
+  // DICT[INT64, FLOAT32] — dict schema is a UUID derived from both key and
+  // value schemas. With primitive sub-schemas, the re-derived UUID should
+  // match the original.
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto key_schema = DataItem(schema::kInt64);
+  auto value_schema = DataItem(schema::kFloat32);
+  auto dict_schema = CreateDictSchemaId(key_schema, value_schema);
+
+  TriplesT schema_triples = {
+      {dict_schema,
+       {{schema::kDictKeysSchemaAttr, key_schema},
+        {schema::kDictValuesSchemaAttr, value_schema}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto ds = DataSliceImpl::Create(/*size=*/1, dict_schema);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN(
+      auto result_slice,
+      DeepCloneOp(result_db.get())(ds, DataItem(schema::kSchema),
+                                   *GetMainDb(db), {GetFallbackDb(db).get()}));
+  EXPECT_EQ(result_slice[0], dict_schema);
+}
+
+TEST_P(DeepCloneTest, DictSchemaSlice_EntityValues) {
+  // DICT[INT64, EntitySchema] — dict schema UUID should be re-derived from
+  // the primitive key schema and the cloned entity value schema.
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto key_schema = DataItem(schema::kInt64);
+  auto value_entity_schema = AllocateSchema();
+  auto value_schema = DataItem(value_entity_schema);
+  auto dict_schema = CreateDictSchemaId(key_schema, value_schema);
+
+  TriplesT schema_triples = {
+      {dict_schema,
+       {{schema::kDictKeysSchemaAttr, key_schema},
+        {schema::kDictValuesSchemaAttr, value_entity_schema}}},
+      {value_entity_schema, {{"x", DataItem(schema::kInt32)}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto ds = DataSliceImpl::Create(/*size=*/1, dict_schema);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN(
+      auto result_slice,
+      DeepCloneOp(result_db.get())(ds, DataItem(schema::kSchema),
+                                   *GetMainDb(db), {GetFallbackDb(db).get()}));
+  EXPECT_NE(result_slice[0], dict_schema);
+
+  ASSERT_OK_AND_ASSIGN(
+      auto result_value_schema,
+      result_db->GetSchemaAttr(result_slice[0],
+                               schema::kDictValuesSchemaAttr));
+  EXPECT_NE(result_value_schema, value_entity_schema);
+  ASSERT_OK_AND_ASSIGN(
+      auto result_key_schema,
+      result_db->GetSchemaAttr(result_slice[0],
+                               schema::kDictKeysSchemaAttr));
+  EXPECT_EQ(result_key_schema, key_schema);
+
+  // Verify the dict schema UUID was properly re-derived.
+  auto expected_dict_schema = CreateDictSchemaId(
+      result_key_schema, result_value_schema);
+  EXPECT_EQ(result_slice[0], expected_dict_schema);
+}
+
+TEST_P(DeepCloneTest, NestedListSchemaSlice) {
+  // LIST[LIST[INT32]] — both inner and outer list schemas are UUIDs.
+  // Inner: LIST[INT32] with UUID derived from INT32
+  // Outer: LIST[inner] with UUID derived from inner's UUID
+  // After cloning, INT32 doesn't change, so inner stays the same UUID,
+  // and outer is re-derived from that same inner UUID.
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto int_schema = DataItem(schema::kInt32);
+  auto inner_list_schema = CreateListSchemaId(int_schema);
+  auto outer_list_schema = CreateListSchemaId(inner_list_schema);
+
+  TriplesT schema_triples = {
+      {inner_list_schema,
+       {{schema::kListItemsSchemaAttr, int_schema}}},
+      {outer_list_schema,
+       {{schema::kListItemsSchemaAttr, inner_list_schema}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto ds = DataSliceImpl::Create(/*size=*/1, outer_list_schema);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN(
+      auto result_slice,
+      DeepCloneOp(result_db.get())(ds, DataItem(schema::kSchema),
+                                   *GetMainDb(db), {GetFallbackDb(db).get()}));
+  // All sub-schemas are primitive, so UUIDs should be unchanged.
+  EXPECT_EQ(result_slice[0], outer_list_schema);
+
+  ASSERT_OK_AND_ASSIGN(
+      auto result_inner,
+      result_db->GetSchemaAttr(result_slice[0], schema::kListItemsSchemaAttr));
+  EXPECT_EQ(result_inner, inner_list_schema);
+}
+
+TEST_P(DeepCloneTest, ListSchemaSlice_SharedSubSchema) {
+  // Two list schemas sharing the same entity sub-schema.
+  // LIST_A[EntitySchema], LIST_B[EntitySchema]
+  // After cloning, both should reference the same cloned entity schema,
+  // and both UUIDs should be re-derived consistently.
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto entity_schema = AllocateSchema();
+  auto entity_item = DataItem(entity_schema);
+  auto list_schema_a = CreateListSchemaId(entity_item);
+  auto list_schema_b = CreateListSchemaId(entity_item);
+  // Same formula, same sub-schema → same UUID.
+  EXPECT_EQ(list_schema_a, list_schema_b);
+
+  // Create a wrapper schema that references both list schemas through
+  // different paths.
+  auto wrapper = AllocateSchema();
+  TriplesT schema_triples = {
+      {wrapper, {{"list_a", list_schema_a}, {"list_b", list_schema_b}}},
+      {list_schema_a,
+       {{schema::kListItemsSchemaAttr, entity_schema}}},
+      {entity_schema, {{"x", DataItem(schema::kInt32)}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto ds = DataSliceImpl::Create(/*size=*/1, wrapper);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN(
+      auto result_slice,
+      DeepCloneOp(result_db.get())(ds, DataItem(schema::kSchema),
+                                   *GetMainDb(db), {GetFallbackDb(db).get()}));
+
+  ASSERT_OK_AND_ASSIGN(
+      auto result_list_a,
+      result_db->GetSchemaAttr(result_slice[0], "list_a"));
+  ASSERT_OK_AND_ASSIGN(
+      auto result_list_b,
+      result_db->GetSchemaAttr(result_slice[0], "list_b"));
+  // Both should get the same re-derived UUID.
+  EXPECT_EQ(result_list_a, result_list_b);
+  EXPECT_NE(result_list_a, list_schema_a);
+
+  // Verify the list schema references the cloned entity schema.
+  ASSERT_OK_AND_ASSIGN(
+      auto result_entity,
+      result_db->GetSchemaAttr(result_list_a, schema::kListItemsSchemaAttr));
+  EXPECT_NE(result_entity, entity_schema);
+  auto expected_list = CreateListSchemaId(result_entity);
+  EXPECT_EQ(result_list_a, expected_list);
 }
 
 }  // namespace
