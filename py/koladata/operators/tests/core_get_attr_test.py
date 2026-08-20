@@ -228,7 +228,7 @@ class CoreGetAttrTest(parameterized.TestCase):
   def test_same_bag(self):
     db = data_bag.DataBag.empty_mutable()
     entity = db.new(a=ds([1, 2, 3]), b=ds(['a', None, 'c']))
-    default = db.new(a=42).with_schema(entity.get_schema())
+    default = db.new(a=42, schema=entity.get_schema())
     entity = db.new(e=entity & ds([arolla.present(), None, None]))
     result = kd.get_attr(entity, 'e', default)
     testing.assert_equal_by_fingerprint(result.get_bag(), db)
@@ -274,12 +274,15 @@ class CoreGetAttrTest(parameterized.TestCase):
     testing.assert_equal(res, missing_schema)
 
   @parameterized.parameters(
-      (ds([None]), 'x'),
-      (ds([None]).with_schema(schema_constants.OBJECT), 'x'),
+      (ds([None]), 'x', ds([None], schema_constants.NONE)),
+      (
+          ds([None], schema_constants.OBJECT),
+          'x',
+          ds([None], schema_constants.NONE),
+      ),
   )
-  def test_no_bag_empty_succeeds(self, slice_val, attr_name):
+  def test_no_bag_empty_succeeds(self, slice_val, attr_name, expected):
     res = kd.core.get_attr(slice_val, attr_name)
-    expected = slice_val.with_schema(schema_constants.NONE)
     testing.assert_equal(res, expected)
     testing.assert_equal(res.get_schema(), schema_constants.NONE)
 
@@ -297,14 +300,14 @@ class CoreGetAttrTest(parameterized.TestCase):
       schema_constants.STRING,
   )
   def test_no_bag_empty_primitive_fails(self, schema_val):
-    o_prim = ds([None]).with_schema(schema_val)
+    o_prim = ds([None], schema_val)
     with self.assertRaisesRegex(
         ValueError, 'primitives do not have attributes'
     ):
       _ = kd.core.get_attr(o_prim, 'x')
 
   def test_no_bag_empty_attr_name_slice_fails(self):
-    o = ds([None]).with_schema(schema_constants.OBJECT)
+    o = ds([None], schema_constants.OBJECT)
     with self.assertRaisesRegex(
         ValueError, 'the DataSlice is a reference without a bag'
     ):

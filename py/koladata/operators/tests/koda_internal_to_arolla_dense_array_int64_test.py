@@ -33,6 +33,7 @@ bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 kde_internal = kde_operators.internal
 kd_internal = kde_operators.kd_internal
+kd = kde_operators.kd
 
 OBJECT = schema_constants.OBJECT
 INT32 = schema_constants.INT32
@@ -48,10 +49,10 @@ class KodaToArollaDenseArrayInt64Test(parameterized.TestCase):
       (ds([1], INT64), arolla.dense_array_int64([1])),
       (ds([None], INT32), arolla.dense_array_int64([None])),
       (ds([None], INT64), arolla.dense_array_int64([None])),
-      (ds([1], INT32).with_schema(OBJECT), arolla.dense_array_int64([1])),
-      (ds([1], INT64).with_schema(OBJECT), arolla.dense_array_int64([1])),
+      (kd.cast_to(ds([1], INT32), OBJECT), arolla.dense_array_int64([1])),
+      (kd.cast_to(ds([1], INT64), OBJECT), arolla.dense_array_int64([1])),
       # Empty and unknown.
-      (ds([None]).with_schema(INT64), arolla.dense_array_int64([None])),
+      (ds([None], INT64), arolla.dense_array_int64([None])),
       (ds([None]), arolla.dense_array_int64([None])),
       (ds([None], OBJECT), arolla.dense_array_int64([None])),
       # Mixed.
@@ -60,9 +61,9 @@ class KodaToArollaDenseArrayInt64Test(parameterized.TestCase):
       (ds(None, INT32), arolla.dense_array_int64([None])),
       (ds(1, INT32), arolla.dense_array_int64([1])),
       (ds(1, INT64), arolla.dense_array_int64([1])),
-      (ds(1, INT32).with_schema(OBJECT), arolla.dense_array_int64([1])),
-      (ds(1, INT64).with_schema(OBJECT), arolla.dense_array_int64([1])),
-      (ds(None).with_schema(INT64), arolla.dense_array_int64([None])),
+      (kd.cast_to(ds(1, INT32), OBJECT), arolla.dense_array_int64([1])),
+      (kd.cast_to(ds(1, INT64), OBJECT), arolla.dense_array_int64([1])),
+      (ds(None, INT64), arolla.dense_array_int64([None])),
       # Multidim values.
       (ds([[], []], INT32), arolla.dense_array_int64([])),
       (ds([[1], [2]], INT32), arolla.dense_array_int64([1, 2])),
@@ -70,15 +71,15 @@ class KodaToArollaDenseArrayInt64Test(parameterized.TestCase):
       (ds([[None], [None]], INT32), arolla.dense_array_int64([None, None])),
       (ds([[None], [None]], INT64), arolla.dense_array_int64([None, None])),
       (
-          ds([[1], [2]], INT32).with_schema(OBJECT),
+          kd.cast_to(ds([[1], [2]], INT32), OBJECT),
           arolla.dense_array_int64([1, 2]),
       ),
       (
-          ds([[1], [2]], INT64).with_schema(OBJECT),
+          kd.cast_to(ds([[1], [2]], INT64), OBJECT),
           arolla.dense_array_int64([1, 2]),
       ),
       (
-          ds([[None], [None]]).with_schema(INT64),
+          ds([[None], [None]], INT64),
           arolla.dense_array_int64([None, None]),
       ),
   )

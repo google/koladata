@@ -255,7 +255,7 @@ class BoxingTest(parameterized.TestCase):
       ds([db.new(), 42])
 
     e1 = db.new()
-    e2 = db.new().with_schema(e1.get_schema())
+    e2 = db.new(schema=e1.get_schema())
     x = ds([e1, e2])
     testing.assert_equal(x.internal_as_py()[0], e1)
     testing.assert_equal(x.internal_as_py()[1], e2)

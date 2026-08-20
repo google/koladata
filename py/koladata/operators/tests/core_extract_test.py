@@ -240,7 +240,7 @@ class CoreExtractTest(parameterized.TestCase):
 
   @parameterized.parameters(
       ds([None]),
-      ds([None]).with_schema(schema_constants.OBJECT),
+      ds([None], schema_constants.OBJECT),
       (kd.new(a=1, b=2) & None).no_bag(),
   )
   def test_no_bag_empty(self, o):
@@ -253,7 +253,7 @@ class CoreExtractTest(parameterized.TestCase):
   def test_no_bag_empty_schema_adoption(self):
     db = data_bag.DataBag.empty_mutable()
     schema = db.new_schema(a=schema_constants.INT32)
-    o = ds([None]).with_schema(schema).no_bag()
+    o = ds([None], schema).no_bag()
     self.assertFalse(o.has_bag())
 
     res = kd.extract(o, schema=schema)

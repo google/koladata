@@ -44,7 +44,7 @@ class DictsGetPresentKeysTest(parameterized.TestCase):
       (kd.dict({1: None, 3: 4}), ds([3])),
       (kd.obj(kd.dict({1: None, 3: 4})), ds([3])),
       (
-          ds(None).with_schema(kd.dict({1: None, 3: 4}).get_schema()),
+          ds(None, schema=kd.dict({1: None, 3: 4}).get_schema()),
           ds([], schema_constants.INT32),
       ),
       (ds(None).with_bag(data_bag.DataBag.empty()), ds([])),

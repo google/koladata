@@ -75,7 +75,7 @@ class MaskingCoalesceTest(parameterized.TestCase):
   def test_same_bag(self):
     db = data_bag.DataBag.empty_mutable()
     x = db.new()
-    y = db.new().with_schema(x.get_schema())
+    y = db.new(schema=x.get_schema())
     testing.assert_equal(kd.masking.coalesce(x, y), x)
 
   def test_incompatible_schema_error(self):

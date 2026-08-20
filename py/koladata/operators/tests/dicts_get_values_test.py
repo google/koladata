@@ -48,7 +48,7 @@ class DictsGetValuesTest(parameterized.TestCase):
       (kd.dict({1: 2, 3: 4}), ds([2, 4])),
       (kd.obj(kd.dict({1: 2, 3: 4})), ds([2, 4])),
       (
-          ds(None).with_schema(kd.dict({1: 2, 3: 4}).get_schema()),
+          ds(None, schema=kd.dict({1: 2, 3: 4}).get_schema()),
           ds([], schema_constants.INT32),
       ),
       (ds(None).with_bag(data_bag.DataBag.empty()), ds([])),
@@ -73,12 +73,12 @@ class DictsGetValuesTest(parameterized.TestCase):
       (kd.dict({1: 2, 3: 4}), ds([3, 1]), ds([4, 2])),
       (kd.obj(kd.dict({1: 2, 3: 4})), ds([3, 1]), ds([4, 2])),
       (
-          ds(None).with_schema(kd.dict({1: 2, 3: 4}).get_schema()),
+          ds(None, schema=kd.dict({1: 2, 3: 4}).get_schema()),
           ds([3, 1]),
           ds([None, None], schema_constants.INT32),
       ),
       (
-          ds(None).with_schema(schema_constants.OBJECT).with_bag(kd.bag()),
+          ds(None, schema_constants.OBJECT).with_bag(kd.bag()),
           ds([3, 1]),
           ds([None, None]),
       ),
@@ -184,30 +184,30 @@ class DictsGetValuesTest(parameterized.TestCase):
   @parameterized.parameters(
       # no keys
       (
-          ds([None]).with_schema(schema_constants.OBJECT),
+          ds([None], schema_constants.OBJECT),
           arolla.unspecified(),
           ds([[]]),
       ),
       (ds([None]), arolla.unspecified(), ds([[]])),
       (
-          ds(None).with_schema(schema_constants.OBJECT),
+          ds(None, schema_constants.OBJECT),
           arolla.unspecified(),
           ds([]),
       ),
       (ds(None), arolla.unspecified(), ds([])),
       # empty keys
       (
-          ds([None]).with_schema(schema_constants.OBJECT),
-          ds([[]]).with_schema(schema_constants.OBJECT),
+          ds([None], schema_constants.OBJECT),
+          ds([[]], schema_constants.OBJECT),
           ds([[]]),
       ),
-      (ds([None]), ds([[]]).with_schema(schema_constants.OBJECT), ds([[]])),
+      (ds([None]), ds([[]], schema_constants.OBJECT), ds([[]])),
       (
-          ds(None).with_schema(schema_constants.OBJECT),
-          ds([]).with_schema(schema_constants.OBJECT),
+          ds(None, schema_constants.OBJECT),
+          ds([], schema_constants.OBJECT),
           ds([]),
       ),
-      (ds(None), ds([]).with_schema(schema_constants.OBJECT), ds([])),
+      (ds(None), ds([], schema_constants.OBJECT), ds([])),
   )
   def test_no_bag_empty_succeeds(self, x, keys, expected):
     res = kd.get_values(x, keys)
@@ -217,18 +217,18 @@ class DictsGetValuesTest(parameterized.TestCase):
   @parameterized.parameters(
       # d, keys, expected
       (
-          ds([None]).with_schema(schema_constants.OBJECT),
-          ds([[1, 2]]).with_schema(schema_constants.INT32),
+          ds([None], schema_constants.OBJECT),
+          ds([[1, 2]], schema_constants.INT32),
           ds([[None, None]]),
       ),
       (
           ds([None]),
-          ds([[1, 2]]).with_schema(schema_constants.INT32),
+          ds([[1, 2]], schema_constants.INT32),
           ds([[None, None]]),
       ),
       (
-          ds(None).with_schema(schema_constants.OBJECT),
-          ds([1, 2]).with_schema(schema_constants.INT32),
+          ds(None, schema_constants.OBJECT),
+          ds([1, 2], schema_constants.INT32),
           ds([None, None]),
       ),
   )

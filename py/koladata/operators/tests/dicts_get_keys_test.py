@@ -44,7 +44,7 @@ class DictsGetKeysTest(parameterized.TestCase):
       (kd.dict({1: 2, 3: 4}), ds([1, 3])),
       (kd.obj(kd.dict({1: 2, 3: 4})), ds([1, 3])),
       (
-          ds(None).with_schema(kd.dict({1: 2, 3: 4}).get_schema()),
+          ds(None, schema=kd.dict({1: 2, 3: 4}).get_schema()),
           ds([], schema_constants.INT32),
       ),
       (ds(None).with_bag(data_bag.DataBag.empty()), ds([])),
@@ -120,9 +120,9 @@ class DictsGetKeysTest(parameterized.TestCase):
       )
 
   @parameterized.parameters(
-      (ds([None]).with_schema(schema_constants.OBJECT), ds([[]])),
+      (ds([None], schema_constants.OBJECT), ds([[]])),
       (ds([None]), ds([[]])),
-      (ds(None).with_schema(schema_constants.OBJECT), ds([])),
+      (ds(None, schema_constants.OBJECT), ds([])),
       (ds(None), ds([])),
   )
   def test_no_bag_empty(self, x, expected):

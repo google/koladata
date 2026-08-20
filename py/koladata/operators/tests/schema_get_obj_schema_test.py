@@ -50,7 +50,7 @@ class SchemaGetObjSchemaTest(parameterized.TestCase):
       (ds(1, schema_constants.OBJECT), schema_constants.INT32),
       # Schema DataItem
       (
-          ds(schema_constants.INT32).with_schema(schema_constants.OBJECT),
+          ds(schema_constants.INT32, schema_constants.OBJECT),
           schema_constants.SCHEMA,
       ),
       # DataSlice with mixed primitives
@@ -66,8 +66,9 @@ class SchemaGetObjSchemaTest(parameterized.TestCase):
       # Schema DataSlice
       (
           ds(
-              [schema_constants.INT32, None, schema_constants.SCHEMA]
-          ).with_schema(schema_constants.OBJECT),
+              [schema_constants.INT32, None, schema_constants.SCHEMA],
+              schema_constants.OBJECT,
+          ),
           ds([
               schema_constants.SCHEMA,
               None,
@@ -90,7 +91,7 @@ class SchemaGetObjSchemaTest(parameterized.TestCase):
               1.2,
               obj,
               'a',
-              schema_constants.INT32.with_schema(schema_constants.OBJECT),
+              ds(schema_constants.INT32, schema_constants.OBJECT),
           ]),
           ds([
               schema_constants.INT32,

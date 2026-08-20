@@ -101,7 +101,7 @@ Schema for `y`: ITEMID"""
         ),
     ):
       kd.comparison.equal(
-          kd.new(x=1), kd.obj().with_schema(schema_constants.ITEMID)
+          kd.new(x=1), kd.cast_to(kd.obj(), schema_constants.ITEMID)
       )
 
   def test_repr(self):

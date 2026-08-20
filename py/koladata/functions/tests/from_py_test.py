@@ -891,7 +891,7 @@ assigned schema: INT32"""),
     ).eval()
     item = from_py(None, schema=schema)
     testing.assert_equivalent(item.get_schema(), schema)
-    testing.assert_equal(item.no_bag(), ds(None).with_schema(schema.no_bag()))
+    testing.assert_equal(item.no_bag(), ds(None, schema.no_bag()))
 
   def test_empty_slice(self):
     res = from_py([], from_dim=1, schema=schema_constants.FLOAT32)

@@ -234,4 +234,4 @@ def reshape_based_on_indices(
     num_children = (kdi.agg_max(prefix.get_keys()) + 1) | 0
     prefix = prefix.repeat(num_children)
     prefix = prefix[kdi.index(prefix)]
-  return prefix.with_bag(ds.get_bag()).with_schema(ds.get_schema())
+  return prefix.with_bag(ds.get_bag())

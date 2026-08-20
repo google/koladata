@@ -71,8 +71,8 @@ class TestUtilsTest(absltest.TestCase):
         view_of_mask, view_lib.view([mask_constants.present, None, None])[:]
     )
 
-    kd_slice_of_mask_as_obj = kd.slice([kd.present, None, None]).with_schema(
-        kd.OBJECT
+    kd_slice_of_mask_as_obj = kd.slice(
+        [kd.present, None, None], schema=kd.OBJECT
     )
     view_of_mask_as_obj = test_utils.from_ds(kd_slice_of_mask_as_obj)
     test_utils.assert_equal(

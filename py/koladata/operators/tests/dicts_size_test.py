@@ -65,11 +65,11 @@ class DictsSizeTest(parameterized.TestCase):
   @parameterized.parameters(
       (ds([None]), ds([None], schema_constants.INT64)),
       (
-          ds([None]).with_schema(schema_constants.OBJECT),
+          ds([None], schema_constants.OBJECT),
           ds([None], schema_constants.INT64),
       ),
       (
-          ds([None]).with_schema(schema_constants.INT32),
+          ds([None], schema_constants.INT32),
           ds([None], schema_constants.INT64),
       ),
   )

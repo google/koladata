@@ -33,6 +33,7 @@ bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 kde_internal = kde_operators.internal
 kd_internal = kde_operators.kd_internal
+kd = kde_operators.kd
 
 OBJECT = schema_constants.OBJECT
 MASK = schema_constants.MASK
@@ -47,19 +48,19 @@ class KodaToArollaDenseArrayUnitTest(parameterized.TestCase):
       (ds([None]), arolla.dense_array_unit([None])),
       (ds([None], MASK), arolla.dense_array_unit([None])),
       (
-          ds([arolla.unit()], MASK).with_schema(OBJECT),
+          kd.cast_to(ds([arolla.unit()], MASK), OBJECT),
           arolla.dense_array_unit([True]),
       ),
       # Empty and unknown.
-      (ds([None]).with_schema(MASK), arolla.dense_array_unit([None])),
+      (ds([None], MASK), arolla.dense_array_unit([None])),
       # Scalars.
       (ds(None, MASK), arolla.dense_array_unit([None])),
       (ds(arolla.unit(), MASK), arolla.dense_array_unit([True])),
       (
-          ds(arolla.unit(), MASK).with_schema(OBJECT),
+          kd.cast_to(ds(arolla.unit(), MASK), OBJECT),
           arolla.dense_array_unit([True]),
       ),
-      (ds(None).with_schema(MASK), arolla.dense_array_unit([None])),
+      (ds(None, MASK), arolla.dense_array_unit([None])),
       # Multidim values.
       (ds([[], []], MASK), arolla.dense_array_unit([])),
       (
@@ -68,11 +69,11 @@ class KodaToArollaDenseArrayUnitTest(parameterized.TestCase):
       ),
       (ds([[None], [None]], MASK), arolla.dense_array_unit([None, None])),
       (
-          ds([[arolla.unit()], [None]], MASK).with_schema(OBJECT),
+          kd.cast_to(ds([[arolla.unit()], [None]], MASK), OBJECT),
           arolla.dense_array_unit([True, None]),
       ),
       (
-          ds([[None], [None]]).with_schema(MASK),
+          ds([[None], [None]], MASK),
           arolla.dense_array_unit([None, None]),
       ),
   )

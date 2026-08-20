@@ -42,7 +42,7 @@ class NpkdTest(parameterized.TestCase):
     res_np = npkd.to_array(ds)
     res_ds = npkd.from_array(res_np)
     if schema is not None:
-      expected_ds = res_ds.with_schema(schema)
+      expected_ds = kd.cast_to(res_ds, schema)
     else:
       expected_ds = res_ds
     kd.testing.assert_equal(res_ds, expected_ds)
@@ -112,7 +112,7 @@ class NpkdTest(parameterized.TestCase):
       self.assertEqual(res_py[1], False)
 
     with self.subTest('int ds object schema'):
-      x = kd.slice([1, 2, 3]).with_schema(kd.OBJECT)
+      x = kd.slice([1, 2, 3], schema=kd.OBJECT)
       expected_x = kd.slice([1, 2, 3])
       res_np = npkd.to_array(x)
       res_ds = npkd.from_array(res_np)

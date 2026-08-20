@@ -101,7 +101,7 @@ class ComparisonFullEqualTest(parameterized.TestCase):
     )
     testing.assert_equal(
         kd.comparison.full_equal(
-            db.new(x=1), db.obj().with_schema(schema_constants.ITEMID)
+            db.new(x=1), kd.cast_to(db.obj(), schema_constants.ITEMID)
         ),
         missing,
     )

@@ -243,7 +243,7 @@ class DataItemTest(parameterized.TestCase):
       ('bytes', ds(b'a'), "DataItem(b'a', schema: BYTES)"),
       (
           'int32_with_object',
-          ds(12).with_schema(schema_constants.OBJECT),
+          ds(12, schema_constants.OBJECT),
           'DataItem(12, schema: OBJECT)',
       ),
       ('none', ds(None), 'DataItem(None, schema: NONE)'),

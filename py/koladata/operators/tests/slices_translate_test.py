@@ -173,7 +173,7 @@ class SlicesTranslateTest(parameterized.TestCase):
         ValueError, 'keys_to schema must be castable to keys_from schema'
     ):
       kd.slices.translate(
-          ds([entity1, entity3, None, entity4]).with_schema(s2),
+          ds([entity1, entity3, None, entity4], s2),
           ds([entity1, entity2, entity3]),
           ds([1, 2, 3]),
       )

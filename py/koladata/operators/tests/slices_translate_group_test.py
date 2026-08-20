@@ -157,7 +157,7 @@ class SlicesTranslateGroupTest(parameterized.TestCase):
         ' schema',
     ):
       kd.slices.translate(
-          ds([entity1, entity3, None, entity4, entity5]).with_schema(s2),
+          ds([entity1, entity3, None, entity4, entity5], s2),
           ds([entity1, entity3, entity2, entity3, entity1, entity5]),
           ds([1, 2, 3, 4, 5, 6]),
       )

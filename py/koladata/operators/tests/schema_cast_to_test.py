@@ -403,13 +403,13 @@ class SchemaCastToTest(parameterized.TestCase):
       )
 
   @parameterized.parameters(
-      (ds([None]).with_schema(schema_constants.OBJECT), EMPTY_SCHEMA_INT32),
-      (ds([None]).with_schema(EMPTY_SCHEMA_INT32), schema_constants.OBJECT),
+      (ds([None], schema_constants.OBJECT), EMPTY_SCHEMA_INT32),
+      (ds([None], EMPTY_SCHEMA_INT32), schema_constants.OBJECT),
   )
   def test_no_bag_empty_succeeds(self, x, target_schema):
     res = kd.schema.cast_to(x, target_schema)
     self.assertFalse(res.has_bag())
-    testing.assert_equal(res, ds([None]).with_schema(target_schema))
+    testing.assert_equal(res, ds([None], target_schema))
 
   @parameterized.parameters(
       schema_constants.INT32,
@@ -424,7 +424,7 @@ class SchemaCastToTest(parameterized.TestCase):
       _ = kd.schema.cast_to(x, EMPTY_SCHEMA_INT32)
 
   def test_no_bag_empty_different_custom_schema_fails(self):
-    x = ds([None]).with_schema(EMPTY_SCHEMA_INT32)
+    x = ds([None], EMPTY_SCHEMA_INT32)
     with self.assertRaisesRegex(
         ValueError, 'without DataBag is currently not supported'
     ):

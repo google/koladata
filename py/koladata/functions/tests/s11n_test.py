@@ -48,8 +48,9 @@ DS_DATA = (
     # Object
     (ds([2, None, 3], schema_constants.OBJECT)),
     (
-        ds([8, None, 0], schema_constants.INT64).with_schema(
-            schema_constants.OBJECT
+        kd.cast_to(
+            ds([8, None, 0], schema_constants.INT64),
+            schema_constants.OBJECT,
         )
     ),
     # Empty and unknown inputs
