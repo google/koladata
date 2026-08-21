@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
