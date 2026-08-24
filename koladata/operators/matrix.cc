@@ -278,7 +278,8 @@ absl::StatusOr<DataSlice> MatrixMatmul(const DataSlice& a, const DataSlice& b,
       // Safe: a_rows * b_cols was already validated by CheckedMul above.
       int64_t num_elements = a_rows * b_cols;
       for (int64_t i = 0; i < num_elements; ++i) {
-        result[out_off + i] = static_cast<OutputT>(mat_out.data()[i]);
+        result[out_off + i] =
+            matrix_helpers::saturate_cast<OutputT>(mat_out.data()[i]);
       }
       // Safe: same validated product.
       out_off += a_rows * b_cols;
@@ -691,6 +692,9 @@ absl::StatusOr<DataSlice> MatrixSolve(const DataSlice& a, const DataSlice& b,
       out_off += n;
     }
     for (int64_t i = 0; i < out_total; ++i) {
+      // OutputT is always float or double (solve never produces an integer
+      // schema), so double->OutputT is a float->float conversion with no UB
+      // risk. saturate_cast is not needed here.
       result[i] = static_cast<OutputT>(tmp[i]);
     }
     auto batch_shape = broadcast_result.out_batch_shape;
@@ -727,6 +731,9 @@ absl::StatusOr<DataSlice> MatrixSolve(const DataSlice& a, const DataSlice& b,
       out_off += n * nrhs;
     }
     for (int64_t i = 0; i < out_total; ++i) {
+      // OutputT is always float or double (solve never produces an integer
+      // schema), so double->OutputT is a float->float conversion with no UB
+      // risk. saturate_cast is not needed here.
       result[i] = static_cast<OutputT>(tmp[i]);
     }
     auto batch_shape = broadcast_result.out_batch_shape;
@@ -799,6 +806,12 @@ absl::StatusOr<DataSlice> MatrixInverse(const DataSlice& a) {
           flat_data.data() + mat_infos[p].offset, n, n);
       Eigen::Map<RowMajorMatrix<OutputT>> out_mat(
           result.data() + mat_infos[p].offset, n, n);
+      // OutputT is strictly float or double (matrix inversion always produces a
+      // floating-point schema), so converting double -> OutputT has no
+      // undefined behavior or integer truncation risk, so we do not use
+      // saturate_cast here. Using Eigen's direct .template cast<OutputT>()
+      // allows evaluating the inverse directly into out_mat without an
+      // intermediate buffer plus copy loop.
       out_mat = mat.inverse().template cast<OutputT>();
     }
     ASSIGN_OR_RETURN(auto result_ds, matrix_helpers::BuildFromFlat<OutputT>(

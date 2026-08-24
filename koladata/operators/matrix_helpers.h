@@ -16,9 +16,11 @@
 #define KOLADATA_OPERATORS_MATRIX_HELPERS_H_
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <utility>
 #include <vector>
 
@@ -155,6 +157,61 @@ absl::StatusOr<std::vector<MatrixInfo>> ExtractMatrix2DInfos(
 absl::StatusOr<std::vector<int64_t>> ParseAndBroadcastK(
     const DataSlice& k_ds, const JaggedShape& batch_shape);
 
+// Clamping numeric cast that avoids undefined behaviour.
+//
+// Handles three cases:
+//
+// * float -> int: Clamps the source value to [min, max] of the target type so
+//   that the subsequent static_cast is well-defined. NaN maps to 0, +inf and
+//   -inf clamp. Rounds to the nearest integer (std::round, i.e. half away from
+//   zero) instead of truncating.
+//
+// * int -> int (narrowing): Clamps using std::cmp_less/std::cmp_greater, which
+//   safely compares across signed/unsigned boundaries. This is the primary
+//   use case in Koda matrix ops: int64_t computation result -> int32_t output.
+//
+// * Same-type or float -> float: Falls through to a plain static_cast.
+template <typename Target, typename Source>
+Target saturate_cast(Source value) {
+  if constexpr (std::is_same_v<Target, Source>) {
+    return value;
+  }
+  if constexpr (std::is_floating_point_v<Source> &&
+                std::is_integral_v<Target>) {
+    // Floating-point -> integer: NaN->0, out_of_range->clamp, in_range->round.
+    if (std::isnan(value)) return Target{0};
+    // Use doubles for the limit constants so that the comparison is exact for
+    // both float and double Source types.
+    static_assert(
+        sizeof(Source) <= sizeof(double),
+        "Values to cast to integer must be representable exactly in double.");
+    static_assert(std::numeric_limits<Target>::min() >
+                      std::numeric_limits<double>::lowest(),
+                  "Target type min must be representable in double.");
+    static_assert(
+        std::numeric_limits<Target>::max() < std::numeric_limits<double>::max(),
+        "Target type max must be representable in double.");
+    constexpr auto lo = static_cast<double>(std::numeric_limits<Target>::min());
+    constexpr auto hi = static_cast<double>(std::numeric_limits<Target>::max());
+    double dval = static_cast<double>(value);
+    if (dval <= lo) return std::numeric_limits<Target>::min();
+    if (dval >= hi) return std::numeric_limits<Target>::max();
+    return static_cast<Target>(std::round(dval));
+  }
+  if constexpr (std::is_integral_v<Source> && std::is_integral_v<Target>) {
+    // Integer -> integer: clamp if value is outside the target type's range.
+    if (std::cmp_less(value, std::numeric_limits<Target>::min())) {
+      return std::numeric_limits<Target>::min();
+    }
+    if (std::cmp_greater(value, std::numeric_limits<Target>::max())) {
+      return std::numeric_limits<Target>::max();
+    }
+    return static_cast<Target>(value);
+  }
+  // Float -> float or other numeric conversions.
+  return static_cast<Target>(value);
+}
+
 // =========================================================================
 // Framework helpers for the "Batch + Core Op" pattern
 // =========================================================================
@@ -183,7 +240,6 @@ absl::StatusOr<std::vector<int64_t>> ParseAndBroadcastK(
 // operators in each phase:
 //
 //   SetupBroadcastBinaryOp   — phase 1 for binary ops (matmul, outer, solve)
-//   DispatchNumericBinaryOp  — phase 3 for binary ops with both int & float
 //   DispatchNumericBinaryOp  — phase 3 for binary ops with both int & float
 //   BuildBatchedMatrixShape  — phase 4 when the output has 2 trailing dims
 //   BuildBatchedVectorShape  — phase 4 when the output has 1 trailing dim
@@ -235,7 +291,7 @@ absl::StatusOr<DataSlice> DispatchNumericBinaryOp(const DataSlice& x,
     std::vector<ComputeT> tmp(out_total, 0);
     compute_fn(x_data, y_data, tmp);
     for (int64_t i = 0; i < out_total; ++i) {
-      result[i] = static_cast<OutputT>(tmp[i]);
+      result[i] = saturate_cast<OutputT>(tmp[i]);
     }
     ASSIGN_OR_RETURN(
         auto result_ds,

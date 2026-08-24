@@ -56,6 +56,42 @@ class MatrixOuterTest(parameterized.TestCase):
     result = kd.matrix.outer(x, y)
     testing.assert_equal(result, ds([[3, 4], [6, 8]], schema_constants.INT32))
 
+  def test_integer_overflow_saturation(self):
+    # 2,000,000 * 2,000 = 4,000,000,000 > INT32_MAX -> clamps to INT32_MAX.
+    # 2,000,000 * -2,000 = -4,000,000,000 < INT32_MIN -> clamps to INT32_MIN.
+    x = ds([2000000, -2000000, 10], schema_constants.INT32)
+    y = ds([2000, -2000, 5], schema_constants.INT32)
+    result = kd.matrix.outer(x, y)
+    testing.assert_equal(
+        result,
+        ds(
+            [
+                [2147483647, -2147483648, 10000000],
+                [-2147483648, 2147483647, -10000000],
+                [20000, -20000, 50],
+            ],
+            schema_constants.INT32,
+        ),
+    )
+
+  def test_batched_integer_overflow_saturation(self):
+    x = ds(
+        [[2000000, -2000000], [10, 20]],
+        schema_constants.INT32,
+    )
+    y = ds([[2000, -2000], [5, 10]], schema_constants.INT32)
+    result = kd.matrix.outer(x, y)
+    testing.assert_equal(
+        result,
+        ds(
+            [
+                [[2147483647, -2147483648], [-2147483648, 2147483647]],
+                [[50, 100], [100, 200]],
+            ],
+            schema_constants.INT32,
+        ),
+    )
+
   def test_int64_float32_yields_float32(self):
     x = ds([1, 2], schema_constants.INT64)
     y = ds([3.0, 4.0])

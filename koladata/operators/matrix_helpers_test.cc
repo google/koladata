@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -742,6 +743,25 @@ TEST(DispatchNumericBinaryOpTest, MixedObjectSchemaFails) {
               StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
+TEST(DispatchNumericBinaryOpTest, Int32OverflowClamping) {
+  // compute_fn computes in int64_t and overflows int32_t range.
+  // DispatchNumericBinaryOp should clamp results using saturate_cast<int32_t>.
+  auto x = test::DataSlice<int32_t>({2000000, -2000000, 100});
+  auto y = test::DataSlice<int32_t>({2000, 2000, 10});
+  auto out_shape = JaggedShape::FlatFromSize(3);
+  auto mul_fn = [](const auto& xd, const auto& yd, auto& result) {
+    for (size_t i = 0; i < xd.size(); ++i) {
+      result[i] = xd[i] * yd[i];
+    }
+  };
+  ASSERT_OK_AND_ASSIGN(auto result, DispatchNumericBinaryOp(
+                                        x, y, 3, std::move(out_shape), mul_fn));
+  EXPECT_EQ(result.GetSchemaImpl(), internal::DataItem(schema::kInt32));
+  EXPECT_THAT(ExtractFlat<int32_t>(result),
+              ElementsAre(std::numeric_limits<int32_t>::max(),
+                          std::numeric_limits<int32_t>::min(), 1000));
+}
+
 // =========================================================================
 // BuildBatchedMatrixShape tests
 // =========================================================================
@@ -964,6 +984,274 @@ TEST(ParseAndBroadcastKTest, MissingValuesInK) {
   auto k_ds = test::DataSlice<int64_t>({1, std::nullopt, 0}, batch_shape);
   ASSERT_OK_AND_ASSIGN(auto result, ParseAndBroadcastK(k_ds, batch_shape));
   EXPECT_THAT(result, ElementsAre(1, 0, 0));
+}
+
+// =========================================================================
+// saturate_cast tests
+// =========================================================================
+//
+// saturate_cast<Target>(Source) clamps the source value to [min, max] of the
+// Target type, avoiding the undefined behaviour that would occur with a plain
+// static_cast when the source value is out of range or NaN. Moreover, it
+// rounds floating-point values to the nearest integer (rather than truncating),
+// improving the precision of e.g. matrix determinants that are computed in
+// double and then cast to an integer type.
+
+// --- Same-type passthrough ---
+
+TEST(SaturateCastTest, SameTypePassthrough_Double) {
+  EXPECT_EQ(saturate_cast<double>(3.14), 3.14);
+  EXPECT_EQ(saturate_cast<double>(-0.0), -0.0);
+}
+
+TEST(SaturateCastTest, SameTypePassthrough_Float) {
+  EXPECT_EQ(saturate_cast<float>(2.5f), 2.5f);
+}
+
+TEST(SaturateCastTest, SameTypePassthrough_Int32) {
+  EXPECT_EQ(saturate_cast<int32_t>(42), 42);
+  EXPECT_EQ(saturate_cast<int32_t>(-1), -1);
+}
+
+TEST(SaturateCastTest, SameTypePassthrough_Int64) {
+  EXPECT_EQ(saturate_cast<int64_t>(int64_t{1} << 40), int64_t{1} << 40);
+}
+
+// --- double -> int32_t ---
+
+TEST(SaturateCastTest, DoubleToInt32_Normal) {
+  EXPECT_EQ(saturate_cast<int32_t>(0.0), 0);
+  EXPECT_EQ(saturate_cast<int32_t>(1.0), 1);
+  EXPECT_EQ(saturate_cast<int32_t>(-1.0), -1);
+  EXPECT_EQ(saturate_cast<int32_t>(42.0), 42);
+  EXPECT_EQ(saturate_cast<int32_t>(-42.0), -42);
+}
+
+TEST(SaturateCastTest, DoubleToInt32_Rounding) {
+  // Round-to-nearest (round half away from zero, per std::round).
+  EXPECT_EQ(saturate_cast<int32_t>(0.4), 0);
+  EXPECT_EQ(saturate_cast<int32_t>(0.5), 1);
+  EXPECT_EQ(saturate_cast<int32_t>(0.6), 1);
+  EXPECT_EQ(saturate_cast<int32_t>(1.5), 2);
+  EXPECT_EQ(saturate_cast<int32_t>(-0.4), 0);
+  EXPECT_EQ(saturate_cast<int32_t>(-0.5), -1);
+  EXPECT_EQ(saturate_cast<int32_t>(-0.6), -1);
+  EXPECT_EQ(saturate_cast<int32_t>(-1.5), -2);
+  EXPECT_EQ(saturate_cast<int32_t>(2.5), 3);
+  EXPECT_EQ(saturate_cast<int32_t>(-2.5), -3);
+}
+
+TEST(SaturateCastTest, DoubleToInt32_Truncation) {
+  // Verify we round, not truncate. If we truncated, 26.999... -> 26.
+  // This is the scenario where a determinant is 27 but floating-point
+  // computes 26.999999999.
+  EXPECT_EQ(saturate_cast<int32_t>(26.9999999), 27);
+  EXPECT_EQ(saturate_cast<int32_t>(-26.9999999), -27);
+}
+
+TEST(SaturateCastTest, DoubleToInt32_NaN) {
+  EXPECT_EQ(saturate_cast<int32_t>(std::numeric_limits<double>::quiet_NaN()),
+            0);
+}
+
+TEST(SaturateCastTest, DoubleToInt32_PosInf) {
+  EXPECT_EQ(saturate_cast<int32_t>(std::numeric_limits<double>::infinity()),
+            std::numeric_limits<int32_t>::max());
+}
+
+TEST(SaturateCastTest, DoubleToInt32_NegInf) {
+  EXPECT_EQ(saturate_cast<int32_t>(-std::numeric_limits<double>::infinity()),
+            std::numeric_limits<int32_t>::min());
+}
+
+TEST(SaturateCastTest, DoubleToInt32_LargePositive) {
+  // Well beyond INT32_MAX (2^31 - 1 ≈ 2.1e9).
+  EXPECT_EQ(saturate_cast<int32_t>(1e15), std::numeric_limits<int32_t>::max());
+  EXPECT_EQ(saturate_cast<int32_t>(3e9), std::numeric_limits<int32_t>::max());
+}
+
+TEST(SaturateCastTest, DoubleToInt32_LargeNegative) {
+  EXPECT_EQ(saturate_cast<int32_t>(-1e15), std::numeric_limits<int32_t>::min());
+  EXPECT_EQ(saturate_cast<int32_t>(-3e9), std::numeric_limits<int32_t>::min());
+}
+
+TEST(SaturateCastTest, DoubleToInt32_ExactBoundary) {
+  // Values exactly at the INT32 boundaries.
+  constexpr int32_t kMax = std::numeric_limits<int32_t>::max();
+  constexpr int32_t kMin = std::numeric_limits<int32_t>::min();
+  // INT32_MAX = 2147483647, which is exactly representable in double.
+  EXPECT_EQ(saturate_cast<int32_t>(static_cast<double>(kMax)), kMax);
+  // INT32_MIN = -2147483648, exactly representable in double.
+  EXPECT_EQ(saturate_cast<int32_t>(static_cast<double>(kMin)), kMin);
+}
+
+TEST(SaturateCastTest, DoubleToInt32_JustBeyondBoundary) {
+  // Values just beyond INT32 boundaries should clamp.
+  constexpr int32_t kMax = std::numeric_limits<int32_t>::max();
+  constexpr int32_t kMin = std::numeric_limits<int32_t>::min();
+  EXPECT_EQ(saturate_cast<int32_t>(static_cast<double>(kMax) + 1.0), kMax);
+  EXPECT_EQ(saturate_cast<int32_t>(static_cast<double>(kMin) - 1.0), kMin);
+}
+
+// --- double -> int64_t ---
+
+TEST(SaturateCastTest, DoubleToInt64_Normal) {
+  EXPECT_EQ(saturate_cast<int64_t>(0.0), 0);
+  EXPECT_EQ(saturate_cast<int64_t>(42.0), 42);
+  EXPECT_EQ(saturate_cast<int64_t>(-42.0), -42);
+  EXPECT_EQ(saturate_cast<int64_t>(1e6), 1000000);
+}
+
+TEST(SaturateCastTest, DoubleToInt64_Rounding) {
+  EXPECT_EQ(saturate_cast<int64_t>(0.5), 1);
+  EXPECT_EQ(saturate_cast<int64_t>(-0.5), -1);
+  EXPECT_EQ(saturate_cast<int64_t>(1.4), 1);
+  EXPECT_EQ(saturate_cast<int64_t>(1.6), 2);
+}
+
+TEST(SaturateCastTest, DoubleToInt64_NaN) {
+  EXPECT_EQ(saturate_cast<int64_t>(std::numeric_limits<double>::quiet_NaN()),
+            0);
+}
+
+TEST(SaturateCastTest, DoubleToInt64_PosInf) {
+  EXPECT_EQ(saturate_cast<int64_t>(std::numeric_limits<double>::infinity()),
+            std::numeric_limits<int64_t>::max());
+}
+
+TEST(SaturateCastTest, DoubleToInt64_NegInf) {
+  EXPECT_EQ(saturate_cast<int64_t>(-std::numeric_limits<double>::infinity()),
+            std::numeric_limits<int64_t>::min());
+}
+
+TEST(SaturateCastTest, DoubleToInt64_LargePositive) {
+  EXPECT_EQ(saturate_cast<int64_t>(1e19), std::numeric_limits<int64_t>::max());
+}
+
+TEST(SaturateCastTest, DoubleToInt64_LargeNegative) {
+  EXPECT_EQ(saturate_cast<int64_t>(-1e19), std::numeric_limits<int64_t>::min());
+}
+
+TEST(SaturateCastTest, DoubleToInt64_ExactlyRepresentableLargeValue) {
+  // 2^52 = 4503599627370496 is exactly representable in double.
+  constexpr int64_t kTwoTo52 = int64_t{1} << 52;
+  EXPECT_EQ(saturate_cast<int64_t>(static_cast<double>(kTwoTo52)), kTwoTo52);
+  EXPECT_EQ(saturate_cast<int64_t>(static_cast<double>(-kTwoTo52)), -kTwoTo52);
+}
+
+// --- float -> int32_t ---
+
+TEST(SaturateCastTest, FloatToInt32_Normal) {
+  EXPECT_EQ(saturate_cast<int32_t>(0.0f), 0);
+  EXPECT_EQ(saturate_cast<int32_t>(5.0f), 5);
+  EXPECT_EQ(saturate_cast<int32_t>(-5.0f), -5);
+}
+
+TEST(SaturateCastTest, FloatToInt32_Rounding) {
+  EXPECT_EQ(saturate_cast<int32_t>(0.5f), 1);
+  EXPECT_EQ(saturate_cast<int32_t>(-0.5f), -1);
+  EXPECT_EQ(saturate_cast<int32_t>(2.3f), 2);
+  EXPECT_EQ(saturate_cast<int32_t>(2.7f), 3);
+}
+
+TEST(SaturateCastTest, FloatToInt64_Rounding) {
+  EXPECT_EQ(saturate_cast<int64_t>(0.5f), 1);
+  EXPECT_EQ(saturate_cast<int64_t>(-0.5f), -1);
+  EXPECT_EQ(saturate_cast<int64_t>(2.3f), 2);
+  EXPECT_EQ(saturate_cast<int64_t>(2.7f), 3);
+  EXPECT_EQ(saturate_cast<int64_t>(26.99999f), 27);
+}
+
+TEST(SaturateCastTest, FloatToInt32_NaN) {
+  EXPECT_EQ(saturate_cast<int32_t>(std::numeric_limits<float>::quiet_NaN()), 0);
+}
+
+TEST(SaturateCastTest, FloatToInt32_Overflow) {
+  EXPECT_EQ(saturate_cast<int32_t>(std::numeric_limits<float>::infinity()),
+            std::numeric_limits<int32_t>::max());
+  EXPECT_EQ(saturate_cast<int32_t>(-std::numeric_limits<float>::infinity()),
+            std::numeric_limits<int32_t>::min());
+  EXPECT_EQ(saturate_cast<int32_t>(1e15f), std::numeric_limits<int32_t>::max());
+}
+
+// --- int64_t -> int32_t ---
+
+TEST(SaturateCastTest, Int64ToInt32_InRange) {
+  EXPECT_EQ(saturate_cast<int32_t>(int64_t{0}), 0);
+  EXPECT_EQ(saturate_cast<int32_t>(int64_t{42}), 42);
+  EXPECT_EQ(saturate_cast<int32_t>(int64_t{-42}), -42);
+  EXPECT_EQ(saturate_cast<int32_t>(int64_t{2147483647}),
+            std::numeric_limits<int32_t>::max());
+  EXPECT_EQ(saturate_cast<int32_t>(int64_t{-2147483648}),
+            std::numeric_limits<int32_t>::min());
+}
+
+TEST(SaturateCastTest, Int64ToInt32_Overflow) {
+  EXPECT_EQ(saturate_cast<int32_t>(int64_t{2147483648}),
+            std::numeric_limits<int32_t>::max());
+  EXPECT_EQ(saturate_cast<int32_t>(int64_t{-2147483649}),
+            std::numeric_limits<int32_t>::min());
+  EXPECT_EQ(saturate_cast<int32_t>(int64_t{1} << 40),
+            std::numeric_limits<int32_t>::max());
+  EXPECT_EQ(saturate_cast<int32_t>(-(int64_t{1} << 40)),
+            std::numeric_limits<int32_t>::min());
+}
+
+// Koda doesn't currently have unsigned numeric schemas, but this test ensures
+// that if it did, or if they are added, they would be handled correctly.
+TEST(SaturateCastTest, CrossSignedIntegerClamping) {
+  EXPECT_EQ(saturate_cast<int32_t>(uint64_t{42}), 42);
+  EXPECT_EQ(saturate_cast<int32_t>(uint64_t{3000000000ULL}),
+            std::numeric_limits<int32_t>::max());
+  EXPECT_EQ(saturate_cast<uint32_t>(int32_t{-10}), 0);
+  EXPECT_EQ(saturate_cast<uint32_t>(int64_t{-100}), 0);
+  EXPECT_EQ(saturate_cast<uint32_t>(int64_t{100}), 100);
+}
+
+// --- int64_t -> int64_t,   int32_t -> int32_t ---
+
+TEST(SaturateCastTest, SameWidthIntegerPassthrough) {
+  // Same-width integer should be a plain passthrough.
+  EXPECT_EQ(saturate_cast<int64_t>(std::numeric_limits<int64_t>::max()),
+            std::numeric_limits<int64_t>::max());
+  EXPECT_EQ(saturate_cast<int64_t>(std::numeric_limits<int64_t>::min()),
+            std::numeric_limits<int64_t>::min());
+  EXPECT_EQ(saturate_cast<int32_t>(std::numeric_limits<int32_t>::max()),
+            std::numeric_limits<int32_t>::max());
+  EXPECT_EQ(saturate_cast<int32_t>(std::numeric_limits<int32_t>::min()),
+            std::numeric_limits<int32_t>::min());
+}
+
+// --- float -> float conversions ---
+
+TEST(SaturateCastTest, DoubleToFloat_Normal) {
+  EXPECT_EQ(saturate_cast<float>(3.14), static_cast<float>(3.14));
+}
+
+TEST(SaturateCastTest, FloatToDouble_Widening) {
+  // float -> double is widening, always exact.
+  EXPECT_EQ(saturate_cast<double>(3.14f), static_cast<double>(3.14f));
+}
+
+// --- Negative zero ---
+
+TEST(SaturateCastTest, DoubleToInt32_NegativeZero) {
+  // -0.0 should map to integer 0.
+  EXPECT_EQ(saturate_cast<int32_t>(-0.0), 0);
+}
+
+TEST(SaturateCastTest, FloatToInt32_NegativeZero) {
+  EXPECT_EQ(saturate_cast<int32_t>(-0.0f), 0);
+}
+
+// --- Subnormal floats ---
+
+TEST(SaturateCastTest, DoubleToInt32_Subnormal) {
+  // Subnormal doubles are very close to zero and should round to 0.
+  EXPECT_EQ(saturate_cast<int32_t>(std::numeric_limits<double>::denorm_min()),
+            0);
+  EXPECT_EQ(saturate_cast<int32_t>(-std::numeric_limits<double>::denorm_min()),
+            0);
 }
 
 }  // namespace

@@ -61,6 +61,77 @@ class MatrixMatmulTest(parameterized.TestCase):
         result, ds([[19, 22], [43, 50]], schema_constants.INT32)
     )
 
+  def test_integer_matmul_overflow_saturation_2d_2d(self):
+    # 2D x 2D matrix multiplication with INT32 where sum-of-products overflows.
+    # dot([200000, 200000], [20000, 20000]) = 4e9 + 4e9 = 8e9 > INT32_MAX.
+    a = ds(
+        [[200000, 200000], [-200000, -200000]],
+        schema_constants.INT32,
+    )
+    b = ds(
+        [[20000, -20000], [20000, -20000]],
+        schema_constants.INT32,
+    )
+    result = kd.matrix.matmul(a, b)
+    testing.assert_equal(
+        result,
+        ds(
+            [[2147483647, -2147483648], [-2147483648, 2147483647]],
+            schema_constants.INT32,
+        ),
+    )
+
+  def test_integer_matmul_overflow_saturation_2d_1d(self):
+    # 2D x 1D matrix-vector multiplication with INT32.
+    a = ds(
+        [[300000, 300000], [-300000, -300000]],
+        schema_constants.INT32,
+    )
+    b = ds([10000, 10000], schema_constants.INT32)
+    result = kd.matrix.matmul(a, b)
+    testing.assert_equal(
+        result,
+        ds([2147483647, -2147483648], schema_constants.INT32),
+    )
+
+  def test_integer_matmul_overflow_saturation_1d_1d(self):
+    # 1D x 1D dot product with INT32.
+    a = ds([2000000, 2000000], schema_constants.INT32)
+    b = ds([2000, 2000], schema_constants.INT32)
+    result = kd.matrix.matmul(a, b)
+    testing.assert_equal(
+        result,
+        ds(2147483647, schema_constants.INT32),
+    )
+
+  def test_integer_matmul_overflow_saturation_batched(self):
+    # Batched 3D x 3D where one batch element overflows and another does not.
+    a = ds(
+        [
+            [[200000, 200000], [-200000, -200000]],
+            [[1, 2], [3, 4]],
+        ],
+        schema_constants.INT32,
+    )
+    b = ds(
+        [
+            [[20000, -20000], [20000, -20000]],
+            [[5, 6], [7, 8]],
+        ],
+        schema_constants.INT32,
+    )
+    result = kd.matrix.matmul(a, b)
+    testing.assert_equal(
+        result,
+        ds(
+            [
+                [[2147483647, -2147483648], [-2147483648, 2147483647]],
+                [[19, 22], [43, 50]],
+            ],
+            schema_constants.INT32,
+        ),
+    )
+
   def test_2d_2d_mixed_schemas(self):
     a = ds([[1, 2], [3, 4]])  # INT32
     b = ds([[5.0, 6.0], [7.0, 8.0]])  # FLOAT32
