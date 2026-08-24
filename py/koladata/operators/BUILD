@@ -308,10 +308,7 @@ py_test(
 py_library(
     name = "qtype_utils",
     srcs = ["qtype_utils.py"],
-    visibility = [
-        "//koladata:internal",
-        "//py/koladata/ext:__subpackages__",
-    ],
+    visibility = ["//koladata:internal"],
     deps = [
         "//koladata/functor/parallel:init_expr_operators",
         "//koladata/operators",
@@ -401,7 +398,6 @@ py_library(
 py_library(
     name = "schema",
     srcs = ["schema.py"],
-    visibility = ["//py/koladata/ext/contrib:__pkg__"],
     deps = [
         ":jagged_shape",
         ":masking",
