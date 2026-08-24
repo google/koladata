@@ -187,14 +187,60 @@ class NewTest(absltest.TestCase):
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
-  def test_schema_arg_overwrite_schema_error(self):
-    with self.assertRaisesRegex(TypeError, 'expected bool'):
-      fns.new(a=42, schema=schema_constants.INT32, overwrite_schema=42)  # pytype: disable=wrong-arg-types
+  def test_schema_arg_overwrite_schema_dataslice(self):
+    schema = kde.schema.new_schema(a=schema_constants.FLOAT32).eval()
+    x = fns.new(a=42, b='xyz', schema=schema, overwrite_schema=ds(True))
+    self.assertEqual(attrs.dir(x), ['a', 'b'])
+    testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+    testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
-  def test_schema_arg_overwrite_schema_error_overwriting(self):
+  def test_schema_arg_overwrite_schema_error(self):
+    with self.assertRaisesRegex(
+        TypeError, 'expected bool for overwrite_schema, got int'
+    ):
+      fns.new(a=42, schema=schema_constants.INT32, overwrite_schema=42)  # pyrefly: ignore[bad-argument-type]
+    with self.assertRaisesRegex(
+        TypeError, 'expected bool for overwrite_schema, got str'
+    ):
+      fns.new(a=42, schema=schema_constants.INT32, overwrite_schema='True')  # pyrefly: ignore[bad-argument-type]
+    with self.assertRaisesRegex(
+        TypeError, 'expected bool for overwrite_schema, got int'
+    ):
+      fns.new(a=42, schema=schema_constants.INT32, overwrite_schema=ds(1))
+    with self.assertRaisesRegex(
+        TypeError, 'expected bool for overwrite_schema, got str'
+    ):
+      fns.new(a=42, schema=schema_constants.INT32, overwrite_schema=ds('true'))
+    with self.assertRaisesRegex(
+        TypeError, 'expected bool for overwrite_schema, got list'
+    ):
+      fns.new(
+          a=42, schema=schema_constants.INT32, overwrite_schema=ds([True])
+      )
+
+  def test_schema_arg_overwrite_schema_overwriting(self):
     schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
     x = fns.new(a='xyz', schema=schema, overwrite_schema=True)
     testing.assert_equal(x.a, ds('xyz').with_bag(x.get_bag()))
+    x = fns.new(a='xyz', schema=schema, overwrite_schema=ds(True))
+    testing.assert_equal(x.a, ds('xyz').with_bag(x.get_bag()))
+
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            "the schema for attribute 'a' is incompatible"
+        ),
+    ):
+      fns.new(a='xyz', schema=schema, overwrite_schema=False)
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            "the schema for attribute 'a' is incompatible"
+        ),
+    ):
+      fns.new(a='xyz', schema=schema, overwrite_schema=ds(False))
 
   def test_schema_arg_embed_schema(self):
     schema = kde.schema.new_schema(a=schema_constants.OBJECT).eval()

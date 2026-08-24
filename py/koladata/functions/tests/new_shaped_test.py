@@ -201,6 +201,21 @@ class NewShapedTest(absltest.TestCase):
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
+  def test_schema_arg_overwrite_schema_dataslice(self):
+    schema = kde.schema.new_schema(a=schema_constants.FLOAT32).eval()
+    x = fns.new_shaped(
+        jagged_shape.create_shape([2]),
+        a=42,
+        b='xyz',
+        schema=schema,
+        overwrite_schema=ds(True),
+    )
+    self.assertEqual(attrs.dir(x), ['a', 'b'])
+    testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
+    testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
+    testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
+    testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
+
   def test_schema_arg_overwrite_schema_error(self):
     with self.assertRaisesRegex(TypeError, 'expected bool'):
       fns.new_shaped(

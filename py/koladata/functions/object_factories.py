@@ -425,7 +425,7 @@ def dict_shaped_as(
 def new(
     *,
     schema: data_slice.DataSlice | str | None = None,
-    overwrite_schema: bool = False,
+    overwrite_schema: data_slice.DataSlice | bool = False,
     itemid: data_slice.DataSlice | None = None,
     **attrs: Any,
 ) -> data_slice.DataSlice:
@@ -448,6 +448,8 @@ def new(
   Returns:
     data_slice.DataSlice with the given attrs.
   """
+  if isinstance(overwrite_schema, data_slice.DataSlice):
+    overwrite_schema = overwrite_schema.internal_as_py()
   return data_bag.DataBag._new_no_bag(  # pylint: disable=protected-access
       schema=schema,
       overwrite_schema=overwrite_schema,
@@ -461,7 +463,7 @@ def new_shaped(
     /,
     *,
     schema: data_slice.DataSlice | str | None = None,
-    overwrite_schema: bool = False,
+    overwrite_schema: data_slice.DataSlice | bool = False,
     itemid: data_slice.DataSlice | None = None,
     **attrs: Any,
 ) -> data_slice.DataSlice:
@@ -483,6 +485,8 @@ def new_shaped(
   Returns:
     data_slice.DataSlice with the given attrs.
   """
+  if isinstance(overwrite_schema, data_slice.DataSlice):
+    overwrite_schema = overwrite_schema.internal_as_py()
   # NOTE: We create a mutable bag and freeze it for performance reasons.
   # The alternative to rely on eager version of kd.lazy is significantly slower.
   return (
@@ -503,7 +507,7 @@ def new_shaped_as(
     /,
     *,
     schema: data_slice.DataSlice | str | None = None,
-    overwrite_schema: bool = False,
+    overwrite_schema: data_slice.DataSlice | bool = False,
     itemid: data_slice.DataSlice | None = None,
     **attrs: Any,
 ) -> data_slice.DataSlice:
@@ -539,7 +543,7 @@ def new_like(
     /,
     *,
     schema: data_slice.DataSlice | str | None = None,
-    overwrite_schema: bool = False,
+    overwrite_schema: data_slice.DataSlice | bool = False,
     itemid: data_slice.DataSlice | None = None,
     **attrs: Any,
 ) -> data_slice.DataSlice:
@@ -562,6 +566,8 @@ def new_like(
   Returns:
     data_slice.DataSlice with the given attrs.
   """
+  if isinstance(overwrite_schema, data_slice.DataSlice):
+    overwrite_schema = overwrite_schema.internal_as_py()
   # NOTE: We create a mutable bag and freeze it for performance reasons.
   # The alternative to rely on eager version of kd.lazy is significantly slower.
   return (
@@ -682,7 +688,7 @@ def uu(
     seed: str | None = None,
     *,
     schema: data_slice.DataSlice | None = None,
-    overwrite_schema: bool = False,
+    overwrite_schema: data_slice.DataSlice | bool = False,
     **attrs: Any,
 ) -> data_slice.DataSlice:
   """Creates UuEntities with given attrs.
@@ -700,6 +706,8 @@ def uu(
   Returns:
     data_slice.DataSlice with the given attrs.
   """
+  if isinstance(overwrite_schema, data_slice.DataSlice):
+    overwrite_schema = overwrite_schema.internal_as_py()
   # NOTE: We create a mutable bag and freeze it for performance reasons.
   # The alternative to rely on eager version of kd.lazy is significantly slower.
   return (

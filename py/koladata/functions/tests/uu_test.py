@@ -110,6 +110,19 @@ class UuTest(absltest.TestCase):
         x.a, ds([3.14], schema_constants.FLOAT32).with_bag(x.get_bag())
     )
 
+  def test_overwrite_schema_arg_dataslice(self):
+    x = fns.uu(
+        a=ds([3.14], schema_constants.FLOAT32),
+        schema=kde.uu_schema(a=schema_constants.FLOAT64).eval(),
+        overwrite_schema=ds(True),
+    )
+    testing.assert_equal(
+        x.a.get_schema(), schema_constants.FLOAT32.with_bag(x.get_bag())
+    )
+    testing.assert_allclose(
+        x.a, ds([3.14], schema_constants.FLOAT32).with_bag(x.get_bag())
+    )
+
   def test_schema_arg_overwrite_schema_overwriting(self):
     schema = kde.uu_schema(a=schema_constants.INT32).eval()
     x = fns.uu(a='xyz', schema=schema, overwrite_schema=True)

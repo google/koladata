@@ -1085,7 +1085,7 @@ Alias for [kd.schema.named_schema](kd/schema.md#kd.schema.named_schema)
 
 Alias for [kd.tuples.namedtuple](kd/tuples.md#kd.tuples.namedtuple)
 
-### `kd.new(*, schema: DataSlice | str | None = None, overwrite_schema: bool = False, itemid: DataSlice | None = None, **attrs: Any) -> DataSlice` {#kd.new}
+### `kd.new(*, schema: DataSlice | str | None = None, overwrite_schema: DataSlice | bool = False, itemid: DataSlice | None = None, **attrs: Any) -> DataSlice` {#kd.new}
 
 Alias for [kd.entities.new](kd/entities.md#kd.entities.new)
 
@@ -1121,7 +1121,7 @@ Alias for [kd.allocation.new_itemid_shaped](kd/allocation.md#kd.allocation.new_i
 
 Alias for [kd.allocation.new_itemid_shaped_as](kd/allocation.md#kd.allocation.new_itemid_shaped_as)
 
-### `kd.new_like(shape_and_mask_from: DataSlice, /, *, schema: DataSlice | str | None = None, overwrite_schema: bool = False, itemid: DataSlice | None = None, **attrs: Any) -> DataSlice` {#kd.new_like}
+### `kd.new_like(shape_and_mask_from: DataSlice, /, *, schema: DataSlice | str | None = None, overwrite_schema: DataSlice | bool = False, itemid: DataSlice | None = None, **attrs: Any) -> DataSlice` {#kd.new_like}
 
 Alias for [kd.entities.like](kd/entities.md#kd.entities.like)
 
@@ -1141,11 +1141,11 @@ Alias for [kd.allocation.new_listid_shaped](kd/allocation.md#kd.allocation.new_l
 
 Alias for [kd.allocation.new_listid_shaped_as](kd/allocation.md#kd.allocation.new_listid_shaped_as)
 
-### `kd.new_shaped(shape: JaggedShape, /, *, schema: DataSlice | str | None = None, overwrite_schema: bool = False, itemid: DataSlice | None = None, **attrs: Any) -> DataSlice` {#kd.new_shaped}
+### `kd.new_shaped(shape: JaggedShape, /, *, schema: DataSlice | str | None = None, overwrite_schema: DataSlice | bool = False, itemid: DataSlice | None = None, **attrs: Any) -> DataSlice` {#kd.new_shaped}
 
 Alias for [kd.entities.shaped](kd/entities.md#kd.entities.shaped)
 
-### `kd.new_shaped_as(shape_from: DataSlice, /, *, schema: DataSlice | str | None = None, overwrite_schema: bool = False, itemid: DataSlice | None = None, **attrs: Any) -> DataSlice` {#kd.new_shaped_as}
+### `kd.new_shaped_as(shape_from: DataSlice, /, *, schema: DataSlice | str | None = None, overwrite_schema: DataSlice | bool = False, itemid: DataSlice | None = None, **attrs: Any) -> DataSlice` {#kd.new_shaped_as}
 
 Alias for [kd.entities.shaped_as](kd/entities.md#kd.entities.shaped_as)
 
@@ -1646,7 +1646,7 @@ Alias for [kd.core.updated](kd/core.md#kd.core.updated)
 
 Alias for [kd.bags.updated](kd/bags.md#kd.bags.updated)
 
-### `kd.uu(seed: str | None = None, *, schema: DataSlice | None = None, overwrite_schema: bool = False, **attrs: Any) -> DataSlice` {#kd.uu}
+### `kd.uu(seed: str | None = None, *, schema: DataSlice | None = None, overwrite_schema: DataSlice | bool = False, **attrs: Any) -> DataSlice` {#kd.uu}
 
 Alias for [kd.entities.uu](kd/entities.md#kd.entities.uu)
 

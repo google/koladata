@@ -9,7 +9,7 @@
 
 
 
-### `kd.entities.like(shape_and_mask_from: DataSlice, /, *, schema: DataSlice | str | None = None, overwrite_schema: bool = False, itemid: DataSlice | None = None, **attrs: Any) -> DataSlice` {#kd.entities.like}
+### `kd.entities.like(shape_and_mask_from: DataSlice, /, *, schema: DataSlice | str | None = None, overwrite_schema: DataSlice | bool = False, itemid: DataSlice | None = None, **attrs: Any) -> DataSlice` {#kd.entities.like}
 Aliases:
 
 - [kd.new_like](../kd.md#kd.new_like)
@@ -33,7 +33,7 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs.</code></pre>
 
-### `kd.entities.new(*, schema: DataSlice | str | None = None, overwrite_schema: bool = False, itemid: DataSlice | None = None, **attrs: Any) -> DataSlice` {#kd.entities.new}
+### `kd.entities.new(*, schema: DataSlice | str | None = None, overwrite_schema: DataSlice | bool = False, itemid: DataSlice | None = None, **attrs: Any) -> DataSlice` {#kd.entities.new}
 Aliases:
 
 - [kd.new](../kd.md#kd.new)
@@ -57,7 +57,7 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs.</code></pre>
 
-### `kd.entities.shaped(shape: JaggedShape, /, *, schema: DataSlice | str | None = None, overwrite_schema: bool = False, itemid: DataSlice | None = None, **attrs: Any) -> DataSlice` {#kd.entities.shaped}
+### `kd.entities.shaped(shape: JaggedShape, /, *, schema: DataSlice | str | None = None, overwrite_schema: DataSlice | bool = False, itemid: DataSlice | None = None, **attrs: Any) -> DataSlice` {#kd.entities.shaped}
 Aliases:
 
 - [kd.new_shaped](../kd.md#kd.new_shaped)
@@ -80,7 +80,7 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs.</code></pre>
 
-### `kd.entities.shaped_as(shape_from: DataSlice, /, *, schema: DataSlice | str | None = None, overwrite_schema: bool = False, itemid: DataSlice | None = None, **attrs: Any) -> DataSlice` {#kd.entities.shaped_as}
+### `kd.entities.shaped_as(shape_from: DataSlice, /, *, schema: DataSlice | str | None = None, overwrite_schema: DataSlice | bool = False, itemid: DataSlice | None = None, **attrs: Any) -> DataSlice` {#kd.entities.shaped_as}
 Aliases:
 
 - [kd.new_shaped_as](../kd.md#kd.new_shaped_as)
@@ -122,7 +122,7 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs.</code></pre>
 
-### `kd.entities.uu(seed: str | None = None, *, schema: DataSlice | None = None, overwrite_schema: bool = False, **attrs: Any) -> DataSlice` {#kd.entities.uu}
+### `kd.entities.uu(seed: str | None = None, *, schema: DataSlice | None = None, overwrite_schema: DataSlice | bool = False, **attrs: Any) -> DataSlice` {#kd.entities.uu}
 Aliases:
 
 - [kd.uu](../kd.md#kd.uu)
