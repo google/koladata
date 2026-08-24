@@ -2122,6 +2122,7 @@ const std::shared_ptr<DictVector>* DataBagImpl::GetConstDictsOrNull(
 }
 
 DictVector& DataBagImpl::GetOrCreateMutableDicts(AllocationId alloc_id,
+                                                 size_t update_size,
                                                  std::optional<size_t> size) {
   DCHECK(alloc_id.IsDictsAlloc() || alloc_id.IsSchemasAlloc());
   auto [it, inserted] = dicts_.try_emplace(alloc_id);
@@ -2133,19 +2134,20 @@ DictVector& DataBagImpl::GetOrCreateMutableDicts(AllocationId alloc_id,
     if (parent_dicts != nullptr) {
       // Create new DictVector using *parent_dicts (which is shared_ptr)
       // as a parent.
-      it->second = std::make_shared<DictVector>(*parent_dicts);
+      it->second = std::make_shared<DictVector>(*parent_dicts, update_size);
     } else {
       if (!size.has_value()) {
         size = alloc_id.Capacity();
       }
-      it->second = std::make_shared<DictVector>(*size);
+      it->second = std::make_shared<DictVector>(*size, update_size);
     }
   }
   return *it->second;
 }
 
 inline Dict& DataBagImpl::GetOrCreateMutableDict(ObjectId object_id) {
-  return GetOrCreateMutableDicts(AllocationId(object_id))[object_id.Offset()];
+  return GetOrCreateMutableDicts(AllocationId(object_id),
+                                 /*update_size=*/1)[object_id.Offset()];
 }
 
 namespace {
@@ -2200,7 +2202,8 @@ const Dict DataBagImpl::ReadOnlyDictGetter<AllocCheckFn>::empty_dict_;
 template <class AllocCheckFn>
 class DataBagImpl::MutableDictGetter {
  public:
-  explicit MutableDictGetter(DataBagImpl* bag) : bag_(bag) {}
+  explicit MutableDictGetter(DataBagImpl* bag, size_t update_size)
+      : bag_(bag), update_size_(update_size) {}
 
   Dict* operator()(ObjectId dict_id) {
     AllocationId alloc_id(dict_id);
@@ -2209,16 +2212,22 @@ class DataBagImpl::MutableDictGetter {
         status_ = absl::FailedPreconditionError("dicts expected");
         return nullptr;
       }
-      dicts_vec_ = &bag_->GetOrCreateMutableDicts(alloc_id);
+      if (current_alloc_.has_value()) {
+        // If there are multiple allocations, we do not know the update size per
+        // allocation. Fall back to 1 for subsequent allocations.
+        update_size_ = 1;
+      }
+      dicts_vec_ = &bag_->GetOrCreateMutableDicts(alloc_id, update_size_);
       current_alloc_ = alloc_id;
     }
-    return &(*dicts_vec_)[dict_id.Offset()];
+    return &dicts_vec_->GetMutable(dict_id.Offset());
   }
 
   const absl::Status& status() { return status_; }
 
  private:
   DataBagImpl* bag_ = nullptr;
+  size_t update_size_ = 1;
   AllocCheckFn alloc_check_;
   absl::Status status_ = absl::OkStatus();
   std::optional<AllocationId> current_alloc_;
@@ -2475,7 +2484,7 @@ absl::Status DataBagImpl::SetInDict(const DataSliceImpl& dicts,
         absl::StrCat("invalid key type: ", unsupported_key_type->name()));
   }
 
-  MutableDictGetter<DictsAllocCheckFn> dict_getter(this);
+  MutableDictGetter<DictsAllocCheckFn> dict_getter(this, dicts.size());
 
   if (keys.is_mixed_dtype()) {
     dicts.values<ObjectId>().ForEachPresent(
@@ -2537,7 +2546,7 @@ absl::Status DataBagImpl::ClearDict(const DataSliceImpl& dicts) {
     return absl::FailedPreconditionError("dicts expected");
   }
 
-  MutableDictGetter<DictsAllocCheckFn> dict_getter(this);
+  MutableDictGetter<DictsAllocCheckFn> dict_getter(this, dicts.size());
   dicts.values<ObjectId>().ForEachPresent(
       [&](int64_t offset, ObjectId dict_id) {
         Dict* dict = dict_getter(dict_id);
@@ -3031,7 +3040,8 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataItem& schema_item,
   ASSIGN_OR_RETURN(ObjectId schema_id, ItemToSchemaObjectId(schema_item));
   if (!schema_id.IsSmallAlloc()) {
     auto& dict =
-        GetOrCreateMutableDicts(AllocationId(schema_id), /*size=*/1)[0];
+        GetOrCreateMutableDicts(AllocationId(schema_id), /*update_size=*/1,
+                                /*size=*/1)[0];
     RETURN_IF_ERROR(SetAttr(schema_item, attr, value));
     dict.Set(DataItem::View<arolla::Text>(attr), DataItem(arolla::kPresent));
   } else {
@@ -3076,7 +3086,8 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
     if (ABSL_PREDICT_FALSE(!schemas_alloc_check_fn(alloc_id))) {
       status = InvalidLhsSetSchemaAttrError(schema_slice);
     } else {
-      Dict& schema_dict = GetOrCreateMutableDicts(alloc_id, /*size=*/1)[0];
+      Dict& schema_dict =
+          GetOrCreateMutableDicts(alloc_id, /*update_size=*/1, /*size=*/1)[0];
       schema_dict.Set(DataItem::View<arolla::Text>(attr),
                       DataItem(arolla::kPresent));
     }
@@ -3132,7 +3143,8 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
     if (ABSL_PREDICT_FALSE(!schemas_alloc_check_fn(alloc_id))) {
       status = InvalidLhsSetSchemaAttrError(schema_slice);
     } else {
-      Dict& schema_dict = GetOrCreateMutableDicts(alloc_id, /*size=*/1)[0];
+      Dict& schema_dict =
+          GetOrCreateMutableDicts(alloc_id, /*update_size=*/1, /*size=*/1)[0];
       schema_dict.Set(DataItem::View<arolla::Text>(attr),
                       DataItem(arolla::kPresent));
     }
@@ -3289,7 +3301,8 @@ absl::Status DataBagImpl::SetSchemaFieldsForEntireAllocation(
         DataSliceImpl::ObjectsFromAllocation(schema_alloc_id, size), attr_names,
         items);
   }
-  Dict& schema_dict = GetOrCreateMutableDicts(schema_alloc_id, /*size=*/1)[0];
+  Dict& schema_dict = GetOrCreateMutableDicts(schema_alloc_id,
+                                              /*update_size=*/1, /*size=*/1)[0];
   for (size_t i = 0; i < attr_names.size(); ++i) {
     schema_dict.Set(DataItem::View<arolla::Text>(attr_names[i]),
                     DataItem(arolla::kPresent));
@@ -3771,19 +3784,27 @@ absl::Status DataBagImpl::MergeDictsInplace(const DataBagImpl& other,
         const auto& conflict_policy = alloc_id.IsExplicitSchemasAlloc()
                                           ? options.schema_conflict_policy
                                           : options.data_conflict_policy;
-        auto& this_dicts = GetOrCreateMutableDicts(alloc_id);
+        auto& this_dicts = GetOrCreateMutableDicts(alloc_id, /*update_size=*/1);
+        // TODO: move this loop to DictVector::MergeInplace and
+        // avoid full iteration in the sparse case.
         for (size_t i = 0; i < other_dicts.size(); ++i) {
-          const auto& other_dict = other_dicts[i];
-          auto& this_dict = this_dicts[i];
+          const auto* other_dict = other_dicts.Get(i);
+          if (other_dict == nullptr) {
+            continue;
+          }
           auto* original_this_dict =
-              const_this_dicts == nullptr ? nullptr : &(*const_this_dicts)[i];
-          for (const DataItem& key :
-               other_dict.GetModifiedKeys(original_this_dict)) {
+              const_this_dicts == nullptr ? nullptr : const_this_dicts->Get(i);
+          auto modified_keys = other_dict->GetModifiedKeys(original_this_dict);
+          if (modified_keys.empty()) {
+            continue;
+          }
+          auto& this_dict = this_dicts.GetMutable(i);
+          for (const DataItem& key : modified_keys) {
             if (conflict_policy == MergeOptions::kOverwrite) {
-              this_dict.Set(key, *other_dict.Get(key));
+              this_dict.Set(key, *other_dict->Get(key));
               continue;
             }
-            auto other_value = other_dict.Get(key);
+            auto other_value = other_dict->Get(key);
             if (!other_value.has_value()) {
               continue;
             }
@@ -3814,15 +3835,24 @@ absl::Status DataBagImpl::AddDictsOverwritingUpdate(const DataBagImpl& other,
                 const DictVector* const_this_dicts,
                 const DictVector& other_dicts) -> absl::Status {
         std::shared_ptr<DictVector>& this_dicts = update.dicts_[alloc_id];
-        this_dicts = std::make_shared<DictVector>(other_dicts.size());
+        this_dicts = std::make_shared<DictVector>(other_dicts.size(),
+                                                  other_dicts.size());
+        // TODO: move this loop to DictVector::MergeInplace and
+        // avoid full iteration in the sparse case.
         for (size_t i = 0; i < other_dicts.size(); ++i) {
-          const auto& other_dict = other_dicts[i];
-          auto& this_dict = (*this_dicts)[i];
+          const auto* other_dict = other_dicts.Get(i);
+          if (other_dict == nullptr) {
+            continue;
+          }
           auto* original_this_dict =
-              const_this_dicts == nullptr ? nullptr : &(*const_this_dicts)[i];
-          for (const DataItem& key :
-               other_dict.GetModifiedKeys(original_this_dict)) {
-            this_dict.Set(key, *other_dict.Get(key));
+              const_this_dicts == nullptr ? nullptr : const_this_dicts->Get(i);
+          auto modified_keys = other_dict->GetModifiedKeys(original_this_dict);
+          if (modified_keys.empty()) {
+            continue;
+          }
+          auto& this_dict = (*this_dicts)[i];
+          for (const DataItem& key : modified_keys) {
+            this_dict.Set(key, *other_dict->Get(key));
           }
         }
         return absl::OkStatus();
@@ -4241,7 +4271,9 @@ int64_t DataBagImpl::GetApproxTotalSize() const {
 
   auto add_dicts = [&size](const DictVector& dicts) {
     for (size_t i = 0; i < dicts.size(); ++i) {
-      size += static_cast<int64_t>(dicts[i].GetSizeNoFallbacks());
+      if (const Dict* d = dicts.Get(i); d != nullptr) {
+        size += static_cast<int64_t>(d->GetSizeNoFallbacks());
+      }
     }
   };
 
@@ -4285,9 +4317,7 @@ int64_t DataBagImpl::GetApproxTotalByteSize() const {
 
   auto add_dicts = [&size](const DictVector& dicts) {
     MemoryStatsEntry stats;
-    for (size_t i = 0; i < dicts.size(); ++i) {
-      dicts[i].AppendMemoryStats(stats);
-    }
+    dicts.AppendMemoryStats(stats);
     size += stats.shallow_size + stats.strings_size;
   };
 

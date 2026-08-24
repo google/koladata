@@ -15,16 +15,19 @@
 #ifndef KOLADATA_INTERNAL_DICT_H_
 #define KOLADATA_INTERNAL_DICT_H_
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "absl/base/no_destructor.h"
-#include "absl/base/optimization.h"
+#include "absl/base/nullability.h"
+#include "absl/container/fixed_array.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/log/check.h"
 #include "absl/types/span.h"
@@ -189,42 +192,133 @@ class Dict {
 // Vector of dictionaries. Can be created from shared_ptr to another DictVector
 // and in this case will store only the diffs between dicts.
 class DictVector {
+ private:
+  using Array = absl::FixedArray<Dict, 0>;
+
+  static constexpr size_t kArraySizeThreshold = 4;
+
+  struct Map {
+    using MapType = absl::flat_hash_map<size_t, Dict>;
+    MapType map;
+
+    void ConvertToArray(Array& array, const DictVector* parent,
+                        const Dict* single_parent_dict) &&;
+  };
+
+  bool is_map_mode() const {
+    return std::holds_alternative<Map>(data_);
+  }
+
+  bool ShouldUseArray(size_t update_size) const {
+    return size_ <= kArraySizeThreshold || update_size * 10 > size_ * 3;
+  }
+
+  friend struct DictVectorTestFriend;
+
  public:
-  explicit DictVector(size_t size) : data_(size) {}
+  explicit DictVector(size_t size, size_t update_size) : size_(size) {
+    if (ShouldUseArray(update_size)) {
+      data_.emplace<Array>(size);
+    } else {
+      Map& m = data_.emplace<Map>();
+      if (update_size > 0) {
+        m.map.reserve(std::min(size, update_size));
+      }
+    }
+  }
 
   // Non copyable to avoid confusion with constructor from shared_ptr.
   DictVector(const DictVector&) = delete;
+  DictVector(DictVector&&) = delete;
   DictVector& operator=(const DictVector&) = delete;
+  DictVector& operator=(DictVector&&) = delete;
 
-  explicit DictVector(std::shared_ptr<const DictVector> parent)
-      : data_(parent->size()) {
-    for (size_t i = 0; i < data_.size(); ++i) {
-      const Dict& parent_dict = parent->data_[i];
-      data_[i].parent_ =
-          parent_dict.data_.empty() ? parent_dict.parent_ : &parent_dict;
+  // Note: DictVector relies that `parent` is not modified during its lifetime.
+  explicit DictVector(std::shared_ptr<const DictVector> parent,
+                      size_t update_size)
+      : size_(parent->size()), parent_(std::move(parent)) {
+    if (ShouldUseArray(update_size)) {
+      Array& array = data_.emplace<Array>(size_);
+      for (size_t i = 0; i < size_; ++i) {
+        const Dict* parent_dict = parent_->Get(i);
+        if (parent_dict != nullptr) {
+          array[i].parent_ =
+              parent_dict->data_.empty() ? parent_dict->parent_ : parent_dict;
+        }
+      }
+    } else {
+      Map& m = data_.emplace<Map>();
+      if (update_size > 0) {
+        m.map.reserve(update_size);
+      }
     }
-    parent_ = std::move(parent);
   }
 
-  explicit DictVector(size_t size, std::shared_ptr<const Dict> parent_dict)
-      : data_(size) {
-    const Dict* parent_dict_ptr =
-        parent_dict->data_.empty() ? parent_dict->parent_ : parent_dict.get();
-    for (size_t i = 0; i < data_.size(); ++i) {
-      data_[i].parent_ = parent_dict_ptr;
+  explicit DictVector(size_t size, std::shared_ptr<const Dict> parent_dict,
+                      size_t update_size)
+      : size_(size),
+        single_parent_dict_(std::move(parent_dict)),
+        single_parent_dict_ptr_(
+            single_parent_dict_ != nullptr
+                ? (single_parent_dict_->data_.empty()
+                       ? single_parent_dict_->parent_
+                       : single_parent_dict_.get())
+                : nullptr) {
+    if (ShouldUseArray(update_size)) {
+      Array& array = data_.emplace<Array>(size_);
+      for (size_t i = 0; i < size_; ++i) {
+        array[i].parent_ = single_parent_dict_ptr_;
+      }
+    } else {
+      Map& m = data_.emplace<Map>();
+      if (update_size > 0) {
+        m.map.reserve(std::min(size, update_size));
+      }
     }
-    parent_ = std::move(parent_dict);
   }
 
-  size_t size() const { return data_.size(); }
+  size_t size() const { return size_; }
 
-  Dict& operator[](int64_t index) { return data_[index]; }
-  const Dict& operator[](int64_t index) const { return data_[index]; }
+  const Dict* absl_nullable Get(size_t index) const {
+    DCHECK_LT(index, size());
+    if (std::holds_alternative<Array>(data_)) {
+      const Dict& dict = std::get<Array>(data_)[index];
+      if (dict.data_.empty() && dict.parent_ == nullptr) {
+        return nullptr;
+      }
+      return &dict;
+    }
+    return GetFromMap(index);
+  }
+
+  Dict& GetMutable(size_t index) {
+    DCHECK_LT(index, size());
+    if (std::holds_alternative<Array>(data_)) {
+      return GetMutableFromArray(index);
+    }
+    return GetMutableFromMap(index);
+  }
+
+  Dict& operator[](int64_t index) {
+    DCHECK_GE(index, 0);
+    return GetMutable(static_cast<size_t>(index));
+  }
+
+  // Note: it doesn't include parent's size.
+  void AppendMemoryStats(MemoryStatsEntry& stats) const;
 
  private:
-  std::vector<Dict> data_;
-  // All parent links are stored inside of the Dict. We only hold ownership.
-  std::shared_ptr<const void> parent_;
+  const Dict* GetParentDict(size_t index) const;
+  const Dict* absl_nullable GetFromMap(size_t index) const;
+  Dict& GetMutableFromArray(size_t index);
+  Dict& GetMutableFromMap(size_t index);
+
+  size_t size_ = 0;
+  std::variant<Map, Array> data_;
+
+  std::shared_ptr<const DictVector> parent_;
+  std::shared_ptr<const Dict> single_parent_dict_;
+  const Dict* single_parent_dict_ptr_ = nullptr;
 };
 
 }  // namespace koladata::internal

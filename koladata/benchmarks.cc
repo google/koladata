@@ -827,5 +827,30 @@ void BM_ExtractSingleLists(benchmark::State& state) {
 
 BENCHMARK(BM_ExtractSingleLists);
 
+void BM_ExtractSingleDicts(benchmark::State& state) {
+  constexpr int64_t kSize = 1000000;
+  DataSlice::JaggedShape::Edge edge_1 = GetEdge(1, kSize);
+  DataSlice::JaggedShape::Edge edge_2 = GetEdge(kSize, 1);
+  DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
+      {std::move(edge_1), std::move(edge_2)});
+  auto keys = *DataSlice::CreatePrimitive(
+      arolla::CreateConstDenseArray<int32_t>(kSize, 1), shape);
+  auto values = *DataSlice::CreatePrimitive(
+      arolla::CreateConstDenseArray<int32_t>(kSize, 2), shape);
+  auto db = DataBag::EmptyMutable();
+  auto a = *CreateDictShaped(db, shape.RemoveDims(1), keys, values);
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(a);
+    for (int i = 0; i < 100; ++i) {
+      auto single_dict = *subslice::Subslice(a, {test::DataItem(i)});
+      auto extracted = *extract_utils_internal::Extract(single_dict);
+      benchmark::DoNotOptimize(extracted);
+    }
+  }
+}
+
+BENCHMARK(BM_ExtractSingleDicts);
+
 }  // namespace
 }  // namespace koladata

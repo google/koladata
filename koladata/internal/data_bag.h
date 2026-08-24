@@ -1042,7 +1042,8 @@ class DataBagImpl : public arolla::RefcountedBase {
   // in `this->dicts_`. Uses a corresponding DictVector from
   // parent_data_bag_ as a parent if available.
   DictVector& GetOrCreateMutableDicts(
-      AllocationId alloc_id, std::optional<size_t> size = std::nullopt);
+      AllocationId alloc_id, size_t update_size,
+      std::optional<size_t> size = std::nullopt);
 
   // Like GetOrCreateMutableDicts, but also selects a Dict for `object_id`.
   Dict& GetOrCreateMutableDict(ObjectId object_id);

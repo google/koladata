@@ -17,10 +17,14 @@
 #include <algorithm>
 #include <cstddef>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "absl/base/attributes.h"
 #include "absl/base/no_destructor.h"
+#include "absl/base/nullability.h"
+#include "absl/container/fixed_array.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
 #include "absl/types/span.h"
@@ -182,5 +186,86 @@ void Dict::AppendMemoryStats(MemoryStatsEntry& stats) const {
 }
 
 const absl::NoDestructor<DataItem> Dict::empty_item_;
+
+void DictVector::Map::ConvertToArray(Array& array, const DictVector* parent,
+                                     const Dict* single_parent_dict) && {
+  if (parent != nullptr) {
+    for (size_t i = 0; i < array.size(); ++i) {
+      const Dict* p = parent->Get(i);
+      if (p != nullptr) {
+        array[i].parent_ = p->data_.empty() ? p->parent_ : p;
+      }
+    }
+  } else if (single_parent_dict != nullptr) {
+    for (size_t i = 0; i < array.size(); ++i) {
+      array[i].parent_ = single_parent_dict;
+    }
+  }
+  for (auto& [idx, dict] : map) {
+    array[idx] = std::move(dict);
+  }
+}
+
+const Dict* DictVector::GetParentDict(size_t index) const {
+  if (parent_ != nullptr) {
+    const Dict* p = parent_->Get(index);
+    if (p == nullptr) {
+      return nullptr;
+    }
+    return p->data_.empty() ? p->parent_ : p;
+  }
+  return single_parent_dict_ptr_;
+}
+
+const Dict* absl_nullable DictVector::GetFromMap(size_t index) const {
+  const auto& map = std::get<Map>(data_).map;
+  auto it = map.find(index);
+  if (it != map.end()) {
+    if (it->second.data_.empty() && it->second.parent_ == nullptr) {
+      return nullptr;
+    }
+    return &it->second;
+  }
+  return GetParentDict(index);
+}
+
+Dict& DictVector::GetMutableFromArray(size_t index) {
+  return std::get<Array>(data_)[index];
+}
+
+Dict& DictVector::GetMutableFromMap(size_t index) {
+  auto& map = std::get<Map>(data_).map;
+  auto it = map.find(index);
+  if (it != map.end()) {
+    return it->second;
+  }
+  if (ShouldUseArray(map.size() + 1)) {
+    Map local_map = std::move(std::get<Map>(data_));
+    Array& arr = data_.emplace<Array>(size_);
+    std::move(local_map).ConvertToArray(arr, parent_.get(),
+                                        single_parent_dict_ptr_);
+    return GetMutableFromArray(index);
+  }
+  Dict& dict = map[index];
+  dict.parent_ = GetParentDict(index);
+  return dict;
+}
+
+void DictVector::AppendMemoryStats(MemoryStatsEntry& stats) const {
+  stats.shallow_size += sizeof(DictVector);
+  if (std::holds_alternative<Array>(data_)) {
+    const auto& array = std::get<Array>(data_);
+    stats.shallow_size += sizeof(Array::value_type) * array.size();
+    for (const Dict& dict : array) {
+      dict.AppendMemoryStats(stats);
+    }
+  } else {
+    const auto& map = std::get<Map>(data_).map;
+    stats.shallow_size += sizeof(Map::MapType::value_type) * map.size();
+    for (const auto& [idx, dict] : map) {
+      dict.AppendMemoryStats(stats);
+    }
+  }
+}
 
 }  // namespace koladata::internal
