@@ -29,7 +29,7 @@ from arolla.serialization_codecs.dense_array import dense_array_codec_pb2 as _
 from koladata.s11n import codec_pb2 as _
 
 
-def _get_text_header(data_slice_impl_proto=None):
+def _get_text_header(data_slice_impl_proto=None, include_decoder_hints=False):
   if data_slice_impl_proto is None:
     data_slice_impl_proto = """
       data_slice_compact {
@@ -37,10 +37,17 @@ def _get_text_header(data_slice_impl_proto=None):
           i32: 1
           i32: 2
       }"""
+  hints_proto = ''
+  if include_decoder_hints:
+    hints_proto = """
+      decoder_hints {
+        decoding_step_result_usage_counts: [ 0, 1, 0, 0, 1, 1, 1, 1, 1 ]
+      }"""
   return """
     version: 2
     decoding_steps {  # [0]
       codec { name: "koladata.s11n" }
+      %s
     }
     decoding_steps {  # [1]
       value {
@@ -104,7 +111,7 @@ def _get_text_header(data_slice_impl_proto=None):
         }
       }
     }
-  """ % data_slice_impl_proto
+  """ % (hints_proto, data_slice_impl_proto)
 
 
 def _get_text_footer_data_slice():
@@ -128,8 +135,11 @@ def _get_text_footer_data_slice():
     """
 
 
-def _get_data_slice_test_case(impl_proto=None):
-  return _get_text_header(impl_proto) + _get_text_footer_data_slice()
+def _get_data_slice_test_case(impl_proto=None, include_decoder_hints=False):
+  return (
+      _get_text_header(impl_proto, include_decoder_hints=include_decoder_hints)
+      + _get_text_footer_data_slice()
+  )
 
 
 class DataSliceS11NTest(codec_test_case.S11nCodecTestCase):
@@ -139,6 +149,7 @@ class DataSliceS11NTest(codec_test_case.S11nCodecTestCase):
       version: 2
       decoding_steps {
         codec { name: "koladata.s11n" }
+        decoder_hints { decoding_step_result_usage_counts: [ 0, 1 ] }
       }
       decoding_steps {
         value {
@@ -229,7 +240,7 @@ class DataSliceS11NTest(codec_test_case.S11nCodecTestCase):
     )
 
   def test_correct_case(self):
-    text = _get_data_slice_test_case()
+    text = _get_data_slice_test_case(include_decoder_hints=True)
     value = data_slice.DataSlice.from_vals([1, 2])
     self.assertDumpsEqual(value, text)
     self.assertLoadsEqual(text, value)

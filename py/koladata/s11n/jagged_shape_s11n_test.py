@@ -15,6 +15,7 @@
 from absl.testing import absltest
 from arolla import arolla
 from arolla.s11n.testing import codec_test_case
+
 # Register kde ops for e.g. JaggedShape.from-edges().
 from koladata.operators import kde_operators as _
 from koladata.types import jagged_shape
@@ -31,6 +32,7 @@ class JaggedShapeS11nTest(codec_test_case.S11nCodecTestCase):
       version: 2
       decoding_steps {
         codec { name: "koladata.s11n" }
+        decoder_hints { decoding_step_result_usage_counts: [ 0, 1 ] }
       }
       decoding_steps {
         value {
@@ -52,6 +54,9 @@ class JaggedShapeS11nTest(codec_test_case.S11nCodecTestCase):
       version: 2
       decoding_steps {
         codec { name: "koladata.s11n" }
+        decoder_hints {
+          decoding_step_result_usage_counts: [ 0, 0, 0, 1, 1, 1, 1 ]
+        }
       }
       decoding_steps {
         codec {

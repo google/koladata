@@ -29,6 +29,7 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
       version: 2
       decoding_steps {
         codec { name: "koladata.s11n" }
+        decoder_hints { decoding_step_result_usage_counts: [ 0, 1 ] }
       }
       decoding_steps {
         value {

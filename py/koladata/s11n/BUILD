@@ -86,7 +86,6 @@ py_test(
         "//py:python_path",
         "//py/koladata/types:ellipsis",
         "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/s11n/testing:codec_test_case",
     ],
 )
@@ -99,7 +98,6 @@ py_test(
         "//py:python_path",
         "//py/koladata/types:qtypes",
         "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/s11n/testing:codec_test_case",
     ],
 )
