@@ -92,6 +92,60 @@ class MatrixSolveTest(parameterized.TestCase):
         atol=1e-5,
     )
 
+  def test_solve_float64_intermediate_precision(self):
+    # The multiplier m = 7/3 is irrational - float32 rounds it to 2.3333333
+    # (7 digits), while float64 keeps 2.3333333333333335 (16 digits). During
+    # elimination, the pivot a11 - m*a01 = 2333333.75 - (7/3)*1e6 ≈ 0.417.
+    # In float32, the rounded multiplier gives 0.5 instead - a 20% error that
+    # propagates into a completely wrong solution. The float64 solve gives
+    # x=26666700, y=-80 with zero residual.
+    a = ds([[3.0, 1e6], [7.0, 2333333.75]], schema_constants.FLOAT32)
+    b = ds([100.0, 200.0], schema_constants.FLOAT32)
+    result = kd.matrix.solve(a, b)
+    testing.assert_equal(
+        result, ds([26666700.0, -80.0], schema_constants.FLOAT32)
+    )
+
+  def test_solve_float32_overflow_to_inf_vector_rhs(self):
+    # Solves system with double-precision solution exceeding float32 max
+    # (~3.4e38). The double→float32 cast produces ±inf per IEEE 754.
+    a = ds([[1e-20, 0.0], [0.0, 1e-20]], schema_constants.FLOAT32)
+    b = ds([1e20, -1e20], schema_constants.FLOAT32)
+    result = kd.matrix.solve(a, b)
+    testing.assert_equal(
+        result,
+        ds([float('inf'), float('-inf')], schema_constants.FLOAT32),
+    )
+
+  def test_solve_float32_overflow_to_inf_batched(self):
+    # Batched solve where first batch element overflows float32 and second is
+    # normal.
+    a = ds(
+        [
+            [[1e-20, 0.0], [0.0, 1e-20]],
+            [[1.0, 0.0], [0.0, 1.0]],
+        ],
+        schema_constants.FLOAT32,
+    )
+    b = ds(
+        [
+            [1e20, -1e20],
+            [3.0, 4.0],
+        ],
+        schema_constants.FLOAT32,
+    )
+    result = kd.matrix.solve(a, b, b_ndim=1)
+    testing.assert_equal(
+        result,
+        ds(
+            [
+                [float('inf'), float('-inf')],
+                [3.0, 4.0],
+            ],
+            schema_constants.FLOAT32,
+        ),
+    )
+
   def test_mixed_schemas_int32_float32(self):
     a = ds([[1, 2], [3, 5]])  # INT32
     b = ds([1.0, 2.0])  # FLOAT32

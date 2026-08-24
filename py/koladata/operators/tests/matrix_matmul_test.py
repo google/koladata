@@ -53,6 +53,49 @@ class MatrixMatmulTest(parameterized.TestCase):
         result, ds([[19.0, 22.0], [43.0, 50.0]], schema_constants.FLOAT32)
     )
 
+  def test_float32_matmul_intermediate_precision(self):
+    # FLOAT32 matmul computes in FLOAT64, then casts back to FLOAT32.
+    # Dot product [1, 1e8, -1e8] . [1, 1, 1] = 1. With left-to-right float32
+    # accumulation, 1 + 1e8 rounds to 1e8 (ULP at 1e8 is 8, so the +1 is
+    # lost), then 1e8 - 1e8 = 0. In float64, 1 + 1e8 = 100000001 exactly,
+    # giving the correct result 1.
+    a = ds([[1.0, 1e8, -1e8]], schema_constants.FLOAT32)
+    b = ds([[1.0], [1.0], [1.0]], schema_constants.FLOAT32)
+    result = kd.matrix.matmul(a, b)
+    testing.assert_equal(result, ds([[1.0]], schema_constants.FLOAT32))
+
+  def test_float32_matmul_overflow_to_inf(self):
+    # Dot products computed in float64 that exceed float32 max (~3.4e38).
+    # The double→float32 cast produces ±inf per IEEE 754.
+    # Row 0: 1e20*1e20 + 1e20*1e20 = 2e40 → +inf
+    # Row 1: -1e20*1e20 + -1e20*1e20 = -2e40 → -inf
+    a = ds([[1e20, 1e20], [-1e20, -1e20]], schema_constants.FLOAT32)
+    b = ds([[1e20], [1e20]], schema_constants.FLOAT32)
+    result = kd.matrix.matmul(a, b)
+    testing.assert_equal(
+        result,
+        ds([[float('inf')], [float('-inf')]], schema_constants.FLOAT32),
+    )
+
+  def test_float32_matmul_overflow_to_inf_batched(self):
+    # Batched matmul where first batch overflows float32 and second is normal.
+    a = ds(
+        [[[1e20, 1e20]], [[1.0, 2.0]]],
+        schema_constants.FLOAT32,
+    )
+    b = ds(
+        [[[1e20], [1e20]], [[3.0], [4.0]]],
+        schema_constants.FLOAT32,
+    )
+    result = kd.matrix.matmul(a, b)
+    testing.assert_equal(
+        result,
+        ds(
+            [[[float('inf')]], [[11.0]]],
+            schema_constants.FLOAT32,
+        ),
+    )
+
   def test_2d_2d_integer(self):
     a = ds([[1, 2], [3, 4]])
     b = ds([[5, 6], [7, 8]])
