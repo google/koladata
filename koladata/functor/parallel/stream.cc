@@ -42,7 +42,7 @@
 namespace koladata::functor::parallel {
 namespace {
 
-using ::arolla::AlignedAlloc;
+using ::arolla::AlignedAllocN;
 using ::arolla::AlignedPtr;
 using ::arolla::GetNothingQType;
 using ::arolla::QTypePtr;
@@ -73,7 +73,7 @@ class Chunk {
   const QTypePtr absl_nonnull value_qtype_;
   const size_t capacity_;
   const size_t value_bytesize_;
-  const AlignedPtr absl_nonnull storage_;
+  const AlignedPtr storage_;
 };
 
 // Combined implementation of Stream and StreamWriter.
@@ -147,9 +147,15 @@ Chunk::Chunk(QTypePtr absl_nonnull value_qtype, size_t capacity)
     : value_qtype_(value_qtype),
       capacity_(capacity),
       value_bytesize_(value_qtype->type_layout().AllocSize()),
-      storage_(AlignedAlloc(
+      storage_(AlignedAllocN(
           std::align_val_t{value_qtype->type_layout().AllocAlignment()},
-          capacity * value_bytesize_)) {
+          value_bytesize_, capacity)) {
+  if (storage_ == nullptr) {
+    LOG(FATAL) << "Failed to allocate chunk storage: alignment="
+               << value_qtype->type_layout().AllocAlignment()
+               << ", capacity=" << capacity
+               << ", element_size=" << value_bytesize_;
+  }
   value_qtype->type_layout().InitializeAlignedAllocN(storage_.get(), capacity_);
 }
 
