@@ -37,7 +37,7 @@ class Entity:
 @dataclasses.dataclass
 class ComplexClass:
   x: list[int | None] | None
-  y: dict[int | None, str | None] | None
+  y: dict[int, str | None] | None
   z: Another | None
   a: Entity | None
 
@@ -72,7 +72,6 @@ class SchemaToPyTest(parameterized.TestCase):
     for name, field1 in fields1.items():
       field2 = fields2[name]
       self.assertEqual(field1.name, field2.name)
-
       c1 = self._get_underlying_optional_type(field1.type)
       c2 = self._get_underlying_optional_type(field2.type)
 
@@ -81,12 +80,26 @@ class SchemaToPyTest(parameterized.TestCase):
       elif isinstance(c1, types.GenericAlias) and isinstance(
           c2, types.GenericAlias
       ):
-        args1 = typing.get_args(c1)
-        args2 = typing.get_args(c2)
-        self.assertLen(args1, len(args2))
-        for arg1, arg2 in zip(args1, args2):
+        if typing.get_origin(c1) == dict:
+          self.assertEqual(typing.get_origin(c2), dict)
+          arg1 = typing.get_args(c1)
+          arg2 = typing.get_args(c2)
+          key_c1, key_c2 = arg1[0], arg2[0]
+          value_c1, value_c2 = arg1[1], arg2[1]
+          value_c1 = self._get_underlying_optional_type(value_c1)
+          value_c2 = self._get_underlying_optional_type(value_c2)
+
+          self._assert_similar_dataclasses(key_c1, key_c2, depth=depth + 1)
+          self._assert_similar_dataclasses(value_c1, value_c2, depth=depth + 1)
+
+        else:
+          self.assertEqual(typing.get_origin(c1), list)
+          self.assertEqual(typing.get_origin(c2), list)
+          arg1 = typing.get_args(c1)[0]
+          arg2 = typing.get_args(c2)[0]
           arg_c1 = self._get_underlying_optional_type(arg1)
           arg_c2 = self._get_underlying_optional_type(arg2)
+
           self._assert_similar_dataclasses(arg_c1, arg_c2, depth=depth + 1)
       else:
         self.assertEqual(c1, c2)
@@ -118,7 +131,7 @@ class SchemaToPyTest(parameterized.TestCase):
         'Entity',
         [
             ('x', list[int | None] | None),
-            ('y', dict[int | None, str | None] | None),
+            ('y', dict[int, str | None] | None),
             ('z', expected_inner_type1 | None),
             ('a', expected_inner_type2 | None),
         ],
@@ -197,13 +210,27 @@ class SchemaToPyTest(parameterized.TestCase):
       ),
       dict(
           schema=kd.schema.dict_schema(kd.INT64, kd.STRING),
-          expected_tpe=dict[int | None, str | None] | None,
+          expected_tpe=dict[int, str | None] | None,
       ),
       dict(
           schema=kd.schema.list_schema(
               kd.schema.dict_schema(kd.INT64, kd.STRING)
           ),
-          expected_tpe=list[dict[int | None, str | None] | None] | None,
+          expected_tpe=list[dict[int, str | None] | None] | None,
+      ),
+      dict(
+          schema=kd.schema.dict_schema(
+              kd.schema.list_schema(kd.INT64), kd.STRING
+          ),
+          expected_tpe=dict[list[int | None], str | None] | None,
+      ),
+      dict(
+          schema=kd.schema.dict_schema(kd.OBJECT, kd.STRING),
+          expected_tpe=dict[Any, str | None] | None,
+      ),
+      dict(
+          schema=kd.schema.dict_schema(kd.NONE, kd.STRING),
+          expected_tpe=dict[types.NoneType, str | None] | None,
       ),
   )
   def test_complex(self, schema, expected_tpe):
@@ -297,7 +324,7 @@ class SchemaToPyTest(parameterized.TestCase):
         list[expected_type | None] | None
     )
     dataclasses.fields(expected_type)[4].type = (
-        dict[int | None, expected_type | None] | None
+        dict[int, expected_type | None] | None
     )
 
     self._assert_similar_dataclasses(converted_type, expected_type)
@@ -338,6 +365,45 @@ class SchemaToPyTest(parameterized.TestCase):
     converted_obj = converted_type()
     self.assertIsNone(converted_obj.x)
     self.assertIsNone(converted_obj.y)
+
+  @parameterized.parameters(
+      (typing.Optional[int], int),
+      (typing.Optional[str], str),
+      (typing.Optional[float], float),
+      (typing.Optional[bool], bool),
+      (typing.Optional[bytes], bytes),
+      (typing.Optional[list[int]], list[int]),
+      (typing.Optional[dict[str, int]], dict[str, int]),
+      (typing.Optional[Entity], Entity),
+      (int | None, int),
+      (None | int, int),
+      (str | None, str),
+      (float | None, float),
+      (bool | None, bool),
+      (bytes | None, bytes),
+      (list[int] | None, list[int]),
+      (dict[str, int] | None, dict[str, int]),
+      (Entity | None, Entity),
+      (typing.Union[int, None], int),
+      (typing.Union[None, int], int),
+      (typing.Union[int, types.NoneType], int),
+      (int, int),
+      (str, str),
+      (list[int], list[int]),
+      (dict[str, int], dict[str, int]),
+      (Entity, Entity),
+      (Any, Any),
+      (types.NoneType, types.NoneType),
+      (None, None),
+      (typing.Union[int, str], typing.Union[int, str]),
+      (typing.Union[int, str, None], typing.Union[int, str, None]),
+      (
+          typing.Union[int, float, str, None],
+          typing.Union[int, float, str, None],
+      ),
+  )
+  def test_unwrap_optional(self, annotation, expected):
+    self.assertEqual(kd_schema._unwrap_optional(annotation), expected)
 
 
 if __name__ == '__main__':

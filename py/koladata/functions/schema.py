@@ -126,6 +126,7 @@ def schema_from_py(tpe: type[Any]) -> schema_item.SchemaItem:
       schema_from_py_impl(tpe).freeze_bag(),
   )
 
+
 _koda_to_py_type_map = {
     schema_constants.INT64: int,
     schema_constants.INT32: int,
@@ -167,6 +168,28 @@ def _get_dataclass_name(schema: schema_item.SchemaItem) -> str:
   return dataclass_name.split('.')[-1]
 
 
+def _unwrap_optional(annotation: Any) -> Any:
+  """Unwraps Optional[X] (i.e. Union[X, None]) to X.
+
+  Args:
+    annotation: The type annotation to unwrap.
+
+  Returns:
+    The unwrapped type X if annotation is Optional[X], otherwise annotation
+    itself.
+  """
+  origin = typing.get_origin(annotation)
+  if origin is typing.Union or (
+      hasattr(py_types, 'UnionType') and origin is py_types.UnionType
+  ):
+    args = [
+        a for a in typing.get_args(annotation) if a is not py_types.NoneType
+    ]
+    if len(args) == 1:
+      return args[0]
+  return annotation
+
+
 def _internal_schema_to_py(
     schema: schema_item.SchemaItem,
     visited: MutableMapping[Any, type[Any] | None],
@@ -181,9 +204,11 @@ def _internal_schema_to_py(
   if schema.is_list_schema():
     res = list[_internal_schema_to_py(schema.get_item_schema(), visited)] | None
   elif schema.is_dict_schema():
+    key_type = _internal_schema_to_py(schema.get_key_schema(), visited)
+    key_type = _unwrap_optional(key_type)
     res = (
         dict[
-            _internal_schema_to_py(schema.get_key_schema(), visited),
+            key_type,
             _internal_schema_to_py(schema.get_value_schema(), visited),
         ]
         | None
