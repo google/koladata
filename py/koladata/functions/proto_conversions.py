@@ -14,8 +14,7 @@
 
 """Koda functions for converting to and from protocol buffers."""
 
-from collections.abc import Iterator, Sequence
-
+from collections.abc import Iterator
 from typing import Any, Type, TypeAlias, cast
 
 from google.protobuf import any as protobuf_any
@@ -36,18 +35,20 @@ from google.protobuf import any_pb2
 # Note: these are for nested lists/sequences of uniform depth (intentionally).
 # They can also be replaced with PEP 695 `type X[T] = ...` syntax once support
 # is more widely available in type checkers.
-_NestedNoneList: TypeAlias = Sequence['_NestedNoneList'] | None
+_NestedNoneList: TypeAlias = list['_NestedNoneList'] | None
 _NestedMessageContainer: TypeAlias = (
     message.Message
-    | Sequence['_NestedMessageContainer']
+    | list['_NestedMessageContainer']
+    | tuple['_NestedMessageContainer', ...]
     | None
 )
 _NestedAnyMessageList: TypeAlias = (
-    any_pb2.Any | Sequence['_NestedAnyMessageList'] | None
+    any_pb2.Any | list['_NestedAnyMessageList'] | None
 )
 _NestedAnyMessageContainer: TypeAlias = (
     any_pb2.Any
-    | Sequence['_NestedAnyMessageContainer']
+    | list['_NestedAnyMessageContainer']
+    | tuple['_NestedAnyMessageContainer', ...]
     | None
 )
 

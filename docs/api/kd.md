@@ -521,7 +521,7 @@ Alias for [kd.core.freeze_bag](kd/core.md#kd.core.freeze_bag)
 
 Alias for [kd.json.from_json](kd/json.md#kd.json.from_json)
 
-### `kd.from_proto(messages: Message | Sequence[_NestedMessageContainer] | None, /, *, extensions: list[str] | None = None, itemid: DataSlice | None = None, schema: DataSlice | None = None) -> DataSlice` {#kd.from_proto}
+### `kd.from_proto(messages: Message | list[_NestedMessageContainer] | tuple[_NestedMessageContainer, ...] | None, /, *, extensions: list[str] | None = None, itemid: DataSlice | None = None, schema: DataSlice | None = None) -> DataSlice` {#kd.from_proto}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice representing proto data.
 
@@ -587,7 +587,7 @@ Args:
 Returns:
   A DataSlice representing the proto data.</code></pre>
 
-### `kd.from_proto_any(messages: Any | Sequence[_NestedAnyMessageContainer] | None, /, *, extensions: list[str] | None = None, itemid: DataSlice | None = None, schema: DataSlice | None = None, message_type: type[Message] | None = None, descriptor_pool: DescriptorPool | None = None) -> DataSlice` {#kd.from_proto_any}
+### `kd.from_proto_any(messages: Any | list[_NestedAnyMessageContainer] | tuple[_NestedAnyMessageContainer, ...] | None, /, *, extensions: list[str] | None = None, itemid: DataSlice | None = None, schema: DataSlice | None = None, message_type: type[Message] | None = None, descriptor_pool: DescriptorPool | None = None) -> DataSlice` {#kd.from_proto_any}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice converted from a nested list of proto Any messages.
 
@@ -1554,7 +1554,7 @@ Args:
 Returns:
   A converted proto message or list of converted proto messages.</code></pre>
 
-### `kd.to_proto_any(x: DataSlice, *, descriptor_pool: DescriptorPool | None = None, deterministic: bool = False) -> Any | Sequence[_NestedAnyMessageList] | None` {#kd.to_proto_any}
+### `kd.to_proto_any(x: DataSlice, *, descriptor_pool: DescriptorPool | None = None, deterministic: bool = False) -> Any | list[_NestedAnyMessageList] | None` {#kd.to_proto_any}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Converts a DataSlice or DataItem to proto Any messages.
 
