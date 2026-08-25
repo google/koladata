@@ -14,6 +14,26 @@ subject to standard Koda broadcasting rules.
 
 
 
+### `kd.matrix.det(a)` {#kd.matrix.det}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Compute the matrix determinant.
+
+Supports leading batch dimensions: (..., n, n) -&gt; (...).
+Missing values are treated as 0.
+
+Integer inputs produce integer determinants, float inputs produce float
+determinants. The computation is performed internally in double precision.
+
+NOTE: For large integer matrices, the determinant may overflow the integer
+type or lose precision due to the internal double-precision computation.
+Use FLOAT64 inputs when working with large matrices.
+
+Args:
+  a: A square matrix (..., n, n).
+
+Returns:
+  A DataSlice with the determinant value(s).</code></pre>
+
 ### `kd.matrix.diag_matrix(x, *, k=0)` {#kd.matrix.diag_matrix}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Create a diagonal matrix from the last dimension.

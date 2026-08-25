@@ -61,6 +61,10 @@ absl::StatusOr<DataSlice> MatrixSolve(const DataSlice& a, const DataSlice& b,
 // (..., n, n) -> (..., n, n). Supports batch dimensions.
 absl::StatusOr<DataSlice> MatrixInverse(const DataSlice& a);
 
+// kd.matrix.det: Compute matrix determinant.
+// (..., n, n) -> (...). Supports batch dimensions.
+absl::StatusOr<DataSlice> MatrixDet(const DataSlice& a);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_MATRIX_H_

@@ -828,4 +828,68 @@ absl::StatusOr<DataSlice> MatrixInverse(const DataSlice& a) {
   return do_inverse.operator()<double>();
 }
 
+absl::StatusOr<DataSlice> MatrixDet(const DataSlice& a) {
+  const int rank = a.GetShape().rank();
+  if (rank < 2) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("expected at least 2D, got ", rank, "D"));
+  }
+
+  ASSIGN_OR_RETURN(auto mat_infos,
+                   matrix_helpers::ExtractMatrix2DInfos(a.GetShape()));
+  const int64_t num_matrices = mat_infos.size();
+  for (int64_t p = 0; p < num_matrices; ++p) {
+    if (mat_infos[p].m != mat_infos[p].n) {
+      return absl::InvalidArgumentError(
+          absl::StrCat("matrix ", p, " is not square (", mat_infos[p].m, ", ",
+                       mat_infos[p].n, ")"));
+    }
+  }
+
+  const bool is_object_schema =
+      a.GetSchemaImpl() == internal::DataItem(schema::kObject);
+  ASSIGN_OR_RETURN(auto narrowed_schema,
+                   matrix_helpers::GetNarrowedMatrixSchema(a));
+
+  const int batch_rank = rank - 2;
+
+  auto do_det = [&]<typename OutputT>() -> absl::StatusOr<DataSlice> {
+    // Eigen's determinant function requires floating point types, because it
+    // uses LU decomposition internally. We compute in double precision and then
+    // cast Eigen's result to the desired output type.
+    ASSIGN_OR_RETURN(auto casted_a,
+                     CastToExplicit(a, internal::DataItem(schema::kFloat64)));
+    auto flat_data = matrix_helpers::ExtractFlat<double>(casted_a);
+    std::vector<OutputT> result(num_matrices);
+    for (int64_t p = 0; p < num_matrices; ++p) {
+      const auto& mat_info = mat_infos[p];
+      const int64_t n = mat_info.m;
+      Eigen::Map<const RowMajorMatrix<double>> mat(
+          flat_data.data() + mat_info.offset, n, n);
+      result[p] = matrix_helpers::saturate_cast<OutputT>(mat.determinant());
+    }
+
+    auto shape = a.GetShape().RemoveDims(/*from=*/batch_rank);
+    ASSIGN_OR_RETURN(DataSlice result_ds,
+                     matrix_helpers::BuildFromFlat<OutputT>(std::move(result),
+                                                            std::move(shape)));
+    if (is_object_schema) {
+      return result_ds.WithSchema(internal::DataItem(schema::kObject));
+    }
+    return result_ds;
+  };
+
+  if (narrowed_schema == internal::DataItem(schema::kFloat64)) {
+    return do_det.operator()<double>();
+  }
+  if (narrowed_schema == internal::DataItem(schema::kFloat32)) {
+    return do_det.operator()<float>();
+  }
+  if (narrowed_schema == internal::DataItem(schema::kInt32)) {
+    return do_det.operator()<int32_t>();
+  }
+  DCHECK_EQ(narrowed_schema, internal::DataItem(schema::kInt64));
+  return do_det.operator()<int64_t>();
+}
+
 }  // namespace koladata::ops

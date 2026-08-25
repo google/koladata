@@ -375,3 +375,32 @@ def inverse(a):  # pylint: disable=unused-argument
     The inverse matrix with the same shape.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
+    'kd.matrix.det',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.a),
+    ],
+)
+def det(a):  # pylint: disable=unused-argument
+  """Compute the matrix determinant.
+
+  Supports leading batch dimensions: (..., n, n) -> (...).
+  Missing values are treated as 0.
+
+  Integer inputs produce integer determinants, float inputs produce float
+  determinants. The computation is performed internally in double precision.
+
+  NOTE: For large integer matrices, the determinant may overflow the integer
+  type or lose precision due to the internal double-precision computation.
+  Use FLOAT64 inputs when working with large matrices.
+
+  Args:
+    a: A square matrix (..., n, n).
+
+  Returns:
+    A DataSlice with the determinant value(s).
+  """
+  raise NotImplementedError('implemented in the backend')
