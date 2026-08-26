@@ -89,6 +89,8 @@ def schema_from_py(tpe: type[Any]) -> schema_item.SchemaItem:
       )
     if not isinstance(tpe, type):
       raise TypeError(f'kd.schema_from_py expects a Python type, got {tpe}.')
+    if issubclass(tpe, py_types.SimpleNamespace):
+      return schema_constants.OBJECT
     if dataclasses.is_dataclass(tpe):
       s = db.named_schema(
           f'__schema_from_py__{tpe.__module__}.{tpe.__qualname__}'

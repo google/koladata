@@ -405,6 +405,106 @@ class SchemaToPyTest(parameterized.TestCase):
   def test_unwrap_optional(self, annotation, expected):
     self.assertEqual(kd_schema._unwrap_optional(annotation), expected)
 
+  def test_simple_namespace(self):
+    self.assertEqual(kd_schema.schema_from_py(types.SimpleNamespace), kd.OBJECT)
+    self.assertEqual(
+        kd_schema.schema_from_py(types.SimpleNamespace | None), kd.OBJECT
+    )
+    self.assertEqual(
+        kd_schema.schema_from_py(typing.Optional[types.SimpleNamespace]),
+        kd.OBJECT,
+    )
+
+    class CustomNamespace(types.SimpleNamespace):
+      pass
+
+    self.assertEqual(kd_schema.schema_from_py(CustomNamespace), kd.OBJECT)
+    self.assertEqual(
+        kd_schema.schema_from_py(CustomNamespace | None), kd.OBJECT
+    )
+
+    self.assertEqual(
+        kd_schema.schema_from_py(list[types.SimpleNamespace]),
+        kd.schema.list_schema(kd.OBJECT),
+    )
+    self.assertEqual(
+        kd_schema.schema_from_py(list[types.SimpleNamespace | None]),
+        kd.schema.list_schema(kd.OBJECT),
+    )
+    self.assertEqual(
+        kd_schema.schema_from_py(dict[str, types.SimpleNamespace]),
+        kd.schema.dict_schema(kd.STRING, kd.OBJECT),
+    )
+    self.assertEqual(
+        kd_schema.schema_from_py(dict[types.SimpleNamespace, int]),
+        kd.schema.dict_schema(kd.OBJECT, kd.INT64),
+    )
+
+    self.assertEqual(
+        kd_schema.schema_to_py(kd_schema.schema_from_py(types.SimpleNamespace)),
+        Any,
+    )
+    self.assertEqual(
+        kd_schema.schema_to_py(
+            kd_schema.schema_from_py(list[types.SimpleNamespace])
+        ),
+        list[Any] | None,
+    )
+    self.assertEqual(
+        kd_schema.schema_to_py(
+            kd_schema.schema_from_py(dict[str, types.SimpleNamespace])
+        ),
+        dict[str, Any] | None,
+    )
+
+  def test_simple_namespace_in_dataclass(self):
+    @dataclasses.dataclass
+    class DataclassWithNamespace:
+      x: int | None
+      ns: types.SimpleNamespace | None
+      ns_list: list[types.SimpleNamespace | None] | None
+      ns_dict: dict[str | None, types.SimpleNamespace | None] | None
+
+    schema = kd_schema.schema_from_py(DataclassWithNamespace)
+    self.assertEqual(schema.x, kd.INT64)
+    self.assertEqual(schema.ns, kd.OBJECT)
+    self.assertEqual(schema.ns_list, kd.schema.list_schema(kd.OBJECT))
+    self.assertEqual(
+        schema.ns_dict,
+        kd.schema.dict_schema(kd.STRING, kd.OBJECT),
+    )
+
+    converted_type = kd_schema.schema_to_py(schema)
+    converted_type = self._get_underlying_optional_type(converted_type)
+    fields = {f.name: f for f in dataclasses.fields(converted_type)}
+    self.assertEqual(self._get_underlying_optional_type(fields['x'].type), int)
+    self.assertEqual(fields['ns'].type, Any)
+    self.assertEqual(
+        self._get_underlying_optional_type(fields['ns_list'].type),
+        list[Any],
+    )
+    self.assertEqual(
+        self._get_underlying_optional_type(fields['ns_dict'].type),
+        dict[str, Any],
+    )
+
+    obj = converted_type(
+        x=10,
+        ns=types.SimpleNamespace(a=1),
+        ns_list=[types.SimpleNamespace(b=2)],
+        ns_dict={'k': types.SimpleNamespace(c=3)},
+    )
+    self.assertEqual(obj.x, 10)
+    self.assertEqual(obj.ns.a, 1)
+    self.assertEqual(obj.ns_list[0].b, 2)
+    self.assertEqual(obj.ns_dict['k'].c, 3)
+
+    default_obj = converted_type()
+    self.assertIsNone(default_obj.x)
+    self.assertIsNone(default_obj.ns)
+    self.assertIsNone(default_obj.ns_list)
+    self.assertIsNone(default_obj.ns_dict)
+
 
 if __name__ == '__main__':
   absltest.main()
