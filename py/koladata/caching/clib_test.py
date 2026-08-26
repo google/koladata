@@ -228,6 +228,28 @@ class LruCacheTest(parameterized.TestCase):
     kd.testing.assert_equivalent(res.y, kd.item(2))
     kd.testing.assert_equivalent(obj.extract().get_bag(), res.get_bag())
 
+  def test_merge_conflict(self):
+    obj1 = kd.obj(x=1, y=2)
+    obj2 = kd.obj(z=100)
+    obj3 = kd.obj(z='abc', itemid=obj2.get_itemid())
+
+    cache = clib.LruCache(capacity=10000, extract_and_track_size=True)
+    cache[kd.uuid(x=1)] = obj1
+    cache[kd.uuid(x=2)] = obj2
+    cache[kd.uuid(x=3)] = obj3
+
+    kd.testing.assert_equivalent(cache[kd.uuid(x=3)].z, kd.item('abc'))
+
+    res = cache[kd.uuid(x=kd.slice([1, 2]))]
+    kd.testing.assert_equivalent(res.S[0].x, kd.item(1))
+    kd.testing.assert_equivalent(res.S[0].y, kd.item(2))
+    kd.testing.assert_equivalent(res.S[1].z, kd.item(100))
+
+    with self.assertRaisesRegex(
+        ValueError, "the values of attribute 'z' are different: 100 vs 'abc'"
+    ):
+      _ = cache[kd.uuid(x=kd.slice([1, 2, 3]))]
+
 
 if __name__ == '__main__':
   absltest.main()

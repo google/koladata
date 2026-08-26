@@ -121,10 +121,19 @@ class LruCacheWrapper {
         });
 
     ASSIGN_OR_RETURN(auto schema, std::move(schema_agg).Get());
-    ASSIGN_OR_RETURN(
-        DataSlice res,
-        DataSlice::Create(std::move(bldr).Build(), keys_slice.GetShape(),
-                          schema, bags.GetBagWithFallbacks()));
+    DataBagPtr db;
+    if (extract_and_track_size_) {
+      // If we did per element extraction in Set, we merge them back.
+      ASSIGN_OR_RETURN(db, bags.GetCommonOrMergedDb());
+    } else {
+      // If there was no extraction, then we attach fallbacks instead of merging
+      // for performance reasons. We expect that in most cases there will be
+      // only one bag anyway.
+      db = bags.GetBagWithFallbacks();
+    }
+    ASSIGN_OR_RETURN(DataSlice res, DataSlice::Create(std::move(bldr).Build(),
+                                                      keys_slice.GetShape(),
+                                                      schema, std::move(db)));
     return TypedValue::FromValue(std::move(res));
   }
 
