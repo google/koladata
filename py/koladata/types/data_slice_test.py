@@ -162,6 +162,7 @@ class DataSliceMethodsTest(parameterized.TestCase):
               'S',  # Has different meanings between method and function.
               'implode',  # method lacks db= argument for consistency with view
               'new',  # method offers much simpler and restrictive interface
+              'strict_new',  # method offers much simpler and restrictive interface
           },
           skip_params=[
               ('with_bag', 0),  # bag is positional-only in C++
@@ -3930,12 +3931,6 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
     x = bag().obj(x=42, y='abc')
     _ = x.deep_uuid(schema=s, seed='seed')
 
-  def test_call(self):
-    with self.assertRaisesRegex(
-        TypeError, "data_slice.DataSlice' object is not callable"
-    ):
-      _ = ds([1, 2, 3])()  # pyrefly: ignore[not-callable]
-
   def test_with_name(self):
     x = ds([1, 2, 3])
     y = x.with_name('foo')
@@ -3953,8 +3948,56 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
         _ = inspect.signature(fn)  # Shouldn't raise.
 
   def test_new(self):
-    with self.assertRaisesRegex(NotImplementedError, 'only Schema'):
+    with self.assertRaisesRegex(ValueError, 'only Schema'):
       _ = ds([1, 2, 3]).new()
+
+  def test_strict_new(self):
+    with self.assertRaisesRegex(ValueError, 'only Schema'):
+      _ = ds([1, 2, 3]).strict_new()
+
+  def test_get_item_schema(self):
+    with self.assertRaisesRegex(ValueError, 'only List SchemaItem'):
+      _ = ds([1, 2, 3]).get_item_schema()
+
+  def test_get_key_schema(self):
+    with self.assertRaisesRegex(ValueError, 'only Dict SchemaItem'):
+      _ = ds([1, 2, 3]).get_key_schema()
+
+  def test_get_value_schema(self):
+    with self.assertRaisesRegex(ValueError, 'only Dict SchemaItem'):
+      _ = ds([1, 2, 3]).get_value_schema()
+
+  def test_get_nofollowed_schema(self):
+    with self.assertRaisesRegex(ValueError, 'only SchemaItem'):
+      _ = ds([1, 2, 3]).get_nofollowed_schema()
+
+  def test_bind(self):
+    with self.assertRaisesRegex(ValueError, 'only a Functor'):
+      _ = ds([1, 2, 3]).bind()
+
+  def test_call(self):
+    with self.assertRaisesRegex(
+        ValueError, 'only a Functor can be called'
+    ):
+      _ = ds([1, 2, 3])()
+
+  def test_int(self):
+    with self.assertRaisesRegex(
+        ValueError, 'only a scalar DataSlice can be converted to int'
+    ):
+      _ = int(ds([42]))
+
+  def test_float(self):
+    with self.assertRaisesRegex(
+        ValueError, 'only a scalar DataSlice can be converted to float'
+    ):
+      _ = float(ds([3.14]))
+
+  def test_index(self):
+    with self.assertRaisesRegex(
+        ValueError, 'only a scalar DataSlice can be converted to index'
+    ):
+      _ = [4, 5, 6][ds([4]) : 7]
 
 
 class DataSliceMergingTest(parameterized.TestCase):
@@ -4338,15 +4381,6 @@ class DataSliceFallbackTest(parameterized.TestCase):
         TypeError, '__bool__ disabled for koladata.types.data_slice.DataSlice'
     ):
       bool(ds([arolla.unit()]))
-    with self.assertRaisesRegex(
-        TypeError,
-        'slice indices must be integers or None or have an __index__ method',
-    ):
-      _ = [4, 5, 6][ds([4]) : 7]  # pyrefly: ignore[bad-index]
-    with self.assertRaisesRegex(
-        TypeError, 'argument must be a string or a real number'
-    ):
-      float(ds([3.14]))  # pyrefly: ignore[bad-argument-type]
 
   def test_get_present_count(self):
     testing.assert_equal(ds(57).get_present_count(), ds(1, INT64))

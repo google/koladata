@@ -39,6 +39,10 @@ Please see kd.subslice for more detailed explanations and examples.</code></pre>
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Append a value to each list in this DataSlice</code></pre>
 
+### `DataSlice.bind(self, *args: Any, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **kwargs: Any) -> DataSlice` {#kd.types.DataSlice.bind}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Koda functor that partially binds a function to `args` and `kwargs`.</code></pre>
+
 ### `DataSlice.clear()` {#kd.types.DataSlice.clear}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Clears all dicts or lists in this DataSlice</code></pre>
@@ -415,9 +419,17 @@ Args:
 Returns:
   a primitive schema DataSlice.</code></pre>
 
+### `DataSlice.get_item_schema(self) -> DataSlice` {#kd.types.DataSlice.get_item_schema}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the item schema of a List schema.</code></pre>
+
 ### `DataSlice.get_itemid(self) -> DataSlice` {#kd.types.DataSlice.get_itemid}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Casts `x` to ITEMID using explicit (permissive) casting rules.</code></pre>
+
+### `DataSlice.get_key_schema(self) -> DataSlice` {#kd.types.DataSlice.get_key_schema}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the key schema of a Dict schema.</code></pre>
 
 ### `DataSlice.get_keys()` {#kd.types.DataSlice.get_keys}
 
@@ -426,6 +438,10 @@ Returns:
 ### `DataSlice.get_ndim(self) -> DataSlice` {#kd.types.DataSlice.get_ndim}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the number of dimensions of DataSlice `x`.</code></pre>
+
+### `DataSlice.get_nofollowed_schema(self) -> DataSlice` {#kd.types.DataSlice.get_nofollowed_schema}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the nofollowed schema of this schema.</code></pre>
 
 ### `DataSlice.get_obj_schema(self) -> DataSlice` {#kd.types.DataSlice.get_obj_schema}
 
@@ -494,6 +510,10 @@ Returns:
 ### `DataSlice.get_sizes(self) -> DataSlice` {#kd.types.DataSlice.get_sizes}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice of sizes of the DataSlice&#39;s shape.</code></pre>
+
+### `DataSlice.get_value_schema(self) -> DataSlice` {#kd.types.DataSlice.get_value_schema}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the value schema of a Dict schema.</code></pre>
 
 ### `DataSlice.get_values(self, key_ds: Any = unspecified) -> DataSlice` {#kd.types.DataSlice.get_values}
 
@@ -918,6 +938,10 @@ Args:
 Returns:
   A copy of the entities with new ItemIds where all top-level attributes are
   copied by reference.</code></pre>
+
+### `DataSlice.strict_new(self, **attrs)` {#kd.types.DataSlice.strict_new}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new Entity with this Schema, checks for missing attributes.</code></pre>
 
 ### `DataSlice.strict_with_attrs(self, **attrs) -> DataSlice` {#kd.types.DataSlice.strict_with_attrs}
 

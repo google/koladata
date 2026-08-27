@@ -487,7 +487,7 @@ def _with_attr(
 @add_method(DataSlice, 'new')
 def _new(self, **attrs):
   """Returns a new Entity with this Schema."""
-  raise NotImplementedError(
+  raise ValueError(
       'only Schema can create new Entities using .new(...)'
   )
 
@@ -850,6 +850,88 @@ def _rshift(self, other: Any) -> DataSlice:
   # This produces a nicer error message than kd.enriched since it does not have
   # *varargs.
   return _eval_op('koda_internal.view.rshift', self, other)
+
+# Methods that are implemented by subclasses.
+
+
+@add_method(DataSlice, '__call__')
+def _call(
+    self,
+    *args: Any,
+    return_type_as: Any = DataSlice,
+    **kwargs: Any,
+) -> DataSlice:
+  """Calls the Koda functor with `args` and `kwargs`."""
+  raise ValueError('only a Functor can be called')
+
+
+@add_method(DataSlice, '__int__')
+def _int(self) -> int:
+  """Converts a DataItem to an integer."""
+  raise ValueError('only a scalar DataSlice can be converted to int')
+
+
+@add_method(DataSlice, '__float__')
+def _float(self) -> float:
+  """Converts a DataItem to a float."""
+  raise ValueError('only a scalar DataSlice can be converted to float')
+
+
+@add_method(DataSlice, '__index__')
+def _index(self) -> int:
+  """Converts a DataItem to an integer index."""
+  raise ValueError('only a scalar DataSlice can be converted to index')
+
+@add_method(DataSlice, 'strict_new')
+def _strict_new(self, **attrs):
+  """Returns a new Entity with this Schema, checks for missing attributes."""
+  raise ValueError(
+      'only Schema can create new Entities using .strict_new(...)'
+  )
+
+
+@add_method(DataSlice, 'get_item_schema')
+def _get_item_schema(self) -> DataSlice:
+  """Returns the item schema of a List schema."""
+  raise ValueError(
+      'only List SchemaItem can get item schema using .get_item_schema()'
+  )
+
+
+@add_method(DataSlice, 'get_key_schema')
+def _get_key_schema(self) -> DataSlice:
+  """Returns the key schema of a Dict schema."""
+  raise ValueError(
+      'only Dict SchemaItem can get key schema using .get_key_schema()'
+  )
+
+
+@add_method(DataSlice, 'get_value_schema')
+def _get_value_schema(self) -> DataSlice:
+  """Returns the value schema of a Dict schema."""
+  raise ValueError(
+      'only Dict SchemaItem can get value schema using .get_value_schema()'
+  )
+
+
+@add_method(DataSlice, 'get_nofollowed_schema')
+def _get_nofollowed_schema(self) -> DataSlice:
+  """Returns the nofollowed schema of this schema."""
+  raise ValueError(
+      'only SchemaItem can get nofollowed schema using'
+      ' .get_nofollowed_schema()'
+  )
+
+
+@add_method(DataSlice, 'bind')
+def _bind(
+    self,
+    *args: Any,
+    return_type_as: Any = DataSlice,
+    **kwargs: Any,
+) -> DataSlice:
+  """Returns a Koda functor that partially binds a function to `args` and `kwargs`."""
+  raise ValueError('only a Functor can be bound using .bind(...)')
 
 
 class SlicingHelper:

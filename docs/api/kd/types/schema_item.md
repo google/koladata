@@ -18,7 +18,8 @@
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the key schema of a Dict schema`.</code></pre>
 
 ### `SchemaItem.get_nofollowed_schema(self) -> DataItem` {#kd.types.SchemaItem.get_nofollowed_schema}
-*No description*
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the nofollowed schema of this schema.</code></pre>
 
 ### `SchemaItem.get_value_schema(self) -> SchemaItem` {#kd.types.SchemaItem.get_value_schema}
 

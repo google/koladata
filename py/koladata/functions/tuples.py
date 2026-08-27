@@ -40,7 +40,7 @@ def get_nth(x: Any, n: SupportsIndex) -> arolla.AnyQValue:
   """
   try:
     n = n.__index__()
-  except (AttributeError, ValueError) as ex:
+  except (AttributeError, ValueError, NotImplementedError) as ex:
     raise TypeError(f'expected an index-value, got: {n}') from ex
   x_qv = py_boxing.as_qvalue(x)
   if isinstance(x_qv, arolla.types.Slice):
