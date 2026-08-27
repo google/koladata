@@ -22,10 +22,6 @@ licenses(["notice"])
 
 py_library(
     name = "kde_operators",
-    visibility = [
-        "//koladata:internal",
-        "//py/koladata:__subpackages__",
-    ],
     deps = ["//py:python_path"],
 )
 
