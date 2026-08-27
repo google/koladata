@@ -892,4 +892,117 @@ absl::StatusOr<DataSlice> MatrixDet(const DataSlice& a) {
   return do_det.operator()<int64_t>();
 }
 
+// Trace = sum of diagonal elements. Uses VisitValues to extract diagonal
+// values directly from the underlying DenseArray<T>, accumulating into the
+// widened output type (int64 for integers, double for floats) for precision.
+absl::StatusOr<DataSlice> MatrixTrace(const DataSlice& x,
+                                      const DataSlice& offset_ds) {
+  const int rank = x.GetShape().rank();
+  if (rank < 2) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("trace: expected at least 2D DataSlice, got ", rank, "D"));
+  }
+
+  const int batch_rank = rank - 2;
+  auto batch_shape = x.GetShape().RemoveDims(/*from=*/batch_rank);
+  ASSIGN_OR_RETURN(const auto offset_vals,
+                   matrix_helpers::ParseAndBroadcastK(offset_ds, batch_shape,
+                                                      /*arg_name=*/"offset"));
+  // Validate that |offset| is representable for all matrices.
+  for (const auto& offset : offset_vals) {
+    RETURN_IF_ERROR(arolla::SafeAbs(offset).status());
+  }
+
+  ASSIGN_OR_RETURN(auto mat_infos,
+                   matrix_helpers::ExtractMatrix2DInfos(x.GetShape()));
+  const int64_t num_matrices = mat_infos.size();
+
+  // Per-batch (i.e. per-matrix) metadata for trace computation.
+  struct PerBatch {
+    int64_t row_base;  // starting row of the diagonal
+    int64_t col_base;  // starting column of the diagonal
+    int64_t diag_len;  // length of the diagonal
+  };
+  std::vector<PerBatch> pbs(num_matrices);
+  for (int64_t p = 0; p < num_matrices; ++p) {
+    const auto& mat_info = mat_infos[p];
+    const int64_t k = offset_vals[p];
+    int64_t diag_len = 0;
+    if (k >= 0) {
+      diag_len = std::max<int64_t>(0, std::min(mat_info.m, mat_info.n - k));
+    } else {
+      diag_len = std::max<int64_t>(0, std::min(mat_info.m + k, mat_info.n));
+    }
+    pbs[p] = {
+        // The -k on the next line won't overflow because of the SafeAbs check
+        // above.
+        .row_base = k >= 0 ? 0 : -k,
+        .col_base = k >= 0 ? k : 0,
+        .diag_len = diag_len,
+    };
+  }
+
+  ASSIGN_OR_RETURN(auto narrowed_schema,
+                   matrix_helpers::GetNarrowedMatrixSchema(x));
+  const bool object_schema =
+      x.GetSchemaImpl() == internal::DataItem(schema::kObject);
+
+  auto flat = x.Flatten();
+  const auto& flat_impl = flat.slice();
+
+  auto do_trace =
+      [&]<typename ComputeT, typename OutputT>() -> absl::StatusOr<DataSlice> {
+    std::vector<ComputeT> compute_result(num_matrices, 0);
+    if (!flat_impl.is_empty_and_unknown()) {
+      flat_impl.VisitValues([&]<class T>(const arolla::DenseArray<T>& array) {
+        if constexpr (std::is_arithmetic_v<T>) {
+          for (int64_t p = 0; p < num_matrices; ++p) {
+            const auto& mat_info = mat_infos[p];
+            const auto& pb = pbs[p];
+            const int64_t diag_len = pb.diag_len;
+            const int64_t offset = mat_info.offset;
+            const int64_t row_base = pb.row_base;
+            const int64_t n = mat_info.n;
+            const int64_t col_base = pb.col_base;
+            for (int64_t i = 0; i < diag_len; ++i) {
+              const int64_t idx = offset + (row_base + i) * n + (col_base + i);
+              if (array.present(idx)) {
+                // Widening cast (e.g. float->double, int32->int64): always
+                // exact, so here is no need to use saturate_cast.
+                compute_result[p] += static_cast<ComputeT>(array.values[idx]);
+              }
+            }
+          }
+        }
+      });
+    }
+
+    std::vector<OutputT> result(num_matrices);
+    for (int64_t i = 0; i < num_matrices; ++i) {
+      // Narrowing cast: int64->int32 needs saturate_cast to clamp overflow
+      // instead of truncating. double->float overflow produces +-inf via
+      // static_cast (IEEE 754), which saturate_cast passes through unchanged.
+      result[i] = matrix_helpers::saturate_cast<OutputT>(compute_result[i]);
+    }
+    ASSIGN_OR_RETURN(auto ds, matrix_helpers::BuildFromFlat<OutputT>(
+                                  std::move(result), std::move(batch_shape)));
+    if (object_schema) {
+      return ds.WithSchema(internal::DataItem(schema::kObject));
+    }
+    return ds;
+  };
+
+  if (narrowed_schema == internal::DataItem(schema::kFloat32)) {
+    return do_trace.template operator()<double, float>();
+  }
+  if (narrowed_schema == internal::DataItem(schema::kFloat64)) {
+    return do_trace.template operator()<double, double>();
+  }
+  if (narrowed_schema == internal::DataItem(schema::kInt32)) {
+    return do_trace.template operator()<int64_t, int32_t>();
+  }
+  DCHECK_EQ(narrowed_schema, internal::DataItem(schema::kInt64));
+  return do_trace.template operator()<int64_t, int64_t>();
+}
+
 }  // namespace koladata::ops

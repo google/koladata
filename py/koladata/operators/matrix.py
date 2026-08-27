@@ -404,3 +404,39 @@ def det(a):  # pylint: disable=unused-argument
     A DataSlice with the determinant value(s).
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
+    'kd.matrix.trace',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.offset),
+    ],
+)
+# pylint: disable=unused-argument
+def trace(x, *, offset=data_slice.DataSlice.from_vals(0)):
+  # pylint: enable=unused-argument
+  """Compute the trace (sum of diagonal elements) of a matrix.
+
+  Supports leading batch dimensions: (..., m, n) -> (...).
+  Preserves type: integer inputs produce integer results.
+
+  The `offset` parameter controls which diagonal to sum:
+    offset = 0  (default): main diagonal.
+    offset > 0: offset-th super-diagonal (above the main diagonal).
+    offset < 0: |offset|-th sub-diagonal (below the main diagonal).
+
+  If an offset diagonal does not exist in a matrix, the output is zero for that
+  matrix.
+
+  Args:
+    x: A numeric DataSlice with at least 2 dimensions.
+    offset: Integer DataSlice. Diagonal offset. Must be broadcastable to the
+      batch dimensions of `x`. 0 (default) is the main diagonal, positive values
+      refer to super-diagonals, negative values refer to sub-diagonals.
+
+  Returns:
+    A DataSlice with the sum(s) of the diagonal(s).
+  """
+  raise NotImplementedError('implemented in the backend')

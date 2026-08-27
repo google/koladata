@@ -28,6 +28,7 @@
 #include "absl/status/status.h"
 #include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -155,7 +156,8 @@ absl::StatusOr<std::vector<MatrixInfo>> ExtractMatrix2DInfos(
 // returns a flat vector of per-batch-element k values. Missing values in k are
 // treated as 0.
 absl::StatusOr<std::vector<int64_t>> ParseAndBroadcastK(
-    const DataSlice& k_ds, const JaggedShape& batch_shape);
+    const DataSlice& k_ds, const JaggedShape& batch_shape,
+    absl::string_view arg_name = "k");
 
 // Clamping numeric cast that avoids undefined behaviour.
 //

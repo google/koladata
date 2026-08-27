@@ -272,13 +272,14 @@ absl::StatusOr<JaggedShape> BuildBatchedVectorShape(
 }
 
 absl::StatusOr<std::vector<int64_t>> ParseAndBroadcastK(
-    const DataSlice& k_ds, const JaggedShape& batch_shape) {
+    const DataSlice& k_ds, const JaggedShape& batch_shape,
+    absl::string_view arg_name) {
   // Validate that k is implicitly castable to INT64.
   if (!schema::IsImplicitlyCastableTo(GetNarrowedSchema(k_ds),
                                       internal::DataItem(schema::kInt64))) {
-    return absl::InvalidArgumentError(
-        absl::StrCat("argument `k` must be castable to INT64, got ",
-                     DescribeSliceSchema(k_ds)));
+    return absl::InvalidArgumentError(absl::StrCat(
+        "argument `", arg_name, "` must be castable to INT64, got ",
+        DescribeSliceSchema(k_ds)));
   }
   ASSIGN_OR_RETURN(auto k_int64,
                    CastToExplicit(k_ds, internal::DataItem(schema::kInt64)));

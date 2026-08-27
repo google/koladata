@@ -159,6 +159,11 @@ def outer_lambda_via_multiply(x, y):
   return (x_col * y_row) | 0
 
 
+@kd.optools.as_lambda_operator(name='trace_lambda')
+def trace_lambda(a, *, offset=0):
+  return kd.agg_sum(kd.matrix.diag_vector(a, k=offset))
+
+
 eager_transpose_lambda = kd.optools.eager.EagerOperator(transpose_lambda)
 eager_outer_lambda_via_matmul = kd.optools.eager.EagerOperator(
     outer_lambda_via_matmul
@@ -166,6 +171,7 @@ eager_outer_lambda_via_matmul = kd.optools.eager.EagerOperator(
 eager_outer_lambda_via_multiply = kd.optools.eager.EagerOperator(
     outer_lambda_via_multiply
 )
+eager_trace_lambda = kd.optools.eager.EagerOperator(trace_lambda)
 
 
 # Switch off docstring lint checks for the benchmark functions below.
@@ -686,6 +692,69 @@ def koda_det(state):
   )
   while state:
     _ = kd.matrix.det(a_kd)
+
+
+# ---- trace ----
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def numpy_trace(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    a_np = _make_uniform_matrices_np()
+  else:
+    sizes = _make_jagged_sizes()
+    a_np = _make_jagged_matrices_np(sizes)
+  while state:
+    _ = [np.trace(a_np[i]) for i in range(BATCH_SIZE)]
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def koda_trace(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    a_np = _make_uniform_matrices_np()
+  else:
+    sizes = _make_jagged_sizes()
+    a_np = _make_jagged_matrices_np(sizes)
+  a_kd = _np_to_kd_matrices(a_np)
+  # Check that Koda and NumPy agree on a functional level.
+  kd.testing.assert_allclose(
+      kd.matrix.trace(a_kd),
+      kd.slice(
+          [np.trace(a_np[i].filled(0)) for i in range(BATCH_SIZE)],
+          kd.FLOAT64,
+      ),
+      rtol=1e-12,
+  )
+  while state:
+    _ = kd.matrix.trace(a_kd)
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def koda_trace_lambda(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    a_np = _make_uniform_matrices_np()
+  else:
+    sizes = _make_jagged_sizes()
+    a_np = _make_jagged_matrices_np(sizes)
+  a_kd = _np_to_kd_matrices(a_np)
+  # Check that the lambda implementation agrees with the C++ implementation.
+  kd.testing.assert_allclose(
+      eager_trace_lambda(a_kd), kd.matrix.trace(a_kd), rtol=1e-12
+  )
+  while state:
+    _ = eager_trace_lambda(a_kd)
 
 
 if __name__ == '__main__':

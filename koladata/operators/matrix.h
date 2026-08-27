@@ -65,6 +65,13 @@ absl::StatusOr<DataSlice> MatrixInverse(const DataSlice& a);
 // (..., n, n) -> (...). Supports batch dimensions.
 absl::StatusOr<DataSlice> MatrixDet(const DataSlice& a);
 
+// kd.matrix.trace: Compute matrix trace (sum of diagonal elements).
+// (..., m, n) -> (...). Supports batch dimensions.
+// offset selects which diagonal: 0=main, positive=above, negative=below.
+// offset will be broadcasted to the batch dimensions of x.
+absl::StatusOr<DataSlice> MatrixTrace(const DataSlice& x,
+                                      const DataSlice& offset);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_MATRIX_H_

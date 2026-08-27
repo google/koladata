@@ -957,9 +957,10 @@ TEST(ParseAndBroadcastKTest, TextRejected) {
       auto k_ds, DataSlice::Create(internal::DataItem(arolla::Text("hello")),
                                    internal::DataItem(schema::kString)));
   auto batch_shape = JaggedShape::FlatFromSize(1);
-  EXPECT_THAT(ParseAndBroadcastK(k_ds, batch_shape),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       ::testing::HasSubstr("must be castable to INT64")));
+  EXPECT_THAT(
+      ParseAndBroadcastK(k_ds, batch_shape),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               ::testing::HasSubstr("argument `k` must be castable to INT64")));
 }
 
 TEST(ParseAndBroadcastKTest, BroadcastFailure) {
@@ -984,6 +985,19 @@ TEST(ParseAndBroadcastKTest, MissingValuesInK) {
   auto k_ds = test::DataSlice<int64_t>({1, std::nullopt, 0}, batch_shape);
   ASSERT_OK_AND_ASSIGN(auto result, ParseAndBroadcastK(k_ds, batch_shape));
   EXPECT_THAT(result, ElementsAre(1, 0, 0));
+}
+
+TEST(ParseAndBroadcastKTest, FloatRejectedWithArgName) {
+  ASSERT_OK_AND_ASSIGN(auto k_ds,
+                       DataSlice::Create(internal::DataItem(1.5f),
+                                         internal::DataItem(schema::kFloat32)));
+  auto batch_shape = JaggedShape::FlatFromSize(1);
+  EXPECT_THAT(
+      ParseAndBroadcastK(k_ds, batch_shape, /*arg_name=*/"offset"),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          ::testing::HasSubstr(
+              "argument `offset` must be castable to INT64, got FLOAT32")));
 }
 
 // =========================================================================
