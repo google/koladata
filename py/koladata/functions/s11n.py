@@ -126,9 +126,7 @@ def experimental_safer_loads(x: bytes) -> arolla.AnyQValue:
     Deserialized data.
   """
   values, exprs = arolla.s11n.experimental_riegeli_loads_many(
-      x,
-      allowed_decoders=_EXPERIMENTAL_SAFER_CODECS,
-      infer_attributes=False,
+      x, allowed_decoders=_EXPERIMENTAL_SAFER_CODECS
   )
   if len(values) != 1 or exprs:
     suffix = []

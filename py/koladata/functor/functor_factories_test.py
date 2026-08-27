@@ -41,7 +41,6 @@ from koladata.types import py_boxing
 from koladata.types import schema_constants
 from koladata.types import signature_utils
 
-
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 ds = data_slice.DataSlice.from_vals
@@ -1444,6 +1443,10 @@ class FunctorFactoriesTest(parameterized.TestCase):
 
     with self.subTest('serialization'):
       loaded_fn = s11n.loads(s11n.dumps(fn))
+      testing.assert_equal(kd.call(loaded_fn, 1, z=4), ds(7))
+
+    with self.subTest('experimental_safer_loads'):
+      loaded_fn = s11n.experimental_safer_loads(s11n.dumps(fn))
       testing.assert_equal(kd.call(loaded_fn, 1, z=4), ds(7))
 
     with self.subTest('registered'):
