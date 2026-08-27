@@ -84,8 +84,7 @@ inline constexpr absl::string_view kExecutorParamName = "_executor";
 // Finds variables wrapped  by `annotation.source_location` nodes and collects
 // the ExprNodes of the SourceLocation annotations in a map keyed by variable
 // names.
-absl::StatusOr<
-    absl::flat_hash_map<std::string, arolla::expr::ExprNodePtr>>
+absl::StatusOr<absl::flat_hash_map<std::string, arolla::expr::ExprNodePtr>>
 FindSourceLocationsForVariables(
     const DataSlice& functor, const expr::InputContainer& variable_container) {
   ASSIGN_OR_RETURN(DataSlice signature, functor.GetAttr(kSignatureAttrName));
@@ -101,9 +100,8 @@ FindSourceLocationsForVariables(
           absl::Span<const std::monostate* const> visits)
       -> absl::StatusOr<std::monostate> {
     if (arolla::expr::IsSourceLocationAnnotation(node)) {
-      ASSIGN_OR_RETURN(auto var_name,
-                       variable_container.GetInputName(node->node_deps()[0]));
-      if (var_name.has_value()) {
+      if (auto var_name =
+              variable_container.GetInputName(node->node_deps()[0])) {
         // Similar to the logic in Arolla's prepare_expression.cc, when there
         // are two source location annotations for the same variable, we let
         // this overwrite and choose ~arbitrarily. This should normally not
@@ -244,13 +242,12 @@ absl::StatusOr<DataSlice> AddVariables(
   auto find_matches_and_inputs =
       [&extra_nodes_to_extract, &find_replacement_fn, &variable_container](
           arolla::expr::ExprNodePtr node,
-                            absl::Span<const std::monostate* const> visits)
+          absl::Span<const std::monostate* const> visits)
       -> absl::StatusOr<std::monostate> {
     if (expr::IsInput(node) || node->is_leaf()) {
       // Check that it's not already a variable, as it makes no sense to
       // create a new variable pointing to another variable.
-      ASSIGN_OR_RETURN(auto var_name, variable_container.GetInputName(node));
-      if (!var_name) {
+      if (!variable_container.GetInputName(node).has_value()) {
         // This simplifies processing below, as we can assume that all
         // non-simple exprs only have variables and not inputs or leaves.
         extra_nodes_to_extract.insert(node->fingerprint());
@@ -264,9 +261,7 @@ absl::StatusOr<DataSlice> AddVariables(
         if (expr::IsLiteral(child)) {
           continue;
         }
-        ASSIGN_OR_RETURN(auto child_var_name,
-                         variable_container.GetInputName(child));
-        if (!child_var_name) {
+        if (!variable_container.GetInputName(child).has_value()) {
           extra_nodes_to_extract.insert(child->fingerprint());
         }
       }
@@ -554,8 +549,7 @@ absl::StatusOr<arolla::expr::ExprNodePtr> ApplyReplacement(
              ++child_i) {
           arolla::expr::ExprNodePtr child = var_expr->node_deps()[child_i];
           if (absl::c_contains(functor_indices, child_i)) {
-            ASSIGN_OR_RETURN(auto child_var_name,
-                             variable_container.GetInputName(child));
+            auto child_var_name = variable_container.GetInputName(child);
             if (!child_var_name) {
               return absl::InternalError(absl::StrCat(
                   "expected a variable for the functor argument ", child_i,
@@ -575,7 +569,7 @@ absl::StatusOr<arolla::expr::ExprNodePtr> ApplyReplacement(
         break;
       }
       case ParallelTransformConfigProto::ArgumentTransformation::EXECUTOR: {
-          new_deps.push_back(executor_input);
+        new_deps.push_back(executor_input);
         break;
       }
       case ParallelTransformConfigProto::ArgumentTransformation::
@@ -592,15 +586,13 @@ absl::StatusOr<arolla::expr::ExprNodePtr> ApplyReplacement(
   }
   arolla::expr::ExprNodePtr result_node;
   if (functor_future_indices.empty()) {
-    ASSIGN_OR_RETURN(
-        result_node,
-        arolla::expr::MakeOpNode(replacement.op, std::move(new_deps)));
+    ASSIGN_OR_RETURN(result_node, arolla::expr::MakeOpNode(
+                                      replacement.op, std::move(new_deps)));
   } else {
-    ASSIGN_OR_RETURN(
-        result_node,
-        CreateAsyncReplacement(replacement.op, std::move(new_deps),
-                               std::move(functor_future_indices),
-                               variable_container, executor_input));
+    ASSIGN_OR_RETURN(result_node, CreateAsyncReplacement(
+                                      replacement.op, std::move(new_deps),
+                                      std::move(functor_future_indices),
+                                      variable_container, executor_input));
   }
   if (!transformation.functor_argument_indices().empty() &&
       source_location_node != nullptr) {
@@ -612,8 +604,7 @@ absl::StatusOr<arolla::expr::ExprNodePtr> ApplyReplacement(
         result_node,
         arolla::expr::CallOp(
             "koda_internal.parallel.add_source_location_on_error_to_parallel",
-            {std::move(result_node),
-             source_location_node->node_deps()[1]}));
+            {std::move(result_node), source_location_node->node_deps()[1]}));
   }
   return result_node;
 }
@@ -738,12 +729,10 @@ absl::StatusOr<arolla::expr::ExprNodePtr> ApplyInputReplacement(
     }
     return std::move(var_expr);
   }
-  ASSIGN_OR_RETURN(auto var_name, variable_container.GetInputName(var_expr));
-  if (var_name) {
-    // Variables are already in parallel form.
-    return std::move(var_expr);
+  if (variable_container.GetInputName(var_expr).has_value()) {
+    return std::move(var_expr);  // Variables are already in parallel form.
   }
-  ASSIGN_OR_RETURN(auto input_name, input_container.GetInputName(var_expr));
+  auto input_name = input_container.GetInputName(var_expr);
   if (!input_name) {
     return absl::InvalidArgumentError(absl::StrCat(
         "found an input node that is neither an input nor a variable: ",
@@ -788,8 +777,7 @@ absl::StatusOr<bool> IsAnnotationChainOnAVariable(
     const expr::InputContainer& variable_container) {
   ASSIGN_OR_RETURN(auto inner_node,
                    arolla::expr::StripTopmostAnnotations(node));
-  ASSIGN_OR_RETURN(auto var_name, variable_container.GetInputName(inner_node));
-  return var_name.has_value();
+  return variable_container.GetInputName(inner_node).has_value();
 }
 
 }  // namespace
@@ -895,11 +883,10 @@ absl::StatusOr<DataSlice> TransformToParallel(  // clang-format hint
     ASSIGN_OR_RETURN(const auto* replacement, find_replacement(var_expr));
     if (replacement) {
       ASSIGN_OR_RETURN(
-          var_expr,
-          ApplyReplacement(std::move(var_expr), config, *replacement,
-                           executor_input, variable_container,
-                           inner_transform_manager,
-                           std::move(source_location_node)));
+          var_expr, ApplyReplacement(std::move(var_expr), config, *replacement,
+                                     executor_input, variable_container,
+                                     inner_transform_manager,
+                                     std::move(source_location_node)));
     } else if (expr::IsInput(var_expr) || var_expr->is_leaf()) {
       ASSIGN_OR_RETURN(var_expr, ApplyInputReplacement(
                                      std::move(var_expr), variable_container,

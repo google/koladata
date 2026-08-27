@@ -238,10 +238,8 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
     if (!extract_needed) {
       return node;
     }
-    ASSIGN_OR_RETURN(auto existing_var_name, var_container.GetInputName(node));
-    if (existing_var_name) {
-      // Already a variable, no need to make an aux copy.
-      return node;
+    if (var_container.GetInputName(node).has_value()) {
+      return node;  // Already a variable, no need to make an aux copy.
     }
     std::string var_name = create_unique_variable(kAuxVariablePrefix);
     vars[var_name] = DataSlice::CreatePrimitive(ExprQuote{std::move(node)});
@@ -309,8 +307,8 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
         // been wrapped with kde.explode(), so we do a sub_inputs instead of
         // just replacing with V[name].
         aux_variable_fingerprints.erase(child->fingerprint());
-        ASSIGN_OR_RETURN(std::vector<std::string> input_names,
-                         var_container.ExtractInputNames(child));
+        std::vector<std::string> input_names =
+            var_container.ExtractInputNames(child);
         if (input_names.size() != 1) {
           return absl::FailedPreconditionError(
               "expected input_names.size() == 1");
@@ -478,8 +476,7 @@ absl::StatusOr<arolla::expr::ExprNodePtr> InlineAllVariables(
                      variable.item().value<arolla::expr::ExprQuote>().expr());
     auto transform_expr = [&](arolla::expr::ExprNodePtr node)
         -> absl::StatusOr<arolla::expr::ExprNodePtr> {
-      ASSIGN_OR_RETURN(std::optional<std::string> var_name,
-                       var_container.GetInputName(node));
+      std::optional<std::string> var_name = var_container.GetInputName(node);
       if (!var_name.has_value()) {
         return node;  // not a variable
       }

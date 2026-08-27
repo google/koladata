@@ -28,7 +28,6 @@
 #include "arolla/util/init_arolla.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/string.h"
-#include "arolla/util/text.h"
 #include "koladata/expr/expr_operators.h"
 
 namespace koladata::expr {
@@ -42,10 +41,11 @@ namespace {
 std::optional<arolla::ReprToken> KodaInputOpRepr(
     const arolla::expr::ExprNodePtr& node,
     const absl::flat_hash_map<arolla::Fingerprint, arolla::ReprToken>&) {
-  absl::string_view container_name =
-      node->node_deps()[0]->qvalue()->UnsafeAs<arolla::Text>().view();
-  absl::string_view input_key =
-      node->node_deps()[1]->qvalue()->UnsafeAs<arolla::Text>().view();
+  absl::string_view container_name;
+  absl::string_view input_key;
+  if (!ParseInput(node, container_name, input_key)) {
+    return std::nullopt;
+  }
   if (container_name == "I" && input_key == "self") {
     return arolla::ReprToken{"S"};
   }
@@ -56,16 +56,19 @@ std::optional<arolla::ReprToken> KodaInputOpRepr(
 std::optional<arolla::ReprToken> KodaLiteralOpRepr(
     const arolla::expr::ExprNodePtr& node,
     const absl::flat_hash_map<arolla::Fingerprint, arolla::ReprToken>&) {
+  if (!node->node_deps().empty()) {
+    return std::nullopt;
+  }
   ASSIGN_OR_RETURN(auto decayed_op,
                    arolla::expr::DecayRegisteredOperator(node->op()),
                    std::nullopt);
-  if (const auto* op =
-          arolla::fast_dynamic_downcast_final<const LiteralOperator*>(
-              decayed_op.get())) {
-    return op->value().GenReprToken();
-  } else {
+  const auto* literal_op =
+      arolla::fast_dynamic_downcast_final<const LiteralOperator*>(
+          decayed_op.get());
+  if (literal_op == nullptr) {
     return std::nullopt;
   }
+  return literal_op->value().GenReprToken();
 }
 
 std::optional<arolla::ReprToken> KodaSourceLocationOpRepr(

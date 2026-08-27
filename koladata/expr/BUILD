@@ -58,6 +58,7 @@ cc_test(
         "//koladata/testing:test_env",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/expr/operators/all",
         "@com_google_arolla//arolla/qtype",

@@ -144,13 +144,30 @@ absl::StatusOr<arolla::expr::ExprAttributes> InputOperator::InferAttributes(
 }
 
 bool IsInput(const arolla::expr::ExprNodePtr& node) {
-  if (!node->is_op()) {
+  static const auto text_qtype = arolla::GetQType<arolla::Text>();
+  if (!node->is_op() || node->node_deps().size() != 2 ||
+      !node->node_deps()[0]->qvalue().has_value() ||
+      !node->node_deps()[1]->qvalue().has_value() ||
+      node->node_deps()[0]->qvalue()->GetType() != text_qtype ||
+      node->node_deps()[1]->qvalue()->GetType() != text_qtype) {
     return false;
   }
+  auto decayed_op =
+      arolla::expr::DecayRegisteredOperator(node->op()).value_or(nullptr);
   return nullptr != arolla::fast_dynamic_downcast_final<const InputOperator*>(
-                        arolla::expr::DecayRegisteredOperator(node->op())
-                            .value_or(nullptr)
-                            .get());
+                        decayed_op.get());
+}
+
+bool ParseInput(const arolla::expr::ExprNodePtr& node,
+                absl::string_view& container_name,
+                absl::string_view& input_key) {
+  if (!IsInput(node)) {
+    return false;
+  }
+  container_name =
+      node->node_deps()[0]->qvalue()->UnsafeAs<arolla::Text>().view();
+  input_key = node->node_deps()[1]->qvalue()->UnsafeAs<arolla::Text>().view();
+  return true;
 }
 
 absl::StatusOr<std::shared_ptr<LiteralOperator>> LiteralOperator::Make(
@@ -267,32 +284,25 @@ absl::StatusOr<arolla::expr::ExprNodePtr> InputContainer::CreateInput(
                                   {cont_name_, std::move(key_literal)});
 }
 
-absl::StatusOr<std::optional<std::string>> InputContainer::GetInputName(
+std::optional<std::string> InputContainer::GetInputName(
     const arolla::expr::ExprNodePtr& node) const {
-  if (!IsInput(node)) return std::nullopt;
-  if (node->node_deps().size() != 2 ||
-      !node->node_deps()[0]->qvalue().has_value()) {
-    return absl::FailedPreconditionError("invalid koda_internal.input node");
-  }
-  if (node->node_deps()[0]->qvalue()->GetFingerprint() !=
-      cont_name_->qvalue()->GetFingerprint()) {
+  absl::string_view container_name;
+  absl::string_view input_key;
+  if (!ParseInput(node, container_name, input_key)) {
     return std::nullopt;
   }
-  const std::optional<arolla::TypedValue>& val = node->node_deps()[1]->qvalue();
-  if (!val.has_value()) {
-    return absl::InvalidArgumentError("input name has no value");
+  if (container_name != cont_name_->qvalue()->UnsafeAs<arolla::Text>().view()) {
+    return std::nullopt;
   }
-  ASSIGN_OR_RETURN(const arolla::Text& vname, val->As<arolla::Text>());
-  return std::string(vname.view());
+  return std::string(input_key);
 }
 
-absl::StatusOr<std::vector<std::string>> InputContainer::ExtractInputNames(
+std::vector<std::string> InputContainer::ExtractInputNames(
     const arolla::expr::ExprNodePtr& node) const {
   std::vector<std::string> names;
   arolla::expr::PostOrder po(node);
   for (const auto& n : po.nodes()) {
-    ASSIGN_OR_RETURN(auto name, GetInputName(n));
-    if (name) {
+    if (auto name = GetInputName(n)) {
       names.emplace_back(*std::move(name));
     }
   }

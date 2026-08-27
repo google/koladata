@@ -15,16 +15,21 @@
 #include "koladata/expr/expr_operators.h"
 
 #include <cstdint>
+#include <memory>
 #include <optional>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "absl/strings/string_view.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_attributes.h"
+#include "arolla/expr/expr_node.h"
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice_qtype.h"  // IWYU pragma: keep
@@ -106,14 +111,12 @@ TEST(InputContainerTest, Container) {
   EXPECT_TRUE(IsInput(b));
   EXPECT_FALSE(IsInput(arolla::expr::Leaf("x")));
   EXPECT_FALSE(IsInput(sum));
-  EXPECT_THAT(container.ExtractInputNames(sum),
-              IsOkAndHolds(UnorderedElementsAre("a", "b")));
+  EXPECT_THAT(container.ExtractInputNames(sum), UnorderedElementsAre("a", "b"));
 
-  EXPECT_THAT(container.GetInputName(a), IsOkAndHolds("a"));
-  EXPECT_THAT(container.GetInputName(b), IsOkAndHolds("b"));
-  EXPECT_THAT(container.GetInputName(sum), IsOkAndHolds(std::nullopt));
-  EXPECT_THAT(container.GetInputName(arolla::expr::Leaf("x")),
-              IsOkAndHolds(std::nullopt));
+  EXPECT_EQ(container.GetInputName(a), "a");
+  EXPECT_EQ(container.GetInputName(b), "b");
+  EXPECT_EQ(container.GetInputName(sum), std::nullopt);
+  EXPECT_EQ(container.GetInputName(arolla::expr::Leaf("x")), std::nullopt);
 
   ASSERT_OK_AND_ASSIGN(
       auto expected_a,
@@ -130,7 +133,28 @@ TEST(InputContainerTest, Container) {
       auto c, arolla::expr::CallOp("koda_internal.input",
                                    {arolla::expr::Literal(arolla::Text("V")),
                                     arolla::expr::Literal(arolla::Text("c"))}));
-  EXPECT_THAT(container.GetInputName(c), IsOkAndHolds("c"));
+  EXPECT_EQ(container.GetInputName(c), "c");
+}
+
+TEST(InputContainerTest, InputContainer_ParseBrokenInput) {
+  auto input_op =
+      std::make_shared<arolla::expr::RegisteredOperator>("koda_internal.input");
+  {
+    auto lit = arolla::expr::Literal(arolla::Bytes("x"));
+    auto expr = arolla::expr::ExprNode::UnsafeMakeOperatorNode(
+        input_op, std::vector{lit, lit}, arolla::expr::ExprAttributes());
+    absl::string_view container_name;
+    absl::string_view input_key;
+    EXPECT_FALSE(ParseInput(expr, container_name, input_key));
+  }
+  {
+    auto leaf = arolla::expr::Leaf("x");
+    auto expr = arolla::expr::ExprNode::UnsafeMakeOperatorNode(
+        input_op, std::vector{leaf, leaf}, arolla::expr::ExprAttributes());
+    absl::string_view container_name;
+    absl::string_view input_key;
+    EXPECT_FALSE(ParseInput(expr, container_name, input_key));
+  }
 }
 
 }  // namespace

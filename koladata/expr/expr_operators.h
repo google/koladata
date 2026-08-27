@@ -44,8 +44,13 @@ class InputOperator final
       absl::Span<const arolla::expr::ExprAttributes> inputs) const final;
 };
 
-// Returns true if `node` is an operator node with InputOperator.
+// Returns true if `node` represents a valid input.
 bool IsInput(const arolla::expr::ExprNodePtr& node);
+
+// Parses the given node as an input operator; returns true on success.
+bool ParseInput(const arolla::expr::ExprNodePtr& node,
+                absl::string_view& container_name,
+                absl::string_view& input_key);
 
 // Non-lowerable stateful operator `koda_internal.literal()` that wraps a
 // TypedValue. This operator allows us to attach a view to non-DataSlice
@@ -85,8 +90,8 @@ bool IsLiteral(const arolla::expr::ExprNodePtr& node);
 // )
 // ```
 // that ensures that each Expr containing non-deterministic operators created
-// in the same form has different Fingerprint and does not get literally folded
-// during compilation.
+// in the same form has different Fingerprint and does not get literally
+// folded during compilation.
 class NonDeterministicOperator final
     : public arolla::expr::ExprOperatorWithFixedSignature {
  public:
@@ -121,11 +126,11 @@ class InputContainer {
   // If the given node is an input from this container, returns its name,
   // otherwise returns nullopt. Returns an error when the node is an input
   // node but is malformed.
-  absl::StatusOr<std::optional<std::string>> GetInputName(
+  std::optional<std::string> GetInputName(
       const arolla::expr::ExprNodePtr& node) const;
 
   // Traverses given node and finds all inputs from this container
-  absl::StatusOr<std::vector<std::string>> ExtractInputNames(
+  std::vector<std::string> ExtractInputNames(
       const arolla::expr::ExprNodePtr& node) const;
 
  private:

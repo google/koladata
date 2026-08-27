@@ -141,21 +141,15 @@ absl::StatusOr<TransformedExpr> ReplaceInputsWithLeaves(
       }
       return node;
     }
-    ASSIGN_OR_RETURN(auto decayed_op,
-                     arolla::expr::DecayRegisteredOperator(node->op()));
-    if (arolla::fast_dynamic_downcast_final<const InputOperator*>(
-            decayed_op.get()) == nullptr) {
+    absl::string_view container_name;
+    absl::string_view input_name;
+    if (!ParseInput(node, container_name, input_name)) {
       return node;
     }
-    auto parse_text = [](const arolla::expr::ExprNodePtr& n) {
-      return n->qvalue()->UnsafeAs<arolla::Text>().view();
-    };
-    auto container_name = parse_text(node->node_deps()[0]);
     if (container_name != "I" && container_name != "V") {
       return absl::InvalidArgumentError(
           absl::StrFormat("unknown input container: [%s]", container_name));
     }
-    auto input_name = parse_text(node->node_deps()[1]);
     // This name will be visible in error messages, so we try to make it nice.
     auto leaf_name = absl::StrCat(container_name, ".", input_name);
     auto& leaf_index = container_name == "I" ? res.info.input_leaf_index
