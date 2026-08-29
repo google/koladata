@@ -878,8 +878,8 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
   } else {
     // TODO: Remove this unused builder. It prevents from a linker
     // error that is not yet explained.
-    ABSL_ATTRIBUTE_UNUSED arolla::DenseArrayBuilder<arolla::expr::ExprQuote>
-        unused(0);
+    [[maybe_unused]] arolla::DenseArrayBuilder<arolla::expr::ExprQuote> unused(
+        0);
     x.slice().VisitValues([&]<class T>(const arolla::DenseArray<T>& values) {
       absl::flat_hash_map<arolla::view_type_t<T>, size_t> map;
       res_impl = process_values(values, map);
