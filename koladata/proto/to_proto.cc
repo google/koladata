@@ -290,7 +290,7 @@ absl::Status FillProtoRepeatedPrimitiveField(
   const auto& splits = items.GetShape().edges().back().edge_values().values;
   return CallWithPrimitiveFieldCppType(
       field_descriptor.cpp_type(),
-      [&]<typename DstT>(ABSL_ATTRIBUTE_UNUSED DstT*) -> absl::Status {
+      [&]<typename DstT>([[maybe_unused]] DstT*) -> absl::Status {
         for (int64_t i = 0; i < parent_messages.size(); ++i) {
           auto& message = *parent_messages[i];
           const auto& refl = *message.GetReflection();
@@ -384,7 +384,7 @@ absl::Status FillProtoPrimitiveField(
       [&]<typename SrcT>(const arolla::DenseArray<SrcT>& values) {
         return CallWithPrimitiveFieldCppType(
             field_descriptor.cpp_type(),
-            [&]<typename DstT>(ABSL_ATTRIBUTE_UNUSED DstT*) -> absl::Status {
+            [&]<typename DstT>([[maybe_unused]] DstT*) -> absl::Status {
               absl::Status status = absl::OkStatus();
               values.ForEachPresent(
                   [&](int64_t id, arolla::view_type_t<SrcT> value) {
