@@ -576,8 +576,8 @@ absl::StatusOr<ValueProto> EncodeDataSliceImpl(arolla::TypedRef value,
     if (current_proto == &extra_compact_proto) {
       ASSIGN_OR_RETURN(
           int64_t index,
-          encoder.EncodeValue(arolla::TypedValue::FromValue<arolla::Bytes>(
-              extra_compact_proto.SerializeAsString())));
+          encoder.EncodeValue(arolla::TypedValue::FromValue(
+              arolla::Bytes(extra_compact_proto.SerializeAsString()))));
       extra_data_indices.push_back(index);
       extra_compact_proto.Clear();
     }
