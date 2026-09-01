@@ -192,8 +192,7 @@ absl::StatusOr<DataSlice> Subslice(const DataSlice& x,
       auto chosen_indices,
       DataSlice::Create(
           internal::DataSliceImpl::Create(arolla::DenseArrayIotaOp()(
-              &ctx, {static_cast<int64_t>(
-                        shape.edges()[retained_rank].parent_size())})),
+              &ctx, {shape.edges()[retained_rank].parent_size()})),
           shape.RemoveDims(retained_rank), internal::DataItem(schema::kInt64)));
   for (size_t i = 0; i < slice_args.size(); ++i) {
     const auto& edge = shape.edges()[retained_rank + i];
