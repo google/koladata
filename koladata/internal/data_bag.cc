@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -53,6 +54,7 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/cancellation.h"
+#include "arolla/util/overflow.h"
 #include "arolla/util/refcount_ptr.h"
 #include "arolla/util/status.h"
 #include "arolla/util/text.h"
@@ -249,7 +251,7 @@ absl::Status ProcessSparseSources(
     for (const auto& [key, _] : sources[0]->GetAll()) {
       seen_ids.insert(key);
     }
-    for (int64_t i = 2; i < sources.size(); ++i) {
+    for (size_t i = 2; i < sources.size(); ++i) {
       for (const auto& [key, _] : sources[i - 1]->GetAll()) {
         seen_ids.insert(key);
       }
@@ -729,7 +731,7 @@ bool IsFullAllocPrefix(const DataSliceImpl& objects) {
     return false;
   }
   AllocationId alloc_id = objects.allocation_ids().ids()[0];
-  for (int64_t i = 0; i < objs_span.size(); ++i) {
+  for (size_t i = 0; i < objs_span.size(); ++i) {
     if (objs_span[i] != alloc_id.ObjectByOffset(i)) {
       return false;
     }
@@ -1580,12 +1582,19 @@ DataBagImpl::ExplodeLists(const DataSliceImpl& lists, ListRange range,
   std::vector<const DataList*> list_ptrs(lists.size(), nullptr);
   arolla::Buffer<int64_t>::Builder split_points_bldr(lists.size() + 1);
   split_points_bldr.Set(0, 0);
+
   int64_t cum_size = 0;
+  bool cum_size_overflow = false;
 
   ReadOnlyListGetter list_getter(this);
   auto process_list = [&](int64_t offset, const DataList& list) {
-    cum_size += std::max<int64_t>(
+    if (list.size() > std::numeric_limits<int64_t>::max()) {
+      cum_size_overflow = true;
+      return;
+    }
+    int64_t range_size = std::max<int64_t>(
         0, range.CalculateTo(list.size()) - range.CalculateFrom(list.size()));
+    cum_size = arolla::safe_add(cum_size, range_size, &cum_size_overflow);
     list_ptrs[offset] = &list;
   };
 
@@ -1617,12 +1626,15 @@ DataBagImpl::ExplodeLists(const DataSliceImpl& lists, ListRange range,
           split_points_bldr.Set(offset + 1, cum_size);
         });
   }
+  if (cum_size_overflow) {
+    return absl::InvalidArgumentError("list size can't be >= 2**63");
+  }
   RETURN_IF_ERROR(arolla::CheckCancellation());
   RETURN_IF_ERROR(list_getter.status());
 
   arolla::Buffer<int64_t> split_points = std::move(split_points_bldr).Build();
   SliceBuilder slice_bldr(cum_size);
-  for (int64_t i = 0; i < lists.size(); ++i) {
+  for (size_t i = 0; i < lists.size(); ++i) {
     if (const DataList* list = list_ptrs[i]; list != nullptr) {
       auto [from, to] = range.Calculate(list->size());
       if (from < to) {
@@ -1651,20 +1663,26 @@ absl::Status DataBagImpl::ExtendLists(
       splits_edge.edge_values().values.span();
 
   MutableListGetter list_getter(this, lists.size());
+  bool list_size_overflow = false;
 
   lists.values<ObjectId>().ForEachPresent([&](int64_t i, ObjectId list_id) {
     DataList* list = list_getter(list_id);
     if (ABSL_PREDICT_FALSE(list == nullptr)) {
       return;
     }
-    int64_t src_pos = split_points[i];
-    int64_t dst_pos = list->size();
-    int64_t new_values_count = split_points[i + 1] - src_pos;
+    size_t src_pos = split_points[i];
+    size_t dst_pos = list->size();
+    size_t new_values_count = split_points[i + 1] - src_pos;
 
-    list->Resize(list->size() + new_values_count);
+    size_t new_size = arolla::safe_add<size_t>(list->size(), new_values_count,
+                                               &list_size_overflow);
+    if (list_size_overflow) {
+      return;
+    }
+    list->Resize(new_size);
     values.VisitValues([&](const auto& values_arr) {
       using T = std::decay_t<decltype(values_arr)>::base_type;
-      for (int64_t offset = 0; offset < new_values_count; ++offset) {
+      for (size_t offset = 0; offset < new_values_count; ++offset) {
         auto opt_v = values_arr[src_pos + offset];
         if (opt_v.present) {
           list->Set(dst_pos + offset, T(opt_v.value));
@@ -1672,6 +1690,9 @@ absl::Status DataBagImpl::ExtendLists(
       }
     });
   });
+  if (list_size_overflow) {
+    return absl::InvalidArgumentError("list size overflow");
+  }
 
   return list_getter.status();
 }
@@ -2031,6 +2052,9 @@ absl::Status DataBagImpl::ExtendList(const DataItem& list,
     return absl::OkStatus();
   }
   size_t offset = dlist.size();
+  if (std::numeric_limits<size_t>::max() - offset < values.size()) {
+    return absl::InvalidArgumentError("list size can't be >= 2**63");
+  }
   dlist.Resize(offset + values.size());
   values.VisitValues([&](const auto& vec) {
     vec.ForEachPresent([&](int64_t id, auto v) {
@@ -2053,7 +2077,7 @@ absl::Status DataBagImpl::ReplaceInList(const DataItem& list, ListRange range,
           .GetMutable(list_id.Offset());
   int64_t from = RemoveAndReserveInList(dlist, range, values.size());
   if (!values.is_single_dtype()) {
-    for (int64_t i = 0; i < values.size(); ++i) {
+    for (size_t i = 0; i < values.size(); ++i) {
       dlist.Set(from + i, values[i]);
     }
   } else {
@@ -2289,9 +2313,9 @@ DataBagImpl::GetDictKeysOrValues(const DataSliceImpl& dicts,
   RETURN_IF_ERROR(dict_getter.status());
 
   SliceBuilder bldr(split_points.back());
-  for (int64_t i = 0; i < results.size(); ++i) {
+  for (size_t i = 0; i < results.size(); ++i) {
     const auto& res_vec = results[i];
-    for (int64_t j = 0; j < res_vec.size(); ++j) {
+    for (size_t j = 0; j < res_vec.size(); ++j) {
       bldr.InsertIfNotSetAndUpdateAllocIds(split_points[i] + j, res_vec[j]);
     }
   }
@@ -2565,7 +2589,7 @@ void UpdateFilterKeysWithPresentValues(
     std::vector<DataItem> &keys, const std::vector<DataItem>& values) {
   DCHECK_EQ(keys.size(), values.size());
   int64_t keys_count = 0;
-  for (int64_t i = 0; i < keys.size(); ++i) {
+  for (size_t i = 0; i < keys.size(); ++i) {
     if (values[i].has_value()) {
       if (i != keys_count) {
         keys[keys_count] = std::move(keys[i]);
