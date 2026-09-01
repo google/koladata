@@ -237,6 +237,10 @@ class ToPyVisitor : internal::AbstractVisitor {
       const DataItem& from_item, const DataItem& from_schema,
       const std::optional<TransitionKey>& transition_key, const DataItem& item,
       const DataItem& schema) final {
+    {
+      // Release and reacquire GIL to prevent it being held for too long.
+      arolla::python::ReleasePyGIL guard;
+    }
     if (from_schema == schema::kSchema && schema == schema::kObject) {
       // The `item` is schema_metadata for `from_item`.
       return false;
@@ -642,6 +646,10 @@ class ToPyVisitor : internal::AbstractVisitor {
 
     if (ShouldNotBeConverted(object)) {
       return absl::OkStatus();
+    }
+    {
+      // Release and reacquire GIL to prevent it being held for too long.
+      arolla::python::ReleasePyGIL guard;
     }
     if (obj_as_dict_) {
       return CreateDictFromObject(object, schema, is_object_schema, attr_names,

@@ -52,6 +52,7 @@
 #include "koladata/object_factories.h"
 #include "koladata/shape_utils.h"
 #include "koladata/uuid_utils.h"
+#include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/boxing.h"
 #include "py/koladata/base/py_conversions/dataclasses_util.h"
 #include "py/koladata/base/py_proto_utils.h"
@@ -170,6 +171,10 @@ class FromPyConverter {
     }
     std::optional<DataSlice> result;
     RETURN_IF_ERROR(internal::TrampolineExecutor::Run([&](auto& executor) {
+      {
+        // Release and reacquire GIL to prevent it being held for too long.
+        arolla::python::ReleasePyGIL guard;
+      }
       return ConvertImpl(py_objects, std::move(cur_shape), schema, itemid, 0,
                          executor, result,
                          /*computing_object=*/false);
@@ -1209,6 +1214,7 @@ absl::StatusOr<DataSlice> FromPy(PyObject* py_obj,
   if (res_db == nullptr) {
     ASSIGN_OR_RETURN(res_db, adoption_queue.GetCommonOrMergedDb());
   } else {
+    arolla::python::ReleasePyGIL guard;
     RETURN_IF_ERROR(adoption_queue.AdoptInto(*res_db));
     res_db->UnsafeMakeImmutable();
   }
