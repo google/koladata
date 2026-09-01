@@ -107,7 +107,7 @@ absl::Status SparseSource::Set(const ObjectIdArray& objects,
                                const DataSliceImpl& values) {
   if (objects.size() != values.size()) {
     return arolla::SizeMismatchError(
-        {objects.size(), static_cast<int64_t>(values.size())});
+        {objects.size(), values.size()});
   }
   objects.ForEachPresent([&](int64_t id, ObjectId object) {
     if (ObjectBelongs(object)) {

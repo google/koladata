@@ -271,7 +271,7 @@ class MultitypeDenseSource : public DenseSource {
                    const DataSliceImpl& values) final {
     if (objects.size() != values.size()) {
       return arolla::SizeMismatchError(
-          {objects.size(), static_cast<int64_t>(values.size())});
+          {objects.size(), values.size()});
     }
     if (values.is_empty_and_unknown()) {
       objects.ForEachPresent([&](int64_t id, ObjectId object) {
@@ -758,7 +758,7 @@ class TypedDenseSource final : public DenseSource {
                    const DataSliceImpl& values) final {
     if (objects.size() != values.size()) {
       return arolla::SizeMismatchError(
-          {objects.size(), static_cast<int64_t>(values.size())});
+          {objects.size(), values.size()});
     }
     if (multitype_) {
       return multitype_->Set(objects, values);
