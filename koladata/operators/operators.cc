@@ -394,6 +394,7 @@ OPERATOR("kd.matrix.outer", MatrixOuter);
 OPERATOR("kd.matrix.solve", MatrixSolve);
 OPERATOR("kd.matrix.trace", MatrixTrace);
 OPERATOR("kd.matrix.transpose", MatrixTranspose);
+OPERATOR("kd.matrix.vector_norm", MatrixVectorNorm);
 //
 OPERATOR_FAMILY("kd.objs.like", std::make_unique<ObjLikeOperatorFamily>());
 OPERATOR_FAMILY("kd.objs.new", std::make_unique<ObjOperatorFamily>());

@@ -26,6 +26,7 @@ from koladata.operators import qtype_utils
 from koladata.types import data_slice
 
 P = arolla.P
+M = arolla.M
 
 optools.set_namespace_docstring('kd.matrix', __doc__)
 
@@ -438,5 +439,40 @@ def trace(x, *, offset=data_slice.DataSlice.from_vals(0)):
 
   Returns:
     A DataSlice with the sum(s) of the diagonal(s).
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
+    'kd.matrix.vector_norm',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.ord),
+    ],
+)
+def vector_norm(x, ord=2):  # pylint: disable=unused-argument,redefined-builtin
+  """Compute the vector norm over the last dimension.
+
+  Supports leading batch dimensions: (..., n) -> (...).
+
+  Supported ord values:
+    0: Number of non-zero elements (L0 "norm").
+    1: Sum of absolute values (L1 norm).
+    2: Euclidean norm (L2 norm, default).
+    inf: Maximum of absolute values (L-infinity norm).
+    -inf: Minimum of absolute values.
+    Other finite p != 0: sum(|x|^p)^(1/p).
+
+  Missing values in x are treated as 0. The output is always floating-point.
+
+  Args:
+    x: A numeric DataSlice with at least 1 dimension.
+    ord: Numeric DataSlice. The order of the norm. Default is 2 (L2 norm).
+      Must be broadcastable to the batch dimensions of `x` (all dimensions
+      except the last). Missing values default to 2 (L2 norm).
+
+  Returns:
+    A DataSlice with the norm value(s).
   """
   raise NotImplementedError('implemented in the backend')

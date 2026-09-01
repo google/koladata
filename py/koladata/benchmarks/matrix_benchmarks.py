@@ -757,5 +757,48 @@ def koda_trace_lambda(state):
     _ = eager_trace_lambda(a_kd)
 
 
+# ---- vector_norm ----
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def numpy_vector_norm(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    x_np = _make_uniform_vectors_np()
+  else:
+    sizes = _make_jagged_sizes()
+    x_np = _make_jagged_vectors_np(sizes)
+  while state:
+    _ = [np.linalg.norm(x_np[i]) for i in range(BATCH_SIZE)]
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def koda_vector_norm(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    x_np = _make_uniform_vectors_np()
+  else:
+    sizes = _make_jagged_sizes()
+    x_np = _make_jagged_vectors_np(sizes)
+  x_kd = _np_to_kd_vectors(x_np)
+  # Check that Koda and NumPy agree on a functional level.
+  kd.testing.assert_allclose(
+      kd.matrix.vector_norm(x_kd),
+      kd.slice(
+          [np.linalg.norm(x_np[i].filled(0)) for i in range(BATCH_SIZE)],
+          kd.FLOAT64,
+      ),
+      rtol=1e-12,
+  )
+  while state:
+    _ = kd.matrix.vector_norm(x_kd)
+
+
 if __name__ == '__main__':
   google_benchmark.main()

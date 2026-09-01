@@ -282,3 +282,28 @@ Args:
 
 Returns:
   The transposed DataSlice.</code></pre>
+
+### `kd.matrix.vector_norm(x, ord=2)` {#kd.matrix.vector_norm}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Compute the vector norm over the last dimension.
+
+Supports leading batch dimensions: (..., n) -&gt; (...).
+
+Supported ord values:
+  0: Number of non-zero elements (L0 &#34;norm&#34;).
+  1: Sum of absolute values (L1 norm).
+  2: Euclidean norm (L2 norm, default).
+  inf: Maximum of absolute values (L-infinity norm).
+  -inf: Minimum of absolute values.
+  Other finite p != 0: sum(|x|^p)^(1/p).
+
+Missing values in x are treated as 0. The output is always floating-point.
+
+Args:
+  x: A numeric DataSlice with at least 1 dimension.
+  ord: Numeric DataSlice. The order of the norm. Default is 2 (L2 norm).
+    Must be broadcastable to the batch dimensions of `x` (all dimensions
+    except the last). Missing values default to 2 (L2 norm).
+
+Returns:
+  A DataSlice with the norm value(s).</code></pre>

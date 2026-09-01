@@ -441,8 +441,13 @@ py_library(
     name = "matrix",
     srcs = ["matrix.py"],
     deps = [
+        ":assertion",
+        ":comparison",
+        ":masking",
+        ":math",
         ":optools",
         ":qtype_utils",
+        ":slices",
         "//py:python_path",
         "//py/koladata/types:data_slice",
         "@com_google_arolla//py/arolla",

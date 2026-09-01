@@ -72,6 +72,12 @@ absl::StatusOr<DataSlice> MatrixDet(const DataSlice& a);
 absl::StatusOr<DataSlice> MatrixTrace(const DataSlice& x,
                                       const DataSlice& offset);
 
+// kd.matrix.vector_norm: Compute vector norm over the last dimension.
+// (..., n) -> (...). Supports batch dimensions.
+// ord is broadcast to the batch dimensions and selects the norm type.
+absl::StatusOr<DataSlice> MatrixVectorNorm(const DataSlice& x,
+                                           const DataSlice& ord);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_MATRIX_H_

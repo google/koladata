@@ -15,8 +15,10 @@
 #include "koladata/operators/matrix.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
+#include <limits>
 #include <utility>
 #include <vector>
 
@@ -1003,6 +1005,113 @@ absl::StatusOr<DataSlice> MatrixTrace(const DataSlice& x,
   }
   DCHECK_EQ(narrowed_schema, internal::DataItem(schema::kInt64));
   return do_trace.template operator()<int64_t, int64_t>();
+}
+
+absl::StatusOr<DataSlice> MatrixVectorNorm(const DataSlice& x,
+                                           const DataSlice& ord_ds) {
+  const int rank = x.GetShape().rank();
+  if (rank < 1) {
+    return absl::InvalidArgumentError("expected rank(x) > 0");
+  }
+
+  auto batch_shape = x.GetShape().RemoveDims(/*from=*/rank - 1);
+  ASSIGN_OR_RETURN(const auto vec_infos,
+                   matrix_helpers::ExtractVectorInfos(x.GetShape()));
+  const int64_t num_vectors = vec_infos.size();
+
+  // Validate and parse ord: numeric, cast to FLOAT64, broadcast to batch dims.
+  // Missing values default to 2.0 (L2 norm).
+  RETURN_IF_ERROR(ExpectNumeric("ord", ord_ds));
+  if (ord_ds.GetShape().rank() >= rank) {
+    return absl::InvalidArgumentError(
+        "`ord` must have fewer dimensions than `x`");
+  }
+  ASSIGN_OR_RETURN(
+      auto ord_float64,
+      CastToExplicit(ord_ds, internal::DataItem(schema::kFloat64)));
+  ASSIGN_OR_RETURN(auto ord_broadcast,
+                   BroadcastToShape(std::move(ord_float64), batch_shape));
+  std::vector<double> ord_vals(num_vectors, 2.0);  // Default to L2 norm.
+  if (!ord_broadcast.impl_empty_and_unknown()) {
+    auto ord_flat = ord_broadcast.Flatten();
+    const auto& ord_arr = ord_flat.slice().values<double>();
+    ord_arr.ForEachPresent(
+        [&](int64_t id, double value) { ord_vals[id] = value; });
+  }
+
+  // Determine output schema. GetNarrowedMatrixSchema validates that x is
+  // numeric (returning an error for STRING, etc.). The output data is always
+  // floating-point: at least FLOAT32, or FLOAT64 if the input is FLOAT64.
+  const bool is_object_schema =
+      x.GetSchemaImpl() == internal::DataItem(schema::kObject);
+  ASSIGN_OR_RETURN(auto narrowed_schema,
+                   matrix_helpers::GetNarrowedMatrixSchema(x));
+  ASSIGN_OR_RETURN(auto output_schema,
+                   schema::CommonSchema(narrowed_schema,
+                                        internal::DataItem(schema::kFloat32)));
+
+  // Cast x to FLOAT64 for computation. ExtractFlat fills missing with 0.
+  ASSIGN_OR_RETURN(auto float_x,
+                   CastToExplicit(x, internal::DataItem(schema::kFloat64)));
+  const auto x_flat = matrix_helpers::ExtractFlat<double>(float_x);
+
+  auto do_norm = [&]<typename OutputT>() -> absl::StatusOr<DataSlice> {
+    std::vector<OutputT> result(num_vectors);
+    for (int64_t v = 0; v < num_vectors; ++v) {
+      const auto& vec_info = vec_infos[v];
+      const int64_t offset = vec_info.offset;
+      const int64_t n = vec_info.m;  // vector length
+      const double p = ord_vals[v];
+
+      double norm_val;
+      if (std::isinf(p) && p > 0) {
+        // +inf norm: max(|x_i|)
+        norm_val = 0.0;
+        for (int64_t i = 0; i < n; ++i) {
+          norm_val = std::max(norm_val, std::abs(x_flat[offset + i]));
+        }
+      } else if (std::isinf(p) && p < 0) {
+        // -inf norm: min(|x_i|)
+        norm_val = n > 0 ? std::numeric_limits<double>::infinity() : 0.0;
+        for (int64_t i = 0; i < n; ++i) {
+          norm_val = std::min(norm_val, std::abs(x_flat[offset + i]));
+        }
+      } else if (p == 0.0) {
+        // L0 "norm": count of non-zero elements.
+        norm_val = 0.0;
+        for (int64_t i = 0; i < n; ++i) {
+          if (x_flat[offset + i] != 0.0) {
+            norm_val += 1.0;
+          }
+        }
+      } else {
+        // General p-norm: sum(|x_i|^p)^(1/p). Works for all finite p != 0,
+        // including negative p (where IEEE 754 handles 0^p = +inf correctly).
+        double sum = 0.0;
+        for (int64_t i = 0; i < n; ++i) {
+          sum += std::pow(std::abs(x_flat[offset + i]), p);
+        }
+        norm_val = std::pow(sum, 1.0 / p);
+      }
+      // OutputT is always float or double (the output is always
+      // floating-point), so double -> OutputT is a well-defined IEEE 754
+      // conversion: double -> double is exact, double -> float rounds to
+      // nearest representable value (overflow produces +-inf), and we do not
+      // need to use saturate_cast here.
+      result[v] = static_cast<OutputT>(norm_val);
+    }
+    ASSIGN_OR_RETURN(auto ds, matrix_helpers::BuildFromFlat<OutputT>(
+                                  std::move(result), std::move(batch_shape)));
+    if (is_object_schema) {
+      return ds.WithSchema(internal::DataItem(schema::kObject));
+    }
+    return ds;
+  };
+
+  if (output_schema == internal::DataItem(schema::kFloat32)) {
+    return do_norm.template operator()<float>();
+  }
+  return do_norm.template operator()<double>();
 }
 
 }  // namespace koladata::ops
