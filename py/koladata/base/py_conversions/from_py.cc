@@ -171,10 +171,6 @@ class FromPyConverter {
     }
     std::optional<DataSlice> result;
     RETURN_IF_ERROR(internal::TrampolineExecutor::Run([&](auto& executor) {
-      {
-        // Release and reacquire GIL to prevent it being held for too long.
-        arolla::python::ReleasePyGIL guard;
-      }
       return ConvertImpl(py_objects, std::move(cur_shape), schema, itemid, 0,
                          executor, result,
                          /*computing_object=*/false);
@@ -438,6 +434,10 @@ class FromPyConverter {
                       cur_shape = std::move(cur_shape), schema = schema,
                       itemid = std::move(itemid), cur_depth, &executor,
                       computing_object, &result]() -> absl::Status {
+      {
+        // Release and reacquire GIL to prevent it being held for too long.
+        arolla::python::ReleasePyGIL guard;
+      }
       RETURN_IF_ERROR(ConvertImpl(py_objects, std::move(cur_shape), schema,
                                   std::move(itemid), cur_depth + 1, executor,
                                   result, computing_object));
