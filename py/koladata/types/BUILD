@@ -268,9 +268,11 @@ py_test(
 py_library(
     name = "list_item",
     srcs = ["list_item.py"],
+    pyi_srcs = ["list_item.pyi"],
     deps = [
         ":data_item",
         ":data_slice",
+        ":type_defs",
         "//py:python_path",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
@@ -299,9 +301,11 @@ py_test(
 py_library(
     name = "dict_item",
     srcs = ["dict_item.py"],
+    pyi_srcs = ["dict_item.pyi"],
     deps = [
         ":data_item",
         ":data_slice",
+        ":type_defs",
         "//py:python_path",
         "@com_google_arolla//py/arolla",
     ],

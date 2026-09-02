@@ -22,15 +22,15 @@ from koladata.types import jagged_shape as _jagged_shape
 # into proper types.
 
 DataBag: Any
-DataItem: Any
 DataSlice: Any
-DictItem: Any
+DataItem = DataSlice
+DictItem = DataSlice
 Executor = _functor_parallel_clib.Executor
 Expr: Any
 Iterable = _iterable_qvalue.Iterable
 JaggedShape = _jagged_shape.JaggedShape
-ListItem: Any
-SchemaItem: Any
+ListItem = DataSlice
+SchemaItem = DataSlice
 Stream = _functor_parallel_clib.Stream
 StreamReader = _functor_parallel_clib.StreamReader
 StreamWriter = _functor_parallel_clib.StreamWriter

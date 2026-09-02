@@ -21,6 +21,8 @@ from arolla import arolla
 from koladata.types import data_item
 from koladata.types import data_slice
 
+# LINT.IfChange
+
 
 @data_slice.register_reserved_class_method_names
 class DictItem(data_item.DataItem):
@@ -45,6 +47,8 @@ class DictItem(data_item.DataItem):
     return not self[key].is_empty()
 
   # NOTE: DictItem.clear is inherited from DataSlice.clear.
+
+# LINT.ThenChange(//py/koladata/types/type_defs.pyi)
 
 
 arolla.abc.register_qvalue_specialization(

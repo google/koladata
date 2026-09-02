@@ -14,4 +14,6 @@
 
 from koladata.types import type_defs
 
-DataItem = type_defs.DataItem
+# All subclasses of DataSlice are undistinguished from DataSlice at
+# type checking time.
+DataItem = type_defs.DataSlice

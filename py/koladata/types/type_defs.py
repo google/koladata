@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Dummy file to hold .pyi definitions for DataSlice, DataItem, SchemaItem, and DataBag.
+"""Dummy file to hold .pyi definitions for DataSlice and DataBag.
 
 This is needed to avoid circular dependencies between .pyi files. Since
 DataBag and DataSlice depend on each other, we break the dependency cycle

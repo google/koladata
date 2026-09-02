@@ -25,6 +25,8 @@ from koladata.types import data_slice
 
 _eval_op = py_expr_eval_py_ext.eval_op
 
+# LINT.IfChange
+
 
 @data_slice.register_reserved_class_method_names
 class ListItem(data_item.DataItem):
@@ -56,6 +58,8 @@ class ListItem(data_item.DataItem):
     return bool(_eval_op('kd.isin', key, self[:]))
 
   # NOTE: ListItem.clear is inherited from DataSlice.clear.
+
+# LINT.ThenChange(//py/koladata/types/type_defs.pyi)
 
 
 arolla.abc.register_qvalue_specialization(

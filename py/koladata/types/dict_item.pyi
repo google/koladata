@@ -16,4 +16,4 @@ from koladata.types import type_defs
 
 # All subclasses of DataSlice are undistinguished from DataSlice at
 # type checking time.
-SchemaItem = type_defs.DataSlice
+DictItem = type_defs.DataSlice

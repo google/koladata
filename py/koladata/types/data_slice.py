@@ -882,6 +882,22 @@ def _index(self) -> int:
   """Converts a DataItem to an integer index."""
   raise ValueError('only a scalar DataSlice can be converted to index')
 
+
+@add_method(DataSlice, '__len__')
+def _len(self) -> int:
+  """Returns the length of a ListItem or DictItem."""
+  raise ValueError('only ListItem and DictItem have a __len__ method')
+
+
+@add_method(DataSlice, '__contains__')
+def _contains(self, key: Any) -> bool:
+  """Checks if a key is present in a ListItem or DictItem."""
+  raise ValueError('only ListItem and DictItem have a __contains__ method')
+
+# NOTE: __iter__ is not defined in order to enable single-argument pattern in
+# parameterized tests.
+
+
 @add_method(DataSlice, 'strict_new')
 def _strict_new(self, **attrs):
   """Returns a new Entity with this Schema, checks for missing attributes."""

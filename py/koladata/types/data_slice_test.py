@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import abc
+
 import gc
 import inspect
 import io
@@ -3998,6 +4000,18 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
         ValueError, 'only a scalar DataSlice can be converted to index'
     ):
       _ = [4, 5, 6][ds([4]) : 7]
+
+  def test_len(self):
+    with self.assertRaisesRegex(
+        ValueError, 'only ListItem and DictItem have a __len__ method'
+    ):
+      _ = len(ds([1, 2, 3]))
+
+  def test_contains(self):
+    with self.assertRaisesRegex(
+        ValueError, 'only ListItem and DictItem have a __contains__ method'
+    ):
+      _ = 1 in ds([1, 2, 3])
 
 
 class DataSliceMergingTest(parameterized.TestCase):
