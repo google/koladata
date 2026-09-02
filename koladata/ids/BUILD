@@ -23,10 +23,7 @@ licenses(["notice"])
 cc_library(
     name = "operators",
     srcs = ["operators.cc"],
-    visibility = [
-        "//py/koladata/ext:__pkg__",
-        "//py/koladata/ext/ids:__pkg__",
-    ],
+    visibility = ["//py/koladata/ext:__pkg__"],
     deps = [
         ":auto_id_cleanup_update",
         ":auto_id_update",
