@@ -28,7 +28,6 @@ from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
 from koladata.operators import kde_operators
 from koladata.testing import testing
-from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import signature_utils
 
@@ -188,7 +187,6 @@ class CallMultithreadedTest(absltest.TestCase):
     res = parallel.call_multithreaded(
         fn,
         x=arolla.tuple(1, 2),
-        return_type_as=arolla.tuple(5, 7),
     )
     testing.assert_equal(res, arolla.tuple(1, 2))
 
@@ -198,7 +196,6 @@ class CallMultithreadedTest(absltest.TestCase):
     res = parallel.call_multithreaded(
         fn,
         x=obj,
-        return_type_as=data_bag.DataBag,
     )
     testing.assert_equal_by_fingerprint(res, obj.get_bag())
 
@@ -324,7 +321,6 @@ class CallMultithreadedTest(absltest.TestCase):
       _ = parallel.call_multithreaded(
           fn,
           x=1,
-          return_type_as=kde.iterables.make().eval(),
       )
 
   def test_structured_return_value(self):
@@ -336,9 +332,6 @@ class CallMultithreadedTest(absltest.TestCase):
         x=1,
         y=2,
         z=3,
-        return_type_as=arolla.tuple(
-            ds(None), arolla.namedtuple(y=ds(None), z=ds(None))
-        ),
     )
     testing.assert_equal(
         res, arolla.tuple(ds(1), arolla.namedtuple(y=ds(2), z=ds(3)))

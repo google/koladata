@@ -24,7 +24,6 @@ from koladata.functor import py_functors_py_ext
 from koladata.functor.parallel import clib
 from koladata.operators import kde_operators
 from koladata.types import data_item
-from koladata.types import data_slice
 from koladata.types import py_boxing
 
 
@@ -42,7 +41,6 @@ def call_multithreaded(
     fn: data_item.DataItem,
     /,
     *args: Any,
-    return_type_as: Any = data_slice.DataSlice,  # pylint: disable=unused-argument
     max_threads: int | None = None,
     timeout: float | None = None,
     **kwargs: Any,
@@ -62,11 +60,6 @@ def call_multithreaded(
   Args:
     fn: The functor to call.
     *args: The positional arguments to pass to the functor.
-    return_type_as: The return type of the call is expected to be the same as
-      the return type of this expression. In most cases, this will be a literal
-      of the corresponding type. This needs to be specified if the functor does
-      not return a DataSlice. kd.types.DataSlice, kd.types.DataBag and
-      kd.types.JaggedShape can also be passed here.
     max_threads: The maximum number of threads to use. None means to use the
       default executor.
     timeout: The maximum time to wait for the call to finish. None means to wait
@@ -122,7 +115,6 @@ def yield_multithreaded(
     fn: data_item.DataItem,
     /,
     *args: Any,
-    value_type_as: Any = data_slice.DataSlice,  # pylint: disable=unused-argument
     max_threads: int | None = None,
     timeout: float | None = None,
     **kwargs: Any,
@@ -144,11 +136,6 @@ def yield_multithreaded(
   Args:
     fn: The functor to call.
     *args: The positional arguments to pass to the functor.
-    value_type_as: The return type of the call is expected to be an iterable of
-      the return type of this expression. In most cases, this will be a literal
-      of the corresponding type. This needs to be specified if the functor does
-      not return an iterable of DataSlice. kd.types.DataSlice, kd.types.DataBag
-      and kd.types.JaggedShape can also be passed here.
     max_threads: The maximum number of threads to use. None means to use the
       default executor.
     timeout: The maximum time to wait for the computation of all items of the

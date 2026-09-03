@@ -28,7 +28,6 @@ from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
 from koladata.operators import kde_operators
 from koladata.testing import testing
-from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import iterable_qvalue
 from koladata.types import signature_utils
@@ -156,7 +155,6 @@ class YieldMultithreadedTest(absltest.TestCase):
     res = parallel.yield_multithreaded(
         fn,
         x=arolla.tuple(1, 2),
-        value_type_as=arolla.tuple(5, 7),
     )
     testing.assert_equal(arolla.tuple(*res), arolla.tuple(arolla.tuple(1, 2)))
 
@@ -166,7 +164,6 @@ class YieldMultithreadedTest(absltest.TestCase):
     res = parallel.yield_multithreaded(
         fn,
         x=obj,
-        value_type_as=data_bag.DataBag,
     )
     testing.assert_equal_by_fingerprint(
         arolla.tuple(*res), arolla.tuple(obj.get_bag())

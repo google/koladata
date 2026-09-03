@@ -9,7 +9,7 @@
 
 
 
-### `kd.parallel.call_multithreaded(fn: DataItem, /, *args: Any, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, max_threads: int | None = None, timeout: float | None = None, **kwargs: Any) -> Any` {#kd.parallel.call_multithreaded}
+### `kd.parallel.call_multithreaded(fn: DataItem, /, *args: Any, max_threads: int | None = None, timeout: float | None = None, **kwargs: Any) -> Any` {#kd.parallel.call_multithreaded}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Calls a functor with the given arguments.
 
@@ -26,11 +26,6 @@ execute them all in parallel.
 Args:
   fn: The functor to call.
   *args: The positional arguments to pass to the functor.
-  return_type_as: The return type of the call is expected to be the same as
-    the return type of this expression. In most cases, this will be a literal
-    of the corresponding type. This needs to be specified if the functor does
-    not return a DataSlice. kd.types.DataSlice, kd.types.DataBag and
-    kd.types.JaggedShape can also be passed here.
   max_threads: The maximum number of threads to use. None means to use the
     default executor.
   timeout: The maximum time to wait for the call to finish. None means to wait
@@ -64,7 +59,7 @@ Args:
 Returns:
   The transformed functor.</code></pre>
 
-### `kd.parallel.yield_multithreaded(fn: DataItem, /, *args: Any, value_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, max_threads: int | None = None, timeout: float | None = None, **kwargs: Any) -> Iterator[Any]` {#kd.parallel.yield_multithreaded}
+### `kd.parallel.yield_multithreaded(fn: DataItem, /, *args: Any, max_threads: int | None = None, timeout: float | None = None, **kwargs: Any) -> Iterator[Any]` {#kd.parallel.yield_multithreaded}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Calls a functor returning an iterable, and yields the results as they go.
 
@@ -83,11 +78,6 @@ parallel.
 Args:
   fn: The functor to call.
   *args: The positional arguments to pass to the functor.
-  value_type_as: The return type of the call is expected to be an iterable of
-    the return type of this expression. In most cases, this will be a literal
-    of the corresponding type. This needs to be specified if the functor does
-    not return an iterable of DataSlice. kd.types.DataSlice, kd.types.DataBag
-    and kd.types.JaggedShape can also be passed here.
   max_threads: The maximum number of threads to use. None means to use the
     default executor.
   timeout: The maximum time to wait for the computation of all items of the
