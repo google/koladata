@@ -391,6 +391,32 @@ TEST(DictTest, IntegerKeyTypes) {
   EXPECT_THAT(dict.Get(int64_t{1}), Optional(RefWrap(2)));
 }
 
+TEST(DictTest, UnsupportedKeyTypes) {
+  Dict dict;
+  dict.Set(DataItem(), DataItem(1));
+  dict.Set(MissingValue{}, DataItem(2));
+  dict.Set(1.0f, DataItem(3));
+  dict.Set(1.0, DataItem(4));
+  dict.Set(DataItem(1.0f), DataItem(5));
+  dict.Set(DataItem(1.0), DataItem(6));
+
+  EXPECT_EQ(dict.GetSizeNoFallbacks(), 0);
+  EXPECT_THAT(dict.GetKeys(), UnorderedElementsAre());
+  EXPECT_THAT(dict.GetValues(), UnorderedElementsAre());
+
+  EXPECT_THAT(dict.Get(DataItem()), Eq(std::nullopt));
+  EXPECT_THAT(dict.Get(MissingValue{}), Eq(std::nullopt));
+  EXPECT_THAT(dict.Get(1.0f), Eq(std::nullopt));
+  EXPECT_THAT(dict.Get(1.0), Eq(std::nullopt));
+  EXPECT_THAT(dict.Get(DataItem(1.0f)), Eq(std::nullopt));
+  EXPECT_THAT(dict.Get(DataItem(1.0)), Eq(std::nullopt));
+
+  EXPECT_EQ(dict.GetOrAssign(DataItem(), DataItem(10)), DataItem());
+  EXPECT_EQ(dict.GetOrAssign(1.0f, DataItem(10)), DataItem());
+  EXPECT_EQ(dict.GetOrAssign(1.0, DataItem(10)), DataItem());
+  EXPECT_EQ(dict.GetSizeNoFallbacks(), 0);
+}
+
 TEST(DictTest, GetKeysOnMissing) {
   Dict dict;
   dict.Set(int64_t{1}, DataItem());

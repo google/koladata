@@ -57,6 +57,25 @@ class DictTest(parameterized.TestCase):
     testing.assert_dicts_keys_equal(d, ds([]))
     testing.assert_dicts_values_equal(d, ds([]))
 
+  def test_dict_with_none_key(self):
+    d = fns.dict({None: 1})
+    self.assertIsInstance(d, dict_item.DictItem)
+    testing.assert_dicts_keys_equal(d, ds([], schema_constants.NONE))
+    testing.assert_dicts_values_equal(d, ds([], schema_constants.INT32))
+
+    d2 = fns.dict({'a': 1, None: 2})
+    self.assertIsInstance(d2, dict_item.DictItem)
+    testing.assert_dicts_keys_equal(d2, ds(['a']))
+    testing.assert_dicts_values_equal(d2, ds([1]))
+    testing.assert_equal(d2['a'], ds(1).with_bag(d2.get_bag()))
+    testing.assert_equal(
+        d2[ds(None)], ds(None, schema_constants.INT32).with_bag(d2.get_bag())
+    )
+
+  def test_dict_unsupported_key_type(self):
+    with self.assertRaisesRegex(ValueError, 'dict keys cannot be FLOAT32'):
+      fns.dict({1.0: 2})
+
   def test_dict_with_uuid(self):
     testing.assert_equal(
         fns.dict(itemid=kd.uuid_for_dict(seed='seed', a=ds(1))).no_bag(),

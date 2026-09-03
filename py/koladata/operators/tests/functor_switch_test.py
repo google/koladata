@@ -53,8 +53,6 @@ class FunctorSwitchTest(absltest.TestCase):
     testing.assert_equal(expr_eval.eval(expr, k=None, x=10, y=2), ds(57))
 
   def test_missing_case_fn(self):
-    # TODO: Add a test for missing key (failing or not, depending
-    # on the decision in the bug).
     expr = kde.switch(
         I.k,
         {
@@ -69,6 +67,34 @@ class FunctorSwitchTest(absltest.TestCase):
     # None value for 'b' is ignored and default is used instead.
     testing.assert_equal(expr_eval.eval(expr, k='b', x=10, y=2), ds(57))
     testing.assert_equal(expr_eval.eval(expr, k='c', x=10, y=2), ds(57))
+
+  def test_none_case_key_ignored(self):
+    expr = kde.switch(
+        I.k,
+        {
+            'a': lambda x, y: x + y,
+            None: lambda x, y: x * y,
+            kd_SWITCH_DEFAULT: lambda *unused, **unused_kwargs: 57,
+        },
+        I.x,
+        y=I.y,
+    )
+    testing.assert_equal(expr_eval.eval(expr, k='a', x=10, y=2), ds(12))
+    # None key is ignored and default is used instead.
+    testing.assert_equal(expr_eval.eval(expr, k=None, x=10, y=2), ds(57))
+    testing.assert_equal(expr_eval.eval(expr, k='c', x=10, y=2), ds(57))
+
+    expr_no_default = kde.switch(
+        I.k,
+        {'a': lambda x, y: x + y, None: lambda x, y: x * y},
+        I.x,
+        y=I.y,
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        r'kd\.switch: key not found in cases and no default provided',
+    ):
+      expr_eval.eval(expr_no_default, k=None, x=10, y=2)
 
   def test_duplicate_case_keys(self):
     # We inherit kd.dict behavior for duplicate keys: the last one wins.

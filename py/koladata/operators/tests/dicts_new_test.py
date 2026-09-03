@@ -62,11 +62,22 @@ class DictTest(parameterized.TestCase):
       ),
       ('itemid arg', dict(itemid=bag().dict().get_itemid())),
       ('dict_arg', dict(items_or_keys={1: 2})),
+      ('dict_with_none_key', dict(items_or_keys={None: 2})),
+      ('dict_with_mixed_keys_and_none', dict(items_or_keys={'a': 1, None: 2})),
   )
   def test_value(self, kwargs):
     actual = kd.dicts.new(**kwargs)
     expected = bag().dict(**kwargs)
     testing.assert_equivalent(actual, expected)
+
+  def test_dict_with_none_key(self):
+    d = kd.dicts.new(items_or_keys={None: 2})
+    testing.assert_dicts_keys_equal(d, ds([], schema_constants.NONE))
+    testing.assert_dicts_values_equal(d, ds([], schema_constants.INT32))
+
+    d2 = kd.dicts.new(items_or_keys={'a': 1, None: 2})
+    testing.assert_dicts_keys_equal(d2, ds(['a']))
+    testing.assert_dicts_values_equal(d2, ds([1]))
 
   def test_nested_dict_error(self):
     with self.assertRaisesRegex(
