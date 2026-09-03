@@ -3712,40 +3712,40 @@ absl::Status DataBagImpl::MergeListsInplace(const DataBagImpl& other,
       [this, options](AllocationId alloc_id,
                       const DataListVector& other_lists) -> absl::Status {
         auto& this_lists = GetOrCreateMutableLists(alloc_id, /*update_size=*/1);
-        for (size_t i = 0; i < other_lists.size(); ++i) {
-          const auto* other_list = other_lists.Get(i);
-          if (other_list == nullptr) {
-            continue;
-          }
-          bool this_list_unset = this_lists.Get(i) == nullptr;
-          auto& this_list = this_lists.GetMutable(i);
-          if (options.data_conflict_policy == MergeOptions::kOverwrite ||
-              this_list_unset) {
-            this_list = *other_list;
-            continue;
-          }
-          if (options.data_conflict_policy == MergeOptions::kRaiseOnConflict) {
-            if (this_list.size() != other_list->size()) {
-              return arolla::WithPayload(
-                  absl::FailedPreconditionError(absl::StrCat(
-                      "conflicting list sizes for ", alloc_id, ": ",
-                      this_list.size(), " vs ", other_list->size())),
-                  MakeListSizeMergeError(alloc_id.ObjectByOffset(i),
-                                         this_list.size(), other_list->size()));
-            }
-            for (size_t j = 0; j < other_list->size(); ++j) {
-              if (ValuesAreDifferent(this_list[j], (*other_list)[j])) {
-                return arolla::WithPayload(
-                    absl::FailedPreconditionError(absl::StrCat(
-                        "conflicting list values for ", alloc_id, "at index ",
-                        j, ": ", this_list[j], " vs ", (*other_list)[j])),
-                    MakeListItemMergeError(alloc_id.ObjectByOffset(i), j,
-                                           this_list[j], (*other_list)[j]));
+        return other_lists.ForEachList(
+            [&](size_t i, const DataList& other_list) -> absl::Status {
+              bool this_list_unset = this_lists.Get(i) == nullptr;
+              auto& this_list = this_lists.GetMutable(i);
+              if (options.data_conflict_policy == MergeOptions::kOverwrite ||
+                  this_list_unset) {
+                this_list = other_list;
+                return absl::OkStatus();
               }
-            }
-          }
-        }
-        return absl::OkStatus();
+              if (options.data_conflict_policy ==
+                  MergeOptions::kRaiseOnConflict) {
+                if (this_list.size() != other_list.size()) {
+                  return arolla::WithPayload(
+                      absl::FailedPreconditionError(absl::StrCat(
+                          "conflicting list sizes for ", alloc_id, ": ",
+                          this_list.size(), " vs ", other_list.size())),
+                      MakeListSizeMergeError(alloc_id.ObjectByOffset(i),
+                                             this_list.size(),
+                                             other_list.size()));
+                }
+                for (size_t j = 0; j < other_list.size(); ++j) {
+                  if (ValuesAreDifferent(this_list[j], other_list[j])) {
+                    return arolla::WithPayload(
+                        absl::FailedPreconditionError(absl::StrCat(
+                            "conflicting list values for ", alloc_id,
+                            "at index ", j, ": ", this_list[j], " vs ",
+                            other_list[j])),
+                        MakeListItemMergeError(alloc_id.ObjectByOffset(i), j,
+                                               this_list[j], other_list[j]));
+                  }
+                }
+              }
+              return absl::OkStatus();
+            });
       });
 }
 
@@ -3759,14 +3759,11 @@ absl::Status DataBagImpl::AddListsOverwritingUpdate(const DataBagImpl& other,
         auto& this_lists = update.lists_[alloc_id];
         this_lists = std::make_shared<DataListVector>(other_lists.size(),
                                                       other_lists.size());
-        for (size_t i = 0; i < other_lists.size(); ++i) {
-          const auto* other_list = other_lists.Get(i);
-          if (other_list == nullptr) {
-            continue;
-          }
-          this_lists->GetMutable(i) = *other_list;
-        }
-        return absl::OkStatus();
+        return other_lists.ForEachList(
+            [&](size_t i, const DataList& other_list) -> absl::Status {
+              this_lists->GetMutable(i) = other_list;
+              return absl::OkStatus();
+            });
       });
 }
 
@@ -3809,44 +3806,41 @@ absl::Status DataBagImpl::MergeDictsInplace(const DataBagImpl& other,
                                           ? options.schema_conflict_policy
                                           : options.data_conflict_policy;
         auto& this_dicts = GetOrCreateMutableDicts(alloc_id, /*update_size=*/1);
-        // TODO: move this loop to DictVector::MergeInplace and
-        // avoid full iteration in the sparse case.
-        for (size_t i = 0; i < other_dicts.size(); ++i) {
-          const auto* other_dict = other_dicts.Get(i);
-          if (other_dict == nullptr) {
-            continue;
-          }
-          auto* original_this_dict =
-              const_this_dicts == nullptr ? nullptr : const_this_dicts->Get(i);
-          auto modified_keys = other_dict->GetModifiedKeys(original_this_dict);
-          if (modified_keys.empty()) {
-            continue;
-          }
-          auto& this_dict = this_dicts.GetMutable(i);
-          for (const DataItem& key : modified_keys) {
-            if (conflict_policy == MergeOptions::kOverwrite) {
-              this_dict.Set(key, *other_dict->Get(key));
-              continue;
-            }
-            auto other_value = other_dict->Get(key);
-            if (!other_value.has_value()) {
-              continue;
-            }
-            const DataItem& this_value =
-                this_dict.GetOrAssign(key, other_value->get());
-            if (conflict_policy == MergeOptions::kRaiseOnConflict &&
-                ValuesAreDifferent(this_value, other_value->get())) {
-              internal::ObjectId object_id = alloc_id.ObjectByOffset(i);
-              return arolla::WithPayload(
-                  absl::FailedPreconditionError(absl::StrCat(
-                      "conflicting dict values for ", object_id, " key ", key,
-                      ": ", this_value, " vs ", *other_value)),
-                  MakeSchemaOrDictMergeError(object_id, key, this_value,
-                                             *other_value));
-            }
-          }
-        }
-        return absl::OkStatus();
+        return other_dicts.ForEachDict(
+            [&](size_t i, const Dict& other_dict) -> absl::Status {
+              auto* original_this_dict = const_this_dicts == nullptr
+                                             ? nullptr
+                                             : const_this_dicts->Get(i);
+              auto modified_keys =
+                  other_dict.GetModifiedKeys(original_this_dict);
+              if (modified_keys.empty()) {
+                return absl::OkStatus();
+              }
+              auto& this_dict = this_dicts.GetMutable(i);
+              for (const DataItem& key : modified_keys) {
+                if (conflict_policy == MergeOptions::kOverwrite) {
+                  this_dict.Set(key, *other_dict.Get(key));
+                  continue;
+                }
+                auto other_value = other_dict.Get(key);
+                if (!other_value.has_value()) {
+                  continue;
+                }
+                const DataItem& this_value =
+                    this_dict.GetOrAssign(key, other_value->get());
+                if (conflict_policy == MergeOptions::kRaiseOnConflict &&
+                    ValuesAreDifferent(this_value, other_value->get())) {
+                  internal::ObjectId object_id = alloc_id.ObjectByOffset(i);
+                  return arolla::WithPayload(
+                      absl::FailedPreconditionError(absl::StrCat(
+                          "conflicting dict values for ", object_id, " key ",
+                          key, ": ", this_value, " vs ", *other_value)),
+                      MakeSchemaOrDictMergeError(object_id, key, this_value,
+                                                 *other_value));
+                }
+              }
+              return absl::OkStatus();
+            });
       });
 }
 
@@ -3855,31 +3849,27 @@ absl::Status DataBagImpl::AddDictsOverwritingUpdate(const DataBagImpl& other,
   DCHECK(IsPristine());
   return IterateOverDictsWithNewData(
       other,
-      [&update](AllocationId alloc_id,
-                const DictVector* const_this_dicts,
+      [&update](AllocationId alloc_id, const DictVector* const_this_dicts,
                 const DictVector& other_dicts) -> absl::Status {
         std::shared_ptr<DictVector>& this_dicts = update.dicts_[alloc_id];
         this_dicts = std::make_shared<DictVector>(other_dicts.size(),
                                                   other_dicts.size());
-        // TODO: move this loop to DictVector::MergeInplace and
-        // avoid full iteration in the sparse case.
-        for (size_t i = 0; i < other_dicts.size(); ++i) {
-          const auto* other_dict = other_dicts.Get(i);
-          if (other_dict == nullptr) {
-            continue;
-          }
-          auto* original_this_dict =
-              const_this_dicts == nullptr ? nullptr : const_this_dicts->Get(i);
-          auto modified_keys = other_dict->GetModifiedKeys(original_this_dict);
-          if (modified_keys.empty()) {
-            continue;
-          }
-          auto& this_dict = (*this_dicts)[i];
-          for (const DataItem& key : modified_keys) {
-            this_dict.Set(key, *other_dict->Get(key));
-          }
-        }
-        return absl::OkStatus();
+        return other_dicts.ForEachDict(
+            [&](size_t i, const Dict& other_dict) -> absl::Status {
+              auto* original_this_dict = const_this_dicts == nullptr
+                                             ? nullptr
+                                             : const_this_dicts->Get(i);
+              auto modified_keys =
+                  other_dict.GetModifiedKeys(original_this_dict);
+              if (modified_keys.empty()) {
+                return absl::OkStatus();
+              }
+              auto& this_dict = (*this_dicts)[i];
+              for (const DataItem& key : modified_keys) {
+                this_dict.Set(key, *other_dict.Get(key));
+              }
+              return absl::OkStatus();
+            });
       });
 }
 

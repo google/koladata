@@ -21,6 +21,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -29,7 +30,10 @@
 #include "absl/base/nullability.h"
 #include "absl/container/fixed_array.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
+#include "absl/status/status.h"
+#include "arolla/util/status_macros_backport.h"
 #include "absl/types/span.h"
 #include "arolla/expr/quote.h"
 #include "arolla/util/meta.h"
@@ -306,6 +310,54 @@ class DictVector {
 
   // Note: it doesn't include parent's size.
   void AppendMemoryStats(MemoryStatsEntry& stats) const;
+
+  // Calls `callback(size_t index, const Dict& d)` for each present dictionary.
+  // Iteration stops on the first error and returns that status.
+  template <typename Callback>
+  absl::Status ForEachDict(Callback&& callback) const {
+    bool dense_iteration = false;
+    for (const DictVector* dv = this; dv != nullptr; dv = dv->parent_.get()) {
+      if (std::holds_alternative<Array>(dv->data_) ||
+          dv->single_parent_dict_ptr_ != nullptr) {
+        dense_iteration = true;
+        break;
+      }
+    }
+
+    if (dense_iteration) {
+      for (size_t i = 0; i < size_; ++i) {
+        const Dict* dict = Get(i);
+        if (dict != nullptr) {
+          RETURN_IF_ERROR(callback(i, *dict));
+        }
+      }
+      return absl::OkStatus();
+    }
+
+    if (parent_ == nullptr) {
+      const auto& map = std::get<Map>(data_).map;
+      for (const auto& [i, dict] : map) {
+        if (!dict.data_.empty() || dict.parent_ != nullptr) {
+          RETURN_IF_ERROR(callback(i, dict));
+        }
+      }
+      return absl::OkStatus();
+    }
+
+    absl::flat_hash_set<size_t> seen;
+    for (const DictVector* dv = this; dv != nullptr; dv = dv->parent_.get()) {
+      const auto& map = std::get<Map>(dv->data_).map;
+      for (const auto& [i, dict] : map) {
+        if (!seen.insert(i).second) {
+          continue;
+        }
+        if (!dict.data_.empty() || dict.parent_ != nullptr) {
+          RETURN_IF_ERROR(callback(i, dict));
+        }
+      }
+    }
+    return absl::OkStatus();
+  }
 
  private:
   const Dict* GetParentDict(size_t index) const;

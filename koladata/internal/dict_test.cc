@@ -19,9 +19,12 @@
 #include <memory>
 #include <optional>
 #include <utility>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
 #include "koladata/internal/data_item.h"
@@ -36,6 +39,7 @@ struct DictVectorTestFriend {
 
 namespace {
 
+using ::absl_testing::StatusIs;
 using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::testing::Optional;
@@ -717,6 +721,265 @@ TEST(DictTest, DictVectorUpdateSize) {
     derived->GetMutable(2).Set(1, DataItem(20));
     EXPECT_TRUE(DictVectorTestFriend::is_map_mode(*derived));
     EXPECT_THAT(derived->Get(2)->Get(1), Optional(RefWrap(20)));
+  }
+}
+
+TEST(DictTest, DictVectorForEachDict) {
+  // 1. Map mode (sparse, no parent)
+  {
+    auto vec = std::make_shared<DictVector>(10, /*update_size=*/1);
+    EXPECT_TRUE(DictVectorTestFriend::is_map_mode(*vec));
+
+    // Empty vector: callback not called.
+    int count = 0;
+    EXPECT_OK(vec->ForEachDict([&](size_t idx, const Dict& dict) {
+      ++count;
+      return absl::OkStatus();
+    }));
+    EXPECT_EQ(count, 0);
+
+    vec->GetMutable(2).Set(1, DataItem(20));
+    vec->GetMutable(7).Set(2, DataItem(70));
+
+    std::vector<size_t> visited_indices;
+    EXPECT_OK(vec->ForEachDict([&](size_t idx, const Dict& dict) {
+      visited_indices.push_back(idx);
+      if (idx == 2) {
+        EXPECT_THAT(dict.Get(1), Optional(RefWrap(20)));
+      } else if (idx == 7) {
+        EXPECT_THAT(dict.Get(2), Optional(RefWrap(70)));
+      }
+      return absl::OkStatus();
+    }));
+    EXPECT_THAT(visited_indices, UnorderedElementsAre(2, 7));
+  }
+
+  // 2. Array mode
+  {
+    auto vec = std::make_shared<DictVector>(10, /*update_size=*/5);
+    EXPECT_FALSE(DictVectorTestFriend::is_map_mode(*vec));
+
+    vec->GetMutable(1).Set(1, DataItem(10));
+    vec->GetMutable(4).Set(2, DataItem(40));
+
+    std::vector<size_t> visited_indices;
+    EXPECT_OK(vec->ForEachDict([&](size_t idx, const Dict& dict) {
+      visited_indices.push_back(idx);
+      if (idx == 1) {
+        EXPECT_THAT(dict.Get(1), Optional(RefWrap(10)));
+      } else if (idx == 4) {
+        EXPECT_THAT(dict.Get(2), Optional(RefWrap(40)));
+      }
+      return absl::OkStatus();
+    }));
+    EXPECT_THAT(visited_indices, UnorderedElementsAre(1, 4));
+  }
+
+  // 3. Derived with parent (both Map mode)
+  {
+    auto parent = std::make_shared<DictVector>(10, /*update_size=*/1);
+    parent->GetMutable(2).Set(1, DataItem(20));
+    parent->GetMutable(5).Set(1, DataItem(50));
+
+    auto derived = std::make_shared<DictVector>(parent, /*update_size=*/1);
+    EXPECT_TRUE(DictVectorTestFriend::is_map_mode(*derived));
+    derived->GetMutable(5).Set(2, DataItem(51));
+    derived->GetMutable(8).Set(3, DataItem(80));
+
+    std::vector<size_t> visited_indices;
+    EXPECT_OK(derived->ForEachDict([&](size_t idx, const Dict& dict) {
+      visited_indices.push_back(idx);
+      if (idx == 2) {
+        EXPECT_THAT(dict.Get(1), Optional(RefWrap(20)));
+      } else if (idx == 5) {
+        EXPECT_THAT(dict.Get(1), Optional(RefWrap(50)));
+        EXPECT_THAT(dict.Get(2), Optional(RefWrap(51)));
+      } else if (idx == 8) {
+        EXPECT_THAT(dict.Get(3), Optional(RefWrap(80)));
+      }
+      return absl::OkStatus();
+    }));
+    EXPECT_THAT(visited_indices, UnorderedElementsAre(2, 5, 8));
+  }
+
+  // 4. Derived with parent (Array mode)
+  {
+    auto parent = std::make_shared<DictVector>(10, /*update_size=*/1);
+    parent->GetMutable(2).Set(1, DataItem(20));
+    parent->GetMutable(5).Set(1, DataItem(50));
+
+    auto derived = std::make_shared<DictVector>(parent, /*update_size=*/5);
+    EXPECT_FALSE(DictVectorTestFriend::is_map_mode(*derived));
+    derived->GetMutable(5).Set(2, DataItem(51));
+
+    std::vector<size_t> visited_indices;
+    EXPECT_OK(derived->ForEachDict([&](size_t idx, const Dict& dict) {
+      visited_indices.push_back(idx);
+      if (idx == 2) {
+        EXPECT_THAT(dict.Get(1), Optional(RefWrap(20)));
+      } else if (idx == 5) {
+        EXPECT_THAT(dict.Get(1), Optional(RefWrap(50)));
+        EXPECT_THAT(dict.Get(2), Optional(RefWrap(51)));
+      }
+      return absl::OkStatus();
+    }));
+    EXPECT_THAT(visited_indices, UnorderedElementsAre(2, 5));
+  }
+
+  // 5. Derived in Map mode with parent in Array mode
+  {
+    auto parent = std::make_shared<DictVector>(10, /*update_size=*/5);
+    EXPECT_FALSE(DictVectorTestFriend::is_map_mode(*parent));
+    parent->GetMutable(2).Set(1, DataItem(20));
+    parent->GetMutable(5).Set(1, DataItem(50));
+
+    // Case 5a: derived has empty map (no modifications yet)
+    auto derived_empty =
+        std::make_shared<DictVector>(parent, /*update_size=*/1);
+    EXPECT_TRUE(DictVectorTestFriend::is_map_mode(*derived_empty));
+    {
+      std::vector<size_t> visited_indices;
+      EXPECT_OK(derived_empty->ForEachDict([&](size_t idx, const Dict& dict) {
+        visited_indices.push_back(idx);
+        if (idx == 2) {
+          EXPECT_THAT(dict.Get(1), Optional(RefWrap(20)));
+        } else if (idx == 5) {
+          EXPECT_THAT(dict.Get(1), Optional(RefWrap(50)));
+        }
+        return absl::OkStatus();
+      }));
+      EXPECT_THAT(visited_indices, UnorderedElementsAre(2, 5));
+    }
+
+    // Case 5b: derived has non-empty map (overriding index 5, adding index 8)
+    auto derived = std::make_shared<DictVector>(parent, /*update_size=*/1);
+    EXPECT_TRUE(DictVectorTestFriend::is_map_mode(*derived));
+    derived->GetMutable(5).Set(2, DataItem(51));
+    derived->GetMutable(8).Set(3, DataItem(80));
+
+    std::vector<size_t> visited_indices;
+    EXPECT_OK(derived->ForEachDict([&](size_t idx, const Dict& dict) {
+      visited_indices.push_back(idx);
+      if (idx == 2) {
+        EXPECT_THAT(dict.Get(1), Optional(RefWrap(20)));
+      } else if (idx == 5) {
+        EXPECT_THAT(dict.Get(1), Optional(RefWrap(50)));
+        EXPECT_THAT(dict.Get(2), Optional(RefWrap(51)));
+      } else if (idx == 8) {
+        EXPECT_THAT(dict.Get(3), Optional(RefWrap(80)));
+      }
+      return absl::OkStatus();
+    }));
+    EXPECT_THAT(visited_indices, UnorderedElementsAre(2, 5, 8));
+  }
+
+  // 6. DictVector with single_parent_dict (Map mode)
+  {
+    auto single_parent = std::make_shared<Dict>();
+    single_parent->Set(1, DataItem(10));
+
+    auto vec =
+        std::make_shared<DictVector>(10, single_parent, /*update_size=*/1);
+    EXPECT_TRUE(DictVectorTestFriend::is_map_mode(*vec));
+
+    // Case 6a: unmodified vector with single_parent_dict.
+    // Every index inherits from single_parent.
+    {
+      std::vector<size_t> visited_indices;
+      EXPECT_OK(vec->ForEachDict([&](size_t idx, const Dict& dict) {
+        visited_indices.push_back(idx);
+        EXPECT_THAT(dict.Get(1), Optional(RefWrap(10)));
+        return absl::OkStatus();
+      }));
+      EXPECT_THAT(visited_indices, ElementsAre(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
+    }
+
+    // Case 6b: with modifications in the vector map.
+    vec->GetMutable(2).Set(2, DataItem(20));
+    vec->GetMutable(7).Set(3, DataItem(70));
+    EXPECT_TRUE(DictVectorTestFriend::is_map_mode(*vec));
+
+    {
+      std::vector<size_t> visited_indices;
+      EXPECT_OK(vec->ForEachDict([&](size_t idx, const Dict& dict) {
+        visited_indices.push_back(idx);
+        EXPECT_THAT(dict.Get(1), Optional(RefWrap(10)));
+        if (idx == 2) {
+          EXPECT_THAT(dict.Get(2), Optional(RefWrap(20)));
+        } else if (idx == 7) {
+          EXPECT_THAT(dict.Get(3), Optional(RefWrap(70)));
+        }
+        return absl::OkStatus();
+      }));
+      EXPECT_THAT(visited_indices, ElementsAre(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
+    }
+
+    // Case 6c: derived vector in Map mode with parent having single_parent_dict
+    // (covers seen != nullptr branch).
+    auto derived = std::make_shared<DictVector>(vec, /*update_size=*/1);
+    EXPECT_TRUE(DictVectorTestFriend::is_map_mode(*derived));
+    derived->GetMutable(2).Set(4, DataItem(25));
+    derived->GetMutable(5).Set(5, DataItem(55));
+
+    {
+      std::vector<size_t> visited_indices;
+      EXPECT_OK(derived->ForEachDict([&](size_t idx, const Dict& dict) {
+        visited_indices.push_back(idx);
+        EXPECT_THAT(dict.Get(1), Optional(RefWrap(10)));
+        if (idx == 2) {
+          EXPECT_THAT(dict.Get(2), Optional(RefWrap(20)));
+          EXPECT_THAT(dict.Get(4), Optional(RefWrap(25)));
+        } else if (idx == 5) {
+          EXPECT_THAT(dict.Get(5), Optional(RefWrap(55)));
+        } else if (idx == 7) {
+          EXPECT_THAT(dict.Get(3), Optional(RefWrap(70)));
+        }
+        return absl::OkStatus();
+      }));
+      EXPECT_THAT(visited_indices,
+                  UnorderedElementsAre(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
+    }
+
+    // Case 6d: empty single_parent_dict means single_parent_dict_ptr_ is null.
+    {
+      auto empty_parent = std::make_shared<Dict>();
+      auto empty_vec =
+          std::make_shared<DictVector>(10, empty_parent, /*update_size=*/1);
+      EXPECT_TRUE(DictVectorTestFriend::is_map_mode(*empty_vec));
+      int count = 0;
+      EXPECT_OK(empty_vec->ForEachDict([&](size_t idx, const Dict& dict) {
+        ++count;
+        return absl::OkStatus();
+      }));
+      EXPECT_EQ(count, 0);
+    }
+  }
+
+  // 7. Callback returning absl::Status
+  {
+    auto vec = std::make_shared<DictVector>(10, /*update_size=*/1);
+    vec->GetMutable(1).Set(1, DataItem(10));
+    vec->GetMutable(2).Set(1, DataItem(20));
+    vec->GetMutable(3).Set(1, DataItem(30));
+
+    // Success case
+    int count = 0;
+    EXPECT_OK(
+        vec->ForEachDict([&](size_t idx, const Dict& dict) -> absl::Status {
+          ++count;
+          return absl::OkStatus();
+        }));
+    EXPECT_EQ(count, 3);
+
+    // Early termination on error
+    count = 0;
+    auto status =
+        vec->ForEachDict([&](size_t idx, const Dict& dict) -> absl::Status {
+          ++count;
+          return absl::InternalError("stop");
+        });
+    EXPECT_THAT(status, StatusIs(absl::StatusCode::kInternal, "stop"));
+    EXPECT_EQ(count, 1);
   }
 }
 

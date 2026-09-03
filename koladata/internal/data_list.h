@@ -28,8 +28,10 @@
 #include "absl/base/nullability.h"
 #include "absl/container/fixed_array.h"
 #include "absl/container/flat_hash_map.h"
-#include "absl/container/node_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
+#include "absl/status/status.h"
+#include "arolla/util/status_macros_backport.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/quote.h"
 #include "arolla/memory/optional_value.h"
@@ -347,6 +349,51 @@ class DataListVector {
 
   // Note: it doesn't include parent's size.
   void AppendMemoryStats(MemoryStatsEntry& stats) const;
+
+  // Calls `callback(size_t index, const DataList& list)` for each present list.
+  // Iteration stops on the first error and returns that status.
+  template <typename Callback>
+  absl::Status ForEachList(Callback&& callback) const {
+    bool dense_iteration = false;
+    for (const DataListVector* dlv = this; dlv != nullptr;
+         dlv = dlv->parent_.get()) {
+      if (std::holds_alternative<Array>(dlv->data_)) {
+        dense_iteration = true;
+        break;
+      }
+    }
+
+    if (dense_iteration) {
+      for (size_t i = 0; i < size_; ++i) {
+        const DataList* list = Get(i);
+        if (list != nullptr) {
+          RETURN_IF_ERROR(callback(i, *list));
+        }
+      }
+      return absl::OkStatus();
+    }
+
+    if (parent_ == nullptr) {
+      const auto& map = std::get<Map>(data_).map;
+      for (const auto& [i, list] : map) {
+        RETURN_IF_ERROR(callback(i, list));
+      }
+      return absl::OkStatus();
+    }
+
+    absl::flat_hash_set<size_t> seen;
+    for (const DataListVector* dlv = this; dlv != nullptr;
+         dlv = dlv->parent_.get()) {
+      const auto& map = std::get<Map>(dlv->data_).map;
+      for (const auto& [i, list] : map) {
+        if (!seen.insert(i).second) {
+          continue;
+        }
+        RETURN_IF_ERROR(callback(i, list));
+      }
+    }
+    return absl::OkStatus();
+  }
 
  private:
   const DataList* absl_nullable GetFromMap(size_t index) const;

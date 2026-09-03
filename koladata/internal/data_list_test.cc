@@ -14,6 +14,7 @@
 //
 #include "koladata/internal/data_list.h"
 
+#include <cstddef>
 #include <memory>
 #include <optional>
 #include <string>
@@ -22,6 +23,8 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/bytes.h"
@@ -42,7 +45,9 @@ struct DataListVectorTestFriend {
 
 namespace {
 
+using ::absl_testing::StatusIs;
 using ::testing::ElementsAre;
+using ::testing::UnorderedElementsAre;
 
 TEST(DataListTest, Constructors) {
   {
@@ -464,6 +469,181 @@ TEST(DataListTest, DataListVectorUpdateSize) {
     derived->GetMutable(2).Insert(0, 20);
     EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*derived));
     EXPECT_THAT(*derived->Get(2), ElementsAre(DataItem(20)));
+  }
+}
+
+TEST(DataListTest, DataListVectorForEachList) {
+  // 1. Map mode (sparse, no parent)
+  {
+    auto vec = std::make_shared<DataListVector>(10, /*update_size=*/1);
+    EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*vec));
+
+    // Empty vector: callback not called.
+    int count = 0;
+    EXPECT_OK(vec->ForEachList([&](size_t idx, const DataList& list) {
+      ++count;
+      return absl::OkStatus();
+    }));
+    EXPECT_EQ(count, 0);
+
+    vec->GetMutable(2).Insert(0, 20);
+    vec->GetMutable(7).Insert(0, 70);
+
+    std::vector<size_t> visited_indices;
+    EXPECT_OK(vec->ForEachList([&](size_t idx, const DataList& list) {
+      visited_indices.push_back(idx);
+      if (idx == 2) {
+        EXPECT_THAT(list, ElementsAre(DataItem(20)));
+      } else if (idx == 7) {
+        EXPECT_THAT(list, ElementsAre(DataItem(70)));
+      }
+      return absl::OkStatus();
+    }));
+    EXPECT_THAT(visited_indices, UnorderedElementsAre(2, 7));
+  }
+
+  // 2. Array mode
+  {
+    auto vec = std::make_shared<DataListVector>(10, /*update_size=*/5);
+    EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(*vec));
+
+    vec->GetMutable(1).Insert(0, 10);
+    vec->GetMutable(4).Insert(0, 40);
+
+    std::vector<size_t> visited_indices;
+    EXPECT_OK(vec->ForEachList([&](size_t idx, const DataList& list) {
+      visited_indices.push_back(idx);
+      if (idx == 1) {
+        EXPECT_THAT(list, ElementsAre(DataItem(10)));
+      } else if (idx == 4) {
+        EXPECT_THAT(list, ElementsAre(DataItem(40)));
+      }
+      return absl::OkStatus();
+    }));
+    EXPECT_THAT(visited_indices, UnorderedElementsAre(1, 4));
+  }
+
+  // 3. Derived with parent (both Map mode)
+  {
+    auto parent = std::make_shared<DataListVector>(10, /*update_size=*/1);
+    parent->GetMutable(2).Insert(0, 20);
+    parent->GetMutable(5).Insert(0, 50);
+
+    auto derived = std::make_shared<DataListVector>(parent, /*update_size=*/1);
+    EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*derived));
+    derived->GetMutable(5).Insert(0, 51);
+    derived->GetMutable(8).Insert(0, 80);
+
+    std::vector<size_t> visited_indices;
+    EXPECT_OK(derived->ForEachList([&](size_t idx, const DataList& list) {
+      visited_indices.push_back(idx);
+      if (idx == 2) {
+        EXPECT_THAT(list, ElementsAre(DataItem(20)));
+      } else if (idx == 5) {
+        EXPECT_THAT(list, ElementsAre(DataItem(51), DataItem(50)));
+      } else if (idx == 8) {
+        EXPECT_THAT(list, ElementsAre(DataItem(80)));
+      }
+      return absl::OkStatus();
+    }));
+    EXPECT_THAT(visited_indices, UnorderedElementsAre(2, 5, 8));
+  }
+
+  // 4. Derived with parent (Array mode)
+  {
+    auto parent = std::make_shared<DataListVector>(10, /*update_size=*/1);
+    parent->GetMutable(2).Insert(0, 20);
+    parent->GetMutable(5).Insert(0, 50);
+
+    auto derived = std::make_shared<DataListVector>(parent, /*update_size=*/5);
+    EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(*derived));
+    derived->GetMutable(5).Insert(0, 51);
+
+    std::vector<size_t> visited_indices;
+    EXPECT_OK(derived->ForEachList([&](size_t idx, const DataList& list) {
+      visited_indices.push_back(idx);
+      if (idx == 2) {
+        EXPECT_THAT(list, ElementsAre(DataItem(20)));
+      } else if (idx == 5) {
+        EXPECT_THAT(list, ElementsAre(DataItem(51), DataItem(50)));
+      }
+      return absl::OkStatus();
+    }));
+    EXPECT_THAT(visited_indices, UnorderedElementsAre(2, 5));
+  }
+
+  // 5. Derived in Map mode with parent in Array mode
+  {
+    auto parent = std::make_shared<DataListVector>(10, /*update_size=*/5);
+    EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(*parent));
+    parent->GetMutable(2).Insert(0, 20);
+    parent->GetMutable(5).Insert(0, 50);
+
+    // Case 5a: derived has empty map (no modifications yet)
+    auto derived_empty =
+        std::make_shared<DataListVector>(parent, /*update_size=*/1);
+    EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*derived_empty));
+    {
+      std::vector<size_t> visited_indices;
+      EXPECT_OK(
+          derived_empty->ForEachList([&](size_t idx, const DataList& list) {
+            visited_indices.push_back(idx);
+            if (idx == 2) {
+              EXPECT_THAT(list, ElementsAre(DataItem(20)));
+            } else if (idx == 5) {
+              EXPECT_THAT(list, ElementsAre(DataItem(50)));
+            }
+            return absl::OkStatus();
+          }));
+      EXPECT_THAT(visited_indices, UnorderedElementsAre(2, 5));
+    }
+
+    // Case 5b: derived has non-empty map (overriding index 5, adding index 8)
+    auto derived = std::make_shared<DataListVector>(parent, /*update_size=*/1);
+    EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*derived));
+    derived->GetMutable(5).Insert(0, 51);
+    derived->GetMutable(8).Insert(0, 80);
+
+    std::vector<size_t> visited_indices;
+    EXPECT_OK(derived->ForEachList([&](size_t idx, const DataList& list) {
+      visited_indices.push_back(idx);
+      if (idx == 2) {
+        EXPECT_THAT(list, ElementsAre(DataItem(20)));
+      } else if (idx == 5) {
+        EXPECT_THAT(list, ElementsAre(DataItem(51), DataItem(50)));
+      } else if (idx == 8) {
+        EXPECT_THAT(list, ElementsAre(DataItem(80)));
+      }
+      return absl::OkStatus();
+    }));
+    EXPECT_THAT(visited_indices, UnorderedElementsAre(2, 5, 8));
+  }
+
+  // 6. Callback returning absl::Status
+  {
+    auto vec = std::make_shared<DataListVector>(10, /*update_size=*/1);
+    vec->GetMutable(1).Insert(0, 10);
+    vec->GetMutable(2).Insert(0, 20);
+    vec->GetMutable(3).Insert(0, 30);
+
+    // Success case
+    int count = 0;
+    EXPECT_OK(
+        vec->ForEachList([&](size_t idx, const DataList& list) -> absl::Status {
+          ++count;
+          return absl::OkStatus();
+        }));
+    EXPECT_EQ(count, 3);
+
+    // Early termination on error
+    count = 0;
+    auto status =
+        vec->ForEachList([&](size_t idx, const DataList& list) -> absl::Status {
+          ++count;
+          return absl::InternalError("stop");
+        });
+    EXPECT_THAT(status, StatusIs(absl::StatusCode::kInternal, "stop"));
+    EXPECT_EQ(count, 1);
   }
 }
 
