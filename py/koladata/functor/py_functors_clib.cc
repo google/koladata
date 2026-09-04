@@ -45,8 +45,14 @@ PYBIND11_MODULE(py_functors_py_ext, m) {
         }
         absl::flat_hash_set<arolla::Fingerprint> extra_nodes_to_extract(
             extra_nodes_to_extract_py.begin(), extra_nodes_to_extract_py.end());
-        DataSlice res = arolla::python::pybind11_unstatus_or(
-            functor::AutoVariables(*fn, std::move(extra_nodes_to_extract)));
+        absl::StatusOr<DataSlice> res_or_error;
+        {
+          arolla::python::ReleasePyGIL guard;
+          res_or_error =
+              functor::AutoVariables(*fn, std::move(extra_nodes_to_extract));
+        }
+        DataSlice res =
+            arolla::python::pybind11_unstatus_or(std::move(res_or_error));
         return arolla::python::pybind11_steal_or_throw<py::object>(
             WrapPyDataSlice(std::move(res)));
       },
@@ -61,8 +67,12 @@ PYBIND11_MODULE(py_functors_py_ext, m) {
         if (fn == nullptr) {
           throw py::error_already_set();
         }
-        return arolla::python::pybind11_unstatus_or(
-            functor::GetVariableEvaluationOrder(*fn));
+        absl::StatusOr<std::vector<std::string>> res_or_error;
+        {
+          arolla::python::ReleasePyGIL guard;
+          res_or_error = functor::GetVariableEvaluationOrder(*fn);
+        }
+        return arolla::python::pybind11_unstatus_or(std::move(res_or_error));
       },
       py::arg("fn"),
       "Returns the topologically-sorted variable evaluation order of a "
@@ -82,8 +92,13 @@ PYBIND11_MODULE(py_functors_py_ext, m) {
         for (const auto& arg : args) {
           arg_refs.push_back(arg.AsRef());
         }
-        return arolla::python::pybind11_unstatus_or(
-            functor::CallFunctorWithCompilationCache(*fn, arg_refs, kwnames));
+        absl::StatusOr<arolla::TypedValue> result_or_error;
+        {
+          arolla::python::ReleasePyGIL guard;
+          result_or_error =
+              functor::CallFunctorWithCompilationCache(*fn, arg_refs, kwnames);
+        }
+        return arolla::python::pybind11_unstatus_or(std::move(result_or_error));
       },
       py::arg("fn"), py::arg("args") = std::vector<arolla::TypedValue>{},
       py::arg("kwnames") = std::vector<std::string>{},
