@@ -91,6 +91,9 @@ class SubsliceOperatorFamily : public arolla::OperatorFamily {
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const final;
 };
+// kd.slices.resize operator.
+absl::StatusOr<DataSlice> Resize(const DataSlice& x,
+                                 DataSlice::JaggedShape shape);
 
 // kd.slices.take operator.
 absl::StatusOr<DataSlice> Take(const DataSlice& x, const DataSlice& indices);

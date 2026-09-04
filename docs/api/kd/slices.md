@@ -939,6 +939,41 @@ Args:
   x: A DataSlice of data.
   sizes: A DataSlice of sizes that each value in `x` should be repeated for.</code></pre>
 
+### `kd.slices.resize(x, shape)` {#kd.slices.resize}
+Aliases:
+
+- [kd.resize](../kd.md#kd.resize)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Resizes `x` to the provided `shape`.
+
+Preserves elements at existing coordinate positions. If `shape` is smaller
+than the current shape of `x` in any dimension, the DataSlice is clipped.
+If `shape` is larger in any dimension, missing values (`None`) are padded.
+
+`shape` must have the same rank as `x`.
+
+Example:
+  x = kd.slice([[1, 2], [3, 4, 5]])
+  kd.resize(x, kd.shapes.new(2, 3))
+  # -&gt; kd.slice([[1, 2, None], [3, 4, 5]])
+
+  kd.resize(x, kd.shapes.new(3, 2))
+  # -&gt; kd.slice([[1, 2], [3, 4], [None, None]])
+
+Args:
+  x: a DataSlice.
+  shape: a JaggedShape.
+
+Returns:
+  DataSlice with the provided `shape`.</code></pre>
+
+### `kd.slices.resize_as(x, shape_from)` {#kd.slices.resize_as}
+Aliases:
+
+- [kd.resize_as](../kd.md#kd.resize_as)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice `x` resized to the shape of DataSlice `shape_from`.</code></pre>
+
 ### `kd.slices.reverse(ds)` {#kd.slices.reverse}
 Aliases:
 

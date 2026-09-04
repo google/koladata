@@ -27,7 +27,6 @@
 #include <vector>
 
 #include "absl/algorithm/container.h"
-#include "absl/base/attributes.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/hash/hash.h"
 #include "absl/log/check.h"
@@ -894,6 +893,44 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
                            std::move(split_points_builder).Build())}));
   return DataSlice::Create(*std::move(res_impl), std::move(new_shape),
                            x.GetSchemaImpl(), x.GetBag());
+}
+
+namespace {
+
+arolla::DenseArray<int64_t> CreateEdgeIndices(
+    const arolla::DenseArrayEdge& edge) {
+  arolla::Buffer<int64_t>::Builder bldr(edge.child_size());
+  auto inserter = bldr.GetInserter();
+  for (int64_t parent = 0; parent < edge.parent_size(); ++parent) {
+    for (int64_t i = 0; i < edge.split_size(parent); ++i) {
+      inserter.Add(i);
+    }
+  }
+  return arolla::DenseArray<int64_t>{std::move(bldr).Build()};
+}
+
+}  // namespace
+
+absl::StatusOr<DataSlice> Resize(const DataSlice& x,
+                                 DataSlice::JaggedShape shape) {
+  if (x.GetShape().rank() != shape.rank()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "rank of `x` must match rank of `shape`: %d vs %d",
+        x.GetShape().rank(), shape.rank()));
+  }
+  if (shape.rank() == 0) {
+    return x;
+  }
+  std::vector<subslice::SlicingArgType> slice_args;
+  slice_args.reserve(shape.rank());
+  for (size_t dim = 0; dim < shape.rank(); ++dim) {
+    ASSIGN_OR_RETURN(
+        auto arg_slice,
+        DataSlice::CreatePrimitive(CreateEdgeIndices(shape.edges()[dim]),
+                                   shape.RemoveDims(dim + 1)));
+    slice_args.emplace_back(std::move(arg_slice));
+  }
+  return subslice::Subslice(x, std::move(slice_args));
 }
 
 absl::StatusOr<DataSlice> Reverse(const DataSlice& obj) {

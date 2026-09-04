@@ -207,6 +207,16 @@ def _repeat(self, sizes: Any) -> DataSlice:
   return _eval_op('kd.repeat', self, sizes)
 
 
+@add_method(DataSlice, 'resize', docstring_from='kd.resize')
+def _resize(self, shape: jagged_shape.JaggedShape) -> DataSlice:
+  return _eval_op('kd.resize', self, shape)
+
+
+@add_method(DataSlice, 'resize_as', docstring_from='kd.resize_as')
+def _resize_as(self, shape_from: DataSlice) -> DataSlice:
+  return _eval_op('kd.resize_as', self, shape_from)
+
+
 @add_method(DataSlice, 'select', docstring_from='kd.select')
 def _select(
     self, fltr: Any, expand_filter: bool | DataSlice = DataSlice.from_vals(True)

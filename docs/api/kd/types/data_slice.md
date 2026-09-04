@@ -774,6 +774,35 @@ Args:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice x reshaped to the shape of DataSlice shape_from.</code></pre>
 
+### `DataSlice.resize(self, shape: JaggedShape) -> DataSlice` {#kd.types.DataSlice.resize}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Resizes `x` to the provided `shape`.
+
+Preserves elements at existing coordinate positions. If `shape` is smaller
+than the current shape of `x` in any dimension, the DataSlice is clipped.
+If `shape` is larger in any dimension, missing values (`None`) are padded.
+
+`shape` must have the same rank as `x`.
+
+Example:
+  x = kd.slice([[1, 2], [3, 4, 5]])
+  kd.resize(x, kd.shapes.new(2, 3))
+  # -&gt; kd.slice([[1, 2, None], [3, 4, 5]])
+
+  kd.resize(x, kd.shapes.new(3, 2))
+  # -&gt; kd.slice([[1, 2], [3, 4], [None, None]])
+
+Args:
+  x: a DataSlice.
+  shape: a JaggedShape.
+
+Returns:
+  DataSlice with the provided `shape`.</code></pre>
+
+### `DataSlice.resize_as(self, shape_from: DataSlice) -> DataSlice` {#kd.types.DataSlice.resize_as}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice `x` resized to the shape of DataSlice `shape_from`.</code></pre>
+
 ### `DataSlice.select(self, fltr: Any, expand_filter: bool | DataSlice = True) -> DataSlice` {#kd.types.DataSlice.select}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a new DataSlice by filtering out missing items in fltr.

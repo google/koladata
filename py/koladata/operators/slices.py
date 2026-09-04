@@ -1445,6 +1445,56 @@ def select_present(ds):
   return internal_select_by_slice(ds=ds, fltr=masking.has(ds))
 
 
+@optools.add_to_registry(aliases=['kd.resize'], via_cc_operator_package=True)
+@optools.as_backend_operator(
+    'kd.slices.resize',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_jagged_shape(P.shape),
+    ],
+)
+def resize(x, shape):  # pylint: disable=unused-argument
+  """Resizes `x` to the provided `shape`.
+
+  Preserves elements at existing coordinate positions. If `shape` is smaller
+  than the current shape of `x` in any dimension, the DataSlice is clipped.
+  If `shape` is larger in any dimension, missing values (`None`) are padded.
+
+  `shape` must have the same rank as `x`.
+
+  Example:
+    x = kd.slice([[1, 2], [3, 4, 5]])
+    kd.resize(x, kd.shapes.new(2, 3))
+    # -> kd.slice([[1, 2, None], [3, 4, 5]])
+
+    kd.resize(x, kd.shapes.new(3, 2))
+    # -> kd.slice([[1, 2], [3, 4], [None, None]])
+
+  Args:
+    x: a DataSlice.
+    shape: a JaggedShape.
+
+  Returns:
+    DataSlice with the provided `shape`.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(
+    aliases=['kd.resize_as'], via_cc_operator_package=True
+)
+@optools.as_lambda_operator(
+    'kd.slices.resize_as',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.shape_from),
+    ],
+)
+def resize_as(x, shape_from):
+  """Returns a DataSlice `x` resized to the shape of DataSlice `shape_from`."""
+  return resize(x, jagged_shape_ops.get_shape(shape_from))
+
+
 @optools.add_to_registry(aliases=['kd.reverse'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.slices.reverse',

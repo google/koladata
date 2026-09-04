@@ -1270,6 +1270,14 @@ Alias for [kd.shapes.reshape](kd/shapes.md#kd.shapes.reshape)
 
 Alias for [kd.shapes.reshape_as](kd/shapes.md#kd.shapes.reshape_as)
 
+### `kd.resize(x, shape)` {#kd.resize}
+
+Alias for [kd.slices.resize](kd/slices.md#kd.slices.resize)
+
+### `kd.resize_as(x, shape_from)` {#kd.resize_as}
+
+Alias for [kd.slices.resize_as](kd/slices.md#kd.slices.resize_as)
+
 ### `kd.reverse(ds)` {#kd.reverse}
 
 Alias for [kd.slices.reverse](kd/slices.md#kd.slices.reverse)

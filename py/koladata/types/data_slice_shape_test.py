@@ -172,6 +172,22 @@ class DataSliceShapeTest(parameterized.TestCase):
   def test_repeat(self, x, sizes, expected):
     testing.assert_equal(x.repeat(sizes), expected)
 
+  def test_resize(self):
+    x = ds([[1, 2, 3], [4, 5], [6]])
+    shape = jagged_shape.create_shape([3], [2, 3, 1])
+    testing.assert_equal(
+        x.resize(shape),
+        ds([[1, 2], [4, 5, None], [6]]),
+    )
+
+  def test_resize_as(self):
+    x = ds([[1, 2], [3, 4, 5]])
+    target = ds([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
+    testing.assert_equal(
+        x.resize_as(target),
+        ds([[1, 2, None], [3, 4, 5], [None, None, None]]),
+    )
+
   @parameterized.parameters(
       (
           ds([1, 2, 3]),

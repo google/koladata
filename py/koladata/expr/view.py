@@ -268,6 +268,12 @@ class KodaView(BaseKodaView):
   def repeat(self, sizes: Any) -> arolla.Expr:
     return _aux_bind_op('kd.repeat', self, sizes)
 
+  def resize(self, shape: Any) -> arolla.Expr:
+    return _aux_bind_op('kd.resize', self, shape)
+
+  def resize_as(self, shape_from: Any) -> arolla.Expr:
+    return _aux_bind_op('kd.resize_as', self, shape_from)
+
   def select(
       self, fltr: Any, expand_filter: Any = data_slice.DataSlice.from_vals(True)
   ) -> arolla.Expr:

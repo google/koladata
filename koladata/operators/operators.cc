@@ -491,6 +491,7 @@ OPERATOR("kd.slices.get_repr", GetRepr);
 OPERATOR("kd.slices.internal_select_by_slice", Select, "kd.slices.select");
 OPERATOR("kd.slices.inverse_select", InverseSelect);
 OPERATOR("kd.slices.is_empty", IsEmpty);
+OPERATOR("kd.slices.resize", Resize);
 OPERATOR("kd.slices.reverse", Reverse);
 OPERATOR_FAMILY("kd.slices.subslice",
                 std::make_unique<SubsliceOperatorFamily>());
