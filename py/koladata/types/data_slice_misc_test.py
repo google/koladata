@@ -757,20 +757,25 @@ class DataSliceSlicingTest(parameterized.TestCase):
   def test_get_item(self, x, i, expected):
     testing.assert_equal(x.S[i], expected)
 
-  def test_len_disabled(self):
-    with self.assertRaisesRegex(
-        ValueError,
-        'length is not well defined for .S; did you mean to use .L?',
-    ):
-      _ = len(ds([1, 2, 3]).S)  # pyrefly: ignore[bad-argument-type]
+  @parameterized.parameters(
+      (ds([]), 0),
+      (ds([1]), 1),
+      (ds([1, 2, 3]), 3),
+      (ds([[1, 2], [3], [4, 5, 6]]), 3),
+  )
+  def test_len(self, x, expected):
+    self.assertLen(x.S, expected)
 
-  def test_iter_disabled(self):
-    with self.assertRaisesRegex(
-        ValueError,
-        'iteration is not well defined over .S; did you mean to use .L?',
-    ):
-      for _ in ds([1, 2, 3]).S:
-        pass
+  def test_iter(self):
+    d = ds([1, 2, 3])
+    for idx, el in enumerate(d.S):  # pyrefly: ignore[bad-argument-type]
+      self.assertEqual(el, d.S[idx])
+
+  def test_no_infinite_loop_in_iter(self):
+    x = ds([[1, 2], [3]])
+    for i, _ in enumerate(x.S):  # pyrefly: ignore[bad-argument-type]
+      if i > 30:
+        raise RuntimeError('infinite loop when iterating over x.S')
 
 
 class DataSliceListSlicingTest(parameterized.TestCase):

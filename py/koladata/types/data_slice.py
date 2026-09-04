@@ -974,14 +974,12 @@ class SlicingHelper:
     return _eval_op('kd.subslice', self._ds, *slices)
 
   def __len__(self) -> int:
-    raise ValueError(
-        'length is not well defined for .S; did you mean to use .L?'
-    )
+    return _eval_op(
+        'kd.shapes.dim_sizes', _eval_op('kd.get_shape', self._ds), 0
+    ).internal_as_py()[0]
 
   def __iter__(self):
-    raise ValueError(
-        'iteration is not well defined over .S; did you mean to use .L?'
-    )
+    return (self[i] for i in range(len(self)))
 
 
 class ListSlicingHelper:
