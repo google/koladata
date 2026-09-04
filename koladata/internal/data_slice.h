@@ -515,15 +515,24 @@ void DataSliceImpl::CreateImpl(Internal& impl,
                 "All DenseArray's must have different types");
   DCHECK_EQ(main_values.bitmap_bit_offset, 0);
   if constexpr (sizeof...(values) > 0) {
-    DCHECK((values.size() == main_values.size()) && ...);
-    DCHECK((values.bitmap_bit_offset == 0) && ...);
+    [[maybe_unused]] auto sizes_match = [&]() {
+      return ((values.size() == main_values.size()) && ...);
+    };
+    DCHECK(sizes_match());
+    [[maybe_unused]] auto offsets_zero = [&]() {
+      return ((values.bitmap_bit_offset == 0) && ...);
+    };
+    DCHECK(offsets_zero());
     DCHECK(data_slice_impl::VerifyNonIntersectingIds(main_values, values...));
   }
   impl.size = main_values.size();
 
   if constexpr (sizeof...(values) > 0) {
     impl.values.reserve(sizeof...(values) + 1);
-    DCHECK(((values.size() == main_values.size()) && ...));
+    [[maybe_unused]] auto sizes_match = [&]() {
+      return ((values.size() == main_values.size()) && ...);
+    };
+    DCHECK(sizes_match());
   }
   // We avoid calling RemoveEmptyValues for single type to minimize
   // overhead in runtime and the binary size.
@@ -564,7 +573,10 @@ DataSliceImpl DataSliceImpl::CreateWithAllocIds(
   if constexpr ((std::is_same_v<T, ObjectId> || ... ||
                  std::is_same_v<Ts, ObjectId>)) {
     DCHECK(data_slice_impl::VerifyAllocIds(allocation_ids, main_values));
-    DCHECK((data_slice_impl::VerifyAllocIds(allocation_ids, values) && ...));
+    [[maybe_unused]] auto alloc_ids_verified = [&]() {
+      return (data_slice_impl::VerifyAllocIds(allocation_ids, values) && ...);
+    };
+    DCHECK(alloc_ids_verified());
     impl->allocation_ids = std::move(allocation_ids);
   } else {
     (void)allocation_ids;
