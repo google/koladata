@@ -89,8 +89,8 @@ class FunctorIsFnTest(parameterized.TestCase):
       # Functors.
       (functor_factories.expr_fn(I.self + 1), mask_constants.present),
       (
-          functor_factories.expr_fn(I.self + 1).with_schema(
-              get_functor_schema()
+          kd.schema.unsafe_with_schema(
+              functor_factories.expr_fn(I.self + 1), get_functor_schema()
           ),
           mask_constants.present,
       ),

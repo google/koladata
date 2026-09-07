@@ -36,6 +36,7 @@ from koladata.types import data_slice
 from koladata.types import schema_constants
 
 kde = kde_operators.kde
+kd = kde_operators.kd
 ds = data_slice.DataSlice.from_vals
 
 
@@ -923,7 +924,8 @@ assigned schema: INT32"""),
     item = from_py(entity.ref(), schema=None)
     self.assertFalse(item.has_bag())
     testing.assert_equal(
-        item.with_schema(entity.get_schema().no_bag()), entity.no_bag()
+        kd.schema.unsafe_with_schema(item, entity.get_schema().no_bag()),
+        entity.no_bag(),
     )
 
   def test_entity_reference_with_schema(self):
@@ -2005,7 +2007,10 @@ assigned schema: ENTITY(a=FLOAT32)"""),
       )
       testing.assert_equal(obj.no_bag().get_itemid(), parent_itemid)
       testing.assert_dicts_keys_equal(
-          obj, child_keys_itemid.with_schema(schema_constants.OBJECT)
+          obj,
+          kd.schema.unsafe_with_schema(
+              child_keys_itemid, schema_constants.OBJECT
+          ),
       )
 
     with self.subTest('list_item_index child itemid'):

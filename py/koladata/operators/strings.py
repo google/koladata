@@ -25,6 +25,7 @@ from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import masking as masking_ops
 from koladata.operators import optools
 from koladata.operators import qtype_utils
+from koladata.operators import schema as schema_ops
 from koladata.operators import slices
 from koladata.types import data_slice
 from koladata.types import py_boxing
@@ -474,7 +475,7 @@ def regex_extract(text, regex):  # pylint: disable=unused-argument
     kd.strings.regex_extract(kd.item('foobar'), kd.item('o(..)'))
       # kd.item('ob')
     kd.strings.regex_extract(kd.item('foobar'), kd.item('^o(..)$'))
-      # kd.item(None).with_schema(kd.STRING)
+      # kd.schema.unsafe_with_schema(kd.item(None), kd.STRING)
     kd.strings.regex_extract(kd.item('foobar'), kd.item('^.o(..)a.$'))
       # kd.item('ob')
     kd.strings.regex_extract(kd.item('foobar'), kd.item('.*(b.*r)$'))
@@ -600,10 +601,9 @@ def regex_find_all(text, regex):  # pylint: disable=unused-argument
           group_edge,
       ),
   )
-  return (
-      arolla_bridge.to_data_slice(flat_res)
-      .reshape(shape)
-      .with_schema(text.get_schema())
+  return schema_ops.unsafe_with_schema(
+      arolla_bridge.to_data_slice(flat_res).reshape(shape),
+      text.get_schema(),
   )
 
 
@@ -683,10 +683,9 @@ def regex_replace_all(text, regex, replacement):
   replacement_da = arolla_bridge.to_arolla_dense_array_text(replacement_a)
   regex_t = arolla_bridge.to_arolla_text(regex)
   res_da = M.strings.replace_all_regex(text_da, regex_t, replacement_da)
-  return (
-      arolla_bridge.to_data_slice(res_da)
-      .reshape(text_a.get_shape())
-      .with_schema(text.get_schema())
+  return schema_ops.unsafe_with_schema(
+      arolla_bridge.to_data_slice(res_da).reshape(text_a.get_shape()),
+      text.get_schema(),
   )
 
 

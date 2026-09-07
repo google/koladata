@@ -193,7 +193,6 @@ py_test(
         ":qtypes",
         ":schema_constants",
         "//py:python_path",
-        "//py/koladata:kd",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",

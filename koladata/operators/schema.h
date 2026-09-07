@@ -104,7 +104,7 @@ absl::StatusOr<DataSlice> ListSchema(const DataSlice& item_schema);
 absl::StatusOr<DataSlice> DictSchema(const DataSlice& key_schema,
                                      const DataSlice& value_schema);
 
-// kd.schema.with_schema operator.
+// kd.schema.unsafe_with_schema operator.
 inline absl::StatusOr<DataSlice> WithSchema(const DataSlice& ds,
                                             const DataSlice& schema) {
   return ds.WithSchema(schema);

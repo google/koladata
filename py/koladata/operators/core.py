@@ -1042,9 +1042,12 @@ def deep_cast_to(x, schema, allow_removing_attrs=False, allow_new_attrs=False):
       missing values.
   """
 
-  return schema_ops.deep_cast_to_impl(
-      x, deep_clone(schema), allow_removing_attrs, allow_new_attrs
-  ).with_schema(schema)
+  return schema_ops.unsafe_with_schema(
+      schema_ops.deep_cast_to_impl(
+          x, deep_clone(schema), allow_removing_attrs, allow_new_attrs
+      ),
+      schema,
+  )
 
 
 @optools.add_to_registry(aliases=['kd.nofollow'], via_cc_operator_package=True)
@@ -1204,7 +1207,7 @@ def extract_update(ds, schema=arolla.unspecified()):
 def reify(ds, source):
   """Assigns a bag and schema from `source` to the slice `ds`."""
   ds = with_bag(ds, get_bag(source))
-  return schema_ops.with_schema(ds, schema_ops.get_schema(source))
+  return schema_ops.unsafe_with_schema(ds, schema_ops.get_schema(source))
 
 
 @optools.add_to_registry(

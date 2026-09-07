@@ -29,6 +29,7 @@ from koladata.types import list_item as _
 from koladata.types import schema_constants
 
 
+kd = kde_operators.kd
 kde = kde_operators.kde
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
@@ -67,9 +68,24 @@ class DataSliceDictListTest(parameterized.TestCase):
     testing.assert_dicts_values_equal(
         many_dicts,
         ds([
-            [6, many_dicts.S[0].with_schema(schema_constants.OBJECT)],
-            [7, many_dicts.S[1].with_schema(schema_constants.OBJECT)],
-            [8, many_dicts.S[2].with_schema(schema_constants.OBJECT)],
+            [
+                6,
+                kd.schema.unsafe_with_schema(
+                    many_dicts.S[0], schema_constants.OBJECT
+                ),
+            ],
+            [
+                7,
+                kd.schema.unsafe_with_schema(
+                    many_dicts.S[1], schema_constants.OBJECT
+                ),
+            ],
+            [
+                8,
+                kd.schema.unsafe_with_schema(
+                    many_dicts.S[2], schema_constants.OBJECT
+                ),
+            ],
         ]),
     )
 
@@ -86,10 +102,13 @@ class DataSliceDictListTest(parameterized.TestCase):
 
     testing.assert_equal(
         many_dicts[keys345],
-        values678.with_schema(schema_constants.OBJECT).with_bag(db),
+        kd.schema.unsafe_with_schema(
+            values678, schema_constants.OBJECT
+        ).with_bag(db),
     )
     testing.assert_equal(
-        many_dicts['self'], many_dicts.with_schema(schema_constants.OBJECT)
+        many_dicts['self'],
+        kd.schema.unsafe_with_schema(many_dicts, schema_constants.OBJECT),
     )
 
     del many_dicts[4]
@@ -112,9 +131,26 @@ class DataSliceDictListTest(parameterized.TestCase):
     testing.assert_dicts_values_equal(
         many_dicts,
         ds([
-            [6, many_dicts.S[0].with_schema(schema_constants.OBJECT), None],
-            [many_dicts.S[1].with_schema(schema_constants.OBJECT), None],
-            [8, many_dicts.S[2].with_schema(schema_constants.OBJECT), None],
+            [
+                6,
+                kd.schema.unsafe_with_schema(
+                    many_dicts.S[0], schema_constants.OBJECT
+                ),
+                None,
+            ],
+            [
+                kd.schema.unsafe_with_schema(
+                    many_dicts.S[1], schema_constants.OBJECT
+                ),
+                None,
+            ],
+            [
+                8,
+                kd.schema.unsafe_with_schema(
+                    many_dicts.S[2], schema_constants.OBJECT
+                ),
+                None,
+            ],
         ]),
     )
 
@@ -128,7 +164,9 @@ class DataSliceDictListTest(parameterized.TestCase):
     )
     testing.assert_equal(
         single_dict[keys345],
-        values678.with_schema(schema_constants.OBJECT).with_bag(db),
+        kd.schema.unsafe_with_schema(
+            values678, schema_constants.OBJECT
+        ).with_bag(db),
     )
 
     keys = ds([[1, 2], [3, 4], [5, 6]], schema_constants.INT32)
@@ -162,7 +200,9 @@ class DataSliceDictListTest(parameterized.TestCase):
   def test_dict_objects_del_key_values(self):
     db = bag()
     d1 = db.dict({'a': 42, 'b': 37}).embed_schema()
-    d2 = db.dict({'a': 53, 'c': 12}).with_schema(schema_constants.OBJECT)
+    d2 = kd.schema.unsafe_with_schema(
+        db.dict({'a': 53, 'c': 12}), schema_constants.OBJECT
+    )
     d = ds([d1, d2])
 
     with self.assertRaisesRegex(
@@ -477,7 +517,7 @@ Assigned schema for values: ENTITY(y=FLOAT32)"""),
     single_list[:] = None
     testing.assert_equal(
         single_list[:],
-        ds([None, None, None]).with_schema(schema_constants.INT32).with_bag(db),
+        ds([None, None, None], schema_constants.INT32).with_bag(db),
     )
 
     many_lists[:] = ds([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
@@ -568,7 +608,9 @@ Assigned schema for values: ENTITY(y=FLOAT32)"""),
   def test_list_objects_del_items(self):
     db = bag()
     l1 = db.list([1, 2, 3]).embed_schema()
-    l2 = db.list([4, 5]).with_schema(schema_constants.OBJECT)
+    l2 = kd.schema.unsafe_with_schema(
+        db.list([4, 5]), schema_constants.OBJECT
+    )
     l = ds([l1, l2])
 
     with self.assertRaisesRegex(

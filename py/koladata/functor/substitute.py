@@ -100,10 +100,12 @@ def assert_signatures_compatible(old_fn, new_fn):
   kw_only = kind == signature_utils.ParameterKind.KEYWORD_ONLY
   var_keyword = kind == signature_utils.ParameterKind.VAR_KEYWORD
   has_default = ~(
-      old_sig.parameters[:]
-      .with_schema(_DEFAULT_VALUE_AS_OBJECT_SCHEMA)
-      .default_value
-      == signature_utils.NO_DEFAULT_VALUE.with_schema(schema_constants.OBJECT)
+      _kd.schema.unsafe_with_schema(
+          old_sig.parameters[:], _DEFAULT_VALUE_AS_OBJECT_SCHEMA
+      ).default_value
+      == _kd.schema.unsafe_with_schema(
+          signature_utils.NO_DEFAULT_VALUE, schema_constants.OBJECT
+      )
   )
 
   # The way we try to assert that signatures are compatible is by building two
@@ -232,9 +234,7 @@ def sub(
     `kd.functor.assert_signatures_compatible` for details.
   """
   def get_key(attr_val):
-    return data_item.DataItem.from_vals(attr_val).with_schema(
-        schema_constants.OBJECT
-    )
+    return data_item.DataItem.from_vals(attr_val, schema_constants.OBJECT)
 
   keys = {}
   vals = []

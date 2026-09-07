@@ -108,7 +108,8 @@ class SchemaCastToTest(parameterized.TestCase):
     result = kd.schema.cast_to(entity, schema)
     testing.assert_equal(result.x.no_bag(), ds([1]))
     testing.assert_equal(
-        result.no_bag(), entity.no_bag().with_schema(schema.no_bag())
+        result.no_bag(),
+        kd.schema.unsafe_with_schema(entity.no_bag(), schema.no_bag()),
     )
     self.assertNotEqual(result.x.get_bag().fingerprint, bag1.fingerprint)
     self.assertNotEqual(

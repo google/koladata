@@ -19,7 +19,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.base.testing import operator_test_invalid_unicode_op_clib as _
 # Needed for self.assertEqual(item_1, item_2).
-from koladata.operators import kde_operators as _
+from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_item
@@ -27,6 +27,8 @@ from koladata.types import data_slice
 from koladata.types import mask_constants
 from koladata.types import qtypes
 from koladata.types import schema_constants
+
+kd = kde_operators.kd
 
 INT32 = schema_constants.INT32
 INT64 = schema_constants.INT64
@@ -315,11 +317,11 @@ class BoxingTest(parameterized.TestCase):
     )
     # The original bags are unaffected.
     testing.assert_equal(
-        e1.with_schema(OBJECT).get_attr('__schema__'),
+        kd.schema.unsafe_with_schema(e1, OBJECT).get_attr('__schema__'),
         ds(None, SCHEMA).with_bag(db1),
     )
     testing.assert_equal(
-        e2.with_schema(OBJECT).get_attr('__schema__'),
+        kd.schema.unsafe_with_schema(e2, OBJECT).get_attr('__schema__'),
         ds(None, SCHEMA).with_bag(db2),
     )
 
@@ -327,25 +329,29 @@ class BoxingTest(parameterized.TestCase):
     db = data_bag.DataBag.empty_mutable()
     e1 = db.new()
     res = ds(e1, OBJECT)
-    testing.assert_equal(res, e1.with_bag(res.get_bag()).with_schema(OBJECT))
+    testing.assert_equal(
+        res, kd.schema.unsafe_with_schema(e1.with_bag(res.get_bag()), OBJECT)
+    )
     testing.assert_equal(
         res.get_attr('__schema__'),
         e1.get_schema().with_bag(res.get_bag()),
     )
     # The original bag is unaffected.
     testing.assert_equal(
-        e1.with_schema(OBJECT).get_attr('__schema__'),
+        kd.schema.unsafe_with_schema(e1, OBJECT).get_attr('__schema__'),
         ds(None, SCHEMA).with_bag(db),
     )
     res = data_item.DataItem.from_vals(e1, OBJECT)
-    testing.assert_equal(res, e1.with_bag(res.get_bag()).with_schema(OBJECT))
+    testing.assert_equal(
+        res, kd.schema.unsafe_with_schema(e1.with_bag(res.get_bag()), OBJECT)
+    )
     testing.assert_equal(
         res.get_attr('__schema__'),
         e1.get_schema().with_bag(res.get_bag()),
     )
     # The original bag is unaffected.
     testing.assert_equal(
-        e1.with_schema(OBJECT).get_attr('__schema__'),
+        kd.schema.unsafe_with_schema(e1, OBJECT).get_attr('__schema__'),
         ds(None, SCHEMA).with_bag(db),
     )
 
@@ -363,7 +369,7 @@ The cause is the values of attribute '__schema__' are different: ENTITY\(\) with
         ),
     ):
       # Try to embed a schema that conflicts with the existing one.
-      ds([e1, e1.with_schema(db1.new().get_schema())], OBJECT)
+      ds([e1, kd.schema.unsafe_with_schema(e1, db1.new().get_schema())], OBJECT)
 
   def test_objects(self):
     db = data_bag.DataBag.empty_mutable()

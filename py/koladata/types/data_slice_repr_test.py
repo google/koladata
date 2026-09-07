@@ -122,8 +122,9 @@ class DataSliceReprTest(parameterized.TestCase):
       ),
       (
           'mask DataSlice with OBJECT schema',
-          ds([mask_constants.present, mask_constants.missing]).with_schema(
-              schema_constants.OBJECT
+          ds(
+              [mask_constants.present, mask_constants.missing],
+              schema_constants.OBJECT,
           ),
           (
               'DataSlice([present, None], schema: OBJECT, present: 1/2, shape:'
@@ -153,7 +154,7 @@ class DataSliceReprTest(parameterized.TestCase):
       ),
       (
           'int32_with_object',
-          ds([1, 2]).with_schema(schema_constants.OBJECT),
+          ds([1, 2], schema_constants.OBJECT),
           (
               'DataSlice([1, 2], schema: OBJECT, present: 2/2, shape:'
               ' JaggedShape(2))'
@@ -365,8 +366,9 @@ class DataSliceReprTest(parameterized.TestCase):
       ),
       (
           'mask DataSlice with OBJECT schema',
-          ds([mask_constants.present, mask_constants.missing]).with_schema(
-              schema_constants.OBJECT
+          ds(
+              [mask_constants.present, mask_constants.missing],
+              schema_constants.OBJECT,
           ),
           'DataSlice([present, None], schema: OBJECT, present: 1/2)',
           '[present, None]',
@@ -391,7 +393,7 @@ class DataSliceReprTest(parameterized.TestCase):
       ),
       (
           'int32_with_object',
-          ds([1, 2]).with_schema(schema_constants.OBJECT),
+          ds([1, 2], schema_constants.OBJECT),
           'DataSlice([1, 2], schema: OBJECT, present: 2/2)',
           '[1, 2]',
       ),

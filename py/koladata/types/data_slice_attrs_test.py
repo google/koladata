@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata import kd as user_facing_kd
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -30,6 +29,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
+kd = kde_operators.kd
 kde = kde_operators.kde
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
@@ -81,7 +81,9 @@ class DataSliceAttrsTest(parameterized.TestCase):
 
   def test_get_itemid(self):
     o = bag().obj(x=ds([1, 2, 3]))
-    testing.assert_equal(o.get_itemid(), o.with_schema(schema_constants.ITEMID))
+    testing.assert_equal(
+        o.get_itemid(), kd.schema.unsafe_with_schema(o, schema_constants.ITEMID)
+    )
     with self.assertRaisesRegex(
         ValueError,
         'casting a DataSlice with schema INT32 to ITEMID is not supported',
@@ -435,7 +437,9 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
   def test_set_get_attr_slice_of_objects_missing_schema_attr(self):
     db = bag()
     obj_1 = db.obj(a=1)
-    obj_2 = db.new(a=1).with_schema(schema_constants.OBJECT)
+    obj_2 = kd.schema.unsafe_with_schema(
+        db.new(a=1), schema_constants.OBJECT
+    )
     obj = ds([obj_1, obj_2])
     with self.assertRaisesWithPredicateMatch(
         AttributeError,
@@ -823,7 +827,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     schema2 = db.new_schema(b=schema_constants.FLOAT32)
     schemas = ds([schema1, schema2])
     schemas.set_metadata(abc='bar')
-    meta_abc = user_facing_kd.get_metadata(schemas).abc
+    meta_abc = kd.get_metadata(schemas).abc
     testing.assert_equal(meta_abc, ds(['bar', 'bar']).with_bag(db))
 
   def test_set_metadata_no_bag_error(self):

@@ -191,7 +191,10 @@ def encapsulate_defaults(f: Callable[..., Any]) -> Callable[..., Any]:
     for name, value in bound.arguments.items():
       if (
           isinstance(value, data_item.DataItem)
-          and value.with_schema(schema_constants.OBJECT) == _DEFAULT_MARKER
+          and (
+              _kd.schema.unsafe_with_schema(value, schema_constants.OBJECT)
+              == _DEFAULT_MARKER
+          )
           and name in defaults
       ):
         bound.arguments[name] = defaults[name]

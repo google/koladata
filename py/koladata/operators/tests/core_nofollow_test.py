@@ -64,8 +64,8 @@ class CoreNofollowTest(parameterized.TestCase):
     nofollow_schema = kd.nofollow_schema(schema)
     # Same data contents.
     testing.assert_equal(
-        nofollow_x.with_schema(schema_constants.OBJECT),
-        x.with_schema(schema_constants.OBJECT),
+        kd.schema.unsafe_with_schema(nofollow_x, schema_constants.OBJECT),
+        kd.schema.unsafe_with_schema(x, schema_constants.OBJECT),
     )
     # nofollow's schema <=> nofollow_schema.
     testing.assert_equal(nofollow_x.get_schema(), nofollow_schema)

@@ -39,13 +39,17 @@ class AllocationNewDictIdTest(absltest.TestCase):
     self.assertIsInstance(dictid, dict_item.DictItem)
     testing.assert_equal(dictid.get_schema(), schema_constants.ITEMID)
     dct = dictid.with_bag(bag())
-    dct = dct.with_schema(
+    dct = kd.schema.unsafe_with_schema(
+        dct,
         dct.get_bag().dict_schema(
             schema_constants.STRING, schema_constants.INT32
-        )
+        ),
     )
     dct['abc'] = 42
-    testing.assert_equal(dct['abc'], ds(42).with_bag(dct.get_bag()))
+    testing.assert_equal(
+        dct['abc'],  # pyrefly: ignore[bad-argument-type]
+        ds(42).with_bag(dct.get_bag()),
+    )
 
   def test_new_alloc_ids(self):
     expr = kde.allocation.new_dictid()

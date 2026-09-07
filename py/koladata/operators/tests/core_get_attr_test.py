@@ -116,7 +116,7 @@ class CoreGetAttrTest(parameterized.TestCase):
   )
   def test_entity_respects_schema(self, attrs):
     entity = kd.new(a=ds([1, None]))
-    entity = entity.with_schema(kd.new().get_schema())
+    entity = kd.schema.unsafe_with_schema(entity, kd.new().get_schema())
     with self.assertRaisesRegex(ValueError, 'missing'):
       kd.get_attr(entity, attrs)
 

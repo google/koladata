@@ -31,6 +31,7 @@ from koladata.types import schema_constants
 
 
 kde = kde_operators.kde
+kd = kde_operators.kd
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 
@@ -327,7 +328,11 @@ class DataSliceBagTest(parameterized.TestCase):
     )
     # No available attrs (no __schema__ attr on object).
     self.assertEqual(
-        dir(db.new(a=ds([1])).with_schema(schema_constants.OBJECT)),
+        dir(
+            kd.schema.unsafe_with_schema(
+                db.new(a=ds([1])), schema_constants.OBJECT
+            )
+        ),
         sorted(dir(data_slice.DataSlice)),
     )
     # Intersection of attrs.
@@ -383,7 +388,9 @@ class DataSliceBagTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'object schema is missing for the DataItem'
     ):
-      db.new(a=1, b='abc').with_schema(schema_constants.OBJECT).get_attr_names()
+      kd.schema.unsafe_with_schema(
+          db.new(a=1, b='abc'), schema_constants.OBJECT
+      ).get_attr_names()
 
   def test_get_attr_names_primitive(self):
     x = ds([1, 2, 3]).with_bag(bag())

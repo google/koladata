@@ -34,6 +34,7 @@ from koladata.types import schema_constants
 eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer("I")
 kde = kde_operators.kde
+kd = kde_operators.kd
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -52,7 +53,7 @@ class SchemaGetSchemaTest(parameterized.TestCase):
       (entity, entity_s),
       (obj, schema_constants.OBJECT.with_bag(db)),
       (
-          entity.with_schema(schema_constants.ITEMID),
+          kd.schema.unsafe_with_schema(entity, schema_constants.ITEMID),
           schema_constants.ITEMID.with_bag(db),
       ),
       (schema_constants.INT32, schema_constants.SCHEMA),

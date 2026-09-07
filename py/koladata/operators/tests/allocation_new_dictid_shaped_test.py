@@ -44,10 +44,11 @@ class AllocationNewDictIdShapedTest(parameterized.TestCase):
     dictid = kd.allocation.new_dictid_shaped(shape)
     testing.assert_equal(dictid.get_schema(), schema_constants.ITEMID)
     dct = dictid.with_bag(bag())
-    dct = dct.with_schema(
+    dct = kd.schema.unsafe_with_schema(
+        dct,
         dct.get_bag().dict_schema(
             schema_constants.STRING, schema_constants.INT32
-        )
+        ),
     )
     dct['abc'] = 42
     testing.assert_equal(dct['abc'], values.with_bag(dct.get_bag()))  # pyrefly: ignore[bad-argument-type]

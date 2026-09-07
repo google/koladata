@@ -39,11 +39,14 @@ class AllocationNewItemIdTest(absltest.TestCase):
     self.assertIsInstance(itemid, data_item.DataItem)
     testing.assert_equal(itemid.get_schema(), schema_constants.ITEMID)
     entity = itemid.with_bag(bag())
-    entity = entity.with_schema(
-        entity.get_bag().new_schema(a=schema_constants.INT32)
+    entity = kd.schema.unsafe_with_schema(
+        entity, entity.get_bag().new_schema(a=schema_constants.INT32)
     )
     entity.a = 42
-    testing.assert_equal(entity.a, ds(42).with_bag(entity.get_bag()))
+    testing.assert_equal(
+        entity.a,  # pyrefly: ignore[bad-argument-type]
+        ds(42).with_bag(entity.get_bag()),
+    )
 
   def test_new_alloc_ids(self):
     expr = kde.allocation.new_itemid()

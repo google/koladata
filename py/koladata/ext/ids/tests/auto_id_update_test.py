@@ -161,11 +161,11 @@ class IdsAutoIdUpdateTest(parameterized.TestCase):
     child = kd.new(val=ds([1, 2, 3, 4, 5]))
     # Both `left` and `right` point to the same child objects.
     parent = kd.new(
-        left=(child & kd.mask([True, True, False, True, True])).with_schema(
-            left_schema
+        left=kd.schema.unsafe_with_schema(
+            child & kd.mask([True, True, False, True, True]), left_schema
         ),
-        right=(child & kd.mask([True, False, True, False, True])).with_schema(
-            right_schema
+        right=kd.schema.unsafe_with_schema(
+            child & kd.mask([True, False, True, False, True]), right_schema
         ),
         schema=parent_schema,
     )

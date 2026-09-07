@@ -175,7 +175,7 @@ class CoreExtractTest(parameterized.TestCase):
 
     self.assertFalse(result.get_bag().is_mutable())
     self.assertEqual(
-        result.a.with_schema(schema_constants.OBJECT)
+        kd.schema.unsafe_with_schema(result.a, schema_constants.OBJECT)
         .get_attr('__schema__')
         .get_present_count(),
         0,
@@ -271,8 +271,8 @@ class CoreExtractTest(parameterized.TestCase):
 
   def test_mixed_objects_and_schemas(self):
     db = data_bag.DataBag.empty_mutable()
-    schema = db.new_schema(x=schema_constants.INT32).with_schema(
-        schema_constants.OBJECT
+    schema = kd.schema.unsafe_with_schema(
+        db.new_schema(x=schema_constants.INT32), schema_constants.OBJECT
     )
     schema.set_attr('__schema__', schema_constants.SCHEMA)
     o = kd.stack(db.obj(x=1), schema)

@@ -15,7 +15,6 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata import kd
 from koladata.expr import expr_eval
 from koladata.functions import functions as fns
 from koladata.functions import object_factories
@@ -28,6 +27,7 @@ from koladata.types import schema_constants
 
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+kd = kde_operators.kd
 
 
 class ListLikeTest(parameterized.TestCase):
@@ -158,7 +158,9 @@ class ListLikeTest(parameterized.TestCase):
       x = fns.list_like(ds(1), input_arg, itemid=itemid)
       testing.assert_equal(
           x,
-          itemid.with_schema(x.get_schema()).with_bag(x.get_bag()),
+          kd.schema.unsafe_with_schema(itemid, x.get_schema()).with_bag(
+              x.get_bag()
+          ),
       )
 
     with self.subTest('missing DataItem and missing itemid'):
@@ -186,7 +188,9 @@ class ListLikeTest(parameterized.TestCase):
       x = fns.list_like(ds([1, 1, 1]), input_arg, itemid=ds([id1, id2, id3]))
       testing.assert_equal(
           x,
-          ds([id1, id2, id3]).with_schema(x.get_schema()).with_bag(x.get_bag()),
+          kd.schema.unsafe_with_schema(
+              ds([id1, id2, id3]), x.get_schema()
+          ).with_bag(x.get_bag()),
       )
 
     with self.subTest('full DataSlice and sparse itemid'):
@@ -215,9 +219,9 @@ class ListLikeTest(parameterized.TestCase):
       )
       testing.assert_equal(
           x,
-          ds([id1, None, id3])
-          .with_schema(x.get_schema())
-          .with_bag(x.get_bag()),
+          kd.schema.unsafe_with_schema(
+              ds([id1, None, id3]), x.get_schema()
+          ).with_bag(x.get_bag()),
       )
 
     with self.subTest(
@@ -239,9 +243,9 @@ class ListLikeTest(parameterized.TestCase):
       )
       testing.assert_equal(
           x,
-          ds([id1, None, id3])
-          .with_schema(x.get_schema())
-          .with_bag(x.get_bag()),
+          kd.schema.unsafe_with_schema(
+              ds([id1, None, id3]), x.get_schema()
+          ).with_bag(x.get_bag()),
       )
 
     with self.subTest('sparse DataSlice and full itemid with duplicates'):
@@ -265,9 +269,9 @@ class ListLikeTest(parameterized.TestCase):
       )
       testing.assert_equal(
           x,
-          ds([id1, None, id3])
-          .with_schema(x.get_schema())
-          .with_bag(x.get_bag()),
+          kd.schema.unsafe_with_schema(
+              ds([id1, None, id3]), x.get_schema()
+          ).with_bag(x.get_bag()),
       )
 
   def test_itemid_from_different_bag(self):

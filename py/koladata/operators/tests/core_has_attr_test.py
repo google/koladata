@@ -82,7 +82,7 @@ class CoreHasAttrTest(parameterized.TestCase):
   )
   def test_entity_respects_schema(self, attrs):
     entity = kd.new(a=ds([1, None]))
-    entity = entity.with_schema(kd.new().get_schema())
+    entity = kd.schema.unsafe_with_schema(entity, kd.new().get_schema())
     res = kd.has_attr(entity, attrs)
     testing.assert_equal(res, ds([missing, missing]))
 

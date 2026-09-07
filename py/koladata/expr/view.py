@@ -383,9 +383,6 @@ class KodaView(BaseKodaView):
   def with_schema_from_obj(self) -> arolla.Expr:
     return _aux_bind_op('kd.with_schema_from_obj', self)
 
-  def with_schema(self, schema: Any) -> arolla.Expr:
-    return _aux_bind_op('kd.with_schema', self, schema)
-
   def get_shape(self) -> arolla.Expr:
     return _aux_bind_op('kd.get_shape', self)
 
@@ -628,7 +625,7 @@ class KodaView(BaseKodaView):
   def set_schema(self, *args, **kwargs):  # pylint: disable=unused-argument
     raise ValueError(
         'calling .set_schema() on a DataSlice is not supported in'
-        ' expr/tracing mode; use .with_schema() instead.'
+        ' expr/tracing mode; use kd.cast_to() instead.'
     )
 
   def to_py(self, *args, **kwargs):  # pylint: disable=unused-argument

@@ -121,7 +121,7 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
 
     root = kd.new()  # pyrefly: ignore[missing-attribute]
     root_schema = kd.with_metadata(root.get_schema(), foo=kd.list([1, 2, 3]))  # pyrefly: ignore[missing-attribute]
-    root = root.with_schema(root_schema)
+    root = kd.schema.unsafe_with_schema(root, root_schema)
     with self.assertRaisesRegex(
         ValueError,
         'schema .* has metadata attributes that are not primitives',

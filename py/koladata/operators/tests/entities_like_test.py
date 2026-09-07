@@ -146,7 +146,8 @@ class EntitiesLikeTest(absltest.TestCase):
     with self.subTest('present DataItem and present itemid'):
       x = kd.entities.like(ds(1), a=42, itemid=itemid)
       testing.assert_equal(
-          x.no_bag(), itemid.with_schema(x.get_schema()).no_bag()
+          x.no_bag(),
+          kd.schema.unsafe_with_schema(itemid, x.get_schema()).no_bag(),
       )
 
     with self.subTest('missing DataItem and missing itemid'):
@@ -173,7 +174,10 @@ class EntitiesLikeTest(absltest.TestCase):
     with self.subTest('full DataSlice and full itemid'):
       x = kd.entities.like(ds([1, 1, 1]), a=42, itemid=ds([id1, id2, id3]))
       testing.assert_equal(
-          x.no_bag(), ds([id1, id2, id3]).with_schema(x.get_schema()).no_bag()
+          x.no_bag(),
+          kd.schema.unsafe_with_schema(
+              ds([id1, id2, id3]), x.get_schema()
+          ).no_bag(),
       )
 
     with self.subTest('empty DataSlice and empty itemid'):
@@ -199,7 +203,9 @@ class EntitiesLikeTest(absltest.TestCase):
       x = kd.entities.like(ds([1, None, 1]), a=42, itemid=ds([id1, None, id3]))
       testing.assert_equal(
           x.no_bag(),
-          ds([id1, None, id3]).with_schema(x.get_schema()).no_bag(),
+          kd.schema.unsafe_with_schema(
+              ds([id1, None, id3]), x.get_schema()
+          ).no_bag(),
       )
 
     with self.subTest(
@@ -218,7 +224,9 @@ class EntitiesLikeTest(absltest.TestCase):
       x = kd.entities.like(ds([1, None, 1]), a=42, itemid=ds([id1, id2, id3]))
       testing.assert_equal(
           x.no_bag(),
-          ds([id1, None, id3]).with_schema(x.get_schema()).no_bag(),
+          kd.schema.unsafe_with_schema(
+              ds([id1, None, id3]), x.get_schema()
+          ).no_bag(),
       )
 
     with self.subTest('sparse DataSlice and full itemid with duplicates'):
@@ -234,7 +242,9 @@ class EntitiesLikeTest(absltest.TestCase):
       x = kd.entities.like(ds([1, None, 1]), a=42, itemid=ds([id1, id1, id3]))
       testing.assert_equal(
           x.no_bag(),
-          ds([id1, None, id3]).with_schema(x.get_schema()).no_bag(),
+          kd.schema.unsafe_with_schema(
+              ds([id1, None, id3]), x.get_schema()
+          ).no_bag(),
       )
 
   def test_itemid_from_different_bag(self):

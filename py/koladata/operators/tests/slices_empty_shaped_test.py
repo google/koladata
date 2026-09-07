@@ -69,7 +69,9 @@ class SlicesEmptyShapedTest(parameterized.TestCase):
         shape,
         schema=schema_constants.INT64.with_bag(bag()),
     )
-    testing.assert_equal(res, expected.with_schema(schema_constants.INT64))
+    testing.assert_equal(
+        res, kd.schema.unsafe_with_schema(expected, schema_constants.INT64)
+    )
 
   @parameterized.parameters(
       (jagged_shape.create_shape(), ds(None, schema_constants.OBJECT)),

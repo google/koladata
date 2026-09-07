@@ -45,7 +45,9 @@ class AllocationNewListIdShapedAsTest(parameterized.TestCase):
     listid = kd.allocation.new_listid_shaped_as(shape)
     testing.assert_equal(listid.get_schema(), schema_constants.ITEMID)
     lst = listid.with_bag(bag())
-    lst = lst.with_schema(lst.get_bag().list_schema(schema_constants.INT32))
+    lst = kd.schema.unsafe_with_schema(
+        lst, lst.get_bag().list_schema(schema_constants.INT32)
+    )
     lst.append(42)
     testing.assert_equal(lst[:], items.with_bag(lst.get_bag()))
 

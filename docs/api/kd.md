@@ -1742,10 +1742,6 @@ Alias for [kd.types.DataBag.with_name](kd/types/data_bag.md#kd.types.DataBag.wit
 
 Alias for [kd.core.with_print](kd/core.md#kd.core.with_print)
 
-### `kd.with_schema(x, schema)` {#kd.with_schema}
-
-Alias for [kd.schema.with_schema](kd/schema.md#kd.schema.with_schema)
-
 ### `kd.with_schema_from_obj(x)` {#kd.with_schema_from_obj}
 
 Alias for [kd.schema.with_schema_from_obj](kd/schema.md#kd.schema.with_schema_from_obj)

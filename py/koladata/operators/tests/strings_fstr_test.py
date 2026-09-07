@@ -187,7 +187,7 @@ class StringsFstrTest(parameterized.TestCase):
     ):
       expr_eval.eval(
           kde.strings.fstr(
-              f'{kde.with_schema(kde.uuid(), schema_constants.OBJECT):s}'
+              f'{kde.schema.unsafe_with_schema(kde.uuid(), schema_constants.OBJECT):s}'
           )
       )
     with self.assertRaisesRegex(

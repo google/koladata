@@ -195,7 +195,6 @@ class DictsGetValuesTest(parameterized.TestCase):
           ds([]),
       ),
       (ds(None), arolla.unspecified(), ds([])),
-      # empty keys
       (
           ds([None], schema_constants.OBJECT),
           ds([[]], schema_constants.OBJECT),
@@ -211,7 +210,9 @@ class DictsGetValuesTest(parameterized.TestCase):
   )
   def test_no_bag_empty_succeeds(self, x, keys, expected):
     res = kd.get_values(x, keys)
-    testing.assert_equal(res, expected.with_schema(schema_constants.NONE))
+    testing.assert_equal(
+        res, kd.schema.unsafe_with_schema(expected, schema_constants.NONE)
+    )
     self.assertFalse(res.has_bag())
 
   @parameterized.parameters(

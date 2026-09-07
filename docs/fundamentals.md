@@ -757,9 +757,9 @@ DataSlice([Entity(x=1, y=2), Entity(x=2, y=3)], schema: Point(x=INT32, y=INT32),
 DataSlice([Entity(x=1, y=2), Entity(x=2, y=3)], schema: Point(x=INT32, y=INT32), present: 2/2, bag_id:...)
 
 >>> a, b = kd.new(x=1, y=2), kd.new(x=2, y=3)
->>> kd.slice([a.with_schema(my_schema), b.with_schema(my_schema)])  # works
+>>> kd.slice([kd.schema.unsafe_with_schema(a, my_schema), kd.schema.unsafe_with_schema(b, my_schema)])  # works
 DataSlice([Entity():$..., Entity():$...], schema: Point(), present: 2/2, bag_id: ...
->>> kd.slice([a, b.with_schema(a.get_schema())])  # works
+>>> kd.slice([a, kd.schema.unsafe_with_schema(b, a.get_schema())])  # works
 DataSlice([Entity(x=1, y=2), Entity(x=2, y=3)], schema: ENTITY(x=INT32, y=INT32), present: 2/2, bag_id:...)
 ```
 
@@ -1247,8 +1247,8 @@ DataItem(STRING, schema: SCHEMA, bag_id: ...)
 DataItem(INT32, schema: SCHEMA, bag_id: ...)
 ```
 
-`with_schema` allows *reinterpreting* entities and objects through different
-schemas.
+`kd.schema.unsafe_with_schema` allows *reinterpreting* entities and objects
+through different schemas.
 
 ```py
 >>> a = kd.new(x=1, y=2)
@@ -1259,16 +1259,16 @@ Traceback (most recent call last):
 ValueError: cannot find a common schema
   ...
 
->>> kd.slice([a, b.with_schema(a.get_schema())])  # works
+>>> kd.slice([a, kd.schema.unsafe_with_schema(b, a.get_schema())])  # works
 DataSlice([Entity(x=1, y=2), Entity(x=3, y=4)], schema: ENTITY(x=INT32, y=INT32), present: 2/2, bag_id: ...)
 
 >>> s = kd.named_schema('Pair', x=kd.INT32, y=kd.INT32)
->>> kd.slice([a.with_schema(s), b.with_schema(s)])  # works
+>>> kd.slice([kd.schema.unsafe_with_schema(a, s), kd.schema.unsafe_with_schema(b, s)])  # works
 DataSlice([Entity(x=1, y=2), Entity(x=3, y=4)], schema: Pair(x=INT32, y=INT32), present: 2/2, bag_id: ...)
 
 # Can recast to a schema with different attributes set
 >>> s = kd.named_schema('NotPair', x=kd.INT32, z=kd.STRING)
->>> t = kd.slice([a.with_schema(s), b.with_schema(s)])
+>>> t = kd.slice([kd.schema.unsafe_with_schema(a, s), kd.schema.unsafe_with_schema(b, s)])
 >>> t.x
 DataSlice([1, 3], schema: INT32, present: 2/2, bag_id: ...)
 >>> t.y  # would fail, as 'y' is missing in s schema
@@ -1280,14 +1280,14 @@ AttributeError: failed to get attribute 'y'...
 >>> t.z  # works, but a and b don't have that attribute
 DataSlice([None, None], schema: STRING, present: 0/2, bag_id: ...)
 
-# with_schema can be used to convert objects to schemas
+# kd.schema.unsafe_with_schema can be used to convert objects to schemas
 >>> s = kd.schema.new_schema(x=kd.INT32)
->>> a = kd.obj(x=kd.slice([1, 2, 3, 4])).with_schema(s)  # Entity now
+>>> a = kd.schema.unsafe_with_schema(kd.obj(x=kd.slice([1, 2, 3, 4])), s)  # Entity now
 
 >>> a = kd.obj(x=1, y=2)
 >>> b = kd.obj(x=3, z='hello')
 >>> s = kd.named_schema('NotPair', x=kd.INT32, z=kd.STRING)
->>> t = kd.slice([a.with_schema(s), b.with_schema(s)])
+>>> t = kd.slice([kd.schema.unsafe_with_schema(a, s), kd.schema.unsafe_with_schema(b, s)])
 >>> t.x
 DataSlice([1, 3], schema: INT32, present: 2/2, bag_id:...)
 >>> t.z

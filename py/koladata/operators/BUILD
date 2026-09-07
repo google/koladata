@@ -479,6 +479,7 @@ py_library(
         ":masking",
         ":optools",
         ":qtype_utils",
+        ":schema",
         ":slices",
         "//koladata/operators",
         "//py:python_path",

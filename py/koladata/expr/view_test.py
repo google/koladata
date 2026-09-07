@@ -436,11 +436,6 @@ class KodaViewTest(parameterized.TestCase):
         C.x.with_schema_from_obj(), kde.with_schema_from_obj(C.x)
     )
 
-  def test_with_schema(self):
-    self.assert_exprs_equal(
-        C.x.with_schema(C.schema), kde.with_schema(C.x, C.schema)
-    )
-
   def test_get_schema(self):
     self.assert_exprs_equal(C.x.get_schema(), kde.get_schema(C.x))
 
@@ -704,6 +699,14 @@ class KodaViewTest(parameterized.TestCase):
         NotImplementedError, 'Tuple unpacking is not supported for'
     ):
       _, _ = expr
+
+  def test_set_schema_not_supported(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        r'calling \.set_schema\(\) on a DataSlice is not supported in'
+        r' expr/tracing mode; use kd\.cast_to\(\) instead\.',
+    ):
+      C.x.set_schema(C.schema)
 
   def test_unpacking_kd_call_with_return_type_as(self):
     # Operators that accept return_type_as= argument should automatically

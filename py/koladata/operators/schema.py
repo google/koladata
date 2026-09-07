@@ -27,7 +27,7 @@ P = arolla.P
 constraints = arolla.optools.constraints
 
 # Implemented in masking.py to avoid a dependency cycle.
-with_schema = masking._with_schema  # pylint: disable=protected-access
+unsafe_with_schema = masking._unsafe_with_schema  # pylint: disable=protected-access
 
 
 optools.set_namespace_docstring('kd.schema', __doc__)

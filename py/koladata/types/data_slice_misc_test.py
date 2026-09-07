@@ -157,7 +157,6 @@ class DataSliceMethodsTest(parameterized.TestCase):
           },
           skip_params=[
               ('with_bag', 0),  # bag is positional-only in C++
-              ('with_schema', 0),  # schema is positional-only in C++
               ('set_schema', 0),  # schema is positional-only in C++
               ('get_attr', 0),  # attr_name is positional-only in C++
               ('get_attr', 1),  # default is None instead of unspecified

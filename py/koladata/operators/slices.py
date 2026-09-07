@@ -1323,7 +1323,7 @@ def repeat_present(x, sizes):
 def internal_range(start, end):
   """(Internal) Returns a DataSlice with a range of integers."""
   start, end = align(start, end)
-  return schema_ops.with_schema(
+  return schema_ops.unsafe_with_schema(
       (
           index(repeat(start, (math.maximum(math.subtract(end, start), 0) | 0)))
           + start
@@ -2132,7 +2132,7 @@ def slice_bind_args(x, schema=arolla.unspecified()):
       # stack requires at least one argument.
       flat_slice = stack(*flat_items)
     else:
-      flat_slice = schema_ops.with_schema(
+      flat_slice = schema_ops.unsafe_with_schema(
           data_slice.DataSlice.from_vals([]), schema
       )
     shaped_slice = jagged_shape_ops.reshape(flat_slice, shape)

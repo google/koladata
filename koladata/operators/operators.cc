@@ -454,9 +454,9 @@ OPERATOR_FAMILY("kd.schema.named_schema",
 OPERATOR_FAMILY("kd.schema.new_schema",
                 std::make_unique<NewSchemaOperatorFamily>());
 OPERATOR("kd.schema.nofollow_schema", CreateNoFollowSchema);
+OPERATOR("kd.schema.unsafe_with_schema", WithSchema);
 OPERATOR_FAMILY("kd.schema.uu_schema",
                 std::make_unique<UuSchemaOperatorFamily>());
-OPERATOR("kd.schema.with_schema", WithSchema);
 //
 OPERATOR("kd.schema_filters.apply_filter", ApplyFilter);
 //

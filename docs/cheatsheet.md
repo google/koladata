@@ -1050,7 +1050,7 @@ DataSlice([[Entity(y=1), None], [Entity(y=3), Entity(y=4)]], schema: ENTITY(y=IN
 
 >>> e1 = kd.new_shaped_as(x, **attr_dss)
 >>> e2 = kd.new_shaped(s, **attr_dss)
->>> kd.testing.assert_equivalent(e1, e2.with_schema(e1.get_schema()))
+>>> kd.testing.assert_equivalent(e1, kd.schema.unsafe_with_schema(e2, e1.get_schema()))
 
 
 # With provided itemids
@@ -1063,7 +1063,7 @@ DataSlice([
 
 >>> e1 = kd.new_shaped_as(x, itemid=itemid)
 >>> e2 = kd.new_shaped(s, itemid=itemid)
->>> kd.testing.assert_equivalent(e1, e2.with_schema(e1.get_schema()))
+>>> kd.testing.assert_equivalent(e1, kd.schema.unsafe_with_schema(e2, e1.get_schema()))
 
 >>> schema = kd.schema.new_schema(y=kd.INT64)
 >>> e = kd.new_like(x, schema=schema)

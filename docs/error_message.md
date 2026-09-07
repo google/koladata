@@ -19,7 +19,7 @@ Here is an example of an improved error message.
 ValueError: object schema is missing for the DataItem whose item is: $0000ShTxCVvMzRgwUPt5cb
 
   DataItem with the kd.OBJECT schema usually store its schema as an attribute or implicitly hold the type information when it's a primitive type. Perhaps, the OBJECT schema is set by mistake with
-  foo.with_schema(kd.OBJECT) when 'foo' does not have stored schema attribute.
+  kd.schema.unsafe_with_schema(foo, kd.OBJECT) when 'foo' does not have stored schema attribute.
 
 The above exception was the direct cause of the following exception:
 

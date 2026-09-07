@@ -73,7 +73,7 @@ class CoreExtractBagTest(absltest.TestCase):
         kd.named_schema('test', b=schema_constants.INT32)
     )
     bag2 = kd.extract_update(o1, new_schema)
-    o2 = o1.with_bag(bag2).with_schema(new_schema.no_bag())
+    o2 = kd.schema.unsafe_with_schema(o1.with_bag(bag2), new_schema.no_bag())
     self.assertFalse(bag2.is_mutable())
     testing.assert_equal(o2[:].b, ds([1, None, 2]).with_bag(bag2))
     with self.assertRaisesWithPredicateMatch(

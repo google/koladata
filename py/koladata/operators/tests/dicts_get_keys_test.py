@@ -127,7 +127,9 @@ class DictsGetKeysTest(parameterized.TestCase):
   )
   def test_no_bag_empty(self, x, expected):
     res = kd.get_keys(x)
-    testing.assert_equal(res, expected.with_schema(schema_constants.NONE))
+    testing.assert_equal(
+        res, kd.schema.unsafe_with_schema(expected, schema_constants.NONE)
+    )
     self.assertFalse(res.has_bag())
 
   def test_qtype_signatures(self):

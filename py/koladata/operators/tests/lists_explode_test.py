@@ -70,7 +70,7 @@ class ListsExplodeTest(parameterized.TestCase):
         ValueError, re.escape("cannot fully explode 'x' with ITEMID schema")
     ):
       # DataItem(List[None], schema: ITEMID)
-      kd.lists.explode(kd.list([]).with_schema(ITEMID), -1)
+      kd.lists.explode(kd.schema.unsafe_with_schema(kd.list([]), ITEMID), -1)
 
     with self.assertRaisesRegex(
         ValueError, re.escape("cannot fully explode 'x' with ITEMID schema")
@@ -121,7 +121,7 @@ class ListsExplodeTest(parameterized.TestCase):
       (ds(None), ds([])),
   )
   def test_no_bag_empty(self, l, expected):
-    expected_obj = expected.with_schema(schema_constants.NONE)
+    expected_obj = kd.schema.unsafe_with_schema(expected, schema_constants.NONE)
     testing.assert_equal(kd.lists.explode(l, 1), expected_obj)
     testing.assert_equal(l[:], expected_obj)
     self.assertFalse(kd.lists.explode(l, 1).has_bag())

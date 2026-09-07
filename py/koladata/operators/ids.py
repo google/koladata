@@ -235,7 +235,7 @@ def agg_uuid(x, ndim=arolla.unspecified()):
   x = (
       # OBJECT allows us to have mixed data. Only the raw data is used for the
       # _agg_uuid computation, so we're not required to embed Entity schemas.
-      schema_ops.with_schema(x, schema_constants.OBJECT)
+      schema_ops.unsafe_with_schema(x, schema_constants.OBJECT)
       | _AGG_UUID_MISSING_VALUE_REPLACEMENT
   )
   return _agg_uuid(x)

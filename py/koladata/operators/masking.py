@@ -51,18 +51,23 @@ def has(x):  # pylint: disable=unused-argument
 
 
 # Implemented here to avoid a dependency cycle.
-@optools.add_to_registry(
-    aliases=['kd.with_schema'], via_cc_operator_package=True
-)
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
-    'kd.schema.with_schema',
+    'kd.schema.unsafe_with_schema',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.schema),
     ],
 )
-def _with_schema(x, schema):  # pylint: disable=unused-argument
+def _unsafe_with_schema(x, schema):  # pylint: disable=unused-argument
   """Returns a copy of `x` with the provided `schema`.
+
+  This operator is unsafe because it reinterprets the schema of `x` without
+  verifying that the underlying data in the DataBag conforms to `schema`. If
+  attributes expected by `schema` do not exist or have conflicting types,
+  subsequent attribute access may fail with runtime errors or return missing
+  values. For safe schema casting with validation and attribute conversion, use
+  `kd.cast_to` instead.
 
   If `schema` is an Entity schema, it must have no DataBag or the same DataBag
   as `x`. To set schema with a different DataBag, use `kd.set_schema` instead.
@@ -70,28 +75,34 @@ def _with_schema(x, schema):  # pylint: disable=unused-argument
   It only changes the schemas of `x` and does not change the items in `x`. To
   change the items in `x`, use `kd.cast_to` instead. For example,
 
-    kd.with_schema(kd.ds([1, 2, 3]), kd.FLOAT32) -> fails because the items in
-        `x` are not compatible with FLOAT32.
+    kd.schema.unsafe_with_schema(kd.ds([1, 2, 3]), kd.FLOAT32)
+        -> fails because items in `x` are not compatible with FLOAT32.
     kd.cast_to(kd.ds([1, 2, 3]), kd.FLOAT32) -> kd.ds([1.0, 2.0, 3.0])
 
-  When items in `x` are primitives or `schemas` is a primitive schema, it checks
-  items and schema are compatible. When items are ItemIds and `schema` is a
-  non-primitive schema, it does not check the underlying data matches the
-  schema. For example,
+  When items in `x` are primitives or `schema` is a primitive schema, it
+  checks that items and schema are compatible. When items are ItemIds and
+  `schema` is a non-primitive schema, it does not check that underlying data
+  matches the schema. For example,
 
-    kd.with_schema(kd.ds([1, 2, 3], schema=kd.OBJECT), kd.INT32) ->
-        kd.ds([1, 2, 3])
-    kd.with_schema(kd.ds([1, 2, 3]), kd.INT64) -> fail
+    kd.schema.unsafe_with_schema(kd.ds([1, 2, 3], schema=kd.OBJECT), kd.INT32)
+        -> kd.ds([1, 2, 3])
+    kd.schema.unsafe_with_schema(kd.ds([1, 2, 3]), kd.INT64) -> fail
 
     db = kd.bag()
-    kd.with_schema(kd.ds(1).with_bag(db), db.new_schema(x=kd.INT32)) -> fail due
-        to incompatible schema
-    kd.with_schema(db.new(x=1), kd.INT32) -> fail due to incompatible schema
-    kd.with_schema(db.new(x=1), kd.schema.new_schema(x=kd.INT32)) -> fail due to
-        different DataBag
-    kd.with_schema(db.new(x=1), kd.schema.new_schema(x=kd.INT32).no_bag()) ->
-    work
-    kd.with_schema(db.new(x=1), db.new_schema(x=kd.INT64)) -> work
+    kd.schema.unsafe_with_schema(
+        kd.ds(1).with_bag(db), db.new_schema(x=kd.INT32)
+    )
+        -> fail due to incompatible schema
+    kd.schema.unsafe_with_schema(db.new(x=1), kd.INT32)
+        -> fail due to incompatible schema
+    kd.schema.unsafe_with_schema(
+        db.new(x=1), kd.schema.new_schema(x=kd.INT32)
+    )
+        -> fail due to different DataBag
+    kd.schema.unsafe_with_schema(
+        db.new(x=1), kd.schema.new_schema(x=kd.INT32).no_bag()
+    ) -> work
+    kd.schema.unsafe_with_schema(db.new(x=1), db.new_schema(x=kd.INT64)) -> work
 
   Args:
     x: DataSlice to change the schema of.
@@ -252,7 +263,7 @@ def mask_and(x, y):
   """
   x = assertion.assert_primitive('x', x, schema_constants.MASK)
   y = assertion.assert_primitive('y', y, schema_constants.MASK)
-  return _with_schema(x & y, schema_constants.MASK)
+  return _unsafe_with_schema(x & y, schema_constants.MASK)
 
 
 @optools.add_to_registry(aliases=['kd.mask_or'], via_cc_operator_package=True)
@@ -283,7 +294,7 @@ def mask_or(x, y):
   """
   x = assertion.assert_primitive('x', x, schema_constants.MASK)
   y = assertion.assert_primitive('y', y, schema_constants.MASK)
-  return _with_schema(x | y, schema_constants.MASK)
+  return _unsafe_with_schema(x | y, schema_constants.MASK)
 
 
 @optools.add_to_registry(
@@ -317,7 +328,7 @@ def mask_equal(x, y):
   """
   x = assertion.assert_primitive('x', x, schema_constants.MASK)
   y = assertion.assert_primitive('y', y, schema_constants.MASK)
-  return _with_schema((x & y) | (~x & ~y), schema_constants.MASK)
+  return _unsafe_with_schema((x & y) | (~x & ~y), schema_constants.MASK)
 
 
 @optools.add_to_registry(
@@ -381,7 +392,7 @@ def xor(x, y):
   """
   x = assertion.assert_primitive('x', x, schema_constants.MASK)
   y = assertion.assert_primitive('y', y, schema_constants.MASK)
-  return ((x & ~y) | (~x & y)).with_schema(schema_constants.MASK)
+  return _unsafe_with_schema((x & ~y) | (~x & y), schema_constants.MASK)
 
 
 @optools.as_backend_operator('kd.masking._agg_any')

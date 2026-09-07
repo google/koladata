@@ -62,12 +62,13 @@ def _signature_uuid(
   return lazy.ids.agg_uuid(
       lazy.ids.uuid(
           'Parameter',
-          default_value=sig.parameters[:]
           # Mixing the default values in a single data slice is not possible
           # because they are entities with different schemas, so we convert
           # them to objects first, and add the schemas separately to the uuid
           # computation.
-          .with_schema(_PARAMETER_SCHEMA_FOR_TYPE_MIXING).default_value,
+          default_value=lazy.schema.unsafe_with_schema(
+              sig.parameters[:], _PARAMETER_SCHEMA_FOR_TYPE_MIXING
+          ).default_value,
           default_value_schema=sig.parameters[:].get_obj_schema().default_value,
           kind=sig.parameters[:].kind,
           name=sig.parameters[:].name,

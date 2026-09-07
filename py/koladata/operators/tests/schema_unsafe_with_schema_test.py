@@ -18,7 +18,6 @@ from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
-from koladata.operators import optools
 from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -41,7 +40,7 @@ s2 = entity2.get_schema()
 DATA_SLICE = qtypes.DATA_SLICE
 
 
-class SchemaWithSchemaTest(parameterized.TestCase):
+class SchemaUnsafeWithSchemaTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # Scalar primitive schema
@@ -62,7 +61,7 @@ class SchemaWithSchemaTest(parameterized.TestCase):
       (ds([1, 2], schema_constants.OBJECT), schema_constants.INT32, ds([1, 2])),
   )
   def test_primitives(self, x, schema, expected):
-    res = kd.schema.with_schema(x, schema)
+    res = kd.schema.unsafe_with_schema(x, schema)
     testing.assert_equal(res, expected)
 
   @parameterized.parameters(
@@ -76,7 +75,7 @@ class SchemaWithSchemaTest(parameterized.TestCase):
       (ds([obj1, obj2]), s2),
   )
   def test_entities_and_objects(self, x, schema):
-    res = kd.schema.with_schema(x.freeze_bag(), schema)
+    res = kd.schema.unsafe_with_schema(x.freeze_bag(), schema)
     testing.assert_equal(res.get_schema().no_bag(), schema.no_bag())
 
   def test_schema_from_different_bag(self):
@@ -93,7 +92,7 @@ class SchemaWithSchemaTest(parameterized.TestCase):
     schema = entity.get_schema().with_bag(new_bag)
     schema.c = schema_constants.BYTES
 
-    result = kd.schema.with_schema(entity, schema)
+    result = kd.schema.unsafe_with_schema(entity, schema)
     testing.assert_equal(result.c.no_bag(), ds(None, schema_constants.BYTES))
     # Schema is extracted before merging.
     testing.assert_equal(
@@ -107,7 +106,7 @@ class SchemaWithSchemaTest(parameterized.TestCase):
     testing.assert_equal(entity.a.no_bag(), ds(1))  # still INT32
     testing.assert_equal(
         # Schema bag has precedence over entity's bag.
-        kd.schema.with_schema(entity, schema).a.no_bag(),
+        kd.schema.unsafe_with_schema(entity, schema).a.no_bag(),
         ds(1, schema_constants.OBJECT),
     )
 
@@ -117,48 +116,45 @@ class SchemaWithSchemaTest(parameterized.TestCase):
         'INT64 schema can only be assigned to a DataSlice that contains only'
         ' primitives of INT64',
     ):
-      kd.schema.with_schema(1, schema_constants.INT64)
+      kd.schema.unsafe_with_schema(1, schema_constants.INT64)
 
     with self.assertRaisesRegex(
         ValueError,
         'DataSlice with an Entity schema must hold Entities or Objects',
     ):
-      kd.schema.with_schema(ds(1).with_bag(s1.get_bag()), s1)
+      kd.schema.unsafe_with_schema(ds(1).with_bag(s1.get_bag()), s1)
 
     with self.assertRaisesRegex(
         ValueError,
         'INT64 schema can only be assigned to a DataSlice that contains only'
         ' primitives of INT64',
     ):
-      kd.schema.with_schema(entity1, schema_constants.INT64)
+      kd.schema.unsafe_with_schema(entity1, schema_constants.INT64)
 
     with self.assertRaisesRegex(
         ValueError,
         'INT64 schema can only be assigned to a DataSlice that contains only'
         ' primitives of INT64',
     ):
-      kd.schema.with_schema(obj1, schema_constants.INT64)
+      kd.schema.unsafe_with_schema(obj1, schema_constants.INT64)
 
     with self.assertRaisesRegex(
         ValueError,
         'INT32 schema can only be assigned to a DataSlice that contains only'
         ' primitives of INT32',
     ):
-      kd.schema.with_schema(ds([1, '2']), schema_constants.INT32)
+      kd.schema.unsafe_with_schema(ds([1, '2']), schema_constants.INT32)
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.schema.with_schema,
+        kde.schema.unsafe_with_schema,
         [(DATA_SLICE, DATA_SLICE, DATA_SLICE)],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.with_schema(I.x, I.schema)))
-
-  def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.schema.with_schema, kde.with_schema)
+        view.has_koda_view(kde.schema.unsafe_with_schema(I.x, I.schema))
     )
 
 

@@ -1106,9 +1106,10 @@ class DataSliceManagerViewTest(absltest.TestCase):
       )
       kd.testing.assert_equivalent(
           root.get_data_slice(populate_including_descendants=[root]),
-          trunk_root.get_data_slice()
-          .with_attr('query', None)
-          .with_schema(trunk_root.get_schema()),
+          kd.schema.unsafe_with_schema(
+              trunk_root.get_data_slice().with_attr('query', None),
+              trunk_root.get_schema(),
+          ),
           ids_equality=True,
       )
       branch_manager_revision_descriptions = [

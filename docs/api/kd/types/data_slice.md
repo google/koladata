@@ -1208,19 +1208,6 @@ Returns:
 
 Alias for [kd.types.DataBag.with_name](data_bag.md#kd.types.DataBag.with_name)
 
-### `DataSlice.with_schema(schema, /)` {#kd.types.DataSlice.with_schema}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of DataSlice with the provided `schema`.
-
-`schema` must have no DataBag or the same DataBag as the DataSlice. If `schema`
-has a different DataBag, use `set_schema` instead. See kd.with_schema for more
-details.
-
-Args:
-  schema: schema DataSlice to set.
-Returns:
-  DataSlice with the provided `schema`.</code></pre>
-
 ### `DataSlice.with_schema_from_obj(self) -> DataSlice` {#kd.types.DataSlice.with_schema_from_obj}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `x` with its embedded common schema set as the schema.

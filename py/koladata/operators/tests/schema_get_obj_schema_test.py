@@ -122,13 +122,15 @@ class SchemaGetObjSchemaTest(parameterized.TestCase):
   def test_invalid_items(self):
     with self.assertRaisesRegex(ValueError, 'missing __schema__ attribute'):
       kd.schema.get_obj_schema(
-          db.new_schema(x=schema_constants.INT32).with_schema(
-              schema_constants.OBJECT
+          kd.schema.unsafe_with_schema(
+              db.new_schema(x=schema_constants.INT32), schema_constants.OBJECT
           )
       )
 
     with self.assertRaisesRegex(ValueError, 'missing __schema__ attribute'):
-      kd.schema.get_obj_schema(db.new(x=1).with_schema(schema_constants.OBJECT))
+      kd.schema.get_obj_schema(
+          kd.schema.unsafe_with_schema(db.new(x=1), schema_constants.OBJECT)
+      )
 
   def test_no_bag(self):
     with self.assertRaisesRegex(

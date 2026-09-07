@@ -1886,7 +1886,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager = self.new_manager(dsm_class)
 
     e_foo = kd.new(a=1, schema='foo')  # pyrefly: ignore[missing-attribute]
-    e_bar = e_foo.with_schema(kd.named_schema('bar', a=kd.INT32))  # pyrefly: ignore[missing-attribute]
+    e_bar = kd.schema.unsafe_with_schema(e_foo, kd.named_schema('bar', a=kd.INT32))  # pyrefly: ignore[missing-attribute]
     foo_wrapper = kd.new(schema='foo_wrapper')  # pyrefly: ignore[missing-attribute]
     manager.update(
         at_path=parse_dsp(''), attr_name='foo', attr_value=foo_wrapper
@@ -1954,8 +1954,8 @@ class DataSliceManagerTest(parameterized.TestCase):
     explicit_metadata_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'my_metadata', proto_name=kd.STRING
     )
-    schema_metadata_entity = schema_metadata_object.with_schema(
-        explicit_metadata_schema
+    schema_metadata_entity = kd.schema.unsafe_with_schema(
+        schema_metadata_object, explicit_metadata_schema
     )
 
     manager = self.new_manager(dsm_class)
@@ -2005,11 +2005,10 @@ class DataSliceManagerTest(parameterized.TestCase):
     # The new attribute is present on the explicit metadata sub-slice in
     # vanilla Koda, but not in DataSliceManager. This is why the docstring says
     # that the behavior is undefined.
-    explicit_metadata_version = (
-        manager.get_data_slice_at(parse_dsp('.my_data.metadata'))
-        .with_schema(explicit_metadata_schema.with_attrs(version=kd.INT32))
-        .version
-    )
+    explicit_metadata_version = kd.schema.unsafe_with_schema(
+        manager.get_data_slice_at(parse_dsp('.my_data.metadata')),
+        explicit_metadata_schema.with_attrs(version=kd.INT32),
+    ).version
     if dsm_class == SimpleInMemoryDataSliceManager:
       expected_version = kd.item(123)  # pyrefly: ignore[missing-attribute]
     else:

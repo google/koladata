@@ -16,10 +16,12 @@ from absl.testing import absltest
 from koladata.functions import attrs
 from koladata.functions import functions as fns
 from koladata.functions import object_factories
+from koladata.operators import kde_operators
 from koladata.types import data_slice
 from koladata.types import schema_constants
 
 ds = data_slice.DataSlice.from_vals
+kd = kde_operators.kd
 
 
 class DirTest(absltest.TestCase):
@@ -145,7 +147,9 @@ class DirTest(absltest.TestCase):
         ValueError, 'object schema is missing for the DataItem'
     ):
       attrs.dir(
-          db.new(a=1, b='abc').with_schema(schema_constants.OBJECT),
+          kd.schema.unsafe_with_schema(
+              db.new(a=1, b='abc'), schema_constants.OBJECT
+          ),
           intersection=True,
       )
 

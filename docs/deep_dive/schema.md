@@ -17,8 +17,9 @@ compatible types.
 
 The schema of a DataSlice can be accessed through `ds.get_schema()` and can be
 changed through `kd.cast_to(ds, schema)` which casts `ds` to `schema` and
-changes the underlying data if needed, or `ds.with_schema(schema)` which
-*reinterprets* `ds` as `schema` without changing the underlying data.
+changes the underlying data if needed, or `kd.schema.unsafe_with_schema(ds,
+schema)` which *reinterprets* `ds` as `schema` without changing the underlying
+data.
 
 ### The Different Schemas
 
@@ -363,8 +364,8 @@ Here are some cases where explicit casting is done:
     relaxed casting rules (that may fail).
 
 Explicit casting between Entities is not supported. Instead,
-`ds.with_schema(new_entity_schema)` can be used as an (unsafe) alternative to
-*reinterpret cast* `ds` to the `new_entity_schema`.
+`kd.schema.unsafe_with_schema(ds, new_entity_schema)` can be used as an (unsafe)
+alternative to *reinterpret cast* `ds` to the `new_entity_schema`.
 
 #### Narrowing
 

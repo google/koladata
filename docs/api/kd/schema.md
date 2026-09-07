@@ -438,6 +438,59 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Casts `x` to STRING using explicit (permissive) casting rules.</code></pre>
 
+### `kd.schema.unsafe_with_schema(x, schema)` {#kd.schema.unsafe_with_schema}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of `x` with the provided `schema`.
+
+This operator is unsafe because it reinterprets the schema of `x` without
+verifying that the underlying data in the DataBag conforms to `schema`. If
+attributes expected by `schema` do not exist or have conflicting types,
+subsequent attribute access may fail with runtime errors or return missing
+values. For safe schema casting with validation and attribute conversion, use
+`kd.cast_to` instead.
+
+If `schema` is an Entity schema, it must have no DataBag or the same DataBag
+as `x`. To set schema with a different DataBag, use `kd.set_schema` instead.
+
+It only changes the schemas of `x` and does not change the items in `x`. To
+change the items in `x`, use `kd.cast_to` instead. For example,
+
+  kd.schema.unsafe_with_schema(kd.ds([1, 2, 3]), kd.FLOAT32)
+      -&gt; fails because items in `x` are not compatible with FLOAT32.
+  kd.cast_to(kd.ds([1, 2, 3]), kd.FLOAT32) -&gt; kd.ds([1.0, 2.0, 3.0])
+
+When items in `x` are primitives or `schema` is a primitive schema, it
+checks that items and schema are compatible. When items are ItemIds and
+`schema` is a non-primitive schema, it does not check that underlying data
+matches the schema. For example,
+
+  kd.schema.unsafe_with_schema(kd.ds([1, 2, 3], schema=kd.OBJECT), kd.INT32)
+      -&gt; kd.ds([1, 2, 3])
+  kd.schema.unsafe_with_schema(kd.ds([1, 2, 3]), kd.INT64) -&gt; fail
+
+  db = kd.bag()
+  kd.schema.unsafe_with_schema(
+      kd.ds(1).with_bag(db), db.new_schema(x=kd.INT32)
+  )
+      -&gt; fail due to incompatible schema
+  kd.schema.unsafe_with_schema(db.new(x=1), kd.INT32)
+      -&gt; fail due to incompatible schema
+  kd.schema.unsafe_with_schema(
+      db.new(x=1), kd.schema.new_schema(x=kd.INT32)
+  )
+      -&gt; fail due to different DataBag
+  kd.schema.unsafe_with_schema(
+      db.new(x=1), kd.schema.new_schema(x=kd.INT32).no_bag()
+  ) -&gt; work
+  kd.schema.unsafe_with_schema(db.new(x=1), db.new_schema(x=kd.INT64)) -&gt; work
+
+Args:
+  x: DataSlice to change the schema of.
+  schema: DataSlice containing the new schema.
+
+Returns:
+  DataSlice with the new schema.</code></pre>
+
 ### `kd.schema.uu_schema(seed='', **kwargs)` {#kd.schema.uu_schema}
 Aliases:
 
@@ -463,49 +516,6 @@ Args:
 
 Returns:
   (DataSlice) containing the schema uuid.</code></pre>
-
-### `kd.schema.with_schema(x, schema)` {#kd.schema.with_schema}
-Aliases:
-
-- [kd.with_schema](../kd.md#kd.with_schema)
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of `x` with the provided `schema`.
-
-If `schema` is an Entity schema, it must have no DataBag or the same DataBag
-as `x`. To set schema with a different DataBag, use `kd.set_schema` instead.
-
-It only changes the schemas of `x` and does not change the items in `x`. To
-change the items in `x`, use `kd.cast_to` instead. For example,
-
-  kd.with_schema(kd.ds([1, 2, 3]), kd.FLOAT32) -&gt; fails because the items in
-      `x` are not compatible with FLOAT32.
-  kd.cast_to(kd.ds([1, 2, 3]), kd.FLOAT32) -&gt; kd.ds([1.0, 2.0, 3.0])
-
-When items in `x` are primitives or `schemas` is a primitive schema, it checks
-items and schema are compatible. When items are ItemIds and `schema` is a
-non-primitive schema, it does not check the underlying data matches the
-schema. For example,
-
-  kd.with_schema(kd.ds([1, 2, 3], schema=kd.OBJECT), kd.INT32) -&gt;
-      kd.ds([1, 2, 3])
-  kd.with_schema(kd.ds([1, 2, 3]), kd.INT64) -&gt; fail
-
-  db = kd.bag()
-  kd.with_schema(kd.ds(1).with_bag(db), db.new_schema(x=kd.INT32)) -&gt; fail due
-      to incompatible schema
-  kd.with_schema(db.new(x=1), kd.INT32) -&gt; fail due to incompatible schema
-  kd.with_schema(db.new(x=1), kd.schema.new_schema(x=kd.INT32)) -&gt; fail due to
-      different DataBag
-  kd.with_schema(db.new(x=1), kd.schema.new_schema(x=kd.INT32).no_bag()) -&gt;
-  work
-  kd.with_schema(db.new(x=1), db.new_schema(x=kd.INT64)) -&gt; work
-
-Args:
-  x: DataSlice to change the schema of.
-  schema: DataSlice containing the new schema.
-
-Returns:
-  DataSlice with the new schema.</code></pre>
 
 ### `kd.schema.with_schema_from_obj(x)` {#kd.schema.with_schema_from_obj}
 Aliases:

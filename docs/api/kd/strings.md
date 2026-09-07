@@ -321,7 +321,7 @@ Examples:
   kd.strings.regex_extract(kd.item(&#39;foobar&#39;), kd.item(&#39;o(..)&#39;))
     # kd.item(&#39;ob&#39;)
   kd.strings.regex_extract(kd.item(&#39;foobar&#39;), kd.item(&#39;^o(..)$&#39;))
-    # kd.item(None).with_schema(kd.STRING)
+    # kd.schema.unsafe_with_schema(kd.item(None), kd.STRING)
   kd.strings.regex_extract(kd.item(&#39;foobar&#39;), kd.item(&#39;^.o(..)a.$&#39;))
     # kd.item(&#39;ob&#39;)
   kd.strings.regex_extract(kd.item(&#39;foobar&#39;), kd.item(&#39;.*(b.*r)$&#39;))

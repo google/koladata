@@ -39,6 +39,7 @@ from koladata.types import list_item as _
 from koladata.types import schema_constants
 
 
+kd = kde_operators.kd
 kde = kde_operators.kde
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
@@ -64,11 +65,6 @@ class DataSliceTest(parameterized.TestCase):
     gc.collect()
     self.assertEqual(sys.getrefcount(data_slice.DataSlice), base_count)
 
-    # NOTE: with_schema() invokes `PyDataSlice_Type()` C Python function and
-    # this verifies there are no leaking references.
-    ds(1).with_schema(schema_constants.OBJECT)
-    self.assertEqual(sys.getrefcount(data_slice.DataSlice), base_count)
-
     items = []
     for _ in range(diff_count):
       items.append(ds(1))  # Adding DataItem(s)
@@ -90,9 +86,9 @@ class DataSliceTest(parameterized.TestCase):
     x1 = ds(arolla.dense_array_int64([None, None]))
     x2 = ds([None, None], schema_constants.INT64)
     self.assertEqual(x1.fingerprint, x2.fingerprint)
-    x3 = x2.with_schema(schema_constants.INT32)
+    x3 = kd.schema.unsafe_with_schema(x2, schema_constants.INT32)
     self.assertNotEqual(x1.fingerprint, x3.fingerprint)
-    x4 = x2.with_schema(schema_constants.STRING)
+    x4 = kd.schema.unsafe_with_schema(x2, schema_constants.STRING)
     self.assertNotEqual(x1.fingerprint, x4.fingerprint)
 
     db = bag()
@@ -138,38 +134,6 @@ class DataSliceTest(parameterized.TestCase):
     x = ds(inputs, qtype)
     testing.assert_equal(x.get_schema(), expected_schema)
     testing.assert_equal(x.get_schema().get_schema(), schema_constants.SCHEMA)
-
-  def test_with_schema(self):
-    db = bag()
-    x = db.new(x=ds([1, 2, 3]), y='abc')
-    testing.assert_equal(x.get_schema().x, schema_constants.INT32.with_bag(db))
-    testing.assert_equal(x.get_schema().y, schema_constants.STRING.with_bag(db))
-
-    with self.assertRaisesRegex(
-        TypeError, 'expecting schema to be a DataSlice, '
-                   'got koladata.types.data_bag.DataBag'
-    ):
-      x.with_schema(db)  # pyrefly: ignore[bad-argument-type]
-
-    with self.assertRaisesRegex(ValueError, "schema's schema must be SCHEMA"):
-      x.with_schema(x)
-
-    schema = db.new(x=1, y='abc').get_schema()
-    testing.assert_equal(x.with_schema(schema).get_schema(), schema)
-
-    non_schema = db.new().with_schema(schema_constants.SCHEMA)
-    with self.assertRaisesRegex(
-        ValueError, 'schema must contain either a DType or valid schema ItemId'
-    ):
-      x.with_schema(non_schema)
-
-    with self.assertRaisesRegex(
-        ValueError, 'a non-schema item cannot be present in a schema DataSlice'
-    ):
-      ds(1).with_schema(schema_constants.SCHEMA)
-
-    # NOTE: Works without deep schema verification.
-    ds([1, 'abc']).with_schema(schema_constants.SCHEMA)
 
   def test_set_schema(self):
     db = bag()
@@ -532,8 +496,8 @@ class DataSliceTest(parameterized.TestCase):
     x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))
     res = x.shallow_clone(z=bag().list([12]), t=bag().obj(b=5))
     testing.assert_equivalent(
-        res.y.with_schema(schema_constants.ITEMID),
-        x.y.with_schema(schema_constants.ITEMID),
+        kd.schema.unsafe_with_schema(res.y, schema_constants.ITEMID),
+        kd.schema.unsafe_with_schema(x.y, schema_constants.ITEMID),
         ids_equality=True,
     )
     testing.assert_equivalent(res.z[:], ds([12]))

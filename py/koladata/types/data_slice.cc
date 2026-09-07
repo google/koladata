@@ -952,19 +952,6 @@ PyObject* absl_nullable PyDataSlice_freeze_bag(PyObject* self, PyObject*) {
   return WrapPyDataSlice(ds.FreezeBag());
 }
 
-PyObject* absl_nullable PyDataSlice_with_schema(PyObject* self,
-                                                PyObject* schema) {
-  arolla::python::DCheckPyGIL();
-  arolla::python::PyCancellationScope cancellation_scope;
-  const auto& ds = UnsafeDataSliceRef(self);
-  auto schema_ds = UnwrapDataSlice(schema, "schema");
-  if (schema_ds == nullptr) {
-    return nullptr;
-  }
-  ASSIGN_OR_RETURN(auto res, ds.WithSchema(*schema_ds),
-                   arolla::python::SetPyErrFromStatus(_));
-  return WrapPyDataSlice(std::move(res));
-}
 
 PyObject* absl_nullable PyDataSlice_set_schema(PyObject* self,
                                                PyObject* schema) {
@@ -1211,20 +1198,6 @@ Args:
      "freeze_bag()\n"
      "--\n\n"
      "Returns a frozen DataSlice equivalent to `self`."},
-    {"with_schema", PyDataSlice_with_schema, METH_O,
-     "with_schema(schema, /)\n"
-     "--\n\n"
-     R"""(Returns a copy of DataSlice with the provided `schema`.
-
-`schema` must have no DataBag or the same DataBag as the DataSlice. If `schema`
-has a different DataBag, use `set_schema` instead. See kd.with_schema for more
-details.
-
-Args:
-  schema: schema DataSlice to set.
-Returns:
-  DataSlice with the provided `schema`.
-)"""},
     {"set_schema", PyDataSlice_set_schema, METH_O,
      "set_schema(schema, /)\n"
      "--\n\n"

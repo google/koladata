@@ -5610,8 +5610,8 @@ py_test(
 )
 
 py_test(
-    name = "schema_with_schema_test",
-    srcs = ["schema_with_schema_test.py"],
+    name = "schema_unsafe_with_schema_test",
+    srcs = ["schema_unsafe_with_schema_test.py"],
     deps = [
         "//py:python_path",
         "//py/koladata/expr:input_container",

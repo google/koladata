@@ -1,4 +1,4 @@
- <!-- go/markdown -->
+<!-- go/markdown -->
 
 # Koda Overview
 
@@ -278,7 +278,7 @@ DataItem(present, schema: MASK)
 
 # Auto-allocated schemas can be cast to have the same schema
 >>> x, y = kd.new(a=1), kd.new(b=2)  # two entities with different schemas
->>> kd.slice([x, y.with_schema(x.get_schema())])
+>>> kd.slice([x, kd.schema.unsafe_with_schema(y, x.get_schema())])
 DataSlice([Entity(a=1), Entity():...], schema: ENTITY(a=INT32), ...)
 
 # Universally unique entities can be used similarly to named tuples
@@ -539,9 +539,9 @@ DataSlice([Obj(a=1), Obj(b=2)], schema: OBJECT,...)
 
 # Objects can be converted to entities
 >>> my_schema = kd.named_schema('Point', x=kd.INT32, y=kd.INT32)
->>> a = kd.obj(x=1, y=2).with_schema(my_schema); a
+>>> a = kd.schema.unsafe_with_schema(kd.obj(x=1, y=2), my_schema); a
 DataItem(Entity(x=1, y=2), schema: Point(x=INT32, y=INT32),...)
->>> a2 = kd.from_py({'x': 1, 'y': 2}, dict_as_obj=True).with_schema(my_schema)  # the same as above
+>>> a2 = kd.schema.unsafe_with_schema(kd.from_py({'x': 1, 'y': 2}, dict_as_obj=True), my_schema)  # the same as above
 >>> kd.testing.assert_equivalent(a, a2)
 ```
 

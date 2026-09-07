@@ -1051,8 +1051,10 @@ def _get_value_or_parallel_default(
               # instead of a schema mismatch or a shape mismatch.
               (slices.get_ndim(P.value) == 0)
               & masking.all_(
-                  schema_ops.with_schema(P.value, schema_constants.OBJECT)
-                  == schema_ops.with_schema(
+                  schema_ops.unsafe_with_schema(
+                      P.value, schema_constants.OBJECT
+                  )
+                  == schema_ops.unsafe_with_schema(
                       P.default_value_marker, schema_constants.OBJECT
                   )
               ),

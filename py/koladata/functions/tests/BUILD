@@ -116,7 +116,6 @@ py_test(
     srcs = ["list_like_test.py"],
     deps = [
         "//py:python_path",
-        "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/functions",
         "//py/koladata/functions:object_factories",
@@ -856,6 +855,7 @@ py_test(
         "//py/koladata/functions",
         "//py/koladata/functions:attrs",
         "//py/koladata/functions:object_factories",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",

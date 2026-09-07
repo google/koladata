@@ -214,7 +214,10 @@ class StringsFormatTest(parameterized.TestCase):
     ):
       expr_eval.eval(
           kde.strings.format(
-              ds('{v}'), v=kde.with_schema(kde.uuid(), schema_constants.OBJECT)
+              ds('{v}'),
+              v=kde.schema.unsafe_with_schema(
+                  kde.uuid(), schema_constants.OBJECT
+              ),
           )
       )
     with self.assertRaisesRegex(

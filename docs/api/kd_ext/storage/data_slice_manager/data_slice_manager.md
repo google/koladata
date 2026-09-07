@@ -349,7 +349,9 @@ Some restrictions apply to attr_value:
 
      # AVOID: an attr_value like this leads to undetermined behavior!
      e_foo = kd.new(a=1, schema=&#39;foo&#39;)
-     e_bar = e_foo.with_schema(kd.named_schema(&#39;bar&#39;, a=kd.INT32))
+     e_bar = kd.schema.unsafe_with_schema(
+         e_foo, kd.named_schema(&#39;bar&#39;, a=kd.INT32)
+     )
      attr_value = kd.new(foo=e_foo, bar=e_bar)
      assert attr_value.foo.get_itemid() == attr_value.bar.get_itemid()
      assert attr_value.foo.get_schema() != attr_value.bar.get_schema()
@@ -370,8 +372,8 @@ Some restrictions apply to attr_value:
      explicit_metadata_schema = kd.named_schema(
          &#39;my_metadata&#39;, proto_name=kd.STRING
      )
-     schema_metadata_entity = schema_metadata_object.with_schema(
-         explicit_metadata_schema
+     schema_metadata_entity = kd.schema.unsafe_with_schema(
+         schema_metadata_object, explicit_metadata_schema
      )
      attr_value = kd.new(
          # This line associates the itemid of schema_metadata_object with

@@ -30,6 +30,7 @@ from koladata.types import schema_constants
 
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+kd = kde_operators.kd
 
 
 class NewLikeTest(absltest.TestCase):
@@ -120,7 +121,9 @@ class NewLikeTest(absltest.TestCase):
       x = fns.new_like(ds(1), a=42, itemid=itemid)
       testing.assert_equal(
           x,
-          itemid.with_schema(x.get_schema()).with_bag(x.get_bag()),
+          kd.schema.unsafe_with_schema(itemid, x.get_schema()).with_bag(
+              x.get_bag()
+          ),
       )
 
     with self.subTest('missing DataItem and missing itemid'):
@@ -149,7 +152,9 @@ class NewLikeTest(absltest.TestCase):
       x = fns.new_like(ds([1, 1, 1]), a=42, itemid=ds([id1, id2, id3]))
       testing.assert_equal(
           x,
-          ds([id1, id2, id3]).with_schema(x.get_schema()).with_bag(x.get_bag()),
+          kd.schema.unsafe_with_schema(
+              ds([id1, id2, id3]), x.get_schema()
+          ).with_bag(x.get_bag()),
       )
 
     with self.subTest('full DataSlice and sparse itemid'):
@@ -174,9 +179,9 @@ class NewLikeTest(absltest.TestCase):
       x = fns.new_like(ds([1, None, 1]), a=42, itemid=ds([id1, None, id3]))
       testing.assert_equal(
           x,
-          ds([id1, None, id3])
-          .with_schema(x.get_schema())
-          .with_bag(x.get_bag()),
+          kd.schema.unsafe_with_schema(
+              ds([id1, None, id3]), x.get_schema()
+          ).with_bag(x.get_bag()),
       )
 
     with self.subTest(
@@ -194,9 +199,9 @@ class NewLikeTest(absltest.TestCase):
       x = fns.new_like(ds([1, None, 1]), a=42, itemid=ds([id1, id2, id3]))
       testing.assert_equal(
           x,
-          ds([id1, None, id3])
-          .with_schema(x.get_schema())
-          .with_bag(x.get_bag()),
+          kd.schema.unsafe_with_schema(
+              ds([id1, None, id3]), x.get_schema()
+          ).with_bag(x.get_bag()),
       )
 
     with self.subTest('sparse DataSlice and full itemid with duplicates'):
@@ -214,9 +219,9 @@ class NewLikeTest(absltest.TestCase):
       x = fns.new_like(ds([1, None, 1]), a=42, itemid=ds([id1, id1, id3]))
       testing.assert_equal(
           x,
-          ds([id1, None, id3])
-          .with_schema(x.get_schema())
-          .with_bag(x.get_bag()),
+          kd.schema.unsafe_with_schema(
+              ds([id1, None, id3]), x.get_schema()
+          ).with_bag(x.get_bag()),
       )
 
   def test_itemid_from_different_bag(self):

@@ -32,6 +32,7 @@ from koladata.types import schema_constants
 
 
 kde = kde_operators.kde
+kd = kde_operators.kd
 ds = data_slice.DataSlice.from_vals
 
 
@@ -1053,13 +1054,22 @@ class ToPyTest(parameterized.TestCase):
 
     self.assertEqual(py_obj.dict_value[k1.no_bag()], 1)
     self.assertEqual(
-        py_obj.dict_value[k2.no_bag().with_schema(schema_constants.OBJECT)], 2
+        py_obj.dict_value[
+            kd.schema.unsafe_with_schema(k2.no_bag(), schema_constants.OBJECT)
+        ],
+        2,
     )
     self.assertEqual(
-        py_obj.dict_value[k3.no_bag().with_schema(schema_constants.OBJECT)], 3
+        py_obj.dict_value[
+            kd.schema.unsafe_with_schema(k3.no_bag(), schema_constants.OBJECT)
+        ],
+        3,
     )
     self.assertEqual(
-        py_obj.dict_value[k4.no_bag().with_schema(schema_constants.OBJECT)], 4
+        py_obj.dict_value[
+            kd.schema.unsafe_with_schema(k4.no_bag(), schema_constants.OBJECT)
+        ],
+        4,
     )
 
   def test_dict_with_obj_keys_with_schema(self):

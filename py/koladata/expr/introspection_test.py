@@ -70,7 +70,9 @@ class IntrospectionTest(absltest.TestCase):
     with self.assertRaisesRegex(ValueError, 'only present EXPR DataItems'):
       introspection.unpack_expr(x & mask_constants.missing)
     with self.assertRaisesRegex(ValueError, 'only present EXPR DataItems'):
-      introspection.unpack_expr(x.with_schema(schema_constants.OBJECT))
+      introspection.unpack_expr(
+          kd.schema.unsafe_with_schema(x, schema_constants.OBJECT)
+      )
     with self.assertRaisesRegex(ValueError, 'only present EXPR DataItems'):
       introspection.unpack_expr(x.repeat(1))
 
@@ -84,7 +86,9 @@ class IntrospectionTest(absltest.TestCase):
         mask_constants.missing,
     )
     testing.assert_equal(
-        introspection.is_packed_expr(x.with_schema(schema_constants.OBJECT)),
+        introspection.is_packed_expr(
+            kd.schema.unsafe_with_schema(x, schema_constants.OBJECT)
+        ),
         mask_constants.missing,
     )
     testing.assert_equal(
