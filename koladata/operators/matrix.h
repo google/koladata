@@ -78,6 +78,11 @@ absl::StatusOr<DataSlice> MatrixTrace(const DataSlice& x,
 absl::StatusOr<DataSlice> MatrixVectorNorm(const DataSlice& x,
                                            const DataSlice& ord);
 
+// kd.matrix.svd_values: Compute singular values of a matrix.
+// (..., m, n) -> (..., min(m, n)). Supports batch dimensions.
+// Singular values are returned in descending order.
+absl::StatusOr<DataSlice> MatrixSvdValues(const DataSlice& x);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_MATRIX_H_

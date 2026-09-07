@@ -239,6 +239,23 @@ Args:
 Returns:
   The solution x with the same shape as b after broadcasting.</code></pre>
 
+### `kd.matrix.svd_values(x)` {#kd.matrix.svd_values}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Compute singular values of a matrix.
+
+Supports leading batch dimensions: (..., m, n) -&gt; (..., min(m, n)).
+
+Singular values are returned in descending order and are always non-negative.
+Missing values in x are treated as 0.
+
+The output is always floating-point.
+
+Args:
+  x: A numeric DataSlice with at least 2 dimensions.
+
+Returns:
+  A DataSlice with the singular values.</code></pre>
+
 ### `kd.matrix.trace(x, *, offset=0)` {#kd.matrix.trace}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Compute the trace (sum of diagonal elements) of a matrix.

@@ -445,6 +445,32 @@ def trace(x, *, offset=data_slice.DataSlice.from_vals(0)):
 
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
+    'kd.matrix.svd_values',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def svd_values(x):  # pylint: disable=unused-argument
+  """Compute singular values of a matrix.
+
+  Supports leading batch dimensions: (..., m, n) -> (..., min(m, n)).
+
+  Singular values are returned in descending order and are always non-negative.
+  Missing values in x are treated as 0.
+
+  The output is always floating-point.
+
+  Args:
+    x: A numeric DataSlice with at least 2 dimensions.
+
+  Returns:
+    A DataSlice with the singular values.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
     'kd.matrix.vector_norm',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),

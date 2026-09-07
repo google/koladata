@@ -33,6 +33,7 @@
 #include "arolla/util/overflow.h"
 #include "Eigen/Core"
 #include "Eigen/LU"
+#include "Eigen/SVD"
 #include "koladata/casting.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -53,6 +54,17 @@ namespace {
 template <typename T>
 using RowMajorMatrix =
     Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+
+// Compute singular values of a single m x n row-major matrix.
+// Returns a vector of min(m, n) singular values in descending order.
+// Uses BDCSVD (Bidiagonal Divide & Conquer), which is faster than JacobiSVD
+// for matrices larger than ~16x16.
+Eigen::VectorXd ComputeSingularValues(const double* data, int64_t m,
+                                      int64_t n) {
+  Eigen::Map<const RowMajorMatrix<double>> mat(data, m, n);
+  // The default (0) computes singular values only, without U or V.
+  return mat.bdcSvd().singularValues();
+}
 
 }  // namespace
 
@@ -1112,6 +1124,83 @@ absl::StatusOr<DataSlice> MatrixVectorNorm(const DataSlice& x,
     return do_norm.template operator()<float>();
   }
   return do_norm.template operator()<double>();
+}
+
+absl::StatusOr<DataSlice> MatrixSvdValues(const DataSlice& x) {
+  const int rank = x.GetShape().rank();
+  if (rank < 2) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("expected at least 2D, got ", rank, "D"));
+  }
+
+  ASSIGN_OR_RETURN(auto mat_infos,
+                   matrix_helpers::ExtractMatrix2DInfos(x.GetShape()));
+  const int64_t num_matrices = mat_infos.size();
+
+  const int batch_rank = rank - 2;
+  auto batch_shape = x.GetShape().RemoveDims(/*from=*/batch_rank);
+
+  // Compute output vector lengths: min(m, n) singular values per matrix.
+  // No overflow check needed: sum(min(m_i, n_i)) <= sum(m_i * n_i) = total
+  // input elements, which is already a valid int64_t.
+  std::vector<int64_t> sv_counts(num_matrices);
+  int64_t out_total = 0;
+  for (int64_t p = 0; p < num_matrices; ++p) {
+    const int64_t k = std::min(mat_infos[p].m, mat_infos[p].n);
+    sv_counts[p] = k;
+    out_total += k;
+  }
+
+  ASSIGN_OR_RETURN(auto out_shape, matrix_helpers::BuildBatchedVectorShape(
+                                       std::move(batch_shape), sv_counts));
+
+  // Determine output schema. GetNarrowedMatrixSchema validates that x is
+  // numeric. Singular values are always floating-point.
+  const bool is_object_schema =
+      x.GetSchemaImpl() == internal::DataItem(schema::kObject);
+  ASSIGN_OR_RETURN(auto narrowed_schema,
+                   matrix_helpers::GetNarrowedMatrixSchema(x));
+  ASSIGN_OR_RETURN(auto output_schema,
+                   schema::CommonSchema(narrowed_schema,
+                                        internal::DataItem(schema::kFloat32)));
+
+  // Cast x to FLOAT64 for SVD computation. ExtractFlat fills missing with 0.
+  ASSIGN_OR_RETURN(auto float_x,
+                   CastToExplicit(x, internal::DataItem(schema::kFloat64)));
+  const auto x_flat = matrix_helpers::ExtractFlat<double>(float_x);
+
+  auto do_svd = [&]<typename OutputT>() -> absl::StatusOr<DataSlice> {
+    std::vector<OutputT> result(out_total);
+    int64_t out_off = 0;
+    for (int64_t p = 0; p < num_matrices; ++p) {
+      const int64_t k = sv_counts[p];
+      if (k == 0) continue;
+      const auto& info = mat_infos[p];
+
+      Eigen::VectorXd sv =
+          ComputeSingularValues(x_flat.data() + info.offset, info.m, info.n);
+
+      // Map directly into the output buffer and use Eigen's .cast<>() for the
+      // conversion. Singular values are non-negative finite doubles, so the
+      // narrowing to float (when OutputT=float) is a well-defined IEEE 754
+      // conversion that cannot produce UB. We don't need to use saturate_cast.
+      Eigen::Map<Eigen::Matrix<OutputT, Eigen::Dynamic, 1>>(
+          result.data() + out_off, k) = sv.cast<OutputT>();
+      out_off += k;
+    }
+
+    ASSIGN_OR_RETURN(auto ds, matrix_helpers::BuildFromFlat<OutputT>(
+                                  std::move(result), std::move(out_shape)));
+    if (is_object_schema) {
+      return ds.WithSchema(internal::DataItem(schema::kObject));
+    }
+    return ds;
+  };
+
+  if (output_schema == internal::DataItem(schema::kFloat32)) {
+    return do_svd.template operator()<float>();
+  }
+  return do_svd.template operator()<double>();
 }
 
 }  // namespace koladata::ops
