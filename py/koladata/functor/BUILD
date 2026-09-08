@@ -62,6 +62,7 @@ koladata_pybind_extension(
         "//koladata/functor/parallel:executor",
         "//py/koladata/base:wrap_utils",
         "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//py/arolla/abc:pybind11_utils",
         "@com_google_arolla//py/arolla/py_utils",
