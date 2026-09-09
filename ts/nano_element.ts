@@ -118,11 +118,11 @@ export type Content = ClassList|string|Tag|HTMLElement|Id|Data|Name;
  *   div.appendChild(span);
  */
 export class Tag {
-  content: Content[];
+  content: Array<Content | null | undefined>;
 
   constructor(
     public tag: string,
-    ...content: Content[]
+    ...content: Array<Content | null | undefined>
   ) {
     this.content = content;
   }
@@ -130,6 +130,7 @@ export class Tag {
   render() {
     const result = document.createElement(this.tag);
     for (const child of this.content) {
+      if (child == null) continue;
       if (child instanceof ClassList) {
         for (const name of child.classList) {
           // Adding empty strings to a classList throws an error so we need
@@ -162,8 +163,10 @@ export class Tag {
  *          html.tag('span', 'more content', html.class('emphasis')))
  */
 export const html = {
-  tag: <T extends HTMLElement>(tag: string, ...content: Content[]) =>
-    new Tag(tag, ...content).render() as T,
+  tag: <T extends HTMLElement>(
+    tag: string,
+    ...content: Array<Content | null | undefined>
+  ) => new Tag(tag, ...content).render() as T,
   class: (...names: string[]) => new ClassList(...names),
   data: (key: string, value: string | undefined) => new Data(key, value),
   id: (id: string) => new Id(id),
