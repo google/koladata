@@ -220,7 +220,7 @@ def _get_sparse_py_object():
   a2 = _A(x=2.0)
 
   b1 = _B(a_list=[a1, a2], a_obj=a1)
-  b2 = _B(a_list=None, a_dict={'a': a1, 'b': a2, 'c': None})  # pyrefly: ignore[bad-argument-type]
+  b2 = _B(a_list=None, a_dict={'a': a1, 'b': a2, 'c': None})  # pyrefly: ignore[bad-argument-type, bad-assignment]
   return _C(b=[b1, b2, None])  # pyrefly: ignore[bad-argument-type]
 
 
