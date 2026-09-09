@@ -18,6 +18,8 @@ import enum
 import gc
 import re
 import sys
+import threading
+import time
 import types
 from typing import Any
 from unittest import mock
@@ -2381,6 +2383,20 @@ assigned schema: ENTITY(a=FLOAT32)"""),
 
     with self.assertRaisesRegex(TypeError, 'incompatible function arguments'):
       from_py([1, 2], from_dim='abc')  # pytype: disable=wrong-arg-types
+
+  def test_from_py_concurrent_container_clear(self):
+    def mutator(shared_list):
+      time.sleep(0.005)  # Yield to let the main thread enter `from_py(...)`.
+      shared_list.clear()
+      gc.collect()
+
+    lists = [[{'a': i, 'b': str(i)} for i in range(100)] for _ in range(20_000)]
+    t = threading.Thread(target=mutator, args=(lists,))
+    t.start()
+    try:
+      _ = from_py(lists)  # no crash
+    finally:
+      t.join()
 
 
 if __name__ == '__main__':

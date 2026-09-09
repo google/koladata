@@ -60,6 +60,7 @@
 
 namespace koladata::python {
 namespace {
+
 using internal::DataItem;
 
 bool IsObjectSchema(const std::optional<DataSlice>& schema) {
@@ -404,13 +405,14 @@ class FromPyConverter {
             });
       }
     }
-    executor.Enqueue([this, bldr = std::move(bldr), &result,
-                      cur_shape = std::move(cur_shape)]() -> absl::Status {
-      ASSIGN_OR_RETURN(result, CreateWithSchema(std::move(*bldr).Build(),
-                                                std::move(cur_shape),
-                                                DataItem(schema::kObject)));
-      return absl::OkStatus();
-    });
+    executor.Enqueue(
+        [this, bldr = std::move(bldr), &result,
+         cur_shape = std::move(cur_shape)]() mutable -> absl::Status {
+          ASSIGN_OR_RETURN(result, CreateWithSchema(std::move(*bldr).Build(),
+                                                    std::move(cur_shape),
+                                                    DataItem(schema::kObject)));
+          return absl::OkStatus();
+        });
     return absl::OkStatus();
   }
 
@@ -429,18 +431,35 @@ class FromPyConverter {
                           "recursive Python object cannot be converted",
                           kMaxConversionDepth));
     }
-
-    executor.Enqueue([this, py_objects = std::move(py_objects),
-                      cur_shape = std::move(cur_shape), schema = schema,
-                      itemid = std::move(itemid), cur_depth, &executor,
-                      computing_object, &result]() -> absl::Status {
-      {
-        // Release and reacquire GIL to prevent it being held for too long.
-        arolla::python::ReleasePyGIL guard;
+    // NOTE: Up to this point, `py_objects` holds borrowed references to Python
+    // objects. This is safe because the current call stack guarantees
+    // the lifetime of the objects. However, since we delegate the conversion to
+    // an executor task, before the task is executed, the objects may be
+    // destroyed (e.g., if another thread manipulates their container).
+    // To prevent this, we explicitly acquire ownership.
+    for (auto* py_obj : py_objects) {
+      Py_INCREF(py_obj);
+    }
+    auto deleter = [](auto* py_objects) {
+      arolla::python::DCheckPyGIL();
+      for (auto* py_obj : *py_objects) {
+        Py_DECREF(py_obj);
       }
-      RETURN_IF_ERROR(ConvertImpl(py_objects, std::move(cur_shape), schema,
-                                  std::move(itemid), cur_depth + 1, executor,
-                                  result, computing_object));
+      delete py_objects;
+    };
+    std::unique_ptr<const std::vector<PyObject*>, decltype(deleter)>
+        py_objects_owned(new std::vector<PyObject*>(std::move(py_objects)),
+                         deleter);
+
+    executor.Enqueue([this, cur_shape = std::move(cur_shape), schema = schema,
+                      itemid = std::move(itemid), cur_depth, &executor,
+                      computing_object,
+                      py_objects_owned = std::move(py_objects_owned),
+                      &result]() mutable -> absl::Status {
+      arolla::python::YieldPyGIL();
+      RETURN_IF_ERROR(ConvertImpl(*py_objects_owned, std::move(cur_shape),
+                                  schema, std::move(itemid), cur_depth + 1,
+                                  executor, result, computing_object));
       return absl::OkStatus();
     });
     return absl::OkStatus();
