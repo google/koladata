@@ -23,6 +23,7 @@ from typing import Any, Callable
 
 from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext
+from koladata.operators import container_doc
 
 
 _eval_op = py_expr_eval_py_ext.eval_op
@@ -64,7 +65,13 @@ class _OperatorsContainer:
   ):
     self._arolla_container = rl_container
     self._overrides = overrides
-    self.__doc__ = rl_container.__doc__
+
+  @property
+  def __doc__(self) -> str | None:  # type: ignore[override]
+    return container_doc.format_container_doc(
+        self._arolla_container._prefix[:-1],  # pylint: disable=protected-access
+        self,
+    )
 
   def __dir__(self):
     res = dir(self._arolla_container)

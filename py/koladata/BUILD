@@ -69,6 +69,7 @@ py_library(
         "//py/koladata/functor:functions",
         "//py/koladata/functor:functor_factories",
         "//py/koladata/functor:tracing_decorator",
+        "//py/koladata/operators:container_doc",
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",

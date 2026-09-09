@@ -731,6 +731,18 @@ py_test(
 )
 
 py_library(
+    name = "container_doc",
+    srcs = ["container_doc.py"],
+    visibility = [
+        "//koladata:internal",
+    ],
+    deps = [
+        "//py:python_path",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
     name = "eager_op_utils",
     srcs = ["eager_op_utils.py"],
     visibility = [
@@ -738,6 +750,7 @@ py_library(
         "//py/koladata/ext:__subpackages__",
     ],
     deps = [
+        ":container_doc",
         "//py:python_path",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
@@ -1057,6 +1070,19 @@ py_test(
         "//py/koladata/expr:view",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)
+
+py_test(
+    name = "container_doc_test",
+    srcs = ["container_doc_test.py"],
+    deps = [
+        ":container_doc",
+        ":eager_op_utils",
+        ":optools",
+        "//py:python_path",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
     ],
 )
 

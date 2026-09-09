@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import inspect
+import textwrap
 import types
 
 from absl.testing import absltest
@@ -314,19 +315,20 @@ class EagerOpUtilsTest(parameterized.TestCase):
           types.SimpleNamespace(),
       )
 
-  def test_overrides_doc_not_used(self):
+  def test_container_doc(self):
     optools.set_namespace_docstring(
-        'test.namespace_3', 'Namespace 3 fancy docstring.'
+        'test.namespace_1', 'Namespace 1 docstring.'
     )
-    kd = self.container.test.namespace_3
-    self.assertEqual(kd.__doc__, 'Namespace 3 fancy docstring.')
-    kd_with_overrides = eager_op_utils.add_overrides(
-        kd,
-        types.SimpleNamespace(__doc__='Overrides docstring.'),
+    kd = self.container.test.namespace_1
+    self.assertEqual(
+        kd.__doc__,
+        textwrap.dedent("""\
+            Namespace 1 docstring.
+
+            Operators:
+             - op_1(a, b)
+             - op_2(a, b)"""),
     )
-    # The override's __doc__ is NOT used; the arolla container is the sole
-    # source of truth for the container's docstring.
-    self.assertEqual(kd_with_overrides.__doc__, 'Namespace 3 fancy docstring.')
 
 
 if __name__ == '__main__':

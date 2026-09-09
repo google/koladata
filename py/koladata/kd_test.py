@@ -935,6 +935,19 @@ class KdTest(absltest.TestCase):
     y = kd.load(path)
     kd.testing.assert_equivalent(y, x)
 
+  def test_kd_docstring(self):
+    self.assertIsInstance(type(kd).__dict__['__doc__'], property)
+    doc = kd.__doc__
+    self.assertIsNotNone(doc)
+    self.assertTrue(doc.startswith('Entry point to Koda API for users.'))
+    self.assertIn('Nested namespaces:\n', doc)
+    self.assertIn(' - math', doc)
+    self.assertIn(' - strings', doc)
+    self.assertIn(' - functor', doc)
+    self.assertNotIn('Operators:\n', doc)
+    self.assertIn('Other:\n', doc)
+    self.assertIn(' - INT32', doc)
+
 
 if __name__ == '__main__':
   absltest.main()

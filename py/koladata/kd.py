@@ -42,6 +42,7 @@ from koladata.functor import expr_container as _expr_container
 from koladata.functor import functions as _functor_functions
 from koladata.functor import functor_factories as _functor_factories
 from koladata.functor import tracing_decorator as _tracing_decorator
+from koladata.operators import container_doc as _container_doc
 from koladata.operators import eager_op_utils as _eager_op_utils
 from koladata.operators import kde_operators as _kde_operators
 from koladata.operators import optools as _optools
@@ -371,8 +372,16 @@ def _SetUpEager():
 
 _SetUpEager()
 
+_DOC = __doc__
+
 # Set up the tracing mode machinery. This must be the last thing in this file.
 if not _typing.TYPE_CHECKING:
-  _sys.modules[__name__] = _tracing_mode.prepare_module_for_tracing(
+  _dispatch = _tracing_mode.prepare_module_for_tracing(
       _sys.modules[__name__], _tracing_config
   )
+  type(_dispatch).__doc__ = property(
+      lambda self: _container_doc.format_container_doc(
+          'kd', self, doc=_DOC, show_operators=False
+      )
+  )
+  _sys.modules[__name__] = _dispatch
