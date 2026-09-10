@@ -14,6 +14,7 @@
 //
 #include "koladata/internal/sparse_source.h"
 
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -21,6 +22,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/bitmap.h"
@@ -29,6 +31,7 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/bytes.h"
+#include "arolla/util/text.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
@@ -37,9 +40,11 @@
 namespace koladata::internal {
 namespace {
 
+using ::absl_testing::StatusIs;
 using ::arolla::bitmap::Word;
 using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
+using ::testing::HasSubstr;
 
 TEST(SparseSourceTest, MutableObjectAttrSimple) {
   AllocationId alloc = Allocate(3);
@@ -255,6 +260,93 @@ TEST(SparseSourceTest, SetUnitAttrAndReturnMissingObjectsInternal) {
       arolla::CreateDenseArray<ObjectId>({oth0, oth1, oth2, a3, a2, a1, a0}),
       missing_objects));
   EXPECT_THAT(missing_objects, ElementsAre(a3, a1));
+}
+
+TEST(SparseSourceTest, AddIntAndReturnObjectsWithTargetValue) {
+  auto oth0 = AllocateSingleObject();
+
+  AllocationId alloc = Allocate(4);
+  auto ds = std::make_shared<SparseSource>(alloc);
+  auto a0 = alloc.ObjectByOffset(0);
+  auto a1 = alloc.ObjectByOffset(1);
+  auto a2 = alloc.ObjectByOffset(2);
+  auto a3 = alloc.ObjectByOffset(3);
+
+  std::vector<ObjectId> target_objects;
+  EXPECT_OK(ds->AddIntAndReturnObjectsWithTargetValue(
+      arolla::CreateDenseArray<ObjectId>({}), /*delta=*/1, /*target=*/2,
+      target_objects));
+  EXPECT_TRUE(target_objects.empty());
+
+  // a0 appears twice, a2 appears twice. Missing values are treated as 0.
+  // Both reach target 2. a2 reaches target first, then a0.
+  EXPECT_OK(ds->AddIntAndReturnObjectsWithTargetValue(
+      arolla::CreateDenseArray<ObjectId>(
+          {a0, a2, a2, std::nullopt, std::nullopt, a0, oth0}),
+      /*delta=*/1, /*target=*/2, target_objects));
+  EXPECT_THAT(target_objects, ElementsAre(a2, a0));
+
+  EXPECT_EQ(ds->Get(a0), DataItem(int64_t{2}));
+  EXPECT_EQ(ds->Get(a1), std::nullopt);
+  EXPECT_EQ(ds->Get(a2), DataItem(int64_t{2}));
+  EXPECT_EQ(ds->Get(a3), std::nullopt);
+
+  // Counter countdown: a0 (value 2) - 1 - 1 = 0, reaches target 0.
+  // a2 (value 2) - 1 = 1, does not reach target 0.
+  // a3 (missing -> 0) - 1 = -1, does not reach target 0.
+  target_objects.clear();
+  EXPECT_OK(ds->AddIntAndReturnObjectsWithTargetValue(
+      arolla::CreateDenseArray<ObjectId>({a0, a2, a0, a3}),
+      /*delta=*/-1, /*target=*/0, target_objects));
+  EXPECT_THAT(target_objects, ElementsAre(a0));
+
+  EXPECT_EQ(ds->Get(a0), DataItem(int64_t{0}));
+  EXPECT_EQ(ds->Get(a2), DataItem(int64_t{1}));
+  EXPECT_EQ(ds->Get(a3), DataItem(int64_t{-1}));
+}
+
+// Small allocation source test (alloc_id is nullopt).
+TEST(SparseSourceTest, AddIntAndReturnObjectsWithTargetValueSmallAlloc) {
+  auto ds = std::make_shared<SparseSource>();
+  auto s0 = AllocateSingleObject();
+  auto s1 = AllocateSingleObject();
+  auto big0 = Allocate(4).ObjectByOffset(0);
+
+  std::vector<ObjectId> target_objects;
+  EXPECT_OK(ds->AddIntAndReturnObjectsWithTargetValue(
+      arolla::CreateDenseArray<ObjectId>({s0, s1, s0, big0}),
+      /*delta=*/1, /*target=*/2, target_objects));
+  // s0 appears twice -> 0 + 1 + 1 = 2 (reaches target).
+  // s1 appears once -> 0 + 1 = 1 (does not reach target).
+  // big0 is not a small alloc -> ignored.
+  EXPECT_THAT(target_objects, ElementsAre(s0));
+  EXPECT_EQ(ds->Get(s0), DataItem(int64_t{2}));
+  EXPECT_EQ(ds->Get(s1), DataItem(int64_t{1}));
+  EXPECT_EQ(ds->Get(big0), std::nullopt);
+}
+
+TEST(SparseSourceTest, AddIntAndReturnObjectsWithTargetValueErrors) {
+  auto ds = std::make_shared<SparseSource>();
+  auto s0 = AllocateSingleObject();
+  std::vector<ObjectId> target_objects;
+
+  // delta must be 1 or -1; delta == 0 or |delta| > 1 is rejected.
+  for (int64_t invalid_delta : {0, 2, -2}) {
+    EXPECT_THAT(ds->AddIntAndReturnObjectsWithTargetValue(
+                    arolla::CreateDenseArray<ObjectId>({s0}),
+                    /*delta=*/invalid_delta, /*target=*/0, target_objects),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("delta must be either 1 or -1")));
+  }
+
+  // Incompatible existing type (e.g. TEXT).
+  ds->Set(s0, DataItem(arolla::Text("hello")));
+  EXPECT_THAT(
+      ds->AddIntAndReturnObjectsWithTargetValue(
+          arolla::CreateDenseArray<ObjectId>({s0}), /*delta=*/1, /*target=*/1,
+          target_objects),
+      StatusIs(absl::StatusCode::kFailedPrecondition,
+               HasSubstr("unsupported type TEXT for integer attribute")));
 }
 
 }  // namespace

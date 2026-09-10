@@ -21,6 +21,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/optimization.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_format.h"
@@ -127,6 +128,38 @@ absl::Status SparseSource::SetUnitAndUpdateMissingObjects(
     }
   });
   return absl::OkStatus();
+}
+
+absl::Status SparseSource::AddIntAndReturnObjectsWithTargetValue(
+    const ObjectIdArray& objects, int64_t delta, int64_t target,
+    std::vector<ObjectId>& objects_with_target_value) {
+  if (delta != 1 && delta != -1) {
+    return absl::InvalidArgumentError("delta must be either 1 or -1");
+  }
+  absl::Status status = absl::OkStatus();
+  objects.ForEachPresent([&](int64_t id, ObjectId object) {
+    if (!status.ok() || !ObjectBelongs(object)) {
+      return;
+    }
+    auto [it, inserted] = data_item_map_.insert({object, DataItem(int64_t{0})});
+    auto& item = it->second;
+    int64_t old_val = 0;
+    if (!inserted && item.has_value()) {
+      if (ABSL_PREDICT_TRUE(item.holds_value<int64_t>())) {
+        old_val = item.value<int64_t>();
+      } else {
+        status = absl::FailedPreconditionError(absl::StrFormat(
+            "unsupported type %s for integer attribute", item.dtype()->name()));
+        return;
+      }
+    }
+    int64_t val = old_val + delta;
+    item = DataItem(val);
+    if (val == target) {
+      objects_with_target_value.push_back(object);
+    }
+  });
+  return status;
 }
 
 MemoryStatsEntry SparseSource::GetMemoryStats() const {

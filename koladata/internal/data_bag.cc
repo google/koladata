@@ -1026,6 +1026,96 @@ DataBagImpl::InternalSetUnitAttrAndReturnMissingObjects(
       missing_objects_alloc_ids);
 }
 
+absl::StatusOr<DataSliceImpl>
+DataBagImpl::InternalAddIntAndReturnObjectsWithTargetValue(
+    const DataSliceImpl& objects, absl::string_view attr, int64_t delta,
+    int64_t target) {
+  RETURN_IF_ERROR(CheckNotFrozen());
+  if (delta != 1 && delta != -1) {
+    return absl::InvalidArgumentError("delta must be either 1 or -1");
+  }
+  if (objects.is_empty_and_unknown()) {
+    return DataSliceImpl::CreateEmptyAndUnknownType(0);
+  }
+  if (objects.dtype() != arolla::GetQType<ObjectId>()) {
+    return absl::FailedPreconditionError(
+        "adding integer attribute of primitives is not allowed");
+  }
+  if (parent_data_bag_ != nullptr) {
+    return absl::FailedPreconditionError(
+        "adding integer attribute on a DataBag with parent is not allowed");
+  }
+  std::vector<ObjectId> target_objects;
+  // Reserving `objects.size()` because in our target use case (tree traversal /
+  // in-degree tracking), the majority of elements are expected to reach the
+  // target.
+  target_objects.reserve(objects.size());
+  AllocationIdSet target_objects_alloc_ids;
+
+  if (objects.allocation_ids().contains_small_allocation_id()) {
+    auto& source = GetMutableSmallAllocSource(attr);
+    RETURN_IF_ERROR(source.AddIntAndReturnObjectsWithTargetValue(
+        objects.values<ObjectId>(), delta, target, target_objects));
+    if (!target_objects.empty()) {
+      target_objects_alloc_ids.InsertSmallAllocationId();
+    }
+  }
+
+  auto process_allocation = [&](const ObjectIdArray& objs,
+                                AllocationId alloc_id) -> absl::Status {
+    absl::Cleanup complete_processing_allocation =
+        [&, target_objects_sz = target_objects.size()] {
+          if (target_objects.size() != target_objects_sz) {
+            target_objects_alloc_ids.Insert(alloc_id);
+          }
+        };
+    SourceCollection& collection = GetOrCreateSourceCollection(alloc_id, attr);
+    if (collection.const_dense_source) {
+      return absl::InvalidArgumentError("const source is not supported");
+    }
+    RETURN_IF_ERROR(GetOrCreateMutableSourceInCollection(
+        collection, alloc_id, attr, arolla::GetQType<int64_t>(),
+        /*update_size=*/objs.size()));
+    if (collection.mutable_dense_source) {
+      return collection.mutable_dense_source
+          ->AddIntAndReturnObjectsWithTargetValue(objs, delta, target,
+                                                  target_objects);
+    }
+    DCHECK(collection.mutable_sparse_source);
+    return collection.mutable_sparse_source
+        ->AddIntAndReturnObjectsWithTargetValue(objs, delta, target,
+                                                target_objects);
+  };
+
+  const auto& objects_array = objects.values<ObjectId>();
+  if (HasTooManyAllocationIds(objects.allocation_ids().size(),
+                              objects.size())) {
+    auto status = absl::OkStatus();
+    ObjectId to_process_id;
+    ObjectIdArray to_process_array{arolla::Buffer<ObjectId>{
+        nullptr, absl::MakeConstSpan(&to_process_id, 1)}};
+    objects_array.ForEachPresent([&](int64_t i, ObjectId obj) {
+      if (!status.ok() || obj.IsSmallAlloc()) {
+        return;
+      }
+      to_process_id = obj;
+      status = process_allocation(to_process_array, AllocationId(obj));
+    });
+    RETURN_IF_ERROR(std::move(status));
+  } else {
+    for (AllocationId alloc_id : objects.allocation_ids()) {
+      RETURN_IF_ERROR(process_allocation(objects_array, alloc_id));
+    }
+  }
+  if (target_objects.size() == objects.size()) {
+    return objects;
+  }
+  return DataSliceImpl::CreateObjectsDataSlice(
+      arolla::DenseArray<ObjectId>{
+          arolla::Buffer<ObjectId>::Create(std::move(target_objects))},
+      std::move(target_objects_alloc_ids));
+}
+
 absl::StatusOr<DataSliceImpl> DataBagImpl::CreateObjectsFromFields(
     absl::Span<const absl::string_view> attr_names,
     const std::vector<std::reference_wrapper<const DataSliceImpl>>& slices) {

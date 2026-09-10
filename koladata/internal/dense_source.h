@@ -96,6 +96,21 @@ class DenseSource : public std::enable_shared_from_this<DenseSource> {
   virtual absl::Status SetUnitAndUpdateMissingObjects(
       const ObjectIdArray& objects, std::vector<ObjectId>& missing_objects) = 0;
 
+  // Adds `delta` to an int64_t attribute for specified objects.
+  // Updates `objects_with_target_value` with the list of objects whose value
+  // reached `target`.
+  //
+  // Missing values in the source are treated as zeros before addition. Items
+  // with missing ObjectId in `objects` will be ignored. An object may appear
+  // multiple times in `objects`, each occurrence adds `delta` to its value
+  // (delta must be either 1 or -1).
+  //
+  // Returns an error if the source is not mutable, or is not an int64_t
+  // DenseSource.
+  virtual absl::Status AddIntAndReturnObjectsWithTargetValue(
+      const ObjectIdArray& objects, int64_t delta, int64_t target,
+      std::vector<ObjectId>& objects_with_target_value) = 0;
+
   struct ConflictHandlingOption {
     enum Option {
       kRaiseOnConflict = 0,

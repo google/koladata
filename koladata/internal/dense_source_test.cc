@@ -618,6 +618,89 @@ TEST(DenseSourceTest, SetUnitAttrAndReturnMissingObjectsInternal) {
   EXPECT_THAT(missing_objects, ElementsAre(a3, a1));
 }
 
+TEST(DenseSourceTest, AddIntAndReturnObjectsWithTargetValue) {
+  auto oth0 = AllocateSingleObject();
+
+  AllocationId alloc = Allocate(4);
+  ASSERT_OK_AND_ASSIGN(auto ds, DenseSource::CreateMutable(
+                                    alloc, 4, arolla::GetQType<int64_t>()));
+
+  auto a0 = alloc.ObjectByOffset(0);
+  auto a1 = alloc.ObjectByOffset(1);
+  auto a2 = alloc.ObjectByOffset(2);
+  auto a3 = alloc.ObjectByOffset(3);
+
+  std::vector<ObjectId> target_objects;
+  EXPECT_OK(ds->AddIntAndReturnObjectsWithTargetValue(
+      arolla::CreateDenseArray<ObjectId>({}), /*delta=*/1, /*target=*/2,
+      target_objects));
+  EXPECT_TRUE(target_objects.empty());
+
+  // a0 appears twice, a2 appears twice. Missing values are treated as 0.
+  // Both reach target 2. a2 reaches target first, then a0.
+  EXPECT_OK(ds->AddIntAndReturnObjectsWithTargetValue(
+      arolla::CreateDenseArray<ObjectId>(
+          {a0, a2, a2, std::nullopt, std::nullopt, a0, oth0}),
+      /*delta=*/1, /*target=*/2, target_objects));
+  EXPECT_THAT(target_objects, ElementsAre(a2, a0));
+
+  EXPECT_EQ(ds->Get(a0), DataItem(int64_t{2}));
+  EXPECT_EQ(ds->Get(a1), std::nullopt);
+  EXPECT_EQ(ds->Get(a2), DataItem(int64_t{2}));
+  EXPECT_EQ(ds->Get(a3), std::nullopt);
+
+  // Counter countdown: a0 (value 2) - 1 - 1 = 0, reaches target 0.
+  // a2 (value 2) - 1 = 1, does not reach target 0.
+  // a3 (missing -> 0) - 1 = -1, does not reach target 0.
+  target_objects.clear();
+  EXPECT_OK(ds->AddIntAndReturnObjectsWithTargetValue(
+      arolla::CreateDenseArray<ObjectId>({a0, a2, a0, a3}),
+      /*delta=*/-1, /*target=*/0, target_objects));
+  EXPECT_THAT(target_objects, ElementsAre(a0));
+
+  EXPECT_EQ(ds->Get(a0), DataItem(int64_t{0}));
+  EXPECT_EQ(ds->Get(a2), DataItem(int64_t{1}));
+  EXPECT_EQ(ds->Get(a3), DataItem(int64_t{-1}));
+}
+
+TEST(DenseSourceTest, AddIntAndReturnObjectsWithTargetValueErrors) {
+  AllocationId alloc = Allocate(4);
+  ASSERT_OK_AND_ASSIGN(auto ds, DenseSource::CreateMutable(
+                                    alloc, 4, arolla::GetQType<int64_t>()));
+  auto a0 = alloc.ObjectByOffset(0);
+  std::vector<ObjectId> target_objects;
+
+  // delta must be 1 or -1; delta == 0 or |delta| > 1 is rejected.
+  for (int64_t invalid_delta : {0, 2, -2}) {
+    EXPECT_THAT(ds->AddIntAndReturnObjectsWithTargetValue(
+                    arolla::CreateDenseArray<ObjectId>({a0}),
+                    /*delta=*/invalid_delta, /*target=*/0, target_objects),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("delta must be either 1 or -1")));
+  }
+
+  // Non-int64_t DenseSource.
+  ASSERT_OK_AND_ASSIGN(auto ds_float, DenseSource::CreateMutable(
+                                          alloc, 4, arolla::GetQType<float>()));
+  EXPECT_THAT(ds_float->AddIntAndReturnObjectsWithTargetValue(
+                  arolla::CreateDenseArray<ObjectId>({a0}), /*delta=*/1,
+                  /*target=*/1, target_objects),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("only allowed for int64_t DenseSource")));
+
+  // Immutable DenseSource.
+  ASSERT_OK_AND_ASSIGN(
+      auto readonly_ds,
+      DenseSource::CreateReadonly(
+          alloc, DataSliceImpl::Create(
+                     arolla::CreateDenseArray<int64_t>({1, 2, 3, 4}))));
+  EXPECT_THAT(readonly_ds->AddIntAndReturnObjectsWithTargetValue(
+                  arolla::CreateDenseArray<ObjectId>({a0}), /*delta=*/1,
+                  /*target=*/1, target_objects),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("not allowed for an immutable DenseSource")));
+}
+
 DataSliceImpl RemovedToMissing(const DataSliceImpl slice) {
   SliceBuilder bldr(slice.size());
   for (int64_t i = 0; i < slice.size(); ++i) {

@@ -15,9 +15,11 @@
 #ifndef KOLADATA_INTERNAL_SPARSE_SOURCE_H_
 #define KOLADATA_INTERNAL_SPARSE_SOURCE_H_
 
+#include <cstdint>
 #include <optional>
 #include <vector>
 
+#include "absl/base/optimization.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
@@ -79,6 +81,18 @@ class SparseSource {
   // Updates missing_objects with the list of objects that were missing.
   absl::Status SetUnitAndUpdateMissingObjects(
       const ObjectIdArray& objects, std::vector<ObjectId>& missing_objects);
+
+  // Adds `delta` to an int64_t attribute for specified objects.
+  // Updates `objects_with_target_value` with the list of objects whose value
+  // reached `target`.
+  //
+  // Missing values in the source are treated as zeros before addition. Items
+  // with missing ObjectId in `objects` will be ignored. An object may appear
+  // multiple times in `objects`, each occurrence adds `delta` to its value
+  // (delta must be either 1 or -1).
+  absl::Status AddIntAndReturnObjectsWithTargetValue(
+      const ObjectIdArray& objects, int64_t delta, int64_t target,
+      std::vector<ObjectId>& objects_with_target_value);
 
   MemoryStatsEntry GetMemoryStats() const;
 

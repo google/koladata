@@ -312,6 +312,14 @@ class MultitypeDenseSource : public DenseSource {
         "DenseSource.");
   }
 
+  absl::Status AddIntAndReturnObjectsWithTargetValue(
+      const ObjectIdArray& objects, int64_t delta, int64_t target,
+      std::vector<ObjectId>& objects_with_target_value) final {
+    return absl::FailedPreconditionError(
+        "AddIntAndReturnObjectsWithTargetValue is not allowed for a "
+        "multitype DenseSource.");
+  }
+
   absl::Status MergeImpl(const DataSliceImpl& values,
                          const ConflictHandlingOption& option) final {
     // Sizes can be different if one of the source was created with known
@@ -810,6 +818,39 @@ class TypedDenseSource final : public DenseSource {
     return absl::OkStatus();
   }
 
+  absl::Status AddIntAndReturnObjectsWithTargetValue(
+      const ObjectIdArray& objects, int64_t delta, int64_t target,
+      std::vector<ObjectId>& objects_with_target_value) final {
+    if (delta != 1 && delta != -1) {
+      return absl::InvalidArgumentError("delta must be either 1 or -1");
+    }
+    if (multitype_) {
+      return absl::FailedPreconditionError(
+          "AddIntAndReturnObjectsWithTargetValue is not allowed for a "
+          "multitype DenseSource.");
+    }
+    if constexpr (!std::is_same_v<T, int64_t>) {
+      return absl::FailedPreconditionError(
+          "AddIntAndReturnObjectsWithTargetValue is only allowed for "
+          "int64_t DenseSource.");
+    } else {
+      objects.ForEachPresent([&](int64_t id, ObjectId object) {
+        if (obj_allocation_id_.Contains(object)) {
+          int64_t offset = object.Offset();
+          auto opt_val = values_.Get(offset);
+          int64_t val = opt_val.present ? opt_val.value : 0;
+          val += delta;
+          values_.Set(offset, val);
+          MaybeSetBit(values_mask_, offset);
+          if (val == target) {
+            objects_with_target_value.push_back(object);
+          }
+        }
+      });
+    }
+    return absl::OkStatus();
+  }
+
   absl::Status MergeImpl(const DataSliceImpl& values,
                          const ConflictHandlingOption& option) final {
     if (multitype_ || values.is_mixed_dtype() ||
@@ -1040,6 +1081,13 @@ class ReadOnlyDenseSource : public DenseSource {
                                               std::vector<ObjectId>&) final {
     return absl::FailedPreconditionError(
         "SetAttr is not allowed for an immutable DenseSource.");
+  }
+
+  absl::Status AddIntAndReturnObjectsWithTargetValue(
+      const ObjectIdArray&, int64_t, int64_t, std::vector<ObjectId>&) final {
+    return absl::FailedPreconditionError(
+        "AddIntAndReturnObjectsWithTargetValue is not allowed for an "
+        "immutable DenseSource.");
   }
 
   std::shared_ptr<DenseSource> CreateMutableCopy() const override {

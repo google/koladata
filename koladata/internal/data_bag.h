@@ -316,6 +316,36 @@ class DataBagImpl : public arolla::RefcountedBase {
   InternalSetUnitAttrAndReturnMissingObjects(const DataSliceImpl& objects,
                                              absl::string_view attr);
 
+  // Adds `delta` to an integer attribute for specified objects.
+  // Returns a slice of unique ObjectIds whose value reached `target`.
+  //
+  // `delta` must be either 1 or -1.
+  // Missing values are treated as zeros before addition. An object may appear
+  // multiple times in `objects`, each occurrence adds `delta` to its value.
+  //
+  // An object is returned if its value reaches `target` at any point during
+  // the updates:
+  // (1) If an object "overshoots" `target` due to repeated occurrences in
+  //     `objects`, it is still returned.
+  //     For example:
+  //     - delta = 1, target = 1: an object initially 0 appearing twice goes
+  //       0 -> 1 (reaches target, returned) -> 2 (overshoots).
+  //     - delta = -1, target = 0: an object initially 1 appearing twice goes
+  //       1 -> 0 (reaches target, returned) -> -1 (overshoots).
+  // (2) Objects whose values were already past `target` (larger than `target`
+  //     when delta = 1, or smaller than `target` when delta = -1) and never
+  //     equal `target` are not returned.
+  //     For example:
+  //     - delta = 1, target = 1: an object initially 2 becomes 3 and is not
+  //       returned.
+  //     - delta = -1, target = 0: an object initially -1 becomes -2 and is
+  //       not returned.
+  //
+  // Note: the order of the returned objects is unspecified.
+  absl::StatusOr<DataSliceImpl> InternalAddIntAndReturnObjectsWithTargetValue(
+      const DataSliceImpl& objects, absl::string_view attr, int64_t delta,
+      int64_t target);
+
   // ListRange{a, b} represent python-style slicing [a:b]. Negative indices mean
   // offset from the end of a list.
   // Unspecified or nullopt `to` means the end of the list.

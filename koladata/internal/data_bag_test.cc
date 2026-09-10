@@ -1802,6 +1802,362 @@ TEST(DataBagTest,
   }
 }
 
+TEST(DataBagTest, InternalAddIntAndReturnObjectsWithTargetValueBasic) {
+  constexpr int64_t kSize = 3;
+  auto db = DataBagImpl::CreateEmptyDatabag();
+
+  auto ds_a = DataSliceImpl::AllocateEmptyObjects(kSize);
+  auto ds_b = DataSliceImpl::AllocateEmptyObjects(kSize);
+  auto ds1 = DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>(
+      {ds_a.values<ObjectId>()[0], ds_b.values<ObjectId>()[1]}));
+  ASSERT_OK_AND_ASSIGN(auto ds1_result,
+                       db->InternalAddIntAndReturnObjectsWithTargetValue(
+                           ds1, "a", /*delta=*/1, /*target=*/1));
+  EXPECT_THAT(ds1_result.values<ObjectId>(),
+              ElementsAreArray(ds1.values<ObjectId>()));
+
+  auto ds_union = DataSliceImpl::CreateObjectsDataSlice(
+      arolla::CreateDenseArray<ObjectId>(ConcatObjects(ds_a, ds_b)),
+      ConcatAllocations(ds_a, ds_b));
+  ASSERT_OK_AND_ASSIGN(auto ds_result,
+                       db->InternalAddIntAndReturnObjectsWithTargetValue(
+                           ds_union, "a", /*delta=*/1, /*target=*/1));
+  EXPECT_THAT(ds_result.allocation_ids(),
+              ElementsAreArray(ConcatAllocations(ds_a, ds_b)));
+  EXPECT_THAT(ds_result.values<ObjectId>(),
+              UnorderedElementsAreArray(
+                  {ds_a.values<ObjectId>()[1], ds_a.values<ObjectId>()[2],
+                   ds_b.values<ObjectId>()[0], ds_b.values<ObjectId>()[2]}));
+
+  ASSERT_OK_AND_ASSIGN(auto ds_oth,
+                       db->InternalAddIntAndReturnObjectsWithTargetValue(
+                           ds_union, "oth", /*delta=*/1, /*target=*/1));
+  EXPECT_THAT(ds_oth.allocation_ids(),
+              ElementsAreArray(ConcatAllocations(ds_a, ds_b)));
+  EXPECT_THAT(ds_oth.values<ObjectId>(),
+              ElementsAreArray(ds_union.values<ObjectId>()));
+}
+
+TEST(DataBagTest, InternalAddIntAndReturnObjectsWithTargetValueCounters) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_a = AllocateSingleObject();
+  auto obj_b = AllocateSingleObject();
+  auto obj_c = AllocateSingleObject();
+
+  // Multiple occurrences in slice: obj_a appears 3 times, obj_b 2 times,
+  // obj_c 1 time.
+  // With delta=1, target=2:
+  // obj_a: 0 -> 1 -> 2 (reaches target) -> 3
+  // obj_b: 0 -> 1 -> 2 (reaches target)
+  // obj_c: 0 -> 1
+  auto ds = DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>(
+      {obj_a, obj_b, obj_a, obj_c, obj_b, obj_a}));
+  ASSERT_OK_AND_ASSIGN(auto result,
+                       db->InternalAddIntAndReturnObjectsWithTargetValue(
+                           ds, "count", /*delta=*/1, /*target=*/2));
+  EXPECT_THAT(result.values<ObjectId>(), UnorderedElementsAre(obj_a, obj_b));
+
+  // Verify stored attribute values.
+  ASSERT_OK_AND_ASSIGN(auto val_a, db->GetAttr(DataItem(obj_a), "count"));
+  EXPECT_EQ(val_a, DataItem(int64_t{3}));
+  ASSERT_OK_AND_ASSIGN(auto val_b, db->GetAttr(DataItem(obj_b), "count"));
+  EXPECT_EQ(val_b, DataItem(int64_t{2}));
+  ASSERT_OK_AND_ASSIGN(auto val_c, db->GetAttr(DataItem(obj_c), "count"));
+  EXPECT_EQ(val_c, DataItem(int64_t{1}));
+
+  // Countdown counter: delta = -1, target = 0.
+  // Pass obj_a 3 times, obj_b 2 times.
+  // obj_a: 3 - 1 - 1 - 1 = 0 (reaches target 0)
+  // obj_b: 2 - 1 - 1 = 0 (reaches target 0)
+  auto ds_dec = DataSliceImpl::Create(
+      arolla::CreateDenseArray<ObjectId>({obj_a, obj_b, obj_a, obj_a, obj_b}));
+  ASSERT_OK_AND_ASSIGN(auto result_dec,
+                       db->InternalAddIntAndReturnObjectsWithTargetValue(
+                           ds_dec, "count", /*delta=*/-1, /*target=*/0));
+  EXPECT_THAT(result_dec.values<ObjectId>(),
+              UnorderedElementsAre(obj_a, obj_b));
+
+  ASSERT_OK_AND_ASSIGN(val_a, db->GetAttr(DataItem(obj_a), "count"));
+  EXPECT_EQ(val_a, DataItem(int64_t{0}));
+  ASSERT_OK_AND_ASSIGN(val_b, db->GetAttr(DataItem(obj_b), "count"));
+  EXPECT_EQ(val_b, DataItem(int64_t{0}));
+  ASSERT_OK_AND_ASSIGN(val_c, db->GetAttr(DataItem(obj_c), "count"));
+  EXPECT_EQ(val_c, DataItem(int64_t{1}));
+}
+
+TEST(DataBagTest, InternalAddIntAndReturnObjectsWithTargetValueSparseToDense) {
+  for (int64_t kSize : {2, 1000}) {
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto ds = DataSliceImpl::AllocateEmptyObjects(kSize);
+    for (int64_t sz : {kSize / 100 + 1, kSize}) {
+      auto objs_bldr = arolla::DenseArrayBuilder<ObjectId>(sz);
+      objs_bldr.Set(0, ds.values<ObjectId>()[0]);
+      auto objs = DataSliceImpl::Create(std::move(objs_bldr).Build());
+      ASSERT_OK_AND_ASSIGN(auto _,
+                           db->InternalAddIntAndReturnObjectsWithTargetValue(
+                               objs, "a", /*delta=*/1, /*target=*/1));
+    }
+    EXPECT_THAT(db->GetAttr(DataItem(ds.values<ObjectId>()[0]), "a"),
+                IsOkAndHolds(DataItem(int64_t{2})));
+  }
+}
+
+TEST(DataBagTest,
+     InternalAddIntAndReturnObjectsWithTargetValueMixSmallAndBigAllocations) {
+  constexpr int64_t kSize = 111;
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  std::vector<DataItem> objs1;
+  std::vector<DataItem> objs2;
+  std::vector<DataItem> expected_objs2_target;
+  for (int64_t i = 0; i < kSize; ++i) {
+    auto obj = i % 5 == 0 ? DataItem(Allocate(57).ObjectByOffset(i % 57))
+                          : DataItem(AllocateSingleObject());
+    if (i % 2 == 0) {
+      objs1.push_back(obj);
+    } else {
+      objs2.push_back(obj);
+      if (i % 3 == 0) {
+        objs1.push_back(obj);
+      } else {
+        expected_objs2_target.push_back(obj);
+      }
+    }
+  }
+  {
+    auto ds = DataSliceImpl::Create(objs1);
+    EXPECT_THAT(db->InternalAddIntAndReturnObjectsWithTargetValue(
+                    ds, "a", /*delta=*/1, /*target=*/1),
+                IsOkAndHolds(UnorderedElementsAreArray(objs1)));
+  }
+  {
+    auto ds = DataSliceImpl::Create(objs2);
+    EXPECT_THAT(db->InternalAddIntAndReturnObjectsWithTargetValue(
+                    ds, "a", /*delta=*/1, /*target=*/1),
+                IsOkAndHolds(UnorderedElementsAreArray(expected_objs2_target)));
+  }
+}
+
+TEST(DataBagTest, InternalAddIntAndReturnObjectsWithTargetValueErrors) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj = AllocateSingleObject();
+  auto ds = DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({obj}));
+
+  // Empty and unknown slice returns empty.
+  EXPECT_THAT(db->InternalAddIntAndReturnObjectsWithTargetValue(
+                  DataSliceImpl::CreateEmptyAndUnknownType(0), "a", 1, 1),
+              IsOkAndHolds(ElementsAre()));
+
+  // Primitives input.
+  auto ds_primitives =
+      DataSliceImpl::Create(arolla::CreateDenseArray<int>({1, 2, 3}));
+  EXPECT_THAT(db->InternalAddIntAndReturnObjectsWithTargetValue(ds_primitives,
+                                                                "a", 1, 1),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("adding integer attribute of primitives")));
+
+  // Frozen databag.
+  auto frozen_db = DataBagImpl::CreateEmptyDatabag();
+  frozen_db->Freeze();
+  EXPECT_THAT(
+      frozen_db->InternalAddIntAndReturnObjectsWithTargetValue(ds, "a", 1, 1),
+      StatusIs(absl::StatusCode::kFailedPrecondition,
+               HasSubstr("modifying a frozen DataBagImpl is not allowed")));
+
+  // DataBag with parent.
+  ASSERT_OK(db->SetAttr(DataItem(obj), "parent_attr", DataItem(int64_t{1})));
+  auto child_db = db->PartiallyPersistentFork();
+  EXPECT_THAT(
+      child_db->InternalAddIntAndReturnObjectsWithTargetValue(ds, "a", 1, 1),
+      StatusIs(absl::StatusCode::kFailedPrecondition,
+               HasSubstr("DataBag with parent is not allowed")));
+
+  // Wrong type: set attribute to string first, then try integer update.
+  ASSERT_OK(
+      db->SetAttr(DataItem(obj), "str_attr", DataItem(arolla::Text("hello"))));
+  EXPECT_THAT(
+      db->InternalAddIntAndReturnObjectsWithTargetValue(ds, "str_attr", 1, 1),
+      StatusIs(absl::StatusCode::kFailedPrecondition));
+
+  // delta must be 1 or -1; delta == 0 or |delta| > 1 is rejected.
+  for (int64_t invalid_delta : {0, 2, -2, 10, -10}) {
+    EXPECT_THAT(db->InternalAddIntAndReturnObjectsWithTargetValue(
+                    ds, "a", /*delta=*/invalid_delta, /*target=*/1),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("delta must be either 1 or -1")));
+  }
+
+  // All missing ObjectIds in input slice returns empty.
+  auto ds_missing = DataSliceImpl::Create(
+      arolla::CreateDenseArray<ObjectId>({std::nullopt, std::nullopt}));
+  EXPECT_THAT(db->InternalAddIntAndReturnObjectsWithTargetValue(
+                  ds_missing, "a", /*delta=*/1, /*target=*/1),
+              IsOkAndHolds(ElementsAre()));
+}
+
+TEST(DataBagTest, InternalAddIntAndReturnObjectsWithTargetValueOvershooting) {
+  // Test overshooting and past-target behavior for positive delta (delta = 1,
+  // target = 1).
+  {
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto obj_overshoot = AllocateSingleObject();
+    auto obj_past_target = AllocateSingleObject();
+    // obj_past_target is already larger than target.
+    ASSERT_OK(
+        db->SetAttr(DataItem(obj_past_target), "a", DataItem(int64_t{2})));
+
+    // obj_overshoot appears twice: 0 -> 1 (reaches target, returned) -> 2
+    // (overshoots). obj_past_target appears once: 2 -> 3 (never reaches target,
+    // not returned).
+    auto ds = DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>(
+        {obj_overshoot, obj_past_target, obj_overshoot}));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         db->InternalAddIntAndReturnObjectsWithTargetValue(
+                             ds, "a", /*delta=*/1, /*target=*/1));
+    EXPECT_THAT(res.values<ObjectId>(), ElementsAre(obj_overshoot));
+    EXPECT_THAT(db->GetAttr(DataItem(obj_overshoot), "a"),
+                IsOkAndHolds(DataItem(int64_t{2})));
+    EXPECT_THAT(db->GetAttr(DataItem(obj_past_target), "a"),
+                IsOkAndHolds(DataItem(int64_t{3})));
+  }
+
+  // Test overshooting and past-target behavior for negative delta (delta = -1,
+  // target = 0).
+  {
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto obj_overshoot = AllocateSingleObject();
+    auto obj_past_target = AllocateSingleObject();
+    ASSERT_OK(db->SetAttr(DataItem(obj_overshoot), "a", DataItem(int64_t{1})));
+    // obj_past_target is already smaller than target.
+    ASSERT_OK(
+        db->SetAttr(DataItem(obj_past_target), "a", DataItem(int64_t{-1})));
+
+    // obj_overshoot appears twice: 1 -> 0 (reaches target, returned) -> -1
+    // (overshoots). obj_past_target appears once: -1 -> -2 (never reaches
+    // target, not returned).
+    auto ds = DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>(
+        {obj_overshoot, obj_past_target, obj_overshoot}));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         db->InternalAddIntAndReturnObjectsWithTargetValue(
+                             ds, "a", /*delta=*/-1, /*target=*/0));
+    EXPECT_THAT(res.values<ObjectId>(), ElementsAre(obj_overshoot));
+    EXPECT_THAT(db->GetAttr(DataItem(obj_overshoot), "a"),
+                IsOkAndHolds(DataItem(int64_t{-1})));
+    EXPECT_THAT(db->GetAttr(DataItem(obj_past_target), "a"),
+                IsOkAndHolds(DataItem(int64_t{-2})));
+  }
+}
+
+TEST(DataBagTest,
+     InternalAddIntAndReturnObjectsWithTargetValuePreservesInputOrder) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto alloc_a = Allocate(1);
+  auto alloc_b = Allocate(1);
+  if (alloc_b < alloc_a) {
+    std::swap(alloc_a, alloc_b);
+  }
+  auto obj_a = alloc_a.ObjectByOffset(0);
+  auto obj_b = alloc_b.ObjectByOffset(0);
+
+  ASSERT_OK(db->SetAttr(DataItem(obj_a), "a", DataItem(int64_t{0})));
+  ASSERT_OK(db->SetAttr(DataItem(obj_b), "a", DataItem(int64_t{0})));
+
+  // Input slice has obj_b before obj_a (reverse order of allocation ID).
+  auto ds = DataSliceImpl::Create(
+      arolla::CreateDenseArray<ObjectId>({obj_b, obj_a}));
+
+  ASSERT_OK_AND_ASSIGN(
+      auto res,
+      db->InternalAddIntAndReturnObjectsWithTargetValue(ds, "a", /*delta=*/1,
+                                                       /*target=*/1));
+  // When all objects reach target, the original slice is returned, preserving
+  // the input order {obj_b, obj_a}.
+  EXPECT_THAT(res.values<ObjectId>(), ElementsAre(obj_b, obj_a));
+}
+
+TEST(DataBagTest,
+     InternalAddIntAndReturnObjectsWithTargetValueHasTooManyAllocationIds) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  std::vector<AllocationId> allocs;
+  allocs.reserve(8);
+  for (int i = 0; i < 8; ++i) {
+    allocs.push_back(Allocate(1));
+  }
+  std::sort(allocs.begin(), allocs.end());
+
+  std::vector<ObjectId> objs;
+  objs.reserve(8);
+  for (int i = 0; i < 8; ++i) {
+    objs.push_back(allocs[i].ObjectByOffset(0));
+  }
+
+  // Set attribute "a":
+  // For objs 0..3, set initial value to 1 (with delta=1, target=1, they will
+  // become 2 and NOT reach target).
+  // For objs 4..7, set initial value to 0 (with delta=1, target=1, they will
+  // reach target).
+  for (int i = 0; i < 4; ++i) {
+    ASSERT_OK(db->SetAttr(DataItem(objs[i]), "a", DataItem(int64_t{1})));
+  }
+  for (int i = 4; i < 8; ++i) {
+    ASSERT_OK(db->SetAttr(DataItem(objs[i]), "a", DataItem(int64_t{0})));
+  }
+
+  // Create slice in reverse order of allocs: {objs[7], objs[6], ..., objs[0]}.
+  // With 8 allocations of size 1 (total size 8), HasTooManyAllocationIds is
+  // true. When HasTooManyAllocationIds is true, objects are processed in input
+  // slice order rather than allocation ID order.
+  auto ds = DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>(
+      {objs[7], objs[6], objs[5], objs[4], objs[3], objs[2], objs[1],
+       objs[0]}));
+
+  ASSERT_OK_AND_ASSIGN(
+      auto res,
+      db->InternalAddIntAndReturnObjectsWithTargetValue(ds, "a", /*delta=*/1,
+                                                       /*target=*/1));
+  EXPECT_THAT(res.values<ObjectId>(),
+              ElementsAre(objs[7], objs[6], objs[5], objs[4]));
+}
+
+TEST(DataBagTest,
+     InternalAddIntAndReturnObjectsWithTargetValueTooManyAllocsErrorEarlyExit) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  std::vector<AllocationId> allocs;
+  allocs.reserve(8);
+  for (int i = 0; i < 8; ++i) {
+    allocs.push_back(Allocate(1));
+  }
+  std::sort(allocs.begin(), allocs.end());
+
+  std::vector<ObjectId> objs;
+  objs.reserve(8);
+  for (int i = 0; i < 8; ++i) {
+    objs.push_back(allocs[i].ObjectByOffset(0));
+  }
+
+  // objs[7] has a text attribute to trigger an error during AddInt.
+  ASSERT_OK(
+      db->SetAttr(DataItem(objs[7]), "a", DataItem(arolla::Text("error"))));
+  for (int i = 0; i < 7; ++i) {
+    ASSERT_OK(db->SetAttr(DataItem(objs[i]), "a", DataItem(int64_t{10})));
+  }
+
+  // Input slice starting with objs[7], followed by objs[6]..objs[0].
+  auto ds = DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>(
+      {objs[7], objs[6], objs[5], objs[4], objs[3], objs[2], objs[1],
+       objs[0]}));
+
+  // The operation should fail because objs[7] has text type.
+  EXPECT_THAT(
+      db->InternalAddIntAndReturnObjectsWithTargetValue(ds, "a", /*delta=*/1,
+                                                       /*target=*/11),
+      StatusIs(absl::StatusCode::kFailedPrecondition));
+
+  // objs[6] should NOT be modified because the loop terminates early upon
+  // encountering the first error.
+  EXPECT_THAT(db->GetAttr(DataItem(objs[6]), "a"),
+              IsOkAndHolds(DataItem(int64_t{10})));
+}
+
 TEST(DataBagTest, SetGetDataItem) {
   auto ds_a = DataItem(57.0f);
   for (DataItem ds : {
