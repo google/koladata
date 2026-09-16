@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -31,6 +32,8 @@
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/overflow.h"
+#include "arolla/util/text.h"
+#include "arolla/util/view_types.h"
 #include "Eigen/Core"
 #include "Eigen/LU"
 #include "Eigen/SVD"
@@ -64,6 +67,54 @@ Eigen::VectorXd ComputeSingularValues(const double* data, int64_t m,
   Eigen::Map<const RowMajorMatrix<double>> mat(data, m, n);
   // The default (0) computes singular values only, without U or V.
   return mat.bdcSvd().singularValues();
+}
+
+// Identifies the type of matrix norm to compute.
+enum class MatrixNormOrd : int8_t {
+  kFrobenius = 0,  // 'fro' (default): sqrt(sum of squares).
+  kNuclear = 1,    // 'nuc': sum of singular values.
+  kInf = 2,        // inf: max row sum of absolute values.
+  kNegInf = 3,     // -inf: min row sum of absolute values.
+  kOne = 4,        // 1: max column sum of absolute values.
+  kNegOne = 5,     // -1: min column sum of absolute values.
+  kTwo = 6,        // 2: largest singular value (spectral norm).
+  kNegTwo = 7,     // -2: smallest singular value.
+};
+
+absl::Status InvalidMatrixNormOrdValue(absl::string_view value) {
+  return absl::InvalidArgumentError(absl::StrCat(
+      "unsupported matrix norm ord=", value,
+      "; supported values: 'fro', 'nuc', inf, -inf, 1, -1, 2, -2"));
+}
+
+absl::StatusOr<MatrixNormOrd> ParseNumericMatrixNormOrd(double value) {
+  if (std::isinf(value) && value > 0) return MatrixNormOrd::kInf;
+  if (std::isinf(value) && value < 0) return MatrixNormOrd::kNegInf;
+  if (value == 1.0) return MatrixNormOrd::kOne;
+  if (value == -1.0) return MatrixNormOrd::kNegOne;
+  if (value == 2.0) return MatrixNormOrd::kTwo;
+  if (value == -2.0) return MatrixNormOrd::kNegTwo;
+  return InvalidMatrixNormOrdValue(absl::StrCat(value));
+}
+
+absl::StatusOr<MatrixNormOrd> ParseStringMatrixNormOrd(
+    absl::string_view value) {
+  if (value == "fro") return MatrixNormOrd::kFrobenius;
+  if (value == "nuc") return MatrixNormOrd::kNuclear;
+  return InvalidMatrixNormOrdValue(absl::StrCat("'", value, "'"));
+}
+
+template <typename T>
+absl::StatusOr<MatrixNormOrd> ParseMatrixNormOrd(
+    const arolla::view_type_t<T>& value) {
+  if constexpr (std::is_same_v<T, arolla::Text>) {
+    return ParseStringMatrixNormOrd(value);
+  } else if constexpr (std::is_arithmetic_v<T> && !std::is_same_v<T, bool>) {
+    return ParseNumericMatrixNormOrd(static_cast<double>(value));
+  } else {
+    return InvalidMatrixNormOrdValue(
+        internal::DataItem(internal::DataItem::View<T>{value}).DebugString());
+  }
 }
 
 }  // namespace
@@ -1201,6 +1252,190 @@ absl::StatusOr<DataSlice> MatrixSvdValues(const DataSlice& x) {
     return do_svd.template operator()<float>();
   }
   return do_svd.template operator()<double>();
+}
+
+absl::StatusOr<DataSlice> MatrixMatrixNorm(const DataSlice& x,
+                                           const DataSlice& ord_ds) {
+  const int rank = x.GetShape().rank();
+  if (rank < 2) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("expected at least 2D, got ", rank, "D"));
+  }
+
+  ASSIGN_OR_RETURN(auto mat_infos,
+                   matrix_helpers::ExtractMatrix2DInfos(x.GetShape()));
+  const int64_t num_matrices = mat_infos.size();
+
+  const int batch_rank = rank - 2;
+  auto batch_shape = x.GetShape().RemoveDims(/*from=*/batch_rank);
+
+  // Validate and parse ord. ord can be a string ('fro', 'nuc') or a number
+  // (inf, -inf, 1, -1, 2, -2), or a batch mixing both (OBJECT schema).
+  // Missing values default to Frobenius norm.
+  if (ord_ds.GetShape().rank() > batch_rank) {
+    return absl::InvalidArgumentError(
+        "`ord` must have at least 2 fewer dimensions than `x`");
+  }
+  ASSIGN_OR_RETURN(auto ord_broadcast, BroadcastToShape(ord_ds, batch_shape));
+  std::vector<MatrixNormOrd> ord_types(num_matrices, MatrixNormOrd::kFrobenius);
+  if (!ord_broadcast.impl_empty_and_unknown()) {
+    auto ord_flat = ord_broadcast.Flatten();
+    const auto& ord_impl = ord_flat.slice();
+
+    // Parse ord values using VisitValues, which safely iterates over whatever
+    // typed arrays are present (Text for strings, numeric types for numbers).
+    RETURN_IF_ERROR(ord_impl.VisitValues([&](const auto& arr) -> absl::Status {
+      using T = typename std::decay_t<decltype(arr)>::base_type;
+      absl::Status err;
+      arr.ForEachPresent([&](int64_t id, arolla::view_type_t<T> value) {
+        if (!err.ok()) return;
+        auto result = ParseMatrixNormOrd<T>(value);
+        if (!result.ok()) {
+          err = result.status();
+          return;
+        }
+        ord_types[id] = *result;
+      });
+      return err;
+    }));
+  }
+
+  // Determine output schema. GetNarrowedMatrixSchema validates that x is
+  // numeric. The output is always floating-point.
+  const bool is_object_schema =
+      x.GetSchemaImpl() == internal::DataItem(schema::kObject);
+  ASSIGN_OR_RETURN(auto narrowed_schema,
+                   matrix_helpers::GetNarrowedMatrixSchema(x));
+  ASSIGN_OR_RETURN(auto output_schema,
+                   schema::CommonSchema(narrowed_schema,
+                                        internal::DataItem(schema::kFloat32)));
+
+  // Cast x to FLOAT64 for computation. ExtractFlat fills missing with 0.
+  ASSIGN_OR_RETURN(auto float_x,
+                   CastToExplicit(x, internal::DataItem(schema::kFloat64)));
+  const auto x_flat = matrix_helpers::ExtractFlat<double>(float_x);
+
+  auto do_norm = [&]<typename OutputT>() -> absl::StatusOr<DataSlice> {
+    std::vector<OutputT> result(num_matrices);
+    for (int64_t p = 0; p < num_matrices; ++p) {
+      const auto& info = mat_infos[p];
+      const int64_t m = info.m;
+      const int64_t n = info.n;
+      const int64_t offset = info.offset;
+
+      double norm_val;
+      switch (ord_types[p]) {
+        case MatrixNormOrd::kFrobenius: {
+          // Frobenius norm: sqrt(sum of squares of all elements).
+          double sum = 0.0;
+          for (int64_t i = 0; i < m * n; ++i) {
+            double v = x_flat[offset + i];
+            sum += v * v;
+          }
+          norm_val = std::sqrt(sum);
+          break;
+        }
+        case MatrixNormOrd::kNuclear: {
+          // Nuclear norm: sum of singular values.
+          const int64_t k = std::min(m, n);
+          if (k == 0) {
+            norm_val = 0.0;
+          } else {
+            Eigen::VectorXd sv =
+                ComputeSingularValues(x_flat.data() + offset, m, n);
+            norm_val = sv.sum();
+          }
+          break;
+        }
+        case MatrixNormOrd::kInf: {
+          // Inf norm: max row sum of absolute values.
+          norm_val = 0.0;
+          for (int64_t r = 0; r < m; ++r) {
+            double row_sum = 0.0;
+            for (int64_t c = 0; c < n; ++c) {
+              row_sum += std::abs(x_flat[offset + r * n + c]);
+            }
+            norm_val = std::max(norm_val, row_sum);
+          }
+          break;
+        }
+        case MatrixNormOrd::kNegInf: {
+          // -Inf norm: min row sum of absolute values.
+          norm_val = m > 0 ? std::numeric_limits<double>::infinity() : 0.0;
+          for (int64_t r = 0; r < m; ++r) {
+            double row_sum = 0.0;
+            for (int64_t c = 0; c < n; ++c) {
+              row_sum += std::abs(x_flat[offset + r * n + c]);
+            }
+            norm_val = std::min(norm_val, row_sum);
+          }
+          break;
+        }
+        case MatrixNormOrd::kOne: {
+          // 1-norm: max column sum of absolute values.
+          norm_val = 0.0;
+          for (int64_t c = 0; c < n; ++c) {
+            double col_sum = 0.0;
+            for (int64_t r = 0; r < m; ++r) {
+              col_sum += std::abs(x_flat[offset + r * n + c]);
+            }
+            norm_val = std::max(norm_val, col_sum);
+          }
+          break;
+        }
+        case MatrixNormOrd::kNegOne: {
+          // -1-norm: min column sum of absolute values.
+          norm_val = n > 0 ? std::numeric_limits<double>::infinity() : 0.0;
+          for (int64_t c = 0; c < n; ++c) {
+            double col_sum = 0.0;
+            for (int64_t r = 0; r < m; ++r) {
+              col_sum += std::abs(x_flat[offset + r * n + c]);
+            }
+            norm_val = std::min(norm_val, col_sum);
+          }
+          break;
+        }
+        case MatrixNormOrd::kTwo: {
+          // 2-norm (spectral): largest singular value.
+          const int64_t k = std::min(m, n);
+          if (k == 0) {
+            norm_val = 0.0;
+          } else {
+            Eigen::VectorXd sv =
+                ComputeSingularValues(x_flat.data() + offset, m, n);
+            norm_val = sv(0);
+          }
+          break;
+        }
+        case MatrixNormOrd::kNegTwo: {
+          // -2-norm: smallest singular value.
+          const int64_t k = std::min(m, n);
+          if (k == 0) {
+            norm_val = 0.0;
+          } else {
+            Eigen::VectorXd sv =
+                ComputeSingularValues(x_flat.data() + offset, m, n);
+            norm_val = sv(sv.size() - 1);
+          }
+          break;
+        }
+      }
+      // OutputT is always float or double, so this is a well-defined IEEE 754
+      // conversion, and we do not need to use saturate_cast.
+      result[p] = static_cast<OutputT>(norm_val);
+    }
+    ASSIGN_OR_RETURN(auto ds, matrix_helpers::BuildFromFlat<OutputT>(
+                                  std::move(result), std::move(batch_shape)));
+    if (is_object_schema) {
+      return ds.WithSchema(internal::DataItem(schema::kObject));
+    }
+    return ds;
+  };
+
+  if (output_schema == internal::DataItem(schema::kFloat32)) {
+    return do_norm.template operator()<float>();
+  }
+  return do_norm.template operator()<double>();
 }
 
 }  // namespace koladata::ops

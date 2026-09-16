@@ -174,6 +174,36 @@ Args:
 Returns:
   The result of the matrix multiplication.</code></pre>
 
+### `kd.matrix.matrix_norm(x, ord='fro')` {#kd.matrix.matrix_norm}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Compute the matrix norm over the last two dimensions.
+
+Supports leading batch dimensions: (..., m, n) -&gt; (...).
+
+Supported ord values:
+  &#39;fro&#39;: Frobenius norm, sqrt(sum of squares of all elements) (default).
+  &#39;nuc&#39;: Nuclear norm, sum of singular values.
+  inf: Maximum row sum of absolute values.
+  -inf: Minimum row sum of absolute values.
+  1: Maximum column sum of absolute values.
+  -1: Minimum column sum of absolute values.
+  2: Largest singular value (spectral norm).
+  -2: Smallest singular value.
+
+Missing values in x are treated as 0.
+
+The output is always floating-point.
+
+Args:
+  x: A numeric DataSlice with at least 2 dimensions.
+  ord: DataSlice. The type of norm. Accepts strings (&#39;fro&#39;, &#39;nuc&#39;) or numbers
+    (inf, -inf, 1, -1, 2, -2). Default is &#39;fro&#39; (Frobenius). Must be
+    broadcastable to the batch dimensions of `x` (all dimensions except the
+    last two). Missing values default to Frobenius.
+
+Returns:
+  A DataSlice with the norm value(s).</code></pre>
+
 ### `kd.matrix.outer(x, y)` {#kd.matrix.outer}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Outer product of vectors.

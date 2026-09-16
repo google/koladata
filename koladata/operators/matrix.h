@@ -83,6 +83,20 @@ absl::StatusOr<DataSlice> MatrixVectorNorm(const DataSlice& x,
 // Singular values are returned in descending order.
 absl::StatusOr<DataSlice> MatrixSvdValues(const DataSlice& x);
 
+// kd.matrix.matrix_norm: Compute matrix norm over the last two dimensions.
+// (..., m, n) -> (...). Supports batch dimensions.
+// ord is broadcast to the batch dimensions and selects the norm type:
+//   'fro': Frobenius norm (default).
+//   'nuc': Nuclear norm (sum of singular values).
+//   inf:  max row sum of absolute values.
+//   -inf: min row sum of absolute values.
+//   1:    max column sum of absolute values.
+//   -1:   min column sum of absolute values.
+//   2:    largest singular value (spectral norm).
+//   -2:   smallest singular value.
+absl::StatusOr<DataSlice> MatrixMatrixNorm(const DataSlice& x,
+                                           const DataSlice& ord);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_MATRIX_H_

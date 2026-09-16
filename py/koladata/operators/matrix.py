@@ -502,3 +502,43 @@ def vector_norm(x, ord=2):  # pylint: disable=unused-argument,redefined-builtin
     A DataSlice with the norm value(s).
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
+    'kd.matrix.matrix_norm',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.ord),
+    ],
+)
+def matrix_norm(x, ord='fro'):  # pylint: disable=unused-argument,redefined-builtin
+  """Compute the matrix norm over the last two dimensions.
+
+  Supports leading batch dimensions: (..., m, n) -> (...).
+
+  Supported ord values:
+    'fro': Frobenius norm, sqrt(sum of squares of all elements) (default).
+    'nuc': Nuclear norm, sum of singular values.
+    inf: Maximum row sum of absolute values.
+    -inf: Minimum row sum of absolute values.
+    1: Maximum column sum of absolute values.
+    -1: Minimum column sum of absolute values.
+    2: Largest singular value (spectral norm).
+    -2: Smallest singular value.
+
+  Missing values in x are treated as 0.
+
+  The output is always floating-point.
+
+  Args:
+    x: A numeric DataSlice with at least 2 dimensions.
+    ord: DataSlice. The type of norm. Accepts strings ('fro', 'nuc') or numbers
+      (inf, -inf, 1, -1, 2, -2). Default is 'fro' (Frobenius). Must be
+      broadcastable to the batch dimensions of `x` (all dimensions except the
+      last two). Missing values default to Frobenius.
+
+  Returns:
+    A DataSlice with the norm value(s).
+  """
+  raise NotImplementedError('implemented in the backend')

@@ -843,5 +843,48 @@ def koda_svd_values(state):
     _ = kd.matrix.svd_values(a_kd)
 
 
+# ---- matrix_norm ----
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def numpy_matrix_norm(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    a_np = _make_uniform_matrices_np()
+  else:
+    sizes = _make_jagged_sizes()
+    a_np = _make_jagged_matrices_np(sizes)
+  while state:
+    _ = [np.linalg.norm(a_np[i]) for i in range(BATCH_SIZE)]
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def koda_matrix_norm(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    a_np = _make_uniform_matrices_np()
+  else:
+    sizes = _make_jagged_sizes()
+    a_np = _make_jagged_matrices_np(sizes)
+  a_kd = _np_to_kd_matrices(a_np)
+  # Check that Koda and NumPy agree on a functional level.
+  kd.testing.assert_allclose(
+      kd.matrix.matrix_norm(a_kd),
+      kd.slice(
+          [np.linalg.norm(a_np[i].filled(0)) for i in range(BATCH_SIZE)],
+          kd.FLOAT64,
+      ),
+      rtol=1e-12,
+  )
+  while state:
+    _ = kd.matrix.matrix_norm(a_kd)
+
+
 if __name__ == '__main__':
   google_benchmark.main()
