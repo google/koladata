@@ -71,8 +71,31 @@ class UuObjTest(absltest.TestCase):
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
     )
+    w = fns.uuobj(
+        seed=ds('seed'),
+        a=ds([3.14], schema_constants.FLOAT64),
+        b=ds(['abc'], schema_constants.STRING),
+    )
     self.assertNotEqual(x.no_bag().fingerprint, y.no_bag().fingerprint)
     self.assertEqual(y.no_bag().fingerprint, z.no_bag().fingerprint)
+    self.assertEqual(y.no_bag().fingerprint, w.no_bag().fingerprint)
+
+    with self.assertRaisesRegex(
+        TypeError,
+        'argument `seed` must be a utf8 string, got int',
+    ):
+      fns.uuobj(seed=123, a=1)  # pyrefly: ignore[bad-argument-type]
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'argument `seed` must be an item holding STRING, got an item of INT32',
+    ):
+      fns.uuobj(seed=ds(123), a=1)
+    with self.assertRaisesRegex(
+        ValueError,
+        'argument `seed` must be an item holding STRING, got missing',
+    ):
+      fns.uuobj(seed=ds(None, schema_constants.STRING), a=1)
 
   def test_alias(self):
     self.assertIs(fns.uuobj, fns.objs.uu)

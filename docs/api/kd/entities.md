@@ -122,7 +122,7 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs.</code></pre>
 
-### `kd.entities.uu(seed: str | None = None, *, schema: DataSlice | None = None, overwrite_schema: DataSlice | bool = False, **attrs: Any) -> DataSlice` {#kd.entities.uu}
+### `kd.entities.uu(seed: str | DataItem | None = None, *, schema: DataSlice | None = None, overwrite_schema: DataSlice | bool = False, **attrs: Any) -> DataSlice` {#kd.entities.uu}
 Aliases:
 
 - [kd.uu](../kd.md#kd.uu)

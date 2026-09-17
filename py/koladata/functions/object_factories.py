@@ -18,7 +18,7 @@ from typing import Any
 
 from arolla import arolla
 from koladata.types import data_bag
-from koladata.types import data_item as _  # pylint: disable=unused-import
+from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import jagged_shape
 
@@ -685,7 +685,7 @@ def obj_like(
 
 
 def uu(
-    seed: str | None = None,
+    seed: str | data_item.DataItem | None = None,
     *,
     schema: data_slice.DataSlice | None = None,
     overwrite_schema: data_slice.DataSlice | bool = False,
@@ -712,12 +712,14 @@ def uu(
   # The alternative to rely on eager version of kd.lazy is significantly slower.
   return (
       mutable_bag()
-      .uu(seed=seed, schema=schema, overwrite_schema=overwrite_schema, **attrs)  # pyrefly: ignore[bad-argument-type]
+      .uu(seed=seed, schema=schema, overwrite_schema=overwrite_schema, **attrs)
       .freeze_bag()
   )
 
 
-def uuobj(seed: str | None = None, **attrs: Any) -> data_slice.DataSlice:
+def uuobj(
+    seed: str | data_item.DataItem | None = None, **attrs: Any
+) -> data_slice.DataSlice:
   """Creates object(s) whose ids are uuid(s) with the provided attributes.
 
   Returned DataSlice has OBJECT schema and is immutable.
@@ -744,7 +746,7 @@ def uuobj(seed: str | None = None, **attrs: Any) -> data_slice.DataSlice:
   """
   # NOTE: We create a mutable bag and freeze it for performance reasons.
   # The alternative to rely on eager version of kd.lazy is significantly slower.
-  return mutable_bag().uuobj(seed=seed, **attrs).freeze_bag()  # pyrefly: ignore[bad-argument-type]
+  return mutable_bag().uuobj(seed=seed, **attrs).freeze_bag()
 
 
 def implode(

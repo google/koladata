@@ -1654,7 +1654,7 @@ Alias for [kd.core.updated](kd/core.md#kd.core.updated)
 
 Alias for [kd.bags.updated](kd/bags.md#kd.bags.updated)
 
-### `kd.uu(seed: str | None = None, *, schema: DataSlice | None = None, overwrite_schema: DataSlice | bool = False, **attrs: Any) -> DataSlice` {#kd.uu}
+### `kd.uu(seed: str | DataItem | None = None, *, schema: DataSlice | None = None, overwrite_schema: DataSlice | bool = False, **attrs: Any) -> DataSlice` {#kd.uu}
 
 Alias for [kd.entities.uu](kd/entities.md#kd.entities.uu)
 
@@ -1686,7 +1686,7 @@ Alias for [kd.ids.uuids_with_allocation_size](kd/ids.md#kd.ids.uuids_with_alloca
 
 Alias for [kd.lists.uu](kd/lists.md#kd.lists.uu)
 
-### `kd.uuobj(seed: str | None = None, **attrs: Any) -> DataSlice` {#kd.uuobj}
+### `kd.uuobj(seed: str | DataItem | None = None, **attrs: Any) -> DataSlice` {#kd.uuobj}
 
 Alias for [kd.objs.uu](kd/objs.md#kd.objs.uu)
 

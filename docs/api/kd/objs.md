@@ -80,7 +80,7 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs.</code></pre>
 
-### `kd.objs.uu(seed: str | None = None, **attrs: Any) -> DataSlice` {#kd.objs.uu}
+### `kd.objs.uu(seed: str | DataItem | None = None, **attrs: Any) -> DataSlice` {#kd.objs.uu}
 Aliases:
 
 - [kd.uuobj](../kd.md#kd.uuobj)

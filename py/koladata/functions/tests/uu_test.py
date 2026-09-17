@@ -76,8 +76,29 @@ class UuTest(absltest.TestCase):
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
     ).no_bag()
+    w = fns.uu(
+        seed=ds('seed'),
+        a=ds([3.14], schema_constants.FLOAT64),
+        b=ds(['abc'], schema_constants.STRING),
+    ).no_bag()
     self.assertNotEqual(x.fingerprint, y.fingerprint)
     self.assertEqual(y.fingerprint, z.fingerprint)
+    self.assertEqual(y.fingerprint, w.fingerprint)
+
+    with self.assertRaisesRegex(
+        TypeError, 'argument `seed` must be a utf8 string, got int'
+    ):
+      fns.uu(seed=123, a=1)  # pyrefly: ignore[bad-argument-type]
+    with self.assertRaisesRegex(
+        ValueError,
+        'argument `seed` must be an item holding STRING, got an item of INT32',
+    ):
+      fns.uu(seed=ds(123), a=1)
+    with self.assertRaisesRegex(
+        ValueError,
+        'argument `seed` must be an item holding STRING, got missing',
+    ):
+      fns.uu(seed=ds(None, schema_constants.STRING), a=1)
 
   def test_schema_arg(self):
     x = fns.uu(
