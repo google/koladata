@@ -366,8 +366,8 @@ class FromPyTest(parameterized.TestCase):
     l2 = db.list()
     with self.assertRaisesRegex(
         ValueError,
-        'could not parse list of primitives / data items on the same level '
-        'when schema is specified: cannot find a common schema',
+        'could not parse list of primitives / data items on the same level: '
+        'cannot find a common schema',
     ):
       _ = from_py([[l1, l2], [o1, o2]], from_dim=2, schema=None)
 
@@ -406,8 +406,8 @@ class FromPyTest(parameterized.TestCase):
     o2 = fns.list()  # bag 2
     with self.assertRaisesRegex(
         ValueError,
-        'could not parse list of primitives / data items on the same level '
-        'when schema is specified: cannot find a common schema',
+        'could not parse list of primitives / data items on the same level: '
+        'cannot find a common schema',
     ):
       _ = from_py([[o1, o2], [42]], from_dim=2, schema=None)
 
@@ -1009,8 +1009,8 @@ assigned schema: INT32"""),
 
       with self.assertRaisesRegex(
           ValueError,
-          'could not parse list of primitives / data items on the same level '
-          'when schema is specified: object with unsupported type: TestClass',
+          'could not parse list of primitives / data items on the same level: '
+          'object with unsupported type: TestClass',
       ):
         _ = from_py([entity, obj], schema=schema, dict_as_obj=True)
 
@@ -1271,19 +1271,132 @@ assigned schema: INT32"""),
     testing.assert_equal(entity.a.no_bag(), ds(42))
 
   def test_dict_as_obj_non_unicode_key(self):
-    with self.assertRaisesRegex(
-        ValueError,
-        'dict_as_obj requires keys to be valid unicode objects, got bytes',
-    ):
-      from_py({b'xyz': 42}, dict_as_obj=True)
+    d = from_py({b'xyz': 42}, dict_as_obj=True)
+    expected = kd.obj(
+        kd.dict(
+            {b'xyz': 42},
+            key_schema=schema_constants.OBJECT,
+            value_schema=schema_constants.OBJECT,
+        )
+    )
+    testing.assert_equivalent(d, expected)
 
   def test_dict_as_obj_non_text_data_item(self):
-    with self.assertRaisesRegex(TypeError, 'unhashable type'):
-      from_py({ds(['abc']): 42}, dict_as_obj=True)
+    d = from_py({ds(b'abc'): 42}, dict_as_obj=True)
+    expected = kd.obj(
+        kd.dict(
+            {b'abc': 42},
+            key_schema=schema_constants.OBJECT,
+            value_schema=schema_constants.OBJECT,
+        )
+    )
+    testing.assert_equivalent(d, expected)
+
+  def test_dict_as_obj_int_keys(self):
+    d = from_py({1: 42, 2: 43}, dict_as_obj=True)
+    expected = kd.obj(
+        kd.dict(
+            {1: 42, 2: 43},
+            key_schema=schema_constants.OBJECT,
+            value_schema=schema_constants.OBJECT,
+        )
+    )
+    testing.assert_equivalent(d, expected)
+
+  def test_dict_as_obj_mixed_string_and_int_keys(self):
+    d = from_py({'a': 42, 2: 43}, dict_as_obj=True)
+    expected = kd.obj(
+        kd.dict(
+            {'a': 42, 2: 43},
+            key_schema=schema_constants.OBJECT,
+            value_schema=schema_constants.OBJECT,
+        )
+    )
+    testing.assert_equivalent(d, expected)
+
+  def test_dict_as_obj_nested_int_keys(self):
+    obj = from_py(
+        {'a': 42, 'b': {1: 2, 3: 4}, 'c': {'x': 'abc'}},
+        dict_as_obj=True,
+    )
+    expected = kd.obj(
+        a=ds(42, schema_constants.OBJECT),
+        b=kd.obj(
+            kd.dict(
+                {1: 2, 3: 4},
+                key_schema=schema_constants.OBJECT,
+                value_schema=schema_constants.OBJECT,
+            )
+        ),
+        c=kd.obj(x=ds('abc', schema_constants.OBJECT)),
+    )
+    testing.assert_equivalent(obj, expected)
+
+  def test_dict_as_obj_list_of_mixed_dicts(self):
+    res = from_py([{'a': 1}, {2: 3}], dict_as_obj=True)
+    expected = kd.obj(
+        kd.list(
+            [
+                kd.obj(a=ds(1, schema_constants.OBJECT)),
+                kd.obj(
+                    kd.dict(
+                        {2: 3},
+                        key_schema=schema_constants.OBJECT,
+                        value_schema=schema_constants.OBJECT,
+                    )
+                ),
+            ],
+            item_schema=schema_constants.OBJECT,
+        )
+    )
+    testing.assert_equivalent(res, expected)
+
+  def test_dict_as_obj_list_of_mixed_dicts_auto_schema(self):
     with self.assertRaisesRegex(
-        ValueError, "dict keys cannot be non-STRING DataItems, got b'abc'"
+        ValueError,
+        'cannot deduce schema for dicts with mixed keys',
     ):
-      from_py({ds(b'abc'): 42}, dict_as_obj=True)
+      _ = from_py([{'a': 1}, {2: 3}], dict_as_obj=True, schema=None)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'could not parse list of primitives / data items on the same level: '
+        'object with unsupported type: dict',
+    ):
+      _ = from_py([1, {'foo': 1}, {1: 2}], dict_as_obj=True, schema=None)
+
+    # Note that in the current implementation, the error message varies
+    # depending on the order of the elements in the list. It happens because
+    # first `int` triggers the fast conversion path.
+    with self.assertRaisesRegex(
+        ValueError,
+        'cannot deduce schema for dicts with mixed keys',
+    ):
+      _ = from_py([{'foo': 1}, 1, {1: 2}], dict_as_obj=True, schema=None)
+
+  def test_dict_as_obj_all_int_keys_slice_auto_schema(self):
+    res = from_py([{1: 2}, {3: 4}], dict_as_obj=True, schema=None)
+    expected = kd.list([kd.dict({1: 2}), kd.dict({3: 4})])
+    testing.assert_equivalent(res, expected)
+
+  def test_dict_as_obj_all_str_keys_slice_auto_schema(self):
+    res = from_py([{'a': 1}, {'b': 2}], dict_as_obj=True, schema=None)
+    schema = kde.schema.new_schema(
+        a=schema_constants.INT32, b=schema_constants.INT32
+    ).eval()
+    expected = kd.list([
+        kd.new(a=1, b=None, schema=schema),
+        kd.new(a=None, b=2, schema=schema),
+    ])
+    self.assertTrue(res[:].get_schema().is_entity_schema())
+    testing.assert_equivalent(res, expected, schemas_equality=False)
+
+  def test_dict_as_obj_nested_list_mixed_dict_auto_schema(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        'cannot deduce schema for dicts with mixed keys',
+    ):
+      _ = from_py({'foo': [{'a': 1}, {2: 3}]}, dict_as_obj=True, schema=None)
 
   def test_dict_as_obj_with_dict_schema(self):
     # Python dictionary keys and values can be various Python / Koda objects
@@ -1296,10 +1409,11 @@ assigned schema: INT32"""),
         schema=schema,
         dict_as_obj=True,
     )
-    self.assertTrue(d.is_dict())
-    testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))
-    testing.assert_dicts_keys_equal(d, ds(['a', 'b']))
-    testing.assert_equal(d[ds(['a', 'b'])][:].no_bag(), ds([[1, 2], [42]]))
+    expected = kd.dict(
+        {'a': kd.list([1, 2]), 'b': kd.list([42])},
+        schema=schema,
+    )
+    testing.assert_equivalent(d, expected)
 
   def test_incompatible_schema(self):
     entity = fns.new(x=1)
@@ -2288,8 +2402,8 @@ assigned schema: ENTITY(a=FLOAT32)"""),
 
     with self.assertRaisesRegex(
         ValueError,
-        'could not parse list of primitives / data items on the same level '
-        'when schema is specified: object with unsupported type: list',
+        'could not parse list of primitives / data items on the same level: '
+        'object with unsupported type: list',
     ):
       from_py(py_l, schema=schema)
 

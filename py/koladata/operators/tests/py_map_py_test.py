@@ -387,21 +387,13 @@ assigned schema: ENTITY(u=INT64)"""),
     testing.assert_equal(res[ds('b')].no_bag(), ds([2, 3]))
 
   def test_map_py_dict_as_obj_non_string_key(self):
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex(
-            'dict_as_obj requires keys to be valid unicode objects'
-        ),
-    ):
-      kd.py.map_py(lambda x: {b'key': x}, ds([1]), dict_as_obj=True)
+    res_bytes = kd.py.map_py(lambda x: {b'key': x}, ds([1]), dict_as_obj=True)
+    self.assertTrue(res_bytes.S[0].is_dict())
+    testing.assert_equal(res_bytes[ds(b'key')].no_bag(), ds([1]))
 
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex(
-            'dict_as_obj requires keys to be valid unicode objects'
-        ),
-    ):
-      kd.py.map_py(lambda x: {1: x}, ds([1]), dict_as_obj=True)
+    res_int = kd.py.map_py(lambda x: {1: x}, ds([1]), dict_as_obj=True)
+    self.assertTrue(res_int.S[0].is_dict())
+    testing.assert_equal(res_int[ds(1)].no_bag(), ds([1]))
 
   def test_map_py_invalid_include_missing(self):
     with self.assertRaisesWithPredicateMatch(

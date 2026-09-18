@@ -67,7 +67,7 @@ bool IsObjectSchema(const std::optional<DataSlice>& schema) {
   return schema && schema->item() == schema::kObject;
 }
 
-bool IsStructSchema(const std::optional<DataSlice>& schema) {
+bool IsNonObjectSchema(const std::optional<DataSlice>& schema) {
   return schema && schema->item() != schema::kObject;
 }
 
@@ -137,6 +137,20 @@ absl::StatusOr<DataSlice::JaggedShape> CreateNextLevelShape(
   }
 }
 
+// Returns true if all keys in the Python dict are valid attribute names (i.e.
+// unicode strings or STRING DataItems).
+static bool DictHasOnlyStringKeys(PyObject* py_dict) {
+  DCHECK(PyDict_Check(py_dict));
+  Py_ssize_t pos = 0;
+  PyObject* key = nullptr;
+  while (PyDict_Next(py_dict, &pos, &key, nullptr)) {
+    if (!PyDictKeyAsStringView(key).ok()) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // Helper class for converting Python objects to DataSlices.
 class FromPyConverter {
  public:
@@ -193,7 +207,7 @@ class FromPyConverter {
   // tuple, either because of the schema or because of the Python types.
   bool IsListOrTuple(const std::vector<PyObject*>& py_objects,
                      const std::optional<DataSlice>& schema) {
-    if (IsStructSchema(schema)) {
+    if (IsNonObjectSchema(schema)) {
       return schema->IsListSchema();
     }
     if (py_objects.empty()) {
@@ -210,26 +224,42 @@ class FromPyConverter {
     return false;
   }
 
-  // Returns true if the given Python objects should be treated as a dict,
-  // either because of the schema or because of the Python types.
-  bool IsDict(const std::vector<PyObject*>& py_objects,
-              const std::optional<DataSlice>& schema) {
-    if (IsStructSchema(schema)) {
-      return schema->IsDictSchema();
+  enum class DictConversionMode {
+    kNoDict,
+    kDict,
+    kDictAsObj,
+    kMixedDicts,
+  };
+
+  // Determines how Python dicts in `py_objects` should be converted based on
+  // their key types, the specified `schema`, and `dict_as_obj_`.
+  DictConversionMode GetDictConversionMode(
+      const std::vector<PyObject*>& py_objects,
+      const std::optional<DataSlice>& schema) {
+    if (schema && schema->IsDictSchema()) {
+      return DictConversionMode::kDict;
     }
-    if (py_objects.empty()) {
-      return false;
+    if (IsNonObjectSchema(schema) && !schema->IsEntitySchema()) {
+      return DictConversionMode::kNoDict;
     }
 
-    for (const PyObject* py_obj : py_objects) {
+    const bool is_entity_schema = schema && schema->IsEntitySchema();
+    bool has_obj_dict = false;
+    bool has_regular_dict = false;
+    for (PyObject* py_obj : py_objects) {
       if (PyDict_Check(py_obj)) {
-        return true;
-      }
-      if (!Py_IsNone(py_obj)) {
-        return false;
+        if (is_entity_schema ||
+            (dict_as_obj_ && DictHasOnlyStringKeys(py_obj))) {
+          has_obj_dict = true;
+        } else {
+          has_regular_dict = true;
+        }
       }
     }
-    return false;
+    return has_obj_dict ? (has_regular_dict ? DictConversionMode::kMixedDicts
+                                            : DictConversionMode::kDictAsObj)
+                        : (has_regular_dict ? DictConversionMode::kDict
+                                            : DictConversionMode::kNoDict);
   }
 
   // Returns true if the given Python objects should be treated as a proto.
@@ -247,41 +277,12 @@ class FromPyConverter {
     return false;
   }
 
-  // Returns true if the given Python objects should be parsed as a dict,
-  // but converted to objects or entities.
-  bool IsDictAsObj(const std::vector<PyObject*>& py_objects,
-                   const std::optional<DataSlice>& schema) {
-    if (py_objects.empty()) {
-      return false;
-    }
-
-    if (schema) {
-      if (schema->IsDictSchema()) {
-        return false;
-      }
-    }
-    if (!dict_as_obj_ && (!schema || !schema->IsEntitySchema())) {
-      return false;
-    }
-
-    for (const PyObject* py_obj : py_objects) {
-      if (PyDict_Check(py_obj)) {
-        return true;
-      }
-      if (!Py_IsNone(py_obj)) {
-        return false;
-      }
-    }
-
-    return false;
-  }
-
   // If `schema` is a struct schema, returns the `attr_name` attribute of the
   // schema.
   // Otherwise returns `schema` as is.
   absl::StatusOr<std::optional<DataSlice>> GetSchemaAttrOrSchemaItself(
       const std::optional<DataSlice>& schema, absl::string_view attr_name) {
-    if (IsStructSchema(schema)) {
+    if (IsNonObjectSchema(schema)) {
       return schema->GetAttr(attr_name);
     }
     return schema;
@@ -291,7 +292,7 @@ class FromPyConverter {
   // checking the schema.
   bool IsEntity(const std::vector<PyObject*>& py_objects,
                 const std::optional<DataSlice>& schema) {
-    return IsStructSchema(schema) && schema->IsEntitySchema();
+    return IsNonObjectSchema(schema) && schema->IsEntitySchema();
   }
 
   // Returns true if the given Python objects should be treated as a primitive
@@ -310,7 +311,7 @@ class FromPyConverter {
         return false;
       }
       // If the schema is a struct schema, non-nones are not primitives.
-      if (IsStructSchema(schema)) {
+      if (IsNonObjectSchema(schema)) {
         return false;
       }
     }
@@ -519,7 +520,7 @@ class FromPyConverter {
       if (!ds_or.ok()) {
         return absl::InvalidArgumentError(
             absl::StrFormat("could not parse list of primitives / data items "
-                            "on the same level when schema is specified: %s",
+                            "on the same level: %s",
                             ds_or.status().message()));
       }
       result = std::move(ds_or).value();
@@ -531,13 +532,24 @@ class FromPyConverter {
                                   itemid, cur_depth, executor, result);
     }
 
-    if (IsDictAsObj(py_objects, schema)) {
-      return ConvertDictsAsObj(py_objects, std::move(cur_shape), schema,
-                               std::move(itemid), cur_depth, executor, result);
-    }
-    if (IsDict(py_objects, schema)) {
-      return ConvertDicts(py_objects, std::move(cur_shape), schema, itemid,
-                          cur_depth, executor, result);
+    switch (GetDictConversionMode(py_objects, schema)) {
+      case DictConversionMode::kDictAsObj:
+        return ConvertDictsAsObj(py_objects, std::move(cur_shape), schema,
+                                 std::move(itemid), cur_depth, executor,
+                                 result);
+      case DictConversionMode::kDict:
+        return ConvertDicts(py_objects, std::move(cur_shape), schema, itemid,
+                            cur_depth, executor, result);
+      case DictConversionMode::kMixedDicts:
+        if (!schema) {
+          return absl::InvalidArgumentError(
+              "cannot deduce schema for dicts with mixed keys");
+        }
+        // Fall through to ConvertEntities that can succeed even with mixed
+        // key types.
+        break;
+      case DictConversionMode::kNoDict:
+        break;
     }
 
     ASSIGN_OR_RETURN(bool is_proto, IsProto(py_objects));
@@ -579,7 +591,7 @@ class FromPyConverter {
     ASSIGN_OR_RETURN(
         std::optional<DataSlice> item_schema,
         GetSchemaAttrOrSchemaItself(schema, schema::kListItemsSchemaAttr));
-    const bool is_struct_schema = IsStructSchema(schema);
+    const bool is_struct_schema = IsNonObjectSchema(schema);
 
     std::optional<shape::Shape2DBuilder> shape_builder;
     if (cur_shape.rank() != 0) {
@@ -736,7 +748,7 @@ class FromPyConverter {
     ASSIGN_OR_RETURN(
         std::optional<DataSlice> value_schema,
         GetSchemaAttrOrSchemaItself(schema, schema::kDictValuesSchemaAttr));
-    const bool is_struct_schema = IsStructSchema(schema);
+    const bool is_struct_schema = IsNonObjectSchema(schema);
     std::optional<shape::Shape2DBuilder> shape_builder;
     if (cur_shape.rank() != 0) {
       shape_builder.emplace(py_objects.size());
@@ -831,7 +843,7 @@ class FromPyConverter {
                                  std::optional<DataSlice> itemid, int cur_depth,
                                  internal::TrampolineExecutor& executor,
                                  std::optional<DataSlice>& result) {
-    const bool is_struct_schema = IsStructSchema(schema);
+    const bool is_struct_schema = IsNonObjectSchema(schema);
 
     absl::flat_hash_map<absl::string_view, std::vector<PyObject*>>
         attr_python_values_map;
