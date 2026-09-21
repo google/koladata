@@ -34,9 +34,9 @@ py_test(
         "notap",
     ],
     deps = [
+        ":kv",
         "//py:python_path",
         "//py/koladata:kd",
-        "//py/koladata:kd_ext",
         requirement("google-benchmark"),
     ],
 )

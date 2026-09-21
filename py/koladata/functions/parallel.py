@@ -37,8 +37,9 @@ def _create_executor(max_threads: int | None) -> clib.Executor:
     return kd_internal.parallel.make_executor(max_threads)
 
 
+# TODO: Have standard type annotation for FunctorBoxables.
 def call_multithreaded(
-    fn: data_item.DataItem,
+    fn: data_item.DataItem | py_types.FunctionType | functools.partial[Any],
     /,
     *args: Any,
     max_threads: int | None = None,
@@ -112,7 +113,7 @@ def _wrap_yield_all(
 
 
 def yield_multithreaded(
-    fn: data_item.DataItem,
+    fn: data_item.DataItem | py_types.FunctionType | functools.partial[Any],
     /,
     *args: Any,
     max_threads: int | None = None,

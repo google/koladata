@@ -9,7 +9,7 @@
 
 
 
-### `kd.parallel.call_multithreaded(fn: DataItem, /, *args: Any, max_threads: int | None = None, timeout: float | None = None, **kwargs: Any) -> Any` {#kd.parallel.call_multithreaded}
+### `kd.parallel.call_multithreaded(fn: DataItem | function | partial[Any], /, *args: Any, max_threads: int | None = None, timeout: float | None = None, **kwargs: Any) -> Any` {#kd.parallel.call_multithreaded}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Calls a functor with the given arguments.
 
@@ -59,7 +59,7 @@ Args:
 Returns:
   The transformed functor.</code></pre>
 
-### `kd.parallel.yield_multithreaded(fn: DataItem, /, *args: Any, max_threads: int | None = None, timeout: float | None = None, **kwargs: Any) -> Iterator[Any]` {#kd.parallel.yield_multithreaded}
+### `kd.parallel.yield_multithreaded(fn: DataItem | function | partial[Any], /, *args: Any, max_threads: int | None = None, timeout: float | None = None, **kwargs: Any) -> Iterator[Any]` {#kd.parallel.yield_multithreaded}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Calls a functor returning an iterable, and yields the results as they go.
 

@@ -41,7 +41,9 @@ def create_test_dataset(
   ...
 
 
-def create_test_dataset(entity_mode: bool, sparse: bool) -> kd.types.DataSlice:
+def create_test_dataset(
+    entity_mode: bool, sparse: bool
+) -> kd.types.DataSlice | dict[str, Any]:
   """Create a structured Entity DataSlice for testing.
 
   The returned DataSlice is:

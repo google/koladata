@@ -29,9 +29,7 @@ benchy --reference=srcfs //py/koladata/ext/view:benchmarks
 import dataclasses
 import google_benchmark
 from koladata import kd
-from koladata import kd_ext
-
-kv = kd_ext.kv  # pyrefly: ignore[missing-attribute]
+from koladata.ext.view import kv
 
 
 @dataclasses.dataclass()
@@ -200,8 +198,8 @@ def _example_computation_kd_no_py_vectorized(
 
 def _example_computation_kd_vectorized(datas: list[Data]) -> list[list[Group]]:
   """An example vectorized computation in Koda with to/from py conversions."""
-  datas = kd.from_py(datas, schema=DATAS_SCHEMA)  # pylint: disable=protected-access  # pyrefly: ignore[bad-assignment]
-  item_groups = _example_computation_kd_no_py_vectorized(datas)
+  datas_ds = kd.from_py(datas, schema=DATAS_SCHEMA)  # pylint: disable=protected-access
+  item_groups = _example_computation_kd_no_py_vectorized(datas_ds)
   return item_groups.to_py(max_depth=-1)
 
 
@@ -247,13 +245,13 @@ def _example_computation_kd_no_py_single_bag_vectorized(
 
 def _example_computation_kv_pointwise(datas: list[Data]) -> list[list[Group]]:
   """An example pointwise computation in Koda View."""
-  datas = kv.view(datas)
+  datas_view = kv.view(datas)
   # We don't support iteration over View yet, so for now we unwrap and wrap
   # again when we want to iterate, and also for "a in b".
   # I still write .map(lambda x: x.keys()).get() instead of .get().keys() to
   # have an upper bound on the overhead for the case when/if we decide to
   # have more expansive pointwise iteration support in Koda View.
-  for data in datas.get():
+  for data in datas_view.get():
     data = kv.view(data)
     items = kv.view([])
     for x in data.items.get():
@@ -323,7 +321,7 @@ def _example_computation_kv_pointwise(datas: list[Data]) -> list[list[Group]]:
     item_groups = item_groups.map(lambda g: sorted(g, key=lambda x: x.index))
     data.item_groups = item_groups
 
-  return datas[:].item_groups.get()
+  return datas_view[:].item_groups.get()
 
 
 def _example_computation_kd_no_py_single_bag_pointwise(
@@ -347,7 +345,8 @@ def _example_computation_kd_no_py_single_bag_pointwise(
       else:
         grouped[item.attr1] = bag.list([item])
     for attr1, items in zip(
-        bag.implode(grouped.get_keys()), bag.implode(grouped.get_values())
+        bag.implode(grouped.get_keys()),  # pyrefly: ignore[bad-argument-type]
+        bag.implode(grouped.get_values()),  # pyrefly: ignore[bad-argument-type]
     ):
       fitems = bag.list(item_schema=item_schema)
       pcombined = bag.dict(key_schema=kd.STRING, value_schema=item_schema)
@@ -392,7 +391,9 @@ def _example_computation_kd_no_py_single_bag_pointwise(
             items=grouped[attr1],
         )
         item_groups.append(group)
-    item_groups = bag.list(sorted(item_groups, key=lambda x: x.index))
+    item_groups = bag.list(
+        sorted(item_groups, key=lambda x: x.index)  # pyrefly: ignore[no-matching-overload]
+    )
     data.item_groups = item_groups
 
   return datas[:].item_groups
