@@ -510,6 +510,28 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
 
     testing.assert_equal(root.c.a, ds([1, 2, 3]).with_bag(root.get_bag()))
 
+  def test_set_attr_merging_conflict(self):
+    db1 = bag()
+    db2 = bag()
+
+    obj1 = db1.obj(a=1)
+    obj2 = db1.obj(a=2)
+    obj3 = db1.obj(a=3)
+    root = db2.obj(b=ds([4, 5, 6]))
+    root.c = ds([obj1, obj2, obj3])
+
+    # Modifying db1 after the assignment above makes it conflicting with the
+    # data already merged into db2.
+    obj2.a = 57
+
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            "the values of attribute 'a' are different: 2 vs 57"
+        ),
+    ):
+      root.set_attr('d', ds([obj1, obj2, obj3]))
+
   def test_set_get_attr_on_qvalue_properties(self):
     x = bag().obj()
     # qtype.

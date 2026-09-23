@@ -93,6 +93,7 @@ absl::Status TryAdoptInto(const AdoptionQueue& adoption_queue,
   if (db == nullptr) {
     return absl::OkStatus();
   }
+  arolla::python::ReleasePyGIL guard;
   return adoption_queue.AdoptInto(*db);
 }
 
@@ -421,6 +422,7 @@ int PyDataSlice_setattro(PyObject* self, PyObject* attr_name, PyObject* value) {
                    (arolla::python::SetPyErrFromStatus(_), -1));
   auto status = self_ds.SetAttr(attr_name_view, value_ds);
   if (status.ok()) {
+    arolla::python::ReleasePyGIL guard;
     status = adoption_queue.AdoptInto(*self_ds.GetBag());
   }
   if (!status.ok()) {
@@ -490,7 +492,8 @@ PyObject* absl_nullable PyDataSlice_set_attr(PyObject* self,
                   self_ds));
         });
   }
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_ds.GetBag()))
+  RETURN_IF_ERROR(((void)arolla::python::ReleasePyGIL(),
+                   adoption_queue.AdoptInto(*self_ds.GetBag())))
       .With(arolla::python::SetPyErrFromStatus);
   Py_RETURN_NONE;
 }
@@ -526,7 +529,8 @@ PyObject* absl_nullable PyDataSlice_set_attrs(PyObject* self,
             KodaErrorCausedByIncompatibleSchemaError(
                 std::move(status), self_ds.GetBag(), values, self_ds));
       });
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_ds.GetBag()))
+  RETURN_IF_ERROR(((void)arolla::python::ReleasePyGIL(),
+                   adoption_queue.AdoptInto(*self_ds.GetBag())))
       .With(arolla::python::SetPyErrFromStatus);
   Py_RETURN_NONE;
 }
@@ -564,7 +568,8 @@ PyObject* absl_nullable PyDataSlice_set_metadata(PyObject* self,
                 std::move(status), self_db, values, self_ds));
       });
 
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
+  RETURN_IF_ERROR(((void)arolla::python::ReleasePyGIL(),
+                   adoption_queue.AdoptInto(*self_db)))
       .With(arolla::python::SetPyErrFromStatus);
   Py_RETURN_NONE;
 }
