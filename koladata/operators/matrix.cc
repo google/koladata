@@ -1438,4 +1438,97 @@ absl::StatusOr<DataSlice> MatrixMatrixNorm(const DataSlice& x,
   return do_norm.template operator()<double>();
 }
 
+absl::StatusOr<DataSlice> MatrixRank(const DataSlice& x,
+                                     const DataSlice& tol_ds) {
+  const int ndim = x.GetShape().rank();
+  if (ndim < 2) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("expected at least 2D, got ", ndim, "D"));
+  }
+
+  ASSIGN_OR_RETURN(auto mat_infos,
+                   matrix_helpers::ExtractMatrix2DInfos(x.GetShape()));
+  const int64_t num_matrices = mat_infos.size();
+
+  const int batch_rank = ndim - 2;
+  auto batch_shape = x.GetShape().RemoveDims(/*from=*/batch_rank);
+
+  // Parse tol: numeric, broadcast to batch dims, then determine which
+  // entries use the default adaptive tolerance (missing tol values).
+  RETURN_IF_ERROR(ExpectNumeric("tol", tol_ds));
+  if (tol_ds.GetShape().rank() > batch_rank) {
+    return absl::InvalidArgumentError(
+        "`tol` must have at least 2 fewer dimensions than `x`");
+  }
+  ASSIGN_OR_RETURN(auto tol_broadcast,
+                   BroadcastToShape(tol_ds, batch_shape));
+
+  // Build use_default_tol mask: true where tol is missing.
+  std::vector<bool> use_default_tol(num_matrices, true);
+  if (!tol_broadcast.impl_empty_and_unknown()) {
+    auto tol_flat_ds = tol_broadcast.Flatten();
+    const auto& tol_impl = tol_flat_ds.slice();
+    RETURN_IF_ERROR(tol_impl.VisitValues([&](const auto& arr) -> absl::Status {
+      arr.ForEachPresent(
+          [&](int64_t id, auto) { use_default_tol[id] = false; });
+      return absl::OkStatus();
+    }));
+  }
+
+  // Cast to FLOAT64 and extract flat values. The fill value for missing
+  // positions is irrelevant since use_default_tol governs those.
+  ASSIGN_OR_RETURN(auto tol_float64,
+                   CastToExplicit(std::move(tol_broadcast),
+                                  internal::DataItem(schema::kFloat64)));
+  std::vector<double> tol_vals =
+      matrix_helpers::ExtractFlat<double>(tol_float64);
+
+  // Validate that all present tol values are non-negative.
+  for (int64_t p = 0; p < num_matrices; ++p) {
+    if (!use_default_tol[p] && tol_vals[p] < 0.0) {
+      return absl::InvalidArgumentError(
+          absl::StrCat("`tol` must be non-negative, got ", tol_vals[p]));
+    }
+  }
+
+  // Validate that x is numeric.
+  RETURN_IF_ERROR(matrix_helpers::GetNarrowedMatrixSchema(x).status());
+  // Cast x to FLOAT64 for SVD computation. ExtractFlat fills missing with 0.
+  ASSIGN_OR_RETURN(auto float_x,
+                   CastToExplicit(x, internal::DataItem(schema::kFloat64)));
+  const auto x_flat = matrix_helpers::ExtractFlat<double>(float_x);
+
+  constexpr double kEps = std::numeric_limits<double>::epsilon();
+
+  std::vector<int32_t> result(num_matrices);
+  for (int64_t p = 0; p < num_matrices; ++p) {
+    const auto& info = mat_infos[p];
+    const int64_t k = std::min(info.m, info.n);
+    if (k == 0) {
+      result[p] = 0;
+      continue;
+    }
+
+    Eigen::VectorXd sv =
+        ComputeSingularValues(x_flat.data() + info.offset, info.m, info.n);
+
+    double tol = tol_vals[p];
+    if (use_default_tol[p]) {
+      // Default: max(m, n) * max(sv) * eps, following NumPy.
+      tol = std::max(info.m, info.n) * sv(0) * kEps;
+    }
+
+    int32_t rank_count = 0;
+    for (int64_t i = 0; i < k; ++i) {
+      if (sv(i) > tol) {
+        ++rank_count;
+      }
+    }
+    result[p] = rank_count;
+  }
+
+  return matrix_helpers::BuildFromFlat<int32_t>(
+      std::move(result), std::move(batch_shape));
+}
+
 }  // namespace koladata::ops

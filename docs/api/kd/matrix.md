@@ -54,8 +54,8 @@ and entities.
 Args:
   x: A DataSlice with at least 1 dimension.
   k: Integer DataSlice. Diagonal offset. Must be broadcastable to the batch
-    dimensions of `x`. 0 (default) is the main diagonal, positive values
-    refer to super-diagonals, negative values refer to sub-diagonals.
+    dimensions of `x`. 0 (default) is the main diagonal, positive values refer
+    to super-diagonals, negative values refer to sub-diagonals.
 
 Returns:
   A DataSlice with one additional dimension, containing diagonal matrices.</code></pre>
@@ -79,8 +79,8 @@ and entities.
 Args:
   x: A DataSlice with at least 2 dimensions.
   k: Integer DataSlice. Diagonal offset. Must be broadcastable to the batch
-    dimensions of `x`. 0 (default) is the main diagonal, positive values
-    refer to super-diagonals, negative values refer to sub-diagonals.
+    dimensions of `x`. 0 (default) is the main diagonal, positive values refer
+    to super-diagonals, negative values refer to sub-diagonals.
 
 Returns:
   A DataSlice with one fewer dimension, containing the requested diagonal
@@ -232,6 +232,28 @@ Args:
 Returns:
   The outer product matrix (or batch of matrices).</code></pre>
 
+### `kd.matrix.rank(x, tol=None)` {#kd.matrix.rank}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Compute the numerical rank of a matrix.
+
+Supports leading batch dimensions: (..., m, n) -&gt; (...).
+
+The rank is the number of singular values greater than `tol`. By default,
+tol = max(m, n) * max(singular_values) * eps, where eps is the machine
+epsilon for float64.
+
+Missing values in x are treated as 0. The output is always INT32.
+
+Args:
+  x: A numeric DataSlice with at least 2 dimensions.
+  tol: Optional numeric DataSlice. Threshold below which singular values are
+    treated as zero. Must be broadcastable to the batch dimensions of `x`.
+    Missing values use the default adaptive tolerance max(m, n) *
+    max(singular_values) * eps.
+
+Returns:
+  A DataSlice with the rank(s).</code></pre>
+
 ### `kd.matrix.solve(a, b, *, b_ndim=-1)` {#kd.matrix.solve}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Solve the linear equation Ax = b for x.
@@ -348,9 +370,9 @@ Missing values in x are treated as 0. The output is always floating-point.
 
 Args:
   x: A numeric DataSlice with at least 1 dimension.
-  ord: Numeric DataSlice. The order of the norm. Default is 2 (L2 norm).
-    Must be broadcastable to the batch dimensions of `x` (all dimensions
-    except the last). Missing values default to 2 (L2 norm).
+  ord: Numeric DataSlice. The order of the norm. Default is 2 (L2 norm). Must
+    be broadcastable to the batch dimensions of `x` (all dimensions except the
+    last). Missing values default to 2 (L2 norm).
 
 Returns:
   A DataSlice with the norm value(s).</code></pre>

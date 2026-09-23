@@ -97,6 +97,12 @@ absl::StatusOr<DataSlice> MatrixSvdValues(const DataSlice& x);
 absl::StatusOr<DataSlice> MatrixMatrixNorm(const DataSlice& x,
                                            const DataSlice& ord);
 
+// kd.matrix.rank: Compute the numerical rank of a matrix via SVD.
+// (..., m, n) -> (...). Supports batch dimensions.
+// tol is the threshold below which singular values are treated as zero.
+// If tol is missing or NaN, defaults to max(m, n) * max(sv) * eps.
+absl::StatusOr<DataSlice> MatrixRank(const DataSlice& x, const DataSlice& tol);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_MATRIX_H_

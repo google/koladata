@@ -392,6 +392,7 @@ OPERATOR("kd.matrix.inverse", MatrixInverse);
 OPERATOR("kd.matrix.matmul", MatrixMatmul);
 OPERATOR("kd.matrix.matrix_norm", MatrixMatrixNorm);
 OPERATOR("kd.matrix.outer", MatrixOuter);
+OPERATOR("kd.matrix.rank", MatrixRank);
 OPERATOR("kd.matrix.solve", MatrixSolve);
 OPERATOR("kd.matrix.svd_values", MatrixSvdValues);
 OPERATOR("kd.matrix.trace", MatrixTrace);

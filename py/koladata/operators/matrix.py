@@ -31,9 +31,6 @@ M = arolla.M
 optools.set_namespace_docstring('kd.matrix', __doc__)
 
 
-# ---- Public operators ----
-
-
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.matrix.transpose',
@@ -248,8 +245,8 @@ def diag_matrix(x, *, k=data_slice.DataSlice.from_vals(0)):
   Args:
     x: A DataSlice with at least 1 dimension.
     k: Integer DataSlice. Diagonal offset. Must be broadcastable to the batch
-      dimensions of `x`. 0 (default) is the main diagonal, positive values
-      refer to super-diagonals, negative values refer to sub-diagonals.
+      dimensions of `x`. 0 (default) is the main diagonal, positive values refer
+      to super-diagonals, negative values refer to sub-diagonals.
 
   Returns:
     A DataSlice with one additional dimension, containing diagonal matrices.
@@ -285,8 +282,8 @@ def diag_vector(x, *, k=data_slice.DataSlice.from_vals(0)):
   Args:
     x: A DataSlice with at least 2 dimensions.
     k: Integer DataSlice. Diagonal offset. Must be broadcastable to the batch
-      dimensions of `x`. 0 (default) is the main diagonal, positive values
-      refer to super-diagonals, negative values refer to sub-diagonals.
+      dimensions of `x`. 0 (default) is the main diagonal, positive values refer
+      to super-diagonals, negative values refer to sub-diagonals.
 
   Returns:
     A DataSlice with one fewer dimension, containing the requested diagonal
@@ -494,9 +491,9 @@ def vector_norm(x, ord=2):  # pylint: disable=unused-argument,redefined-builtin
 
   Args:
     x: A numeric DataSlice with at least 1 dimension.
-    ord: Numeric DataSlice. The order of the norm. Default is 2 (L2 norm).
-      Must be broadcastable to the batch dimensions of `x` (all dimensions
-      except the last). Missing values default to 2 (L2 norm).
+    ord: Numeric DataSlice. The order of the norm. Default is 2 (L2 norm). Must
+      be broadcastable to the batch dimensions of `x` (all dimensions except the
+      last). Missing values default to 2 (L2 norm).
 
   Returns:
     A DataSlice with the norm value(s).
@@ -540,5 +537,37 @@ def matrix_norm(x, ord='fro'):  # pylint: disable=unused-argument,redefined-buil
 
   Returns:
     A DataSlice with the norm value(s).
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
+    'kd.matrix.rank',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.tol),
+    ],
+)
+def rank(x, tol=None):  # pylint: disable=unused-argument
+  """Compute the numerical rank of a matrix.
+
+  Supports leading batch dimensions: (..., m, n) -> (...).
+
+  The rank is the number of singular values greater than `tol`. By default,
+  tol = max(m, n) * max(singular_values) * eps, where eps is the machine
+  epsilon for float64.
+
+  Missing values in x are treated as 0. The output is always INT32.
+
+  Args:
+    x: A numeric DataSlice with at least 2 dimensions.
+    tol: Optional numeric DataSlice. Threshold below which singular values are
+      treated as zero. Must be broadcastable to the batch dimensions of `x`.
+      Missing values use the default adaptive tolerance max(m, n) *
+      max(singular_values) * eps.
+
+  Returns:
+    A DataSlice with the rank(s).
   """
   raise NotImplementedError('implemented in the backend')

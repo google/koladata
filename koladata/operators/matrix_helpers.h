@@ -49,7 +49,7 @@ using Edge = JaggedShape::Edge;
 // DataSlice, or flat float data from a FLOAT32 DataSlice, or int64_t data from
 // an INT64 DataSlice.
 //
-// Missing values become 0.
+// Missing values become 0 by default, or the given fill_value.
 //
 // Fast path: when the data is fully present, memcpy from the underlying buffer.
 //
@@ -58,11 +58,11 @@ using Edge = JaggedShape::Edge;
 // arolla::SimpleBuffer(nullptr, data_span) is a buffer that does not own the
 // underlying data.
 template <typename T>
-std::vector<T> ExtractFlat(const DataSlice& ds) {
+std::vector<T> ExtractFlat(const DataSlice& ds, T fill_value = T{0}) {
   auto flat_ds = ds.Flatten();
   size_t n = flat_ds.size();
   if (flat_ds.impl_empty_and_unknown() || n == 0) {
-    return std::vector<T>(n, 0);
+    return std::vector<T>(n, fill_value);
   }
 
   const auto& impl = flat_ds.slice();
@@ -78,7 +78,7 @@ std::vector<T> ExtractFlat(const DataSlice& ds) {
     return result;
   }
   // Sparse data: fall through to per-element path.
-  std::vector<T> result(n, 0);
+  std::vector<T> result(n, fill_value);
   arr.ForEachPresent([&](int64_t id, T value) { result[id] = value; });
   return result;
 }

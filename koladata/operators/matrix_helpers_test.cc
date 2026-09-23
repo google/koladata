@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cmath>
 #include <limits>
 #include <optional>
 #include <utility>
@@ -112,6 +113,29 @@ TEST(ExtractFlatTest, EmptySize) {
   auto ds = test::DataSlice<int64_t>({});
   auto result = ExtractFlat<int64_t>(ds);
   EXPECT_TRUE(result.empty());
+}
+
+TEST(ExtractFlatTest, Float64WithMissingCustomFill) {
+  auto ds =
+      test::DataSlice<double>({std::nullopt, 2.0, std::nullopt, 4.0});
+  constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
+  auto result = ExtractFlat<double>(ds, kNaN);
+  EXPECT_TRUE(std::isnan(result[0]));
+  EXPECT_EQ(result[1], 2.0);
+  EXPECT_TRUE(std::isnan(result[2]));
+  EXPECT_EQ(result[3], 4.0);
+}
+
+TEST(ExtractFlatTest, EmptyAndUnknownCustomFill) {
+  auto ds = test::EmptyDataSlice(3, schema::kFloat64);
+  auto result = ExtractFlat<double>(ds, -1.0);
+  EXPECT_THAT(result, ElementsAre(-1.0, -1.0, -1.0));
+}
+
+TEST(ExtractFlatTest, Int64WithMissingCustomFill) {
+  auto ds = test::DataSlice<int64_t>({1, std::nullopt, 3, std::nullopt});
+  auto result = ExtractFlat<int64_t>(ds, -99);
+  EXPECT_THAT(result, ElementsAre(1, -99, 3, -99));
 }
 
 // =========================================================================

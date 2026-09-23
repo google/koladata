@@ -886,5 +886,52 @@ def koda_matrix_norm(state):
     _ = kd.matrix.matrix_norm(a_kd)
 
 
+# ---- rank ----
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def numpy_matrix_rank(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    a_np = _make_uniform_matrices_np()
+  else:
+    sizes = _make_jagged_sizes()
+    a_np = _make_jagged_matrices_np(sizes)
+  while state:
+    _ = [np.linalg.matrix_rank(a_np[i]) for i in range(BATCH_SIZE)]
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['batch_mode'])
+@google_benchmark.option.dense_range(0, 1)
+def koda_matrix_rank(state):
+  _seed_random_number_generators()
+  batch_mode = _BATCH_MODE_NAMES[state.range(0)]
+  if batch_mode == 'uniform':
+    a_np = _make_uniform_matrices_np()
+  else:
+    sizes = _make_jagged_sizes()
+    a_np = _make_jagged_matrices_np(sizes)
+  a_kd = _np_to_kd_matrices(a_np)
+  # Sanity-check that Koda and NumPy agree on a functional level.
+  # We use tol=0 to make the comparison deterministic: with the default
+  # adaptive tolerance, small differences in SVD computation between Eigen
+  # (Koda) and LAPACK (NumPy) could cause borderline singular values to be
+  # thresholded differently, leading to flaky disagreements on rank.
+  kd.testing.assert_equal(
+      kd.matrix.rank(a_kd, tol=0),
+      kd.slice(
+          [int(np.linalg.matrix_rank(a_np[i].filled(0), tol=0))
+           for i in range(BATCH_SIZE)],
+          kd.INT32,
+      ),
+  )
+  while state:
+    _ = kd.matrix.rank(a_kd)
+
+
 if __name__ == '__main__':
   google_benchmark.main()
