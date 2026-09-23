@@ -53,4 +53,9 @@ message DataBagMetadata {
 
   // Custom metadata attached to this bag.
   google.protobuf.Any custom_metadata = 5;
+
+  // The approximate in-memory size of the bag in bytes (as returned by
+  // DataBag.get_approx_byte_size()). Note that the serialized size on disk can
+  // differ because of compression.
+  int64 approx_byte_size = 6;
 }

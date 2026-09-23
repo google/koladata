@@ -17,6 +17,7 @@ import itertools
 import os
 import re
 import shutil
+import threading
 from unittest import mock
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -371,6 +372,56 @@ class DataBagManagerTest(parameterized.TestCase):
         ),
     ):
       manager.get_custom_metadata(['unknown_bag'])
+
+  def test_approx_byte_sizes(self):
+    persistence_dir = self.create_tempdir().full_path
+    manager = DataBagManager.create_new(persistence_dir)
+
+    bag0 = kd.bag()  # pyrefly: ignore[missing-attribute]
+    bag1 = kd.attrs(kd.new(), a=1, b='hello world!')  # pyrefly: ignore[missing-attribute]
+    expected_bag0_size = bag0.get_approx_byte_size()
+    expected_bag1_size = bag1.get_approx_byte_size()
+    self.assertEqual(expected_bag0_size, 0)
+    self.assertGreater(expected_bag1_size, 0)
+
+    manager.add_bags([
+        BagToAdd('bag0', bag0, dependencies=()),
+        BagToAdd('bag1', bag1, dependencies=('bag0',)),
+    ])
+
+    self.assertEqual(
+        manager.get_approx_byte_sizes(['bag0', 'bag1']),
+        {'bag0': expected_bag0_size, 'bag1': expected_bag1_size},
+    )
+    self.assertEqual(
+        manager.get_approx_byte_sizes(['bag1']),
+        {'bag1': expected_bag1_size},
+    )
+    self.assertEqual(manager.get_approx_byte_sizes([]), {})
+
+    # Verify persistence
+    manager2 = DataBagManager.create_from_dir(persistence_dir)
+    self.assertEqual(
+        manager2.get_approx_byte_sizes(['bag0', 'bag1']),
+        {'bag0': expected_bag0_size, 'bag1': expected_bag1_size},
+    )
+
+    # Verify legacy metadata without approx_byte_size returns None
+    manager2._metadata.data_bag_metadata[0].ClearField('approx_byte_size')
+    self.assertEqual(
+        manager2.get_approx_byte_sizes(['bag0', 'bag1']),
+        {'bag0': None, 'bag1': expected_bag1_size},
+    )
+
+    # Verify error for unknown bag
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'bag_names must be a subset of get_available_bag_names().'
+            " The following bags are not available: ['unknown_bag']"
+        ),
+    ):
+      manager.get_approx_byte_sizes(['unknown_bag'])
 
   def test_use_of_provided_file_system_interaction_object(self):
     # The assertions below check that the sequence of method names called on the
@@ -1204,6 +1255,60 @@ class DataBagManagerTest(parameterized.TestCase):
         value_and_metadata.metadata.num_bytes_estimate,
         len(key) + bag1.get_approx_byte_size(),
     )
+
+  def test_approx_byte_size_computed_in_parallel_once_and_reused_on_load(self):
+    global_cache = global_cache_lib.get_global_cache()
+    global_cache.clear()
+
+    persistence_dir = self.create_tempdir().full_path
+    manager = DataBagManager.create_new(persistence_dir)
+
+    bags = [
+        kd.attrs(kd.new(), a=i)  # pyrefly: ignore[missing-attribute]
+        for i in range(3)
+    ]
+    orig_get_approx_byte_size = kd.types.DataBag.get_approx_byte_size
+    barrier = threading.Barrier(len(bags), timeout=5.0)
+    mock_get_size = mock.MagicMock(side_effect=orig_get_approx_byte_size)
+
+    def synced_get_approx_byte_size(self_bag):
+      barrier.wait()
+      return mock_get_size(self_bag)
+
+    with mock.patch.object(
+        kd.types.DataBag,
+        'get_approx_byte_size',
+        new=synced_get_approx_byte_size,
+    ):
+      manager.add_bags([
+          dbm.BagToAdd(bag_name=f'bag{i}', bag=bag, dependencies=())
+          for i, bag in enumerate(bags)
+      ])
+      # Barrier succeeded (so all 3 ran concurrently), and get_approx_byte_size
+      # was called exactly once per bag (reused for both metadata and cache).
+      self.assertEqual(mock_get_size.call_count, 3)
+      self.assertCountEqual(
+          [call.args[0].fingerprint for call in mock_get_size.call_args_list],
+          [bag.fingerprint for bag in bags],
+      )
+
+      # Force loading from disk: since approx_byte_size is in metadata,
+      # get_approx_byte_size must not be called at all when loading.
+      global_cache.clear()
+      mock_get_size.reset_mock()
+      manager.load_bags({'bag0', 'bag1', 'bag2'})
+      mock_get_size.assert_not_called()
+
+      # If legacy metadata does not have approx_byte_size set, loading falls
+      # back to calling get_approx_byte_size once for that bag.
+      global_cache.clear()
+      manager._metadata.data_bag_metadata[0].ClearField('approx_byte_size')
+      barrier = threading.Barrier(1, timeout=5.0)
+      loaded_bags = manager.load_bags({'bag0', 'bag1'})
+      self.assertEqual(
+          [call.args[0].fingerprint for call in mock_get_size.call_args_list],
+          [loaded_bags['bag0'].fingerprint],
+      )
 
   def test_parallelism_passed_to_thread_pool_executor_writing(self):
     persistence_dir = self.create_tempdir().full_path

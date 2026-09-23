@@ -256,6 +256,40 @@ class DataBagManager:
       )
     return result
 
+  def get_approx_byte_sizes(
+      self, bag_names: Collection[str]
+  ) -> dict[str, int | None]:
+    """Returns the approximate in-memory byte sizes for the given bag names.
+
+    Note that these are in-memory byte sizes (as returned by
+    DataBag.get_approx_byte_size()), and the serialized size on disk can differ
+    because of compression.
+
+    Args:
+      bag_names: The names of the bags whose approximate byte sizes to retrieve.
+        Must be a subset of get_available_bag_names().
+
+    Returns:
+      A dictionary mapping bag names to their approximate in-memory byte sizes
+      (or None if the bag metadata does not have an approximate byte size
+      recorded, i.e. the bag was serialized before this field was introduced).
+    """
+    bag_names_set = set(bag_names)
+    result = {}
+    for m in self._metadata.data_bag_metadata:
+      if m.name in bag_names_set:
+        result[m.name] = (
+            m.approx_byte_size if m.HasField('approx_byte_size') else None
+        )
+
+    if len(result) != len(bag_names_set):
+      unknown_bags = bag_names_set - result.keys()
+      raise ValueError(
+          'bag_names must be a subset of get_available_bag_names().'
+          f' The following bags are not available: {sorted(unknown_bags)}'
+      )
+    return result
+
   def add_bags(self, bags_to_add: list[BagToAdd]):
     """Adds the given bags to the manager, which will persist them.
 
@@ -475,28 +509,34 @@ class DataBagManager:
       bags_to_add: A list of bags to add. They are added in the order given by
         the list.
     """
-    # Write the bags to files in parallel.
+    # Write the bags to files and compute their approximate byte sizes in
+    # parallel.
     bags = [bag_to_add.bag for bag_to_add in bags_to_add]
     bag_filenames = self._get_fresh_bag_filenames(len(bags_to_add))
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=_PARALLELISM
     ) as executor:
-      futures = [
+      write_futures = [
           executor.submit(self._write_bag_to_file, bag, bag_filename)
           for bag, bag_filename in zip(bags, bag_filenames)
       ]
-    # Make sure all the writes completed successfully.
-    for future in futures:
+      size_futures = [executor.submit(bag.get_approx_byte_size) for bag in bags]
+    # Make sure all the writes and size computations completed successfully.
+    for future in write_futures:
       future.result()
+    approx_byte_sizes = [future.result() for future in size_futures]
 
     new_metadata = metadata_pb2.DataBagManagerMetadata()
     new_metadata.CopyFrom(self._metadata)
     new_metadata.metadata_update_number += 1
-    for bag_to_add, bag_filename in zip(bags_to_add, bag_filenames):
+    for bag_to_add, bag_filename, approx_byte_size in zip(
+        bags_to_add, bag_filenames, approx_byte_sizes
+    ):
       db_meta = metadata_pb2.DataBagMetadata(
           name=bag_to_add.bag_name,
           filename=bag_filename,
           dependencies=bag_to_add.dependencies,
+          approx_byte_size=approx_byte_size,
       )
       if bag_to_add.custom_metadata is not None:
         db_meta.custom_metadata.CopyFrom(bag_to_add.custom_metadata)
@@ -530,7 +570,9 @@ class DataBagManager:
     # during the loop below, then the state of the current manager remains
     # consistent. It only means that the bags will have to be loaded from disk
     # the next time they are needed.
-    for bag_to_add, bag_filename in zip(bags_to_add, bag_filenames):
+    for bag_to_add, bag_filename, approx_byte_size in zip(
+        bags_to_add, bag_filenames, approx_byte_sizes
+    ):
       cache_key = _get_bag_cache_key(
           bag_name=bag_to_add.bag_name,
           bag_filepath=self._get_bag_filepath_from_filename(bag_filename),
@@ -539,6 +581,7 @@ class DataBagManager:
       entry_metadata = _make_cache_entry_metadata(
           cache_key=cache_key,
           cache_value=cache_value,
+          cache_value_approx_byte_size=approx_byte_size,
       )
       # The cache.set() method asks callers to use its return value and not to
       # use the value passed in argument `value` in subsequent code - this is to
@@ -675,6 +718,7 @@ class DataBagManager:
     needed_bags = bags_to_load - result.keys()
     if not needed_bags:
       return result
+    bag_approx_byte_sizes = self.get_approx_byte_sizes(needed_bags)
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=_PARALLELISM
     ) as executor:
@@ -695,6 +739,7 @@ class DataBagManager:
       entry_metadata = _make_cache_entry_metadata(
           cache_key=cache_key,
           cache_value=cache_value,
+          cache_value_approx_byte_size=bag_approx_byte_sizes[bag_name],
       )
       result[bag_name] = cast(
           kd.types.DataBag,
@@ -843,8 +888,13 @@ def _get_bag_cache_key(*, bag_name: str, bag_filepath: str) -> str:
 
 
 def _make_cache_entry_metadata(
-    *, cache_key: str, cache_value: kd.types.DataBag
+    *,
+    cache_key: str,
+    cache_value: kd.types.DataBag,
+    cache_value_approx_byte_size: int | None = None,
 ) -> global_cache_lib.CacheEntryMetadata:
+  if cache_value_approx_byte_size is None:
+    cache_value_approx_byte_size = cache_value.get_approx_byte_size()
   return global_cache_lib.CacheEntryMetadata(
-      num_bytes_estimate=len(cache_key) + cache_value.get_approx_byte_size(),
+      num_bytes_estimate=len(cache_key) + cache_value_approx_byte_size,
   )
