@@ -185,15 +185,16 @@ export class CompactTable extends NanoElement {
     return {mode: 'open', slotAssignment: 'manual'};
   }
 
+  static override get mutationObserverInit(): MutationObserverInit {
+    return {childList: true};
+  }
+
   static get observedAttributes() {
     return ['data-headers', 'data-max-folds', 'data-header-classes'];
   }
 
   constructor() {
     super();
-    new MutationObserver(this.render.bind(this)).observe(this, {
-      childList: true,
-    });
 
     this.addEventListener('click', (e) => {
       if (e.ctrlKey) {

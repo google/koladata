@@ -103,11 +103,12 @@ export class MultiDimTable
     }
   }
 
+  static override get mutationObserverInit(): MutationObserverInit {
+    return {childList: true};
+  }
+
   constructor() {
     super();
-    new MutationObserver(this.onMutation.bind(this)).observe(this, {
-      childList: true,
-    });
 
     const {shadowRoot} = this;
     shadowRoot?.addEventListener(
@@ -484,13 +485,13 @@ export class MultiDimTable
     );
 
     // Sync necessary state after rendering.
-    this.onMutation();
+    this.mutationCallback();
     await compactTable.renderComplete;
     this.syncViewWithVisibleRange();
     this.updateShades();
   }
 
-  private onMutation() {
+  override mutationCallback() {
     const {compactTable, dimNav} = this;
     if (compactTable && this.isConnected) {
       multiDimTableRender.cloneToCompactTable(

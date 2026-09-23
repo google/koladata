@@ -24,6 +24,12 @@ export class NanoElement extends HTMLElement {
     return '';
   }
 
+  static get mutationObserverInit(): MutationObserverInit | undefined {
+    return undefined;
+  }
+
+  private mutationObserver?: MutationObserver;
+
   // Allows referencing static properties so that they can be overridden
   // by subclasses.
   private get nanoElementRef() {
@@ -32,9 +38,14 @@ export class NanoElement extends HTMLElement {
 
   constructor() {
     super();
-    const {shadowInit} = this.nanoElementRef;
+    const {shadowInit, mutationObserverInit} = this.nanoElementRef;
     if (shadowInit) {
       this.attachShadow(shadowInit);
+    }
+    if (mutationObserverInit) {
+      this.mutationObserver = new MutationObserver((records, observer) => {
+        this.mutationCallback(records, observer);
+      });
     }
   }
 
@@ -43,14 +54,27 @@ export class NanoElement extends HTMLElement {
     this.render();
   }
 
+  mutationCallback(records: MutationRecord[], observer: MutationObserver) {
+    if (!this.isConnected) return;
+    this.render();
+  }
+
   connectedCallback() {
+    const {shadowStyle, mutationObserverInit} = this.nanoElementRef;
     const style = new CSSStyleSheet();
-    style.replaceSync(this.nanoElementRef.shadowStyle);
+    style.replaceSync(shadowStyle);
     const {shadowRoot} = this;
     if (shadowRoot) {
       shadowRoot.adoptedStyleSheets = [style];
     }
+    if (mutationObserverInit) {
+      this.mutationObserver?.observe(this, mutationObserverInit);
+    }
     this.render();
+  }
+
+  disconnectedCallback() {
+    this.mutationObserver?.disconnect();
   }
 
   render() {}
