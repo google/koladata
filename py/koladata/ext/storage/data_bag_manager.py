@@ -591,7 +591,6 @@ class DataBagManager:
       cache_value = bag_to_add.bag
       entry_metadata = _make_cache_entry_metadata(
           cache_key=cache_key,
-          cache_value=cache_value,
           cache_value_approx_byte_size=approx_byte_size,
       )
       # The cache.set() method asks callers to use its return value and not to
@@ -745,18 +744,44 @@ class DataBagManager:
     """
     result = self._get_cached_bags(bags_to_load)
     needed_bags = bags_to_load - result.keys()
-    if not needed_bags:
+    bag_approx_byte_sizes = self._get_approx_byte_sizes(bags_to_load)
+    bags_missing_size = {
+        bag_name
+        for bag_name, size in bag_approx_byte_sizes.items()
+        if size is None
+    }
+    bags_needing_work = needed_bags | bags_missing_size
+    if not bags_needing_work:
       return result
-    bag_approx_byte_sizes = self._get_approx_byte_sizes(needed_bags)
+
+    def get_bag_and_size(bag_name: str) -> tuple[kd.types.DataBag, int]:
+      bag = (
+          self._read_bag_from_file(bag_name)
+          if bag_name in needed_bags
+          else result[bag_name]
+      )
+      size = bag_approx_byte_sizes[bag_name]
+      if size is None:
+        size = bag.get_approx_byte_size()
+      return bag, size
+
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=_PARALLELISM
     ) as executor:
-      futures = [
-          executor.submit(self._read_bag_from_file, bag_name)
-          for bag_name in needed_bags
-      ]
-    for bag_name, future in zip(needed_bags, futures):
-      bag = future.result()
+      futures = {
+          bag_name: executor.submit(get_bag_and_size, bag_name)
+          for bag_name in bags_needing_work
+      }
+    bags_and_sizes = {
+        bag_name: future.result() for bag_name, future in futures.items()
+    }
+    if bags_missing_size:
+      for m in self._metadata.data_bag_metadata:
+        if m.name in bags_missing_size:
+          m.approx_byte_size = bags_and_sizes[m.name][1]
+
+    for bag_name in needed_bags:
+      bag, approx_byte_size = bags_and_sizes[bag_name]
       if self.bag_cache is None:
         result[bag_name] = bag
         continue
@@ -767,8 +792,7 @@ class DataBagManager:
       cache_value = bag
       entry_metadata = _make_cache_entry_metadata(
           cache_key=cache_key,
-          cache_value=cache_value,
-          cache_value_approx_byte_size=bag_approx_byte_sizes[bag_name],
+          cache_value_approx_byte_size=approx_byte_size,
       )
       result[bag_name] = cast(
           kd.types.DataBag,
@@ -919,11 +943,8 @@ def _get_bag_cache_key(*, bag_name: str, bag_filepath: str) -> str:
 def _make_cache_entry_metadata(
     *,
     cache_key: str,
-    cache_value: kd.types.DataBag,
-    cache_value_approx_byte_size: int | None = None,
+    cache_value_approx_byte_size: int,
 ) -> global_cache_lib.CacheEntryMetadata:
-  if cache_value_approx_byte_size is None:
-    cache_value_approx_byte_size = cache_value.get_approx_byte_size()
   return global_cache_lib.CacheEntryMetadata(
       num_bytes_estimate=len(cache_key) + cache_value_approx_byte_size,
   )

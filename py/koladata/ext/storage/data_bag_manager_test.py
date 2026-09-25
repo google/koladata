@@ -458,10 +458,26 @@ class DataBagManagerTest(parameterized.TestCase):
     # needs to be loaded from disk, or succeeds if that bag is already in cache.
     manager2._metadata.data_bag_metadata[0].ClearField('approx_byte_size')
     self.assertIsNone(manager2.get_approx_size_to_be_loaded(['bag1']))
-    manager2.load_bags(['bag0'])
+    manager.bag_cache = global_cache
+    manager.load_bags(['bag0'])  # Populate cache without updating manager2.
+    # Note that it is not None, and furthermore the size of bag0 is not included
+    # in the result, because it's already loaded and in the cache.
     self.assertEqual(
         manager2.get_approx_size_to_be_loaded(['bag1']),
         expected_bag1_size,
+    )
+    global_cache.clear()
+    # This is None because manager2 does not have bag0's approximate size in its
+    # metadata, and because it does not have access to a cached bag0 anymore
+    # (we cleared the cache).
+    self.assertIsNone(manager2.get_approx_size_to_be_loaded(['bag1']))
+    # Loading bag0 will backfill the size of bag0 in manager2's metadata, so we
+    # can clear the cache and manager2 should still remember the size.
+    manager2.load_bags(['bag0'])
+    global_cache.clear()
+    self.assertEqual(
+        manager2.get_approx_size_to_be_loaded(['bag1']),
+        expected_bag0_size + expected_bag1_size,
     )
 
     # Verify error for unknown bag.
@@ -1350,16 +1366,60 @@ class DataBagManagerTest(parameterized.TestCase):
       manager.load_bags({'bag0', 'bag1', 'bag2'})
       mock_get_size.assert_not_called()
 
-      # If legacy metadata does not have approx_byte_size set, loading falls
-      # back to calling get_approx_byte_size once for that bag.
-      global_cache.clear()
+      # If legacy metadata does not have approx_byte_size set, loading computes
+      # get_approx_byte_size in parallel once per bag missing size, saves it in
+      # metadata, and uses it for caching without triggering a disk write.
       manager._metadata.data_bag_metadata[0].ClearField('approx_byte_size')
+      manager._metadata.data_bag_metadata[1].ClearField('approx_byte_size')
       barrier = threading.Barrier(1, timeout=5.0)
-      loaded_bags = manager.load_bags({'bag0', 'bag1'})
-      self.assertEqual(
-          [call.args[0].fingerprint for call in mock_get_size.call_args_list],
-          [loaded_bags['bag0'].fingerprint],
+      manager.add_bags(
+          [dbm.BagToAdd(bag_name='empty_bag', bag=kd.bag(), dependencies=())]  # pyrefly: ignore[missing-attribute]
       )
+      global_cache.clear()
+      mock_get_size.reset_mock()
+      files_before_load = set(os.listdir(persistence_dir))
+
+      barrier = threading.Barrier(2, timeout=5.0)
+      loaded_bags = manager.load_bags({'bag0', 'bag1', 'bag2'})
+      self.assertCountEqual(
+          [call.args[0].fingerprint for call in mock_get_size.call_args_list],
+          [loaded_bags['bag0'].fingerprint, loaded_bags['bag1'].fingerprint],
+      )
+      self.assertEqual(
+          manager._metadata.data_bag_metadata[0].approx_byte_size,
+          orig_get_approx_byte_size(bags[0]),
+      )
+      self.assertEqual(
+          manager._metadata.data_bag_metadata[1].approx_byte_size,
+          orig_get_approx_byte_size(bags[1]),
+      )
+      # No write to disk was triggered by reading/loading.
+      self.assertEqual(set(os.listdir(persistence_dir)), files_before_load)
+      self.assertFalse(
+          DataBagManager.create_from_dir(persistence_dir)
+          ._metadata.data_bag_metadata[0]
+          .HasField('approx_byte_size')
+      )
+
+      # Subsequent loads from disk reuse the backfilled approx_byte_size from
+      # metadata without calling get_approx_byte_size again.
+      global_cache.clear()
+      mock_get_size.reset_mock()
+      manager.load_bags({'bag0', 'bag1', 'bag2'})
+      mock_get_size.assert_not_called()
+
+      # Adding a new bag persists the updated metadata (including the backfilled
+      # byte sizes) to disk.
+      bag3 = kd.attrs(kd.new(), a=3)  # pyrefly: ignore[missing-attribute]
+      barrier = threading.Barrier(1, timeout=5.0)
+      manager.add_bags(
+          [dbm.BagToAdd(bag_name='bag3', bag=bag3, dependencies=())]
+      )
+      global_cache.clear()
+      mock_get_size.reset_mock()
+      new_manager = DataBagManager.create_from_dir(persistence_dir)
+      new_manager.load_bags({'bag0', 'bag1', 'bag2', 'bag3'})
+      mock_get_size.assert_not_called()
 
   def test_parallelism_passed_to_thread_pool_executor_writing(self):
     persistence_dir = self.create_tempdir().full_path
