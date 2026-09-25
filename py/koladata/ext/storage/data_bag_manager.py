@@ -256,39 +256,50 @@ class DataBagManager:
       )
     return result
 
-  def get_approx_byte_sizes(
-      self, bag_names: Collection[str]
-  ) -> dict[str, int | None]:
-    """Returns the approximate in-memory byte sizes for the given bag names.
+  def get_approx_size_to_be_loaded(
+      self,
+      bag_names: Collection[str],
+      *,
+      with_all_dependents: bool = False,
+  ) -> int | None:
+    """Returns the approximate total byte size of the bags to be loaded.
 
-    Note that these are in-memory byte sizes (as returned by
-    DataBag.get_approx_byte_size()), and the serialized size on disk can differ
-    because of compression.
+    This computes the sum of the approximate in-memory byte sizes (as returned
+    by DataBag.get_approx_byte_size()) of all bags that will be loaded from disk
+    (not counting those currently in the bag cache) if one calls load_bags()
+    with the same arguments.
+
+    Note that these are in-memory byte sizes representing the steady-state
+    memory of the newly loaded bags after loading completes. There might be a
+    higher memory peak during loading, and the serialized size on disk can
+    differ because of compression.
 
     Args:
-      bag_names: The names of the bags whose approximate byte sizes to retrieve.
-        Must be a subset of get_available_bag_names().
+      bag_names: The names of the bags to be considered for simulated loading.
+        It must be a subset of get_available_bag_names(). All their transitive
+        dependencies will be considered as well.
+      with_all_dependents: If True, then all the dependents of bag_names will
+        also be considered. The dependents are computed transitively. All
+        transitive dependencies of the dependents will also be considered.
 
     Returns:
-      A dictionary mapping bag names to their approximate in-memory byte sizes
-      (or None if the bag metadata does not have an approximate byte size
-      recorded, i.e. the bag was serialized before this field was introduced).
+      The sum of the approximate in-memory byte sizes of all bags that are
+      currently not yet loaded from disk (or None if any of those bags does not
+      have an approximate byte size recorded in its metadata, i.e. the bag was
+      serialized before this field was introduced).
     """
-    bag_names_set = set(bag_names)
-    result = {}
-    for m in self._metadata.data_bag_metadata:
-      if m.name in bag_names_set:
-        result[m.name] = (
-            m.approx_byte_size if m.HasField('approx_byte_size') else None
-        )
-
-    if len(result) != len(bag_names_set):
-      unknown_bags = bag_names_set - result.keys()
-      raise ValueError(
-          'bag_names must be a subset of get_available_bag_names().'
-          f' The following bags are not available: {sorted(unknown_bags)}'
-      )
-    return result
+    bags_to_load = self._get_dependency_closure(
+        bag_names, with_all_dependents=with_all_dependents
+    )
+    cached_bags = self._get_cached_bags(bags_to_load)
+    needed_bags = bags_to_load - cached_bags.keys()
+    approx_byte_sizes = self._get_approx_byte_sizes(needed_bags)
+    total_size = 0
+    for size in approx_byte_sizes.values():
+      if size is None:
+        return None
+      total_size += size
+    return total_size
 
   def add_bags(self, bags_to_add: list[BagToAdd]):
     """Adds the given bags to the manager, which will persist them.
@@ -683,6 +694,39 @@ class DataBagManager:
       unvisited.update(relation[current])
     return result
 
+  def _get_approx_byte_sizes(
+      self, bag_names: Collection[str]
+  ) -> dict[str, int | None]:
+    """Returns the approximate in-memory byte sizes for the given bag names."""
+    bag_names_set = set(bag_names)
+    result = {}
+    for m in self._metadata.data_bag_metadata:
+      if m.name in bag_names_set:
+        result[m.name] = (
+            m.approx_byte_size if m.HasField('approx_byte_size') else None
+        )
+    return result
+
+  def _get_cached_bags(
+      self, bag_names: AbstractSet[str]
+  ) -> dict[str, kd.types.DataBag]:
+    """Returns the bags from `bag_names` that are found in the bag cache."""
+    if self.bag_cache is None:
+      return {}
+    result = {
+        bn: self.bag_cache.get(
+            _get_bag_cache_key(
+                bag_name=bn, bag_filepath=self._get_bag_filepath(bn)
+            )
+        )
+        for bn in bag_names
+    }
+    return {
+        k: v
+        for k, v in result.items()
+        if v is not None and isinstance(v, kd.types.DataBag)
+    }
+
   def _load_exactly_these_bags(
       self, bags_to_load: AbstractSet[str]
   ) -> dict[str, kd.types.DataBag]:
@@ -699,26 +743,11 @@ class DataBagManager:
       A dictionary mapping the requested bag names to the corresponding
       DataBags.
     """
-    if self.bag_cache is None:
-      result = {}
-    else:
-      result = {
-          bn: self.bag_cache.get(
-              _get_bag_cache_key(
-                  bag_name=bn, bag_filepath=self._get_bag_filepath(bn)
-              )
-          )
-          for bn in bags_to_load
-      }
-    result: dict[str, kd.types.DataBag] = {
-        k: v
-        for k, v in result.items()
-        if v is not None and isinstance(v, kd.types.DataBag)
-    }
+    result = self._get_cached_bags(bags_to_load)
     needed_bags = bags_to_load - result.keys()
     if not needed_bags:
       return result
-    bag_approx_byte_sizes = self.get_approx_byte_sizes(needed_bags)
+    bag_approx_byte_sizes = self._get_approx_byte_sizes(needed_bags)
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=_PARALLELISM
     ) as executor:

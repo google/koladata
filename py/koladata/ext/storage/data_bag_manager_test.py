@@ -373,47 +373,98 @@ class DataBagManagerTest(parameterized.TestCase):
     ):
       manager.get_custom_metadata(['unknown_bag'])
 
-  def test_approx_byte_sizes(self):
+  def test_get_approx_size_to_be_loaded(self):
+    global_cache = global_cache_lib.get_global_cache()
+    global_cache.clear()
+
     persistence_dir = self.create_tempdir().full_path
     manager = DataBagManager.create_new(persistence_dir)
 
-    bag0 = kd.bag()  # pyrefly: ignore[missing-attribute]
+    bag0 = kd.attrs(kd.new(), x=1)  # pyrefly: ignore[missing-attribute]
     bag1 = kd.attrs(kd.new(), a=1, b='hello world!')  # pyrefly: ignore[missing-attribute]
+    bag2 = kd.attrs(kd.new(), c=3.14)  # pyrefly: ignore[missing-attribute]
     expected_bag0_size = bag0.get_approx_byte_size()
     expected_bag1_size = bag1.get_approx_byte_size()
-    self.assertEqual(expected_bag0_size, 0)
+    expected_bag2_size = bag2.get_approx_byte_size()
+    self.assertGreater(expected_bag0_size, 0)
     self.assertGreater(expected_bag1_size, 0)
+    self.assertGreater(expected_bag2_size, 0)
 
     manager.add_bags([
         BagToAdd('bag0', bag0, dependencies=()),
         BagToAdd('bag1', bag1, dependencies=('bag0',)),
+        BagToAdd('bag2', bag2, dependencies=('bag1',)),
     ])
 
+    # Right after add_bags(), all added bags are in the global cache, so loading
+    # them requires 0 bytes to be loaded from disk.
     self.assertEqual(
-        manager.get_approx_byte_sizes(['bag0', 'bag1']),
-        {'bag0': expected_bag0_size, 'bag1': expected_bag1_size},
+        manager.get_approx_size_to_be_loaded(['bag0', 'bag1', 'bag2']),
+        0,
     )
-    self.assertEqual(
-        manager.get_approx_byte_sizes(['bag1']),
-        {'bag1': expected_bag1_size},
-    )
-    self.assertEqual(manager.get_approx_byte_sizes([]), {})
 
-    # Verify persistence
+    # Clear the cache so all bags must be loaded from disk.
+    global_cache.clear()
+    self.assertEqual(manager.get_approx_size_to_be_loaded([]), 0)
+    self.assertEqual(
+        manager.get_approx_size_to_be_loaded(['bag0']),
+        expected_bag0_size,
+    )
+    # Transitive dependencies are included (bag1 depends on bag0).
+    self.assertEqual(
+        manager.get_approx_size_to_be_loaded(['bag1']),
+        expected_bag0_size + expected_bag1_size,
+    )
+    # Dependents are included when with_all_dependents=True.
+    self.assertEqual(
+        manager.get_approx_size_to_be_loaded(
+            ['bag0'], with_all_dependents=True
+        ),
+        expected_bag0_size + expected_bag1_size + expected_bag2_size,
+    )
+
+    # Load bag0 into the cache; now loading bag1 only needs to load bag1 from
+    # disk, while loading bag0 requires 0 bytes.
+    manager.load_bags(['bag0'])
+    self.assertEqual(manager.get_approx_size_to_be_loaded(['bag0']), 0)
+    self.assertEqual(
+        manager.get_approx_size_to_be_loaded(['bag1']),
+        expected_bag1_size,
+    )
+    self.assertEqual(
+        manager.get_approx_size_to_be_loaded(
+            ['bag0'], with_all_dependents=True
+        ),
+        expected_bag1_size + expected_bag2_size,
+    )
+
+    # If bag_cache is None on the manager, cached bags in global_cache are not
+    # used and all bags in the closure will be loaded from disk.
+    manager.bag_cache = None
+    self.assertEqual(
+        manager.get_approx_size_to_be_loaded(['bag1']),
+        expected_bag0_size + expected_bag1_size,
+    )
+
+    # Verify persistence with a new manager instance.
+    global_cache.clear()
     manager2 = DataBagManager.create_from_dir(persistence_dir)
     self.assertEqual(
-        manager2.get_approx_byte_sizes(['bag0', 'bag1']),
-        {'bag0': expected_bag0_size, 'bag1': expected_bag1_size},
+        manager2.get_approx_size_to_be_loaded(['bag1']),
+        expected_bag0_size + expected_bag1_size,
     )
 
-    # Verify legacy metadata without approx_byte_size returns None
+    # Verify legacy metadata without approx_byte_size returns None if that bag
+    # needs to be loaded from disk, or succeeds if that bag is already in cache.
     manager2._metadata.data_bag_metadata[0].ClearField('approx_byte_size')
+    self.assertIsNone(manager2.get_approx_size_to_be_loaded(['bag1']))
+    manager2.load_bags(['bag0'])
     self.assertEqual(
-        manager2.get_approx_byte_sizes(['bag0', 'bag1']),
-        {'bag0': None, 'bag1': expected_bag1_size},
+        manager2.get_approx_size_to_be_loaded(['bag1']),
+        expected_bag1_size,
     )
 
-    # Verify error for unknown bag
+    # Verify error for unknown bag.
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -421,7 +472,7 @@ class DataBagManagerTest(parameterized.TestCase):
             " The following bags are not available: ['unknown_bag']"
         ),
     ):
-      manager.get_approx_byte_sizes(['unknown_bag'])
+      manager.get_approx_size_to_be_loaded(['unknown_bag'])
 
   def test_use_of_provided_file_system_interaction_object(self):
     # The assertions below check that the sequence of method names called on the
