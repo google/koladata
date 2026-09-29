@@ -801,7 +801,7 @@ def align(*args: ViewOrAutoBoxType) -> tuple[View, ...]:
   if len(args) == 1:
     return (box(args[0]),)
   args = [box(o) for o in args]  # pyrefly: ignore[bad-assignment]
-  ref_view = max(args, key=lambda v: v.get_depth())
+  ref_view = max(args, key=lambda v: v.get_depth())  # pyrefly: ignore[missing-attribute]
   return tuple(v.expand_to(ref_view) for v in args)  # pyrefly: ignore[missing-attribute]
 
 

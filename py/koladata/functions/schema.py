@@ -204,14 +204,14 @@ def _internal_schema_to_py(
   if schema.is_primitive():
     return _primitive_schema_to_py(schema)
   if schema.is_list_schema():
-    res = list[_internal_schema_to_py(schema.get_item_schema(), visited)] | None
+    res = list[_internal_schema_to_py(schema.get_item_schema(), visited)] | None  # pyrefly: ignore[invalid-annotation]
   elif schema.is_dict_schema():
     key_type = _internal_schema_to_py(schema.get_key_schema(), visited)
     key_type = _unwrap_optional(key_type)
     res = (
         dict[
             key_type,
-            _internal_schema_to_py(schema.get_value_schema(), visited),
+            _internal_schema_to_py(schema.get_value_schema(), visited),  # pyrefly: ignore[invalid-annotation]
         ]
         | None
     )
