@@ -102,6 +102,17 @@ class SlicesSortTest(parameterized.TestCase):
       (ds([], schema=INT64), False, ds([], schema=INT64)),
       # all missing items
       (ds([None, None], schema=INT64), False, ds([None, None], schema=INT64)),
+      # mixed dtypes
+      (
+          ds([2, 'b', None, 'a', 1.5]),
+          False,
+          ds([2, 1.5, 'a', 'b', None]),
+      ),
+      (
+          ds([2, 'b', None, 'a', 1.5]),
+          True,
+          ds(['b', 'a', 1.5, 2, None]),
+      ),
   )
   def test_eval_without_sort_by(self, x, descending, expected):
     result = kd.slices.sort(x, descending=descending)
@@ -166,7 +177,7 @@ class SlicesSortTest(parameterized.TestCase):
       (ds([0, 3, 6]), ds([2, 1, None]), 'more sparse'),
       # TODO: For lambdas we only report underlying operator
       # names.
-      (ds(0), None, 'kd.slices.ordinal_rank: expected rank(x) > 0'),
+      (ds(0), None, 'kd.slices.inverse_mapping: expected rank(x) > 0'),
       (
           ds([0, 3, 6]),
           ds([0, 3, 6, 1]),

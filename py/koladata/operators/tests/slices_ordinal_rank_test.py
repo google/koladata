@@ -56,6 +56,9 @@ QTYPES = [
 ]
 
 
+test_objs = kd.objs.like(ds([0, 1, 2, 3])).L
+
+
 class SlicesOrdinalRankTest(parameterized.TestCase):
 
   @parameterized.parameters(
@@ -157,6 +160,16 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
           1,
           ds([0, 1, None, 2], schema=INT64),
       ),
+      # ObjectId
+      (
+          ds(
+              [test_objs[3], test_objs[0], test_objs[1]],
+              schema=schema_constants.OBJECT,
+          ),
+          False,
+          1,
+          ds([2, 0, 1], schema=INT64),
+      ),
       # empty x
       (ds([], schema=INT64), False, 1, ds([], schema=INT64)),
       (ds([], schema_constants.OBJECT), False, 1, ds([], schema=INT64)),
@@ -179,6 +192,53 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
           False,
           1,
           ds([[None, None], [None]], schema_constants.INT64),
+      ),
+      # Mixed dtypes. Values of different dtypes are ordered by dtype:
+      # INT32/INT64 < FLOAT32/FLOAT64 < BOOLEAN < STRING < BYTES.
+      (
+          ds([[2, 'b', None, 'a'], [1.5, 1, b'z']]),
+          False,
+          1,
+          ds([[0, 2, None, 1], [1, 0, 2]], schema=INT64),
+      ),
+      (
+          ds([[2, 'b', None, 'a'], [1.5, 1, b'z']]),
+          True,
+          1,
+          ds([[2, 0, None, 1], [1, 2, 0]], schema=INT64),
+      ),
+      (
+          ds([[2, 'b', None, 'a'], [1.5, 1, b'z']]),
+          False,
+          2,
+          ds([[1, 4, None, 3], [2, 0, 5]], schema=INT64),
+      ),
+      (
+          ds([True, 'a', b'a', 1, 1.5, ds(2, schema=INT64), None]),
+          False,
+          1,
+          ds([3, 4, 5, 0, 2, 1, None], schema=INT64),
+      ),
+      (
+          ds([[test_objs[1], 'b', test_objs[0], 'a'], [1.5, 1, b'z']]),
+          False,
+          1,
+          ds([[1, 3, 0, 2], [1, 0, 2]], schema=INT64),
+      ),
+      # Mixed dtypes, equal values are ranked by position.
+      (ds(['a', 1, 'a', 1]), False, 1, ds([2, 0, 3, 1], schema=INT64)),
+      # Mixed dtypes with NaN. NaNs are ranked last regardless of `descending`.
+      (
+          ds([1.0, float('nan'), 'a', float('nan'), 3]),
+          False,
+          1,
+          ds([1, 3, 2, 4, 0], schema=INT64),
+      ),
+      (
+          ds([1.0, float('nan'), 'a', float('nan'), 3]),
+          True,
+          1,
+          ds([1, 3, 0, 4, 2], schema=INT64),
       ),
   )
   def test_eval_without_tie_breaker(self, x, descending, ndim, expected):
@@ -263,6 +323,21 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
           1,
           ds([[None, None], [None]], schema_constants.INT64),
       ),
+      # Mixed dtypes.
+      (
+          ds(['a', 'a', 1, 1, None]),
+          ds([1, 0, 5, 4, 0]),
+          1,
+          ds([3, 2, 1, 0, None], schema=INT64),
+      ),
+      # Mixed dtypes, tie_breaker is more sparse than x.
+      (ds([2, 'a', 3]), ds([1, None, 2]), 1, ds([0, None, 1], schema=INT64)),
+      (
+          ds([2, 'a', 3]),
+          ds([None, None, None]),
+          1,
+          ds([None, None, None], schema=INT64),
+      ),
   )
   def test_eval_with_tie_breaker(self, x, tie_breaker, ndim, expected):
     result = kd.slices.ordinal_rank(x, tie_breaker, ndim=ndim)
@@ -323,18 +398,6 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
     ):
       kd.slices.ordinal_rank(ds([0, 3, 6]), ds([0.0, 1.0, 2.0]))
 
-  def test_entity_input_error(self):
-    db = data_bag.DataBag.empty_mutable()
-    x = db.new(x=ds([1]))
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape(
-            'kd.slices.ordinal_rank: argument `x` must be a slice of orderable'
-            ' values, got a slice of ENTITY(x=INT32)'
-        ),
-    ):
-      kd.slices.ordinal_rank(x, ds([0]))
-
   def test_entity_tie_breaker_error(self):
     db = data_bag.DataBag.empty_mutable()
     tie_breaker = db.new(x=ds([1]))
@@ -343,6 +406,17 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
         arolla.testing.any_cause_message_regex('cannot find a common schema'),
     ):
       kd.slices.ordinal_rank(ds([0]), tie_breaker)
+
+  def test_mixed_dtypes_equal_values_are_ranked_by_position(self):
+    # Note: the slice is big enough to be sorted by an unstable algorithm.
+    n = 50
+    testing.assert_equal(
+        kd.slices.ordinal_rank(ds([1, 'a'] * n)),
+        ds(
+            [v for i in range(n) for v in (i, n + i)],  # pylint: disable=g-complex-comprehension
+            schema=INT64,
+        ),
+    )
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

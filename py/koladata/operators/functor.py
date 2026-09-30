@@ -620,9 +620,13 @@ def sort(x, sort_by=arolla.unspecified(), descending=False):
   When `sort_by` is specified, it is used to sort items in `x`.
   `sort_by` (or the result of evaluating it, if it is a functor/function)
   must have the same shape as `x` and cannot be more sparse than `x`.
-  Otherwise,
-  items in `x` are compared by their values. Missing items are put in the end of
-  the sorted list regardless of the value of `descending`.
+  Otherwise, items in `x` are compared by their values. NaNs and missing items
+  are put in the end of the sorted list regardless of the value of `descending`.
+
+  In case of mixed types the comparison rules are the following:
+  object/dict/list < int < float < bool < mask < str/bytes < expr.
+  Note that in general object ids are not deterministic, so on different runs
+  the order of objects, dicts, lists might change.
 
   Examples:
     ds = kd.slice([[[2, 1, None, 4], [4, 1]], [[5, 4, None]]])

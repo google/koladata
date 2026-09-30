@@ -1188,6 +1188,11 @@ def ordinal_rank(
   ties. When descending=True, values are ranked in descending order but
   tie_breaker and position are ranked in ascending order.
 
+  In case of mixed types the comparison rules are the following:
+  object/dict/list < int < float < bool < mask < str/bytes < expr.
+  Note that in general object ids are not deterministic, so on different runs
+  the order of objects, dicts, lists might change.
+
   NaN values are ranked lowest regardless of the order of ranking. Ranks of
   missing items are missing in the result. If `tie_breaker` is specified, it
   cannot be more sparse than `x`.

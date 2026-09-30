@@ -15,10 +15,12 @@
 #include "koladata/operators/slices.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <numeric>
 #include <optional>
 #include <string>
 #include <tuple>
@@ -651,16 +653,86 @@ absl::StatusOr<DataSlice> InverseMapping(const DataSlice& x) {
 absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
                                       const DataSlice& tie_breaker,
                                       const DataSlice& descending) {
-  RETURN_IF_ERROR(ExpectCanBeOrdered("x", x));
   ASSIGN_OR_RETURN(
       auto tie_breaker_int64,
       CastToNarrow(tie_breaker, internal::DataItem(schema::kInt64)),
       internal::KodaErrorFromCause("tie_breaker must be integers",
                                    std::move(_)));
   RETURN_IF_ERROR(ExpectPresentScalar("descending", descending, schema::kBool));
-  return SimpleAggOverEval(
-      "array.ordinal_rank", {x, std::move(tie_breaker_int64), descending},
-      /*output_schema=*/internal::DataItem(schema::kInt64), /*edge_index=*/2);
+
+  if (!x.GetShape().IsEquivalentTo(tie_breaker_int64.GetShape())) {
+    return absl::InvalidArgumentError("tie_breaker and x must have same shape");
+  }
+  if (x.is_item()) {
+    if (x.item().has_value() && tie_breaker_int64.item().has_value()) {
+      return DataSlice::CreatePrimitive<int64_t>(0);
+    } else {
+      return DataSlice::Create(internal::DataItem(),
+                               internal::DataItem(schema::kInt64));
+    }
+  }
+  if (tie_breaker_int64.slice().is_empty_and_unknown()) {
+    return DataSlice::Create(
+        internal::DataSliceImpl::CreateEmptyAndUnknownType(x.size()),
+        x.GetShape(), internal::DataItem(schema::kInt64));
+  }
+
+  // Fast path for a single primitive type
+  if (!x.impl_has_mixed_dtype() && x.IsPrimitiveSchema()) {
+    return SimpleAggOverEval(
+        "array.ordinal_rank", {x, std::move(tie_breaker_int64), descending},
+        /*output_schema=*/internal::DataItem(schema::kInt64), /*edge_index=*/2);
+  }
+
+  arolla::DenseArray<internal::DataItem> vals =
+      x.slice().AsDataItemDenseArray();
+  const arolla::DenseArray<int64_t> tie_breaker_vals =
+      tie_breaker_int64.slice().values<int64_t>();
+  bool descending_bool = descending.item().value<bool>();
+
+  auto less = [&](size_t i, size_t j) -> bool {
+    if (!vals.present(i) || !tie_breaker_vals.present(i)) return false;
+    if (!vals.present(j) || !tie_breaker_vals.present(j)) return true;
+    bool i_is_nan = vals.values[i].is_nan();
+    bool j_is_nan = vals.values[j].is_nan();
+    if (vals.values[i] == vals.values[j] || i_is_nan || j_is_nan) {
+      // NaNs are ranked last regardless of `descending`.
+      if (i_is_nan != j_is_nan) return j_is_nan;
+
+      if (tie_breaker_vals.values[i] != tie_breaker_vals.values[j]) {
+        return tie_breaker_vals.values[i] < tie_breaker_vals.values[j];
+      }
+      // `std::sort` is not stable, so the position is compared explicitly.
+      return i < j;
+    }
+    return descending_bool
+               ? internal::DataItem::Less{}(vals.values[j], vals.values[i])
+               : internal::DataItem::Less{}(vals.values[i], vals.values[j]);
+  };
+
+  std::vector<size_t> indices(vals.size());
+  std::iota(indices.begin(), indices.end(), 0);
+
+  DCHECK_GE(x.GetShape().edges().size(), 1);
+  const arolla::DenseArrayEdge& edge = x.GetShape().edges().back();
+  DCHECK_EQ(edge.edge_type(), arolla::DenseArrayEdge::SPLIT_POINTS);
+  const auto& split_points = edge.edge_values().values;
+  arolla::DenseArrayBuilder<int64_t> bldr(vals.size());
+
+  for (size_t group = 0; group + 1 < split_points.size(); ++group) {
+    size_t from = split_points[group];
+    size_t to = split_points[group + 1];
+    std::sort(indices.begin() + from, indices.begin() + to, less);
+    for (size_t i = from; i < to; ++i) {
+      size_t pos = indices[i];
+      size_t rank = i - from;
+      if (vals.present(pos) && tie_breaker_vals.present(pos)) {
+        bldr.Set(pos, rank);
+      }
+    }
+  }
+
+  return DataSlice::CreatePrimitive(std::move(bldr).Build(), x.GetShape());
 }
 
 absl::StatusOr<DataSlice> DenseRank(const DataSlice& x,

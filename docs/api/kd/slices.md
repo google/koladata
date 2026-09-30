@@ -829,6 +829,11 @@ Items are compared by the triple (value, tie_breaker, position) to resolve
 ties. When descending=True, values are ranked in descending order but
 tie_breaker and position are ranked in ascending order.
 
+In case of mixed types the comparison rules are the following:
+object/dict/list &lt; int &lt; float &lt; bool &lt; mask &lt; str/bytes &lt; expr.
+Note that in general object ids are not deterministic, so on different runs
+the order of objects, dicts, lists might change.
+
 NaN values are ranked lowest regardless of the order of ranking. Ranks of
 missing items are missing in the result. If `tie_breaker` is specified, it
 cannot be more sparse than `x`.
@@ -1096,9 +1101,13 @@ Aliases:
 When `sort_by` is specified, it is used to sort items in `x`.
 `sort_by` (or the result of evaluating it, if it is a functor/function)
 must have the same shape as `x` and cannot be more sparse than `x`.
-Otherwise,
-items in `x` are compared by their values. Missing items are put in the end of
-the sorted list regardless of the value of `descending`.
+Otherwise, items in `x` are compared by their values. NaNs and missing items
+are put in the end of the sorted list regardless of the value of `descending`.
+
+In case of mixed types the comparison rules are the following:
+object/dict/list &lt; int &lt; float &lt; bool &lt; mask &lt; str/bytes &lt; expr.
+Note that in general object ids are not deterministic, so on different runs
+the order of objects, dicts, lists might change.
 
 Examples:
   ds = kd.slice([[[2, 1, None, 4], [4, 1]], [[5, 4, None]]])

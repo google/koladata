@@ -356,7 +356,8 @@ class DeterminizerTest(parameterized.TestCase):
     determinizer = determinism.Determinizer(seed='test')
     d = kd.dict({kd.obj(a=1): 2})
     with self.assertRaisesRegex(
-        ValueError, 'must be a slice of orderable values'
+        NotImplementedError,
+        'Dicts with non-primitive or Expr keys are not supported',
     ):
       determinizer.make_deterministic(d)
 
