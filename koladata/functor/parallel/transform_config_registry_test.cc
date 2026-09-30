@@ -34,9 +34,59 @@ namespace koladata::functor::parallel {
 namespace {
 
 using ::absl_testing::IsOk;
+using ::absl_testing::IsOkAndHolds;
 using ::arolla::expr::testing::DummyOp;
 
-TEST(TransformConfigRegistryTest, ExtendAndGet) {
+class TransformConfigRegistryTest : public ::testing::Test {
+ protected:
+  void SetUp() override { ResetDefaultParallelTransformConfigForTesting(); }
+};
+
+TEST_F(TransformConfigRegistryTest, ReusesConfigUntilExtended) {
+  ASSERT_OK_AND_ASSIGN(ParallelTransformConfigPtr config,
+                       GetDefaultParallelTransformConfig());
+  ASSERT_OK_AND_ASSIGN(ParallelTransformConfigPtr runtime_config,
+                       GetDefaultParallelTransformConfig(
+                           /*allow_runtime_transforms=*/true));
+  EXPECT_NE(config, runtime_config);
+  EXPECT_THAT(GetDefaultParallelTransformConfig(), IsOkAndHolds(config));
+  EXPECT_THAT(
+      GetDefaultParallelTransformConfig(/*allow_runtime_transforms=*/true),
+      IsOkAndHolds(runtime_config));
+
+  auto op = std::make_shared<DummyOp>(
+      "test.reuse_op", arolla::expr::ExprOperatorSignature::MakeVariadicArgs());
+  ASSERT_THAT(arolla::expr::RegisterOperator("test.reuse_op", op), IsOk());
+  ASSERT_THAT(
+      ExtendDefaultParallelTransformConfig(R"pb(from_op: "test.reuse_op"
+                                                to_op: "test.reuse_op")pb"),
+      IsOk());
+
+  ASSERT_OK_AND_ASSIGN(ParallelTransformConfigPtr extended_config,
+                       GetDefaultParallelTransformConfig());
+  EXPECT_NE(extended_config, config);
+  EXPECT_TRUE(
+      extended_config->operator_replacements().contains(op->fingerprint()));
+}
+
+TEST_F(TransformConfigRegistryTest, ResetDropsExtensions) {
+  auto op = std::make_shared<DummyOp>(
+      "test.reset_op", arolla::expr::ExprOperatorSignature::MakeVariadicArgs());
+  ASSERT_THAT(arolla::expr::RegisterOperator("test.reset_op", op), IsOk());
+  constexpr absl::string_view kExtension =
+      R"pb(from_op: "test.reset_op" to_op: "test.reset_op")pb";
+  ASSERT_THAT(ExtendDefaultParallelTransformConfig(kExtension), IsOk());
+  ASSERT_THAT(ExtendDefaultParallelTransformConfig(kExtension), IsOk());
+  ASSERT_FALSE(GetDefaultParallelTransformConfig().ok());
+
+  ResetDefaultParallelTransformConfigForTesting();
+
+  ASSERT_OK_AND_ASSIGN(ParallelTransformConfigPtr config,
+                       GetDefaultParallelTransformConfig());
+  EXPECT_FALSE(config->operator_replacements().contains(op->fingerprint()));
+}
+
+TEST_F(TransformConfigRegistryTest, ExtendAndGet) {
   auto from_op = std::make_shared<DummyOp>(
       "test.from_op", arolla::expr::ExprOperatorSignature::MakeVariadicArgs());
   auto to_op = std::make_shared<DummyOp>(

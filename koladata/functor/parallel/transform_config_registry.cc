@@ -13,11 +13,14 @@
 // limitations under the License.
 //
 #include "koladata/functor/parallel/transform_config_registry.h"
+
+#include <array>
 #include <utility>
 
 #include "absl/base/no_destructor.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/status/status.h"
+#include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
@@ -374,18 +377,29 @@ constexpr char kDefaultConfigTextProto[] = R"pb(
   }
 )pb";
 
+ParallelTransformConfigProto DefaultConfigProto() {
+  ParallelTransformConfigProto config_proto;
+  google::protobuf::TextFormat::ParseFromString(kDefaultConfigTextProto, &config_proto);
+  return config_proto;
+}
+
 class TransformConfigRegistry {
  public:
-  TransformConfigRegistry() {
-    google::protobuf::TextFormat::ParseFromString(kDefaultConfigTextProto,
-                                        &config_proto_);
-  }
+  TransformConfigRegistry() : config_proto_(DefaultConfigProto()) {}
 
+  // Returns the same config instance until the registry is extended. Configs
+  // are fingerprinted by instance, so reusing them lets the transformed
+  // functors be cached across calls.
   absl::StatusOr<ParallelTransformConfigPtr> GetParallelTransformConfig(
       bool allow_runtime_transforms) {
     absl::MutexLock lock(mutex_);
-    config_proto_.set_allow_runtime_transforms(allow_runtime_transforms);
-    return CreateParallelTransformConfigFromProto(config_proto_);
+    ParallelTransformConfigPtr& config = configs_[allow_runtime_transforms];
+    if (config == nullptr) {
+      config_proto_.set_allow_runtime_transforms(allow_runtime_transforms);
+      ASSIGN_OR_RETURN(config,
+                       CreateParallelTransformConfigFromProto(config_proto_));
+    }
+    return config;
   }
 
   absl::Status Extend(absl::string_view text_proto) {
@@ -396,12 +410,21 @@ class TransformConfigRegistry {
     }
     absl::MutexLock lock(mutex_);
     *config_proto_.add_operator_replacements() = std::move(extension);
+    configs_ = {};
     return absl::OkStatus();
+  }
+
+  void Reset() {
+    absl::MutexLock lock(mutex_);
+    config_proto_ = DefaultConfigProto();
+    configs_ = {};
   }
 
  private:
   absl::Mutex mutex_;
   ParallelTransformConfigProto config_proto_ ABSL_GUARDED_BY(mutex_);
+  // Indexed by `allow_runtime_transforms`.
+  std::array<ParallelTransformConfigPtr, 2> configs_ ABSL_GUARDED_BY(mutex_);
 };
 
 TransformConfigRegistry& GetRegistry() {
@@ -422,5 +445,7 @@ absl::Status ExtendDefaultParallelTransformConfig(
     absl::string_view text_proto) {
   return GetRegistry().Extend(text_proto);
 }
+
+void ResetDefaultParallelTransformConfigForTesting() { GetRegistry().Reset(); }
 
 }  // namespace koladata::functor::parallel

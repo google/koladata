@@ -32,6 +32,10 @@ namespace koladata::functor::parallel {
 //
 // This method applies this transformation to the given functor and the
 // sub-functors that are called inside it.
+//
+// If the functor's DataBag is immutable, the result is cached on that DataBag
+// per config instance, so repeated calls with the same functor and config
+// return the same transformed functor.
 absl::StatusOr<DataSlice> TransformToParallel(  // clang-format hint
     const ParallelTransformConfigPtr absl_nonnull& config, DataSlice functor);
 

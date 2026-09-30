@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -70,6 +71,8 @@
 #include "koladata/functor_storage.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
+#include "koladata/internal/uuid_object.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/core.h"
 #include "koladata/operators/slices.h"
@@ -80,6 +83,15 @@ namespace koladata::functor::parallel {
 namespace {
 
 inline constexpr absl::string_view kExecutorParamName = "_executor";
+
+// The parallel transform of a functor for one config, stored as cached metadata
+// of the functor's immutable DataBag so that it lives exactly as long as that
+// DataBag. This does not create an ownership cycle: the transformation rebuilds
+// the functor in a new DataBag (see `AddVariables`), so transformed functors
+// never reference the original one.
+struct TransformedFunctor {
+  DataSlice functor;
+};
 
 // Finds variables wrapped  by `annotation.source_location` nodes and collects
 // the ExprNodes of the SourceLocation annotations in a map keyed by variable
@@ -780,8 +792,6 @@ absl::StatusOr<bool> IsAnnotationChainOnAVariable(
   return variable_container.GetInputName(inner_node).has_value();
 }
 
-}  // namespace
-
 // The transformation is done in 2 steps:
 // 1. We add variables to the functor in such a way that all further decisions
 //    can be made based on the top-level operator of each variable expression
@@ -791,12 +801,8 @@ absl::StatusOr<bool> IsAnnotationChainOnAVariable(
 //
 // The resulting functor expects proper parallel types for its inputs, and
 // guarantees that each variable is also of a proper parallel type.
-absl::StatusOr<DataSlice> TransformToParallel(  // clang-format hint
+absl::StatusOr<DataSlice> TransformToParallelUncached(
     const ParallelTransformConfigPtr absl_nonnull& config, DataSlice functor) {
-  ASSIGN_OR_RETURN(bool is_functor, IsFunctor(functor));
-  if (!is_functor) {
-    return absl::InvalidArgumentError("functor must be a functor");
-  }
   ASSIGN_OR_RETURN(expr::InputContainer variable_container,
                    expr::InputContainer::Create("V"));
   ASSIGN_OR_RETURN(expr::InputContainer input_container,
@@ -936,6 +942,30 @@ absl::StatusOr<DataSlice> TransformToParallel(  // clang-format hint
   }
   return CreateFunctor(*returns, signature, std::move(var_names),
                        std::move(var_values));
+}
+
+}  // namespace
+
+absl::StatusOr<DataSlice> TransformToParallel(  // clang-format hint
+    const ParallelTransformConfigPtr absl_nonnull& config, DataSlice functor) {
+  ASSIGN_OR_RETURN(bool is_functor, IsFunctor(functor));
+  if (!is_functor) {
+    return absl::InvalidArgumentError("functor must be a functor");
+  }
+  DataBagPtr bag = functor.GetBag();
+  DCHECK(bag != nullptr);  // validated in IsFunctor
+  internal::ObjectId key = internal::CreateUuidObject(
+      arolla::FingerprintHasher("koladata.parallel.transformed_functor")
+          .Combine(functor.item().value<internal::ObjectId>(), config->uuid())
+          .Finish());
+  if (auto cached = bag->GetCachedMetadataOrNull<TransformedFunctor>(key)) {
+    return cached->functor;
+  }
+  ASSIGN_OR_RETURN(DataSlice transformed,
+                   TransformToParallelUncached(config, std::move(functor)));
+  return bag
+      ->SetCachedMetadata(key, TransformedFunctor{std::move(transformed)})
+      ->functor;
 }
 
 absl::StatusOr<arolla::TypedValue> TransformManyToParallel(

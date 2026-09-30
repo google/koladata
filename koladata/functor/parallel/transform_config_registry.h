@@ -23,12 +23,18 @@
 
 namespace koladata::functor::parallel {
 
-// Returns the parallel transform config complete with all extensions.
+// Returns the parallel transform config complete with all extensions. The same
+// instance is returned for the same `allow_runtime_transforms` until the config
+// is extended.
 absl::StatusOr<ParallelTransformConfigPtr> GetDefaultParallelTransformConfig(
     bool allow_runtime_transforms = false);
 
 // Extends the default parallel transform config with new replacements.
 absl::Status ExtendDefaultParallelTransformConfig(absl::string_view text_proto);
+
+// Resets the default parallel transform config to the built-in one, dropping
+// all extensions (including those added by initializers). For tests only.
+void ResetDefaultParallelTransformConfigForTesting();
 
 }  // namespace koladata::functor::parallel
 
