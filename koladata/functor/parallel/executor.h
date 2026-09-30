@@ -65,8 +65,12 @@ class Executor : public std::enable_shared_from_this<Executor> {
 
   // Runs a given task on the executor. This method is thread-safe.
   //
-  // Note: The executor can discard tasks without execution if it's in
-  // the process of shutting down. This may happen immediately or in the future.
+  // Notes:
+  //  * Scheduling a task must not block waiting for executor capacity;
+  //    otherwise, deadlocks may occur. Effectively, the executor must maintain
+  //    an unbounded task queue.
+  //  * The executor can discard tasks without execution if it's in the process
+  //    of shutting down. This may happen immediately or in the future.
   template <typename Task>
   auto Schedule(Task&& task) noexcept
       -> std::enable_if_t<std::is_constructible_v<TaskFn, Task&&>>;
