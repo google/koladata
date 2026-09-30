@@ -1,5 +1,3 @@
-<!-- go/g3mark-in-g3doc -->
-
 # Extension Types
 
 Koda Extension Types are custom, user-defined data structures that allow you to

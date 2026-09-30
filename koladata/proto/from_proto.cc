@@ -132,8 +132,7 @@ absl::Status ParseExtensionInto(const google::protobuf::DescriptorPool& pool,
       // Note: `ext_name` includes starting and ending parens.
       auto ext_name = absl::StrJoin(ext_path_pieces, ".");
       DCHECK_GE(ext_name.size(), 2);
-      auto ext_full_path =
-          absl::string_view(&ext_name.data()[1], ext_name.size() - 2);
+      auto ext_full_path = absl::string_view(&ext_name[1], ext_name.size() - 2);
       ext_path_pieces.clear();
 
       const auto* ext_field_descriptor =
