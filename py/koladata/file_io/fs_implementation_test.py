@@ -157,6 +157,59 @@ class FsImplementationTest(parameterized.TestCase):
     finally:
       os.umask(old_umask)
 
+  @parameterized.named_parameters(
+      ('FileSystemInteraction', fs_implementation.FileSystemInteraction()),
+  )
+  def test_stat_walk_and_bulk_operations(
+      self, fs: fs_interface.FileSystemInterface
+  ):
+    test_dir = self.create_tempdir().full_path
+    sub_dir = os.path.join(test_dir, 'sub')
+    nested_child = os.path.join(test_dir, 'x', 'y', 'z')
+    nested_parent = os.path.join(test_dir, 'x', 'y')
+    fs.bulk_make_dirs([sub_dir, nested_child, nested_parent])
+    self.assertTrue(fs.exists(sub_dir))
+    self.assertTrue(fs.exists(nested_child))
+    fs.bulk_remove([nested_child, nested_parent, os.path.join(test_dir, 'x')])
+
+    f1 = os.path.join(test_dir, 'a.txt')
+    f2 = os.path.join(sub_dir, 'b.txt')
+    missing = os.path.join(test_dir, 'missing.txt')
+    fs.bulk_write({f1: b'hello', f2: b'world'})
+
+    bulk_stats = fs.bulk_stat([f1, sub_dir])
+    self.assertCountEqual(bulk_stats.keys(), [f1, sub_dir])
+    self.assertFalse(bulk_stats[f1].is_dir)
+    self.assertGreater(bulk_stats[f1].mtime_ns, 0)
+    self.assertEqual(bulk_stats[f1].size, 5)
+    self.assertTrue(bulk_stats[sub_dir].is_dir)
+
+    with self.assertRaises(Exception):
+      fs.bulk_stat([f1, missing])
+
+    walked = {
+        dirpath: (sorted(dirnames), sorted(filenames))
+        for dirpath, dirnames, filenames in fs.walk(test_dir)
+    }
+    self.assertEqual(
+        walked,
+        {
+            test_dir: (['sub'], ['a.txt']),
+            sub_dir: ([], ['b.txt']),
+        },
+    )
+    self.assertEmpty(list(fs.walk(os.path.join(test_dir, 'non_existent'))))
+
+    # Pass parent `sub_dir` before child `f2` to verify child-before-parent
+    # deletion ordering.
+    fs.bulk_remove([f1, sub_dir, f2])
+    self.assertFalse(fs.exists(f1))
+    self.assertFalse(fs.exists(f2))
+    self.assertFalse(fs.exists(sub_dir))
+
+    with self.assertRaises(Exception):
+      fs.bulk_remove([missing])
+
 
 if __name__ == '__main__':
   absltest.main()
