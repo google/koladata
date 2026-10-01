@@ -396,6 +396,43 @@ cc_test(
 )
 
 cc_library(
+    name = "schema_tracker",
+    srcs = ["schema_tracker.cc"],
+    hdrs = ["schema_tracker.h"],
+    deps = [
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:object_id",
+        "//koladata/internal:schema_attrs",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/dense_array/ops",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "schema_tracker_test",
+    srcs = ["schema_tracker_test.cc"],
+    deps = [
+        ":schema_tracker",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "deep_clone",
     srcs = ["deep_clone.cc"],
     hdrs = ["deep_clone.h"],
