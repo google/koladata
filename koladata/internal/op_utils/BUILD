@@ -366,6 +366,36 @@ cc_test(
 )
 
 cc_library(
+    name = "in_degree_tracker",
+    srcs = ["in_degree_tracker.cc"],
+    hdrs = ["in_degree_tracker.h"],
+    deps = [
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:object_id",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/qtype",
+    ],
+)
+
+cc_test(
+    name = "in_degree_tracker_test",
+    srcs = ["in_degree_tracker_test.cc"],
+    deps = [
+        ":in_degree_tracker",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:object_id",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "deep_clone",
     srcs = ["deep_clone.cc"],
     hdrs = ["deep_clone.h"],
