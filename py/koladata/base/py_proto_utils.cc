@@ -15,6 +15,7 @@
 #include "py/koladata/base/py_proto_utils.h"
 
 #include <any>
+#include <cstddef>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -43,35 +44,54 @@ absl::StatusOr<DataSlice> FromProtoObjects(
     const std::optional<DataSlice>& itemid,
     const std::optional<DataSlice>& schema) {
   arolla::python::DCheckPyGIL();
-  const Py_ssize_t messages_list_len = py_objects.size();
 
-  internal::SliceBuilder message_mask_builder(messages_list_len);
+  // Hold strong references to the Python proto objects in the outer function
+  // scope. They will increment the reference count and prevent the Python
+  // garbage collector from deallocating them when the GIL is released
+  // temporarily in the block below.
+  std::vector<arolla::python::PyObjectPtr> proto_holders;
+  proto_holders.reserve(py_objects.size());
+
+  internal::SliceBuilder message_mask_builder(py_objects.size());
   auto typed_message_mask_builder = message_mask_builder.typed<arolla::Unit>();
   std::vector<std::any> message_owners;
-  message_owners.reserve(messages_list_len);
+  message_owners.reserve(py_objects.size());
   std::vector<const ::google::protobuf::Message* absl_nonnull> message_ptrs;
-  message_ptrs.reserve(messages_list_len);
-  for (Py_ssize_t i = 0; i < messages_list_len; ++i) {
-    PyObject* py_message = py_objects[i];  // Borrowed.
+  message_ptrs.reserve(py_objects.size());
+
+  for (size_t i = 0; i < py_objects.size(); ++i) {
+    PyObject* py_message = py_objects[i];
     if (py_message != Py_None) {
+      // INCREF: guarantees the Python proto cannot be deallocated by another
+      // thread.
+      proto_holders.push_back(arolla::python::PyObjectPtr::NewRef(py_message));
       typed_message_mask_builder.InsertIfNotSet(i, arolla::kUnit);
 
+      // Note: `message_owner` is a `std::any` holding a
+      // `pybind11::detail::type_caster`. This and all future implementations
+      // for the `std::any` handle should not keep the Python object alive,
+      // which is why `proto_holders` is needed.
       ASSIGN_OR_RETURN((auto [message_ptr, message_owner]),
                        python::UnwrapPyProtoMessage(py_message));
       message_owners.push_back(std::move(message_owner));
       message_ptrs.push_back(message_ptr);
     }
   }
+
   ASSIGN_OR_RETURN(
       auto message_mask,
       DataSlice::Create(std::move(message_mask_builder).Build(),
-                        DataSlice::JaggedShape::FlatFromSize(messages_list_len),
+                        DataSlice::JaggedShape::FlatFromSize(py_objects.size()),
                         internal::DataItem(schema::kMask)));
 
-  ASSIGN_OR_RETURN(DataSlice dense_result,
-                   FromProto(db, message_ptrs, extensions, itemid, schema));
-  ASSIGN_OR_RETURN(DataSlice result,
-                   ops::InverseSelect(dense_result, message_mask));
-  return result;
+  {
+    // When exiting this block, `~ReleasePyGIL()` runs first to restore the GIL
+    // before `proto_holders` (in the outer scope) destructs and calls
+    // `Py_DECREF`.
+    arolla::python::ReleasePyGIL release_gil;
+    ASSIGN_OR_RETURN(DataSlice dense_result,
+                     FromProto(db, message_ptrs, extensions, itemid, schema));
+    return ops::InverseSelect(dense_result, message_mask);
+  }
 }
 }  // namespace koladata::python

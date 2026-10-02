@@ -48,6 +48,11 @@ UnwrapPyProtoMessage(PyObject* absl_nonnull py_object) {
   arolla::python::DCheckPyGIL();
   try {
     // Use a shared_ptr so that we have a copy constructor for std::any.
+    // Note: `type_caster<::google::protobuf::Message>` only holds C++ objects (a raw
+    // pointer and an optional `std::unique_ptr<::google::protobuf::Message>`) and does
+    // not keep `py_object` alive. This and all future implementations for the
+    // `std::any` handle should not keep the Python object alive, so that the
+    // handle can be safely used, copied, and destroyed without holding the GIL.
     auto caster =
         std::make_shared<pybind11::detail::type_caster<::google::protobuf::Message>>();
     if (!caster->load(py_object, false)) {

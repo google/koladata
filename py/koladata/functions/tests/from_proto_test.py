@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import concurrent.futures
 import re
 
 from absl.testing import absltest
@@ -488,6 +489,19 @@ class FromProtoTest(absltest.TestCase):
               )
           }).eval(),
       )
+
+  def test_from_proto_multithreaded(self):
+    def worker(i):
+      msg = test_pb2.MessageA(some_text=f'text_{i}', some_float=float(i))
+      return proto_conversions.from_proto([msg, None])
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+      results = list(pool.map(worker, range(100)))
+
+    self.assertLen(results, 100)
+    for i, res in enumerate(results):
+      testing.assert_equal(res.some_text.no_bag(), ds([f'text_{i}', None]))
+      testing.assert_equal(res.some_float.no_bag(), ds([float(i), None]))
 
 
 if __name__ == '__main__':

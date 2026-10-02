@@ -34,6 +34,16 @@ namespace koladata::python {
 // Basically, calls `FromProto` on the non-None objects, and sets the missing
 // elements for None elements. If an element is neither a proto Message nor
 // None, raises an error.
+//
+// The GIL is released temporarily during the expensive calls to `FromProto` and
+// `InverseSelect`.
+// Reference counts are bumped so that Python won't accidentally garbage collect
+// the input objects (the Python protos) while the GIL is released.
+// However, callers should not mutate the input `py_objects` during the
+// execution of this function, as there is no detection/protection against
+// this.
+// Also, callers should not concurrently mutate the same `db` object, as it is
+// not thread-safe.
 absl::StatusOr<DataSlice> FromProtoObjects(
     const absl_nonnull DataBagPtr& db, const std::vector<PyObject*>& py_objects,
     absl::Span<const absl::string_view> extensions,

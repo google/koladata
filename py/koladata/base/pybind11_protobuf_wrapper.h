@@ -42,12 +42,19 @@ namespace koladata::python {
 void ImportNativeProtoCasters();
 
 // Converts a python proto message to a C++ proto message pointer and an opaque
-// object that must outlive that message pointer. The input python proto must
-// also outlive the message pointer.
+// object that must outlive that message pointer.
 //
-// Requires the calling thread to be holding the GIL, and to continue holding
-// the GIL until the opaque object (and all copies, if any have been made) is
-// deleted.
+// The opaque `std::any` object only manages C++ state (such as a temporary
+// deserialized C++ message) and does not (and in future implementations must
+// not) keep `py_object` alive. Consequently, the input `py_object` must also
+// outlive the returned message pointer.
+//
+// Requires the calling thread to hold the GIL during this call. The caller does
+// not need to continue holding the GIL while using the returned message pointer
+// or when copying/destroying the opaque `std::any` object, provided that the
+// caller ensures `py_object` remains alive (e.g. by holding a strong reference
+// acquired while holding the GIL) and is not concurrently mutated while the
+// message pointer is in use.
 absl::StatusOr<std::tuple<const ::google::protobuf::Message* absl_nonnull, std::any>>
 UnwrapPyProtoMessage(PyObject* absl_nonnull py_object);
 
