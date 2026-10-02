@@ -52,11 +52,11 @@ absl::StatusOr<DataSlice::JaggedShape> GetCommonShape(
       absl::Status status = absl::InvalidArgumentError(absl::StrFormat(
           "shapes are not compatible: %s vs %s", arolla::Repr(slice_shape),
           arolla::Repr(common_shape)));
-      return arolla::WithPayload(std::move(status),
-                                 internal::ShapeAlignmentError{
-                                     .common_shape_id = common_shape_id,
-                                     .incompatible_shape_id = i,
-                                 });
+      return arolla::Error(std::move(status),
+                           internal::ShapeAlignmentError{
+                               .common_shape_id = common_shape_id,
+                               .incompatible_shape_id = i,
+                           });
     }
   }
   return common_shape;

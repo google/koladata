@@ -59,7 +59,7 @@ std::optional<DType> schema_internal::CommonDTypeAggregator::Get(
     DTypeId i = absl::countr_zero(mask);
     DTypeId common_dtype_id = CommonDType(res_dtype_id, i);
     if (ABSL_PREDICT_FALSE(common_dtype_id == kUnknownDType)) {
-      status = arolla::WithPayload(
+      status = arolla::Error(
           absl::InvalidArgumentError("no common schema"),
           internal::NoCommonSchemaError{
               .common_schema =
@@ -97,7 +97,7 @@ void CommonSchemaAggregator::Add(internal::ObjectId schema_obj) {
     return;
   }
   if (*res_object_id_ != schema_obj) {
-    status_ = arolla::WithPayload(
+    status_ = arolla::Error(
         absl::InvalidArgumentError("no common schema"),
         internal::NoCommonSchemaError{
             .common_schema = internal::DataItem(*res_object_id_),
@@ -121,7 +121,7 @@ absl::StatusOr<internal::DataItem> CommonSchemaAggregator::Get() && {
     DCHECK(!res_dtype);
     return internal::DataItem();
   }
-  return arolla::WithPayload(
+  return arolla::Error(
       absl::InvalidArgumentError("no common schema"),
       internal::NoCommonSchemaError{
           .common_schema = internal::DataItem(*res_dtype),
@@ -161,9 +161,9 @@ bool IsImplicitlyCastableTo(const internal::DataItem& from_schema,
            to_schema.value<DType>().type_id();
   }
   if (from_schema.holds_value<internal::ObjectId>() &&
-         to_schema.holds_value<internal::ObjectId>()) {
+      to_schema.holds_value<internal::ObjectId>()) {
     return from_schema.value<internal::ObjectId>() ==
-             to_schema.value<internal::ObjectId>();
+           to_schema.value<internal::ObjectId>();
   }
   return from_schema.holds_value<DType>() &&
          to_schema.holds_value<internal::ObjectId>() &&

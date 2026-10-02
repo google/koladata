@@ -25,7 +25,7 @@ namespace koladata::internal {
 namespace {
 
 using ::absl_testing::StatusIs;
-using ::arolla::testing::CausedBy;
+using ::arolla::testing::CauseIs;
 using ::arolla::testing::PayloadIs;
 using ::testing::_;
 using ::testing::AllOf;
@@ -43,7 +43,7 @@ TEST(OperatorEvalError, WithStatus) {
   absl::Status new_status = OperatorEvalError(status, "op_name");
   EXPECT_THAT(new_status, AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
                                          "op_name: Test error"),
-                                Not(CausedBy(_))));
+                                Not(CauseIs(_))));
 }
 
 TEST(OperatorEvalError, EmptyOperatorName) {
@@ -58,21 +58,21 @@ TEST(OperatorEvalError, WithStatusAndErrorMessage) {
   EXPECT_THAT(OperatorEvalError(status, "op_name", "error message"),
               AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
                              "op_name: error message"),
-                    CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                                      "error cause"))));
+                    CauseIs(StatusIs(absl::StatusCode::kInvalidArgument,
+                                     "error cause"))));
 }
 
 TEST(OperatorEvalError, WithStatusContainingCause) {
   absl::Status cause = absl::InvalidArgumentError("cause 1");
-  absl::Status status =
-      arolla::WithCause(absl::InvalidArgumentError("cause 2"), cause);
+  absl::Status status = arolla::Error(absl::InvalidArgumentError("cause 2"),
+                                      arolla::CausedBy(cause));
 
   absl::Status new_status = OperatorEvalError(status, "op_name", "error");
   EXPECT_THAT(
       new_status,
       AllOf(StatusIs(absl::StatusCode::kInvalidArgument, "op_name: error"),
-            CausedBy(StatusIs(absl::StatusCode::kInvalidArgument, "cause 2")),
-            CausedBy(CausedBy(
+            CauseIs(StatusIs(absl::StatusCode::kInvalidArgument, "cause 2")),
+            CauseIs(CauseIs(
                 StatusIs(absl::StatusCode::kInvalidArgument, "cause 1")))));
 }
 
@@ -80,15 +80,14 @@ struct DummyPayload {};
 
 TEST(OperatorEvalError, WithStatusContainingNonKodaPayload) {
   absl::Status status =
-      arolla::WithPayload(absl::InvalidArgumentError("cause"), DummyPayload{});
+      arolla::Error(absl::InvalidArgumentError("cause"), DummyPayload{});
 
   absl::Status new_status = OperatorEvalError(status, "op_name", "error");
   EXPECT_THAT(
       new_status,
-      AllOf(
-          StatusIs(absl::StatusCode::kInvalidArgument, "op_name: error"),
-          CausedBy(AllOf(StatusIs(absl::StatusCode::kInvalidArgument, "cause"),
-                         PayloadIs<DummyPayload>()))));
+      AllOf(StatusIs(absl::StatusCode::kInvalidArgument, "op_name: error"),
+            CauseIs(AllOf(StatusIs(absl::StatusCode::kInvalidArgument, "cause"),
+                          PayloadIs<DummyPayload>()))));
 }
 
 TEST(OperatorEvalError, SubsequentCalls) {
@@ -98,7 +97,6 @@ TEST(OperatorEvalError, SubsequentCalls) {
                                "op_name: error_message"));
   EXPECT_THAT(arolla::GetCause(status), IsNull());
 }
-
 
 }  // namespace
 }  // namespace koladata::internal

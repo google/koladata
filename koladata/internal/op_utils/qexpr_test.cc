@@ -48,7 +48,7 @@ namespace {
 using ::absl_testing::IsOk;
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
-using ::arolla::testing::CausedBy;
+using ::arolla::testing::CauseIs;
 using ::testing::_;
 using ::testing::AllOf;
 using ::testing::ElementsAre;
@@ -117,7 +117,7 @@ TEST(MakeKodaOperatorWrapper, WrapsStatusOr) {
   auto status = wrapped_fn(5, 7).status();
   EXPECT_THAT(status, AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
                                      "op_name: test error 57"),
-                            Not(CausedBy(_))));
+                            Not(CauseIs(_))));
 }
 
 absl::Status ReturnsError(int x, int y) {
@@ -129,7 +129,7 @@ TEST(MakeKodaOperatorWrapper, WrapsStatus) {
   auto status = wrapped_fn(5, 7);
   EXPECT_THAT(status, AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
                                      "op_name: test error 57"),
-                            Not(CausedBy(_))));
+                            Not(CauseIs(_))));
 }
 
 TEST(MakeKodaOperatorWrapper, WithLambda) {
@@ -140,7 +140,7 @@ TEST(MakeKodaOperatorWrapper, WithLambda) {
   auto status = wrapped_fn(5, 7).status();
   EXPECT_THAT(status, AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
                                      "op_name: test error 57"),
-                            Not(CausedBy(_))));
+                            Not(CauseIs(_))));
 }
 
 // Counts the number of times the object is copied or moved.
@@ -219,7 +219,7 @@ TEST(MakeKodaOperatorWrapper, NoExtraInputCopies) {
                 AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
                                "op_name: by_value: 1/1, by_const_ref: 0/0, "
                                "by_rvalue: 0/0, by_ref: 0/0"),
-                      Not(CausedBy(_))));
+                      Not(CauseIs(_))));
   }
 }
 

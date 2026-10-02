@@ -45,7 +45,7 @@ using ::arolla::expr::CallOp;
 using ::arolla::expr::Literal;
 using ::arolla::expr::Placeholder;
 using ::arolla::expr::VerboseRuntimeError;
-using ::arolla::testing::CausedBy;
+using ::arolla::testing::CauseIs;
 using ::arolla::testing::PayloadIs;
 using ::arolla::testing::WithSourceLocationAnnotation;
 using ::testing::AllOf;
@@ -154,9 +154,9 @@ TEST(ExprEvalTest, ErrorPropagation) {
               AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
                              HasSubstr("bar.py:57, in foo\n  return x // y")),
                     PayloadIs<SourceLocationPayload>(),
-                    CausedBy(AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                                            "division by zero"),
-                                   Not(PayloadIs<VerboseRuntimeError>())))));
+                    CauseIs(AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
+                                           "division by zero"),
+                                  Not(PayloadIs<VerboseRuntimeError>())))));
 }
 
 TEST(GetExprVariablesTest, Basic) {
@@ -243,9 +243,9 @@ TEST(OpEvalTest, ErrorPropagation) {
       AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
                      HasSubstr("bar.py:57, in foo\n  return x // y")),
             PayloadIs<SourceLocationPayload>(),
-            CausedBy(AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                                    "division by zero"),
-                           Not(PayloadIs<VerboseRuntimeError>())))));
+            CauseIs(AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
+                                   "division by zero"),
+                          Not(PayloadIs<VerboseRuntimeError>())))));
 }
 
 }  // namespace

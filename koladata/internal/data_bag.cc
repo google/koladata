@@ -293,7 +293,7 @@ absl::Status MergeToMutableDenseSourceOnlySparse(
       } else if (options.data_conflict_policy ==
                      MergeOptions::kRaiseOnConflict &&
                  ValuesAreDifferent(*this_result, item)) {
-        return arolla::WithPayload(
+        return arolla::Error(
             absl::FailedPreconditionError(absl::StrCat(
                 "conflict ", key, ": ", *this_result, " vs ", item)),
             MakeEntityOrObjectMergeError(key, attr));
@@ -326,7 +326,7 @@ absl::Status MergeToMutableSparseSourceOnlySparse(
       } else if (options.data_conflict_policy ==
                      MergeOptions::kRaiseOnConflict &&
                  ValuesAreDifferent(*this_result, item)) {
-        return arolla::WithPayload(
+        return arolla::Error(
             absl::FailedPreconditionError(absl::StrCat(
                 "conflict ", key, ": ", *this_result, " vs ", item)),
             MakeEntityOrObjectMergeError(key, attr));
@@ -349,13 +349,13 @@ absl::Status MergeToMutableDenseSource(
   if (sparse_sources.empty()) {
     DCHECK_EQ(dense_source.allocation_id(), alloc);
     internal::DataBagMergeConflictError error;
-    absl::Status status = result.Merge(dense_source,
-                     {.option = options.data_conflict_policy,
-                      .on_conflict_callback =
-                          [attr, &error](const ObjectId& obj_id) mutable {
-                            error = MakeEntityOrObjectMergeError(obj_id, attr);
-                          }});
-    return arolla::WithPayload(std::move(status), std::move(error));
+    absl::Status status = result.Merge(
+        dense_source, {.option = options.data_conflict_policy,
+                       .on_conflict_callback =
+                           [attr, &error](const ObjectId& obj_id) mutable {
+                             error = MakeEntityOrObjectMergeError(obj_id, attr);
+                           }});
+    return arolla::Error(std::move(status), std::move(error));
   }
 
   auto objects = DataSliceImpl::ObjectsFromAllocation(alloc, size);
@@ -389,7 +389,7 @@ absl::Status MergeToMutableDenseSource(
     } else {
       if (options.data_conflict_policy == MergeOptions::kRaiseOnConflict &&
           ValuesAreDifferent(*this_result, other_item)) {
-        return arolla::WithPayload(
+        return arolla::Error(
             absl::FailedPreconditionError(absl::StrCat(
                 "conflict ", obj_id, ": ", *this_result, " vs ", other_item)),
             MakeEntityOrObjectMergeError(obj_id, attr));
@@ -458,8 +458,7 @@ MergeOptions ReverseMergeOptions(const MergeOptions& options) {
 }
 
 void DataBagStatistics::Add(const DataBagStatistics& other) {
-  entity_and_object_count +=
-        other.entity_and_object_count;
+  entity_and_object_count += other.entity_and_object_count;
   total_non_empty_lists += other.total_non_empty_lists;
   total_items_in_lists += other.total_items_in_lists;
   total_non_empty_dicts += other.total_non_empty_dicts;
@@ -669,8 +668,8 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttrImpl(
       if (fallbacks.empty() && sparse_sources.empty() &&
           dense_sources.size() == 1) {
         bool check_alloc_id =
-          objects.allocation_ids().contains_small_allocation_id() ||
-          objects.allocation_ids().ids().size() > 1;
+            objects.allocation_ids().contains_small_allocation_id() ||
+            objects.allocation_ids().ids().size() > 1;
         return dense_sources[0]->Get(objs, check_alloc_id);
       }
 
@@ -709,7 +708,6 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttr(
     FallbackSpan fallbacks) const {
   return GetAttrImpl(objects, attr, fallbacks, /*with_removed=*/false);
 }
-
 
 absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttrWithRemoved(
     const DataSliceImpl& objects, absl::string_view attr,
@@ -793,8 +791,7 @@ std::optional<DataItem> DataBagImpl::GetAttrWithRemoved(
       return std::move(*result);
     }
     for (const DataBagImpl* fallback : fallbacks) {
-      if (auto item = lookup_one_bag(*fallback);
-          item.has_value()) {
+      if (auto item = lookup_one_bag(*fallback); item.has_value()) {
         return std::move(*item);
       }
     }
@@ -833,7 +830,7 @@ absl::StatusOr<DataItem> DataBagImpl::GetObjSchemaAttr(
     return schema;
   }
 
-  return arolla::WithPayload(
+  return arolla::Error(
       absl::InvalidArgumentError(
           absl::StrFormat("object %v is missing __schema__ attribute", item)),
       internal::MissingObjectSchemaError{.missing_schema_item = item});
@@ -857,7 +854,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetObjSchemaAttr(
       },
       slice.AsDataItemDenseArray(), schema.AsDataItemDenseArray()));
 
-  return arolla::WithPayload(
+  return arolla::Error(
       absl::InvalidArgumentError(
           absl::StrFormat("object %v is missing __schema__ attribute", slice)),
       internal::MissingObjectSchemaError{.missing_schema_item =
@@ -1146,8 +1143,8 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::CreateObjectsFromFields(
   for (size_t i = 0; i < attr_names.size(); ++i) {
     std::shared_ptr<DenseSource> source = nullptr;
     if (!slices[i].get().is_empty_and_unknown()) {
-      ASSIGN_OR_RETURN(
-          source, DenseSource::CreateReadonly(alloc_id, slices[i]));
+      ASSIGN_OR_RETURN(source,
+                       DenseSource::CreateReadonly(alloc_id, slices[i]));
     } else {
       ASSIGN_OR_RETURN(source, DenseSource::CreateAllRemoved(alloc_id));
     }
@@ -1171,9 +1168,11 @@ absl::StatusOr<DataItem> DataBagImpl::CreateObjectsFromFields(
   return DataItem(object_id);
 }
 
-absl::Status DataBagImpl::CreateMutableDenseSource(
-    SourceCollection& collection, AllocationId alloc_id, absl::string_view attr,
-    const arolla::QType* qtype, int64_t size) const {
+absl::Status DataBagImpl::CreateMutableDenseSource(SourceCollection& collection,
+                                                   AllocationId alloc_id,
+                                                   absl::string_view attr,
+                                                   const arolla::QType* qtype,
+                                                   int64_t size) const {
   DCHECK_EQ(collection.mutable_dense_source, nullptr);
   if (collection.const_dense_source) {
     collection.mutable_dense_source =
@@ -1821,12 +1820,12 @@ absl::Status DataBagImpl::ReplaceInLists(
     values.VisitValues([&]<typename T>(const arolla::DenseArray<T>& arr) {
       auto arr_unowned = arr.MakeUnowned();
       lists.values<ObjectId>().ForEachPresent([&](int64_t i, ObjectId list_id) {
-        find_and_process_list(
-            i, list_id,
-            [&](DataList& list, int64_t dst_pos, int64_t src_pos,
-                int64_t count) {
-              list.SetN(dst_pos, arr_unowned.Slice(src_pos, count));
-            });
+        find_and_process_list(i, list_id,
+                              [&](DataList& list, int64_t dst_pos,
+                                  int64_t src_pos, int64_t count) {
+                                list.SetN(dst_pos,
+                                          arr_unowned.Slice(src_pos, count));
+                              });
       });
     });
     return list_getter.status();
@@ -2375,31 +2374,30 @@ DataBagImpl::GetDictKeysOrValues(const DataSliceImpl& dicts,
   std::vector<const Dict*> fallback_dicts;
   fallback_dicts.reserve(fallbacks.size());
 
-  dicts.values<ObjectId>().ForEach(
-      [&](int64_t offset, bool present, ObjectId dict_id) {
-        if (!present) {
-          split_points.push_back(split_points.back());
-          return;
+  dicts.values<ObjectId>().ForEach([&](int64_t offset, bool present,
+                                       ObjectId dict_id) {
+    if (!present) {
+      split_points.push_back(split_points.back());
+      return;
+    }
+    std::vector<DataItem>& res_vec = results[offset];
+    const Dict& dict = dict_getter(dict_id);
+    if (!fallbacks.empty()) {
+      fallback_dicts.clear();
+      for (auto& fallback_getter : dict_fallback_getters) {
+        if (auto* fb_dict = &fallback_getter(dict_id);
+            fb_dict != &ReadOnlyDictGetter<DictsAllocCheckFn>::GetEmptyDict()) {
+          fallback_dicts.push_back(fb_dict);
         }
-        std::vector<DataItem>& res_vec = results[offset];
-        const Dict& dict = dict_getter(dict_id);
-        if (!fallbacks.empty()) {
-          fallback_dicts.clear();
-          for (auto& fallback_getter : dict_fallback_getters) {
-            if (auto* fb_dict = &fallback_getter(dict_id);
-                fb_dict !=
-                &ReadOnlyDictGetter<DictsAllocCheckFn>::GetEmptyDict()) {
-              fallback_dicts.push_back(fb_dict);
-            }
-          }
-        }
-        if constexpr (kReturnValues) {
-          res_vec = dict.GetSortedByKeyValues(fallback_dicts);
-        } else {
-          res_vec = dict.GetSortedKeys(fallback_dicts);
-        }
-        split_points.push_back(split_points.back() + res_vec.size());
-      });
+      }
+    }
+    if constexpr (kReturnValues) {
+      res_vec = dict.GetSortedByKeyValues(fallback_dicts);
+    } else {
+      res_vec = dict.GetSortedKeys(fallback_dicts);
+    }
+    split_points.push_back(split_points.back() + res_vec.size());
+  });
   RETURN_IF_ERROR(dict_getter.status());
 
   SliceBuilder bldr(split_points.back());
@@ -2675,8 +2673,8 @@ absl::Status DataBagImpl::ClearDict(const DataSliceImpl& dicts) {
 
 namespace {
 
-void UpdateFilterKeysWithPresentValues(
-    std::vector<DataItem> &keys, const std::vector<DataItem>& values) {
+void UpdateFilterKeysWithPresentValues(std::vector<DataItem>& keys,
+                                       const std::vector<DataItem>& values) {
   DCHECK_EQ(keys.size(), values.size());
   int64_t keys_count = 0;
   for (size_t i = 0; i < keys.size(); ++i) {
@@ -2901,14 +2899,14 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttrs(
 absl::StatusOr<std::vector<DataItem>> DataBagImpl::GetSchemaAttrsAsVector(
     const DataItem& schema_item, FallbackSpan fallbacks) const {
   return GetSchemaAttrsAsVectorImpl(schema_item, fallbacks,
-                                   /*filter_removed=*/false);
+                                    /*filter_removed=*/false);
 }
 
 absl::StatusOr<DataSliceImpl> DataBagImpl::GetPresentSchemaAttrs(
     const DataItem& schema_item, FallbackSpan fallbacks) const {
   ASSIGN_OR_RETURN(auto keys,
                    GetSchemaAttrsAsVectorImpl(schema_item, fallbacks,
-                                             /*filter_removed=*/true));
+                                              /*filter_removed=*/true));
   return SchemaAttrsVectorToSlice(keys);
 }
 
@@ -2929,8 +2927,8 @@ absl::StatusOr<std::vector<DataItem>> DataBagImpl::GetSchemaAttrsAsVectorImpl(
                                          /*kKeysWithPresentValues=*/true>(
           schema_id, fallbacks);
     }
-    return GetDictKeysOrValuesAsVector</*kReturnValues=*/false>(
-        schema_id, fallbacks);
+    return GetDictKeysOrValuesAsVector</*kReturnValues=*/false>(schema_id,
+                                                                fallbacks);
   }
   // For big alloc schemas, attribute names are shared across the allocation
   // (stored in the Dict at offset 0). Attribute values are stored as regular
@@ -3145,8 +3143,7 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataItem& schema_item,
   } else if (attr == schema::kSchemaMetadataAttr) {
     if (!value.holds_value<ObjectId>()) {
       return absl::InvalidArgumentError(absl::StrFormat(
-        "only ItemId can be used as a schema metadata, got: %v", value
-      ));
+          "only ItemId can be used as a schema metadata, got: %v", value));
     }
   } else {
     RETURN_IF_ERROR(VerifyIsSchemaOrNone(value));
@@ -3277,7 +3274,7 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
         absl::Status status = absl::OkStatus();
         RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
             [&](int64_t /*id*/, ObjectId schema_id,
-            arolla::OptionalValue<arolla::view_type_t<ValueT>> value) {
+                arolla::OptionalValue<arolla::view_type_t<ValueT>> value) {
               if constexpr (std::is_same_v<ValueT, ObjectId>) {
                 if (value.present && !value.value.IsSchema() &&
                     attr != schema::kSchemaMetadataAttr) {
@@ -3306,27 +3303,26 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
     });
   } else {
     absl::Status status = absl::OkStatus();
-    schema_slice.values<ObjectId>().ForEachPresent(
-        [&](int64_t offset, ObjectId schema_id) {
-          DataItem value = values[offset];
-          if (!VerifyIsSchemaOrNone(value).ok() &&
-              attr != schema::kSchemaMetadataAttr &&
-              attr != schema::kSchemaNameAttr) {
-            status = InvalidRhsSetSchemaAttrError(values);
-            return;
-          }
-          if (!schema_id.IsSmallAlloc()) {
-            return;
-          }
-          const auto& alloc_id = AllocationId(schema_id);
-          if (ABSL_PREDICT_FALSE(!schemas_alloc_check_fn(alloc_id))) {
-            status = InvalidLhsSetSchemaAttrError(schema_slice);
-          } else {
-            Dict& schema_dict = GetOrCreateMutableDict(schema_id);
-            schema_dict.Set(DataItem::View<arolla::Text>(attr),
-                            std::move(value));
-          }
-        });
+    schema_slice.values<ObjectId>().ForEachPresent([&](int64_t offset,
+                                                       ObjectId schema_id) {
+      DataItem value = values[offset];
+      if (!VerifyIsSchemaOrNone(value).ok() &&
+          attr != schema::kSchemaMetadataAttr &&
+          attr != schema::kSchemaNameAttr) {
+        status = InvalidRhsSetSchemaAttrError(values);
+        return;
+      }
+      if (!schema_id.IsSmallAlloc()) {
+        return;
+      }
+      const auto& alloc_id = AllocationId(schema_id);
+      if (ABSL_PREDICT_FALSE(!schemas_alloc_check_fn(alloc_id))) {
+        status = InvalidLhsSetSchemaAttrError(schema_slice);
+      } else {
+        Dict& schema_dict = GetOrCreateMutableDict(schema_id);
+        schema_dict.Set(DataItem::View<arolla::Text>(attr), std::move(value));
+      }
+    });
     return status;
   }
 }
@@ -3351,7 +3347,7 @@ absl::Status DataBagImpl::DelSchemaAttr(const DataSliceImpl& schema_slice,
 
 template <typename ImplT>
 absl::Status SetSchemaFields(
-    const ImplT&,  absl::Span<const absl::string_view> attr_names,
+    const ImplT&, absl::Span<const absl::string_view> attr_names,
     absl::Span<const std::reference_wrapper<const DataItem>> items) {
   static_assert(sizeof(ImplT) == 0,
                 "SetSchemaFields is not supported for ImplT not in "
@@ -3359,10 +3355,9 @@ absl::Status SetSchemaFields(
   return absl::UnimplementedError("Never called!");
 }
 
-template<>
+template <>
 absl::Status DataBagImpl::SetSchemaFields(
-    const DataItem& schema_item,
-    absl::Span<const absl::string_view> attr_names,
+    const DataItem& schema_item, absl::Span<const absl::string_view> attr_names,
     absl::Span<const std::reference_wrapper<const DataItem>> items) {
   RETURN_IF_ERROR(CheckNotFrozen());
   if (!schema_item.holds_value<ObjectId>()) {
@@ -3443,14 +3438,12 @@ absl::StatusOr<DataItem> DataBagImpl::CreateExplicitSchemaFromFields(
 }
 
 absl::StatusOr<DataItem> DataBagImpl::CreateUuSchemaFromFields(
-    absl::string_view seed,
-    absl::Span<const absl::string_view> attr_names,
+    absl::string_view seed, absl::Span<const absl::string_view> attr_names,
     absl::Span<const std::reference_wrapper<const DataItem>> items) {
   DCHECK_EQ(attr_names.size(), items.size());
-  auto schema_id = internal::CreateSchemaUuidFromFields(
-      seed, attr_names, items);
-  RETURN_IF_ERROR(
-      SetSchemaFields(DataItem(schema_id), attr_names, items));
+  auto schema_id =
+      internal::CreateSchemaUuidFromFields(seed, attr_names, items);
+  RETURN_IF_ERROR(SetSchemaFields(DataItem(schema_id), attr_names, items));
   return DataItem(schema_id);
 }
 
@@ -3557,7 +3550,7 @@ absl::Status DataBagImpl::MergeSmallAllocInplace(const DataBagImpl& other,
               if (options.data_conflict_policy ==
                       MergeOptions::kRaiseOnConflict &&
                   ValuesAreDifferent(*this_value, other_item)) {
-                return arolla::WithPayload(
+                return arolla::Error(
                     absl::FailedPreconditionError(absl::StrCat(
                         "conflicting values for ", attr_name, " for ", obj_id,
                         ": ", *this_value, " vs ", other_item)),
@@ -3802,40 +3795,37 @@ absl::Status DataBagImpl::MergeListsInplace(const DataBagImpl& other,
       [this, options](AllocationId alloc_id,
                       const DataListVector& other_lists) -> absl::Status {
         auto& this_lists = GetOrCreateMutableLists(alloc_id, /*update_size=*/1);
-        return other_lists.ForEachList(
-            [&](size_t i, const DataList& other_list) -> absl::Status {
-              bool this_list_unset = this_lists.Get(i) == nullptr;
-              auto& this_list = this_lists.GetMutable(i);
-              if (options.data_conflict_policy == MergeOptions::kOverwrite ||
-                  this_list_unset) {
-                this_list = other_list;
-                return absl::OkStatus();
+        return other_lists.ForEachList([&](size_t i, const DataList& other_list)
+                                           -> absl::Status {
+          bool this_list_unset = this_lists.Get(i) == nullptr;
+          auto& this_list = this_lists.GetMutable(i);
+          if (options.data_conflict_policy == MergeOptions::kOverwrite ||
+              this_list_unset) {
+            this_list = other_list;
+            return absl::OkStatus();
+          }
+          if (options.data_conflict_policy == MergeOptions::kRaiseOnConflict) {
+            if (this_list.size() != other_list.size()) {
+              return arolla::Error(
+                  absl::FailedPreconditionError(absl::StrCat(
+                      "conflicting list sizes for ", alloc_id, ": ",
+                      this_list.size(), " vs ", other_list.size())),
+                  MakeListSizeMergeError(alloc_id.ObjectByOffset(i),
+                                         this_list.size(), other_list.size()));
+            }
+            for (size_t j = 0; j < other_list.size(); ++j) {
+              if (ValuesAreDifferent(this_list[j], other_list[j])) {
+                return arolla::Error(
+                    absl::FailedPreconditionError(absl::StrCat(
+                        "conflicting list values for ", alloc_id, "at index ",
+                        j, ": ", this_list[j], " vs ", other_list[j])),
+                    MakeListItemMergeError(alloc_id.ObjectByOffset(i), j,
+                                           this_list[j], other_list[j]));
               }
-              if (options.data_conflict_policy ==
-                  MergeOptions::kRaiseOnConflict) {
-                if (this_list.size() != other_list.size()) {
-                  return arolla::WithPayload(
-                      absl::FailedPreconditionError(absl::StrCat(
-                          "conflicting list sizes for ", alloc_id, ": ",
-                          this_list.size(), " vs ", other_list.size())),
-                      MakeListSizeMergeError(alloc_id.ObjectByOffset(i),
-                                             this_list.size(),
-                                             other_list.size()));
-                }
-                for (size_t j = 0; j < other_list.size(); ++j) {
-                  if (ValuesAreDifferent(this_list[j], other_list[j])) {
-                    return arolla::WithPayload(
-                        absl::FailedPreconditionError(absl::StrCat(
-                            "conflicting list values for ", alloc_id,
-                            "at index ", j, ": ", this_list[j], " vs ",
-                            other_list[j])),
-                        MakeListItemMergeError(alloc_id.ObjectByOffset(i), j,
-                                               this_list[j], other_list[j]));
-                  }
-                }
-              }
-              return absl::OkStatus();
-            });
+            }
+          }
+          return absl::OkStatus();
+        });
       });
 }
 
@@ -3889,8 +3879,7 @@ absl::Status DataBagImpl::MergeDictsInplace(const DataBagImpl& other,
                                             MergeOptions options) {
   return IterateOverDictsWithNewData(
       other,
-      [this, options](AllocationId alloc_id,
-                      const DictVector* const_this_dicts,
+      [this, options](AllocationId alloc_id, const DictVector* const_this_dicts,
                       const DictVector& other_dicts) -> absl::Status {
         const auto& conflict_policy = alloc_id.IsExplicitSchemasAlloc()
                                           ? options.schema_conflict_policy
@@ -3921,7 +3910,7 @@ absl::Status DataBagImpl::MergeDictsInplace(const DataBagImpl& other,
                 if (conflict_policy == MergeOptions::kRaiseOnConflict &&
                     ValuesAreDifferent(this_value, other_value->get())) {
                   internal::ObjectId object_id = alloc_id.ObjectByOffset(i);
-                  return arolla::WithPayload(
+                  return arolla::Error(
                       absl::FailedPreconditionError(absl::StrCat(
                           "conflicting dict values for ", object_id, " key ",
                           key, ": ", this_value, " vs ", *other_value)),

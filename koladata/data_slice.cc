@@ -334,7 +334,7 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSliceInSingleAllocation(
   }
   if (on_mismatch == DataSlice::OnAttrNamesMismatch::kError &&
       has_non_universal_attr) {
-    return arolla::WithPayload(
+    return arolla::Error(
         absl::FailedPreconditionError("objects have different attributes"),
         DataSlice::AttrNamesMismatchError{});
   }
@@ -374,9 +374,9 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSlice(
             GetAttrsFromDataSlice(slice, ds_schema, db_impl, fallbacks,
                                   DataSlice::OnAttrNamesMismatch::kUnion));
         if (!union_attrs.empty()) {
-          return arolla::WithPayload(absl::FailedPreconditionError(
-                                         "objects have different attributes"),
-                                     DataSlice::AttrNamesMismatchError{});
+          return arolla::Error(absl::FailedPreconditionError(
+                                   "objects have different attributes"),
+                               DataSlice::AttrNamesMismatchError{});
         }
         return DataSlice::AttrNamesSet();
       }
@@ -458,9 +458,9 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSlice(
         break;
       case DataSlice::OnAttrNamesMismatch::kError:
         if (attrs != *result) {
-          status = arolla::WithPayload(absl::FailedPreconditionError(
-                                           "objects have different attributes"),
-                                       DataSlice::AttrNamesMismatchError{});
+          status = arolla::Error(absl::FailedPreconditionError(
+                                     "objects have different attributes"),
+                                 DataSlice::AttrNamesMismatchError{});
           return;
         }
         break;
@@ -879,7 +879,7 @@ class RhsHandler {
                     if (cast_to.has_value() && cast_to != attr_stored_schema) {
                       // NOTE: If cast_to and attr_stored_schema are different,
                       // but compatible, we are still returning an error.
-                      status = arolla::WithPayload(
+                      status = arolla::Error(
                           absl::InvalidArgumentError(absl::StrFormat(
                               "assignment would require to cast values "
                               "to two different "
@@ -984,8 +984,8 @@ class RhsHandler {
             dict_attr, attr_stored_schema, rhs_.GetSchemaImpl()));
         break;
     }
-    return arolla::WithPayload(std::move(status),
-                               MakeIncompatibleSchemaError(attr_stored_schema));
+    return arolla::Error(std::move(status),
+                         MakeIncompatibleSchemaError(attr_stored_schema));
   }
 
   absl::Status AttrSchemaMissingErrorStatus(
@@ -1001,7 +1001,7 @@ class RhsHandler {
         return absl::InternalError(
             "we should have never raised for missing attr schema");
       case RhsHandlerContext::kListItem:
-        return arolla::WithPayload(
+        return arolla::Error(
             absl::InvalidArgumentError("the schema for list items is missing"),
             std::move(error));
       case RhsHandlerContext::kDict:
@@ -1009,7 +1009,7 @@ class RhsHandler {
             attr_name_ == schema::kDictKeysSchemaAttr ? "keys" : "values";
         error.collection_type =
             internal::MissingCollectionItemSchemaError::CollectionType::kDict;
-        return arolla::WithPayload(
+        return arolla::Error(
             absl::InvalidArgumentError(absl::StrFormat(
                 "the schema for dict %s is missing", dict_attr)),
             std::move(error));
@@ -1148,9 +1148,8 @@ absl::StatusOr<DataSlice> DataSlice::Create(internal::DataSliceImpl impl,
 }
 
 absl::StatusOr<DataSlice> DataSlice::CreateFullAlloc(
-      internal::AllocationId alloc, JaggedShape shape,
-      internal::DataItem schema, DataBagPtr db,
-      Wholeness wholeness) {
+    internal::AllocationId alloc, JaggedShape shape, internal::DataItem schema,
+    DataBagPtr db, Wholeness wholeness) {
   if (alloc.Capacity() < shape.size()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("shape size must be compatible with alloc size: "
@@ -2566,9 +2565,9 @@ absl::Status DataSlice::ClearDictOrList() const {
   }
   if (GetSchemaImpl().holds_value<schema::DType>() &&
       GetSchemaImpl() != schema::kNone && GetSchemaImpl() != schema::kObject) {
-    return absl::FailedPreconditionError(absl::StrCat(
-        "cannot clear slice of schema: ", GetSchemaImpl(),
-        ", expected a list or dict"));
+    return absl::FailedPreconditionError(
+        absl::StrCat("cannot clear slice of schema: ", GetSchemaImpl(),
+                     ", expected a list or dict"));
   }
   if (present_count() == 0) {
     return absl::OkStatus();

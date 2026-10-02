@@ -48,7 +48,7 @@ namespace {
 
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
-using ::arolla::testing::CausedBy;
+using ::arolla::testing::CauseIs;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::AllOf;
 using ::testing::ElementsAre;
@@ -196,9 +196,9 @@ TEST(ArollaEval, SimplePointwiseEval) {
         status,
         AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("cannot align inputs to a common shape")),
-              CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                                "shapes are not compatible: JaggedShape(1) vs "
-                                "JaggedShape(3)"))));
+              CauseIs(StatusIs(absl::StatusCode::kInvalidArgument,
+                               "shapes are not compatible: JaggedShape(1) vs "
+                               "JaggedShape(3)"))));
   }
   {
     // Incompatible shapes for all missing inputs.
@@ -210,9 +210,9 @@ TEST(ArollaEval, SimplePointwiseEval) {
         status,
         AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("cannot align inputs to a common shape")),
-              CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                                "shapes are not compatible: JaggedShape(1) vs "
-                                "JaggedShape(3)"))));
+              CauseIs(StatusIs(absl::StatusCode::kInvalidArgument,
+                               "shapes are not compatible: JaggedShape(1) vs "
+                               "JaggedShape(3)"))));
   }
   {
     // Arolla op compilation error.

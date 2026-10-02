@@ -423,7 +423,8 @@ absl::Status KodaErrorCausedByIncompatibleSchemaError(absl::Status status,
                                                    lhs_bag, rhs_bag, ds));
     absl::Status new_status =
         absl::Status(status.code(), std::move(error_message));
-    return arolla::WithCause(std::move(new_status), std::move(status));
+    return arolla::Error(std::move(new_status),
+                         arolla::CausedBy(std::move(status)));
   }
   return status;
 }
@@ -452,7 +453,8 @@ KodaErrorCausedByMergeConflictError(const DataBagPtr& lhs_bag,
           FormatDataBagMergeError(*merge_conflict_error, lhs_bag, rhs_bag));
       absl::Status new_status =
           absl::Status(status.code(), std::move(error_message));
-      return arolla::WithCause(std::move(new_status), std::move(status));
+      return arolla::Error(std::move(new_status),
+                           arolla::CausedBy(std::move(status)));
     }
     return status;
   };
@@ -470,7 +472,8 @@ absl::Status KodaErrorCausedByMissingCollectionItemSchemaError(
                          *missing_collection_schema_error, db));
     absl::Status new_status =
         absl::Status(status.code(), std::move(error_message));
-    return arolla::WithCause(std::move(new_status), std::move(status));
+    return arolla::Error(std::move(new_status),
+                         arolla::CausedBy(std::move(status)));
   }
   return status;
 }
@@ -485,7 +488,8 @@ absl::Status KodaErrorCausedByMissingObjectSchemaError(absl::Status status,
                          *missing_object_schema_error, self));
     absl::Status new_status =
         absl::Status(status.code(), std::move(error_message));
-    return arolla::WithCause(std::move(new_status), std::move(status));
+    return arolla::Error(std::move(new_status),
+                         arolla::CausedBy(std::move(status)));
   }
   return status;
 }
@@ -499,7 +503,8 @@ absl::Status KodaErrorCausedByNoCommonSchemaError(absl::Status status,
                      FormatNoCommonSchemaError(*no_common_schema_error, db));
     absl::Status new_status =
         absl::Status(status.code(), std::move(error_message));
-    return arolla::WithCause(std::move(new_status), std::move(status));
+    return arolla::Error(std::move(new_status),
+                         arolla::CausedBy(std::move(status)));
   }
   return status;
 }
@@ -534,7 +539,8 @@ absl::Status KodaErrorCausedByShapeAlignmentError(
         FormatShapeAlignmentError(*shape_alignment_error, attr_names, values));
     absl::Status new_status =
         absl::Status(status.code(), std::move(error_message));
-    return arolla::WithCause(std::move(new_status), std::move(status));
+    return arolla::Error(std::move(new_status),
+                         arolla::CausedBy(std::move(status)));
   }
   return status;
 }

@@ -210,7 +210,7 @@ struct PresenceOrOp {
           }
         },
         lhs.AsDataItemDenseArray(), rhs.AsDataItemDenseArray()));
-    return arolla::WithPayload(
+    return arolla::Error(
         absl::InvalidArgumentError("unexpected overlap"),
         PresenceOrIntersectionError{
             .lhs_overlap = DataSliceImpl::Create(std::move(lhs_overlap)),

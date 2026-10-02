@@ -28,22 +28,22 @@ namespace {
 
 using ::absl_testing::IsOk;
 using ::absl_testing::StatusIs;
-using ::arolla::testing::CausedBy;
+using ::arolla::testing::CauseIs;
 using ::testing::Eq;
 using ::testing::NotNull;
 
 struct DummyPayload {};
 
 TEST(ErrorUtilsTest, KodaErrorFromCause) {
-  absl::Status cause = arolla::WithPayload(
-      absl::UnimplementedError("error cause"), DummyPayload{});
+  absl::Status cause =
+      arolla::Error(absl::UnimplementedError("error cause"), DummyPayload{});
   absl::Status koda_status = KodaErrorFromCause("new error", cause);
 
   EXPECT_THAT(koda_status.message(), Eq("new error"));
   EXPECT_THAT(
       koda_status,
-      CausedBy(AllOf(StatusIs(absl::StatusCode::kUnimplemented, "error cause"),
-                     ResultOf(&arolla::GetPayload<DummyPayload>, NotNull()))));
+      CauseIs(AllOf(StatusIs(absl::StatusCode::kUnimplemented, "error cause"),
+                    ResultOf(&arolla::GetPayload<DummyPayload>, NotNull()))));
 }
 
 TEST(ErrorUtilsTest, KodaErrorFromCause_OkStatus) {

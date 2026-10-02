@@ -31,7 +31,7 @@ absl::Status KodaErrorFromCause(absl::string_view msg, absl::Status cause,
     return cause;
   }
   absl::Status status = absl::Status(cause.code(), msg, location);
-  return arolla::WithCause(std::move(status), std::move(cause));
+  return arolla::Error(std::move(status), arolla::CausedBy(std::move(cause)));
 }
 
 }  // namespace koladata::internal

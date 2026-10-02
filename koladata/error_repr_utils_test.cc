@@ -40,7 +40,7 @@ namespace koladata {
 namespace {
 
 using ::absl_testing::StatusIs;
-using ::arolla::testing::CausedBy;
+using ::arolla::testing::CauseIs;
 using ::testing::AllOf;
 using ::testing::MatchesRegex;
 
@@ -60,8 +60,7 @@ TEST(ReprUtilTest, TestAssembleError_NoCommonSchema) {
       .conflicting_schema = internal::DataItem(dtype)};
 
   absl::Status status = KodaErrorCausedByNoCommonSchemaError(
-      arolla::WithPayload(absl::InvalidArgumentError("error"),
-                          std::move(error)),
+      arolla::Error(absl::InvalidArgumentError("error"), std::move(error)),
       {bag});
   EXPECT_THAT(
       status.message(),
@@ -91,9 +90,8 @@ TEST(ReprUtilTest, TestAssembleError_IncompatibleSchema) {
   };
 
   absl::Status status = KodaErrorCausedByIncompatibleSchemaError(
-      arolla::WithPayload(absl::InvalidArgumentError("error"),
-                          std::move(error)),
-      bag, bag, schema_1);
+      arolla::Error(absl::InvalidArgumentError("error"), std::move(error)), bag,
+      bag, schema_1);
   EXPECT_THAT(
       status.message(),
       AllOf(
@@ -122,9 +120,8 @@ TEST(ReprUtilTest, TestAssembleError_IncompatibleSchema_SameContent_DiffId) {
   };
 
   absl::Status status = KodaErrorCausedByIncompatibleSchemaError(
-      arolla::WithPayload(absl::InvalidArgumentError("error"),
-                          std::move(error)),
-      bag, bag, schema_1);
+      arolla::Error(absl::InvalidArgumentError("error"), std::move(error)), bag,
+      bag, schema_1);
   EXPECT_THAT(
       status.message(),
       AllOf(
@@ -142,9 +139,7 @@ TEST(ReprUtilTest, TestKodaErrorCausedByNoCommonSchemaErrorMissingContextData) {
       .conflicting_schema = internal::DataItem(schema::GetDType<int>())};
 
   absl::Status status = KodaErrorCausedByNoCommonSchemaError(
-      arolla::WithPayload(absl::InvalidArgumentError("error"),
-                          std::move(error)),
-      {});
+      arolla::Error(absl::InvalidArgumentError("error"), std::move(error)), {});
 
   EXPECT_THAT(
       status.message(),
@@ -172,21 +167,20 @@ TEST(ReprUtilTest, TestCreateItemCreationError) {
       status,
       AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
                      "cannot create Item(s) with the provided schema: INT32"),
-            CausedBy(StatusIs(absl::StatusCode::kInvalidArgument, "error"))));
+            CauseIs(StatusIs(absl::StatusCode::kInvalidArgument, "error"))));
   status = CreateItemCreationError(
-      arolla::WithPayload(absl::InvalidArgumentError("error"), DummyPayload()),
+      arolla::Error(absl::InvalidArgumentError("error"), DummyPayload()),
       value);
   EXPECT_THAT(
       status,
-      AllOf(
-          StatusIs(absl::StatusCode::kInvalidArgument,
-                   "cannot create Item(s) with the provided schema: INT32"),
-          CausedBy(AllOf(StatusIs(absl::StatusCode::kInvalidArgument, "error"),
-                         ResultOf(&arolla::GetPayload<DummyPayload>,
-                                  testing::NotNull())))));
+      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
+                     "cannot create Item(s) with the provided schema: INT32"),
+            CauseIs(AllOf(StatusIs(absl::StatusCode::kInvalidArgument, "error"),
+                          ResultOf(&arolla::GetPayload<DummyPayload>,
+                                   testing::NotNull())))));
 
   status = CreateItemCreationError(
-      arolla::WithPayload(absl::InvalidArgumentError("error"), DummyPayload()),
+      arolla::Error(absl::InvalidArgumentError("error"), DummyPayload()),
       std::nullopt);
   EXPECT_THAT(status.message(), ::testing::StrEq("cannot create Item(s)"));
 }
@@ -199,9 +193,8 @@ TEST(ReprUtilTest, TestKodaErrorCausedByMergeConflictError) {
   internal::DataBagMergeConflictError error = {
       .conflict = internal::DataBagMergeConflictError::EntityObjectConflict{
           .object_id = obj.item(), .attr_name = "a"}};
-  absl::Status status =
-      KodaErrorCausedByMergeConflictError(bag, bag)(arolla::WithPayload(
-          absl::InvalidArgumentError("error"), std::move(error)));
+  absl::Status status = KodaErrorCausedByMergeConflictError(bag, bag)(
+      arolla::Error(absl::InvalidArgumentError("error"), std::move(error)));
   EXPECT_THAT(status.message(),
               testing::StartsWith("cannot merge DataBags due to an exception "
                                   "encountered when merging entities"));
@@ -214,11 +207,11 @@ TEST(ReprUtilTest, TestShapeAlignmentError) {
   std::vector<DataSlice> values = {ds_x, ds_y};
 
   absl::Status basic_status = absl::InvalidArgumentError("basic error");
-  absl::Status status_with_payload = arolla::WithPayload(
-      std::move(basic_status), internal::ShapeAlignmentError{
-                                   .common_shape_id = 0,
-                                   .incompatible_shape_id = 1,
-                               });
+  absl::Status status_with_payload =
+      arolla::Error(std::move(basic_status), internal::ShapeAlignmentError{
+                                                 .common_shape_id = 0,
+                                                 .incompatible_shape_id = 1,
+                                             });
 
   absl::Status status = KodaErrorCausedByShapeAlignmentError(
       status_with_payload, attr_names, values);
@@ -232,7 +225,7 @@ TEST(ReprUtilTest, TestShapeAlignmentError) {
               "to the common shape candidate.\n\n"
               "Common shape belonging to attribute 'x': JaggedShape(3)\n"
               "Incompatible shape belonging to attribute 'y': JaggedShape(2)"),
-          CausedBy(
+          CauseIs(
               StatusIs(absl::StatusCode::kInvalidArgument, "basic error"))));
 }
 
