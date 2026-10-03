@@ -24,12 +24,15 @@ an error; otherwise, raises the error passed during closing.
 Args:
   limit: The maximum number of items to return.</code></pre>
 
-### `StreamReader.subscribe_once(executor, callback)` {#kd.types.StreamReader.subscribe_once}
+### `StreamReader.subscribe_once(callback, /)` {#kd.types.StreamReader.subscribe_once}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Subscribes for a notification when new items are available or when the stream is closed.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Registers a one-time callback for when items arrive or the stream closes.
 
-Note: The `callback` will be invoked on the executor and is called
-without any arguments.
+The `callback` is executed without arguments. It may run synchronously
+on the current thread if the stream is already ready, or asynchronously
+on the C++ to Python bridge thread. To avoid blocking other notifications
+on the bridge thread, the callback must execute quickly; any non-trivial
+processing should be offloaded to a separate thread pool.
 
 When the `callback` is invoked, the subsequent `read_available()`
 call is guaranteed to return a non-trivial result:

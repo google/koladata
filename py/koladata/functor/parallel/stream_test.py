@@ -26,15 +26,6 @@ from arolla import arolla
 from koladata.functor.parallel import clib
 
 
-eager_executor = arolla.abc.invoke_op(
-    'koda_internal.parallel.get_eager_executor', ()
-)
-
-default_executor = arolla.abc.invoke_op(
-    'koda_internal.parallel.get_default_executor', ()
-)
-
-
 class StreamTest(parameterized.TestCase):
 
   def test_basic(self):
@@ -50,7 +41,7 @@ class StreamTest(parameterized.TestCase):
     )
     self.assertEqual(stream_reader.read_available(), [])
     mock_callback = mock.Mock()
-    stream_reader.subscribe_once(eager_executor, mock_callback)
+    stream_reader.subscribe_once(mock_callback)
     stream_writer.write(arolla.int32(2))
     stream_writer.write(arolla.int32(3))
     mock_callback.assert_called_once()
@@ -192,8 +183,8 @@ class StreamTest(parameterized.TestCase):
 
     mock_callback_1 = mock.Mock()
     mock_callback_2 = mock.Mock()
-    stream_reader.subscribe_once(eager_executor, mock_callback_1)
-    stream_reader.subscribe_once(eager_executor, mock_callback_2)
+    stream_reader.subscribe_once(mock_callback_1)
+    stream_reader.subscribe_once(mock_callback_2)
     mock_callback_1.assert_not_called()
     mock_callback_2.assert_not_called()
 
@@ -207,12 +198,12 @@ class StreamTest(parameterized.TestCase):
 
     stream_reader.read_available(1)
     mock_callback = mock.Mock()
-    stream_reader.subscribe_once(eager_executor, mock_callback)
+    stream_reader.subscribe_once(mock_callback)
     mock_callback.assert_called_once()
 
     stream_reader.read_available(1)
     mock_callback = mock.Mock()
-    stream_reader.subscribe_once(eager_executor, mock_callback)
+    stream_reader.subscribe_once(mock_callback)
     mock_callback.assert_not_called()
     stream_writer.close()
     mock_callback_2.assert_called_once()
@@ -222,29 +213,18 @@ class StreamTest(parameterized.TestCase):
     stream_reader = stream.make_reader()
     with self.assertRaisesWithLiteralMatch(
         TypeError,
-        'StreamReader.subscribe_once() takes at most 2 arguments (3 given)',
+        'StreamReader.subscribe_once() takes exactly one argument (2 given)',
     ):
-      stream_reader.subscribe_once(object(), object(), object())  # pytype: disable=wrong-arg-count
-    with self.assertRaisesRegex(
-        TypeError, re.escape("missing required argument 'executor'")
+      stream_reader.subscribe_once(object(), object())  # pyrefly: ignore[bad-argument-type, bad-argument-count]
+    with self.assertRaisesWithLiteralMatch(
+        TypeError,
+        'StreamReader.subscribe_once() takes exactly one argument (0 given)',
     ):
-      stream_reader.subscribe_once()  # pytype: disable=missing-parameter
-    with self.assertRaisesRegex(
-        TypeError, re.escape("missing required argument 'callback'")
-    ):
-      stream_reader.subscribe_once(object())  # pytype: disable=missing-parameter
-    with self.assertRaisesRegex(
-        TypeError, re.escape('expected an executor, got object')
-    ):
-      stream_reader.subscribe_once(object(), object())  # pytype: disable=wrong-arg-types
-    with self.assertRaisesRegex(
-        TypeError, re.escape('expected an executor, got arolla.abc.qtype.QType')
-    ):
-      stream_reader.subscribe_once(arolla.INT32, object())  # pytype: disable=wrong-arg-types
+      stream_reader.subscribe_once()  # pyrefly: ignore[bad-argument-count]
     with self.assertRaisesRegex(
         TypeError, re.escape('expected a callable, got object')
     ):
-      stream_reader.subscribe_once(eager_executor, object())  # pytype: disable=wrong-arg-types
+      stream_reader.subscribe_once(object())  # pyrefly: ignore[bad-argument-type]
 
   @mock.patch.object(sys, 'unraisablehook', autospec=True)
   def test_stream_reader_subscribe_once_callback_raises(
@@ -258,21 +238,9 @@ class StreamTest(parameterized.TestCase):
     stream, stream_writer = clib.Stream.new(arolla.INT32)
     stream_writer.close()
     stream_reader = stream.make_reader()
-    stream_reader.subscribe_once(eager_executor, fn)
+    stream_reader.subscribe_once(fn)
     mock_unraisablehook.assert_called_once()
     self.assertEqual(mock_unraisablehook.call_args[0][0].exc_value, ex)
-
-  def test_stream_reader_subscribe_once_parallel_execution(self):
-    barrier = threading.Barrier(2, timeout=1)
-
-    def fn():
-      barrier.wait()
-
-    stream, stream_writer = clib.Stream.new(arolla.INT32)
-    stream_writer.close()
-    stream_reader = stream.make_reader()
-    stream_reader.subscribe_once(default_executor, fn)
-    barrier.wait()
 
   @arolla.abc.add_default_cancellation_context
   def test_stream_reader_subscribe_once_cancellation(self):
@@ -283,7 +251,7 @@ class StreamTest(parameterized.TestCase):
     cancellation_context.cancel('Boom!')
     mock_callback = mock.Mock()
     with self.assertRaisesWithLiteralMatch(ValueError, '[CANCELLED] Boom!'):
-      stream.make_reader().subscribe_once(eager_executor, mock_callback)
+      stream.make_reader().subscribe_once(mock_callback)
     mock_callback.assert_not_called()
 
   def test_hijack_stream_qvalue_specialization(self):

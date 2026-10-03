@@ -16,7 +16,7 @@
 
 from __future__ import annotations
 
-from typing import Callable, Generic, Iterator, TypeVar
+from typing import Any, Callable, Generic, Iterator, TypeVar
 
 from arolla import arolla
 
@@ -24,7 +24,9 @@ class Executor(arolla.QValue):
   def schedule(self, task_fn: Callable[[], None], /) -> None: ...
 
 QValueT_co = TypeVar('QValueT_co', bound=arolla.QValue, covariant=True)
-QValueT_contra = TypeVar('QValueT_contra', bound=arolla.QValue, contravariant=True)
+QValueT_contra = TypeVar(
+    'QValueT_contra', bound=arolla.QValue, contravariant=True
+)
 
 class Stream(Generic[QValueT_co], arolla.QValue):
   @classmethod
@@ -44,9 +46,7 @@ class StreamReader(Generic[QValueT_co]):
   def read_available(
       self, limit: int | None = None
   ) -> list[QValueT_co] | None: ...
-  def subscribe_once(
-      self, executor: Executor, callback: Callable[[], None]
-  ) -> None: ...
+  def subscribe_once(self, callback: Callable[[], Any], /) -> None: ...
 
 def get_default_parallel_transform_config(
     allow_runtime_transforms: bool,

@@ -24,6 +24,7 @@
 #include "arolla/util/cancellation.h"
 #include "koladata/functor/parallel/executor.h"
 #include "py/arolla/abc/py_qvalue.h"
+#include "py/arolla/py_utils/py_object_bridge.h"
 #include "py/arolla/py_utils/py_utils.h"
 
 namespace koladata::python {
@@ -36,7 +37,7 @@ using ::arolla::GetQType;
 using ::arolla::python::AcquirePyGIL;
 using ::arolla::python::DCheckPyGIL;
 using ::arolla::python::PyCancellationScope;
-using ::arolla::python::PyObjectGILSafePtr;
+using ::arolla::python::PyObjectHolder;
 using ::arolla::python::PyObjectPtr;
 using ::arolla::python::PyQValueType;
 using ::arolla::python::SetPyErrFromStatus;
@@ -65,19 +66,20 @@ PyObject* PyExecutor_schedule(PyObject* self, PyObject* py_arg) {
                         Py_TYPE(py_arg)->tp_name);
   }
   RETURN_IF_ERROR(CheckCancellation()).With(SetPyErrFromStatus);
-  executor->Schedule([cancellation_context = CurrentCancellationContext(),
-                      py_callable =
-                          PyObjectGILSafePtr::NewRef(py_arg)]() mutable {
-    CancellationContext::ScopeGuard cancellation_scope(
-        std::move(cancellation_context));
-    AcquirePyGIL guard;
-    auto py_result = PyObjectPtr::Own(PyObject_CallNoArgs(py_callable.get()));
-    if (py_result == nullptr) {
-      static PyObject* py_context =
-          PyUnicode_InternFromString("koladata.functor.parallel.Executor._run");
-      PyErr_WriteUnraisable(py_context);
-    }
-  });
+  executor->Schedule(
+      [cancellation_context = CurrentCancellationContext(),
+       py_holder = PyObjectHolder(PyObjectPtr::NewRef(py_arg))]() mutable {
+        CancellationContext::ScopeGuard cancellation_scope(
+            std::move(cancellation_context));
+        AcquirePyGIL guard;
+        auto py_result =
+            PyObjectPtr::Own(PyObject_CallNoArgs(py_holder.py_obj().get()));
+        if (py_result == nullptr) {
+          static PyObject* py_context = PyUnicode_InternFromString(
+              "koladata.functor.parallel.Executor._run");
+          PyErr_WriteUnraisable(py_context);
+        }
+      });
   Py_RETURN_NONE;
 }
 

@@ -31,16 +31,15 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "arolla/qtype/qtype.h"
-#include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/cancellation.h"
 #include "arolla/util/permanent_event.h"
-#include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/stream.h"
 #include "koladata/functor/parallel/stream_qtype.h"
 #include "py/arolla/abc/py_qtype.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
+#include "py/arolla/py_utils/py_object_bridge.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/py_args.h"
 
@@ -51,16 +50,14 @@ using ::arolla::CancellationContext;
 using ::arolla::Cancelled;
 using ::arolla::CheckCancellation;
 using ::arolla::CurrentCancellationContext;
-using ::arolla::GetQType;
 using ::arolla::PermanentEvent;
 using ::arolla::QTypePtr;
 using ::arolla::TypedValue;
-using ::arolla::python::AcquirePyGIL;
 using ::arolla::python::DCheckPyGIL;
 using ::arolla::python::IsPyQValueInstance;
 using ::arolla::python::PyCancellationScope;
 using ::arolla::python::PyErr_RestoreRaisedException;
-using ::arolla::python::PyObjectGILSafePtr;
+using ::arolla::python::PyObjectHolder;
 using ::arolla::python::PyObjectPtr;
 using ::arolla::python::PyQValueType;
 using ::arolla::python::ReleasePyGIL;
@@ -69,7 +66,6 @@ using ::arolla::python::StatusWithRawPyErr;
 using ::arolla::python::UnsafeUnwrapPyQValue;
 using ::arolla::python::UnwrapPyQType;
 using ::arolla::python::WrapAsPyQValue;
-using ::koladata::functor::parallel::ExecutorPtr;
 using ::koladata::functor::parallel::IsStreamQType;
 using ::koladata::functor::parallel::MakeStream;
 using ::koladata::functor::parallel::MakeStreamQValue;
@@ -567,58 +563,31 @@ PyObject* PyStreamReader_read_available(PyObject* self, PyObject* py_tuple_args,
   return py_result.release();
 }
 
-PyObject* PyStreamReader_subscribe_once(PyObject* self, PyObject* py_tuple_args,
-                                        PyObject* py_dict_kwargs) {
+PyObject* PyStreamReader_subscribe_once(PyObject* self, PyObject* py_callback) {
   DCheckPyGIL();
   PyCancellationScope cancellation_scope;
   auto& fields = PyStreamReader_fields(self);
-  constexpr std::array<const char*, 3> kwlist = {"executor", "callback",
-                                                 nullptr};
-  PyObject* py_executor = nullptr;
-  PyObject* py_callback = nullptr;
-  if (!PyArg_ParseTupleAndKeywords(
-          py_tuple_args, py_dict_kwargs, "OO:StreamReader.subscribe_once",
-          (char**)kwlist.data(), &py_executor, &py_callback)) {
-    return nullptr;
-  }
-  if (!IsPyQValueInstance(py_executor)) {
-    return PyErr_Format(PyExc_TypeError, "expected an executor, got %s",
-                        Py_TYPE(py_executor)->tp_name);
-  }
-  const auto& qvalue_executor = UnsafeUnwrapPyQValue(py_executor);
-  if (qvalue_executor.GetType() != GetQType<ExecutorPtr>()) {
-    return PyErr_Format(PyExc_TypeError, "expected an executor, got %s",
-                        Py_TYPE(py_executor)->tp_name);
-  }
-  auto executor = qvalue_executor.UnsafeAs<ExecutorPtr>();
-  if (executor == nullptr) {
-    PyErr_SetString(PyExc_RuntimeError, "Executor is not initialized");
-    return nullptr;
-  }
   if (!PyCallable_Check(py_callback)) {
     return PyErr_Format(PyExc_TypeError, "expected a callable, got %s",
                         Py_TYPE(py_callback)->tp_name);
   }
   RETURN_IF_ERROR(CheckCancellation()).With(SetPyErrFromStatus);
-  // As a potential optimization, we could try detecting if data is already
-  // available and immediately executing the callback without using
-  // the executor.
-  auto callback = [executor = std::move(executor),
-                   cancellation_context = CurrentCancellationContext(),
-                   py_callable =
-                       PyObjectGILSafePtr::NewRef(py_callback)]() mutable {
-    executor->Schedule([cancellation_context = std::move(cancellation_context),
-                        py_callable = std::move(py_callable)]() mutable {
-      CancellationContext::ScopeGuard cancellation_scope(
-          std::move(cancellation_context));
-      AcquirePyGIL guard;
-      auto py_result = PyObjectPtr::Own(PyObject_CallNoArgs(py_callable.get()));
-      if (py_result == nullptr) {
-        static PyObject* py_context = PyUnicode_InternFromString(
-            "StreamReader._run_callback_on_executor");
-        PyErr_WriteUnraisable(py_context);
-      }
-    });
+  auto callback = [cancellation_context = CurrentCancellationContext(),
+                   py_callback_holder = PyObjectHolder(
+                       PyObjectPtr::NewRef(py_callback))]() mutable {
+    std::move(py_callback_holder)
+        .DispatchAction([cancellation_context =
+                             std::move(cancellation_context)](
+                            const PyObjectPtr& py_obj) mutable {
+          CancellationContext::ScopeGuard cancellation_scope(
+              std::move(cancellation_context));
+          auto py_result = PyObjectPtr::Own(PyObject_CallNoArgs(py_obj.get()));
+          if (py_result == nullptr) {
+            static PyObject* py_context =
+                PyUnicode_InternFromString("StreamReader._run_callback");
+            PyErr_WriteUnraisable(py_context);
+          }
+        });
   };
   fields.stream_reader->SubscribeOnce(std::move(callback));
   Py_RETURN_NONE;
@@ -717,14 +686,18 @@ PyMethodDef kPyStreamReader_methods[] = {
     },
     {
         "subscribe_once",
-        reinterpret_cast<PyCFunction>(&PyStreamReader_subscribe_once),
-        METH_VARARGS | METH_KEYWORDS,
-        ("subscribe_once(executor, callback)\n"
+        &PyStreamReader_subscribe_once,
+        METH_O,
+        ("subscribe_once(callback, /)\n"
          "--\n\n"
-         "Subscribes for a notification when new items are available or when "
-         "the stream is closed.\n\n"
-         "Note: The `callback` will be invoked on the executor and is called\n"
-         "without any arguments.\n\n"
+         "Registers a one-time callback for when items arrive or the stream "
+         "closes.\n\n"
+         "The `callback` is executed without arguments. It may run "
+         "synchronously\non the current thread if the stream is already ready, "
+         "or asynchronously\non the C++ to Python bridge thread. To avoid "
+         "blocking other notifications\non the bridge thread, the callback "
+         "must execute quickly; any non-trivial\nprocessing should be "
+         "offloaded to a separate thread pool.\n\n"
          "When the `callback` is invoked, the subsequent `read_available()`\n"
          "call is guaranteed to return a non-trivial result:\n"
          " * a non-empty list if there are more items available,\n"

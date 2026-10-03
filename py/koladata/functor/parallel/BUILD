@@ -74,7 +74,6 @@ cc_library(
     srcs = ["py_stream.cc"],
     hdrs = ["py_stream.h"],
     deps = [
-        "//koladata/functor/parallel:executor",
         "//koladata/functor/parallel:stream",
         "//koladata/functor/parallel:stream_qtype",
         "//py/koladata/base:py_args",

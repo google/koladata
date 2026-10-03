@@ -71,7 +71,6 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
   def _wait_until_n_items(self, stream, n):
     """Waits until at least n items, end-of-stream is counted as 1 item."""
-    executor = expr_eval.eval(kde_internal.parallel.get_eager_executor())
     reader = stream.make_reader()
     found = 0
     while True:
@@ -85,7 +84,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
       if found >= n:
         return
       e = threading.Event()
-      reader.subscribe_once(executor, e.set)
+      reader.subscribe_once(e.set)
       self.assertTrue(e.wait(timeout=5.0))
 
   def test_basic(self):
