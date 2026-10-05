@@ -355,7 +355,10 @@ absl::Status MergeToMutableDenseSource(
                            [attr, &error](const ObjectId& obj_id) mutable {
                              error = MakeEntityOrObjectMergeError(obj_id, attr);
                            }});
-    return arolla::Error(std::move(status), std::move(error));
+    if (!status.ok()) {
+      return arolla::Error(std::move(status), std::move(error));
+    }
+    return absl::OkStatus();
   }
 
   auto objects = DataSliceImpl::ObjectsFromAllocation(alloc, size);
@@ -363,7 +366,7 @@ absl::Status MergeToMutableDenseSource(
       auto other_items,
       GetAttributeFromSources(objects, {&dense_source}, sparse_sources));
   // GetAttributeFromSources returns information about unset values in
-  // TypesBuffer withing DataSliceImpl. Ensure that TypesBuffer is there.
+  // TypesBuffer within DataSliceImpl. Ensure that TypesBuffer is there.
   DCHECK_GT(size, 0);
   DCHECK(!other_items.types_buffer().id_to_typeidx.empty());
 
@@ -2273,15 +2276,18 @@ struct SchemasAllocCheckFn {
   bool operator()(AllocationId alloc_id) { return alloc_id.IsSchemasAlloc(); }
 };
 
+// Returns reference to empty dict that is returned in case dict is not
+// found.
+const Dict& GetEmptyDict() {
+  static const absl::NoDestructor<Dict> result;
+  return *result;
+}
+
 }  // namespace
 
 template <class AllocCheckFn>
 class DataBagImpl::ReadOnlyDictGetter {
  public:
-  // Returns reference to empty dict that is returned in case dict is not
-  // found.
-  static const Dict& GetEmptyDict() { return empty_dict_; }
-
   explicit ReadOnlyDictGetter(const DataBagImpl* bag) : bag_(bag) {}
 
   // Returns reference to dict if found, otherwise returns GetEmptyDict.
@@ -2290,12 +2296,12 @@ class DataBagImpl::ReadOnlyDictGetter {
     if (alloc_id != current_alloc_) {
       if (ABSL_PREDICT_FALSE(!alloc_check_(alloc_id))) {
         status_ = absl::FailedPreconditionError("dicts expected");
-        return empty_dict_;
+        return GetEmptyDict();
       }
       dicts_vec_ = bag_->GetConstDictsOrNull(alloc_id);
       current_alloc_ = alloc_id;
     }
-    return dicts_vec_ ? (**dicts_vec_)[dict_id.Offset()] : empty_dict_;
+    return dicts_vec_ ? (**dicts_vec_)[dict_id.Offset()] : GetEmptyDict();
   }
 
   const absl::Status& status() { return status_; }
@@ -2308,9 +2314,6 @@ class DataBagImpl::ReadOnlyDictGetter {
   const std::shared_ptr<DictVector>* dicts_vec_ = nullptr;
   static const Dict empty_dict_;
 };
-
-template <class AllocCheckFn>
-const Dict DataBagImpl::ReadOnlyDictGetter<AllocCheckFn>::empty_dict_;
 
 template <class AllocCheckFn>
 class DataBagImpl::MutableDictGetter {
@@ -2374,30 +2377,30 @@ DataBagImpl::GetDictKeysOrValues(const DataSliceImpl& dicts,
   std::vector<const Dict*> fallback_dicts;
   fallback_dicts.reserve(fallbacks.size());
 
-  dicts.values<ObjectId>().ForEach([&](int64_t offset, bool present,
-                                       ObjectId dict_id) {
-    if (!present) {
-      split_points.push_back(split_points.back());
-      return;
-    }
-    std::vector<DataItem>& res_vec = results[offset];
-    const Dict& dict = dict_getter(dict_id);
-    if (!fallbacks.empty()) {
-      fallback_dicts.clear();
-      for (auto& fallback_getter : dict_fallback_getters) {
-        if (auto* fb_dict = &fallback_getter(dict_id);
-            fb_dict != &ReadOnlyDictGetter<DictsAllocCheckFn>::GetEmptyDict()) {
-          fallback_dicts.push_back(fb_dict);
+  dicts.values<ObjectId>().ForEach(
+      [&](int64_t offset, bool present, ObjectId dict_id) {
+        if (!present) {
+          split_points.push_back(split_points.back());
+          return;
         }
-      }
-    }
-    if constexpr (kReturnValues) {
-      res_vec = dict.GetSortedByKeyValues(fallback_dicts);
-    } else {
-      res_vec = dict.GetSortedKeys(fallback_dicts);
-    }
-    split_points.push_back(split_points.back() + res_vec.size());
-  });
+        std::vector<DataItem>& res_vec = results[offset];
+        const Dict& dict = dict_getter(dict_id);
+        if (!fallbacks.empty()) {
+          fallback_dicts.clear();
+          for (auto& fallback_getter : dict_fallback_getters) {
+            if (auto* fb_dict = &fallback_getter(dict_id);
+                fb_dict != &GetEmptyDict()) {
+              fallback_dicts.push_back(fb_dict);
+            }
+          }
+        }
+        if constexpr (kReturnValues) {
+          res_vec = dict.GetSortedByKeyValues(fallback_dicts);
+        } else {
+          res_vec = dict.GetSortedKeys(fallback_dicts);
+        }
+        split_points.push_back(split_points.back() + res_vec.size());
+      });
   RETURN_IF_ERROR(dict_getter.status());
 
   SliceBuilder bldr(split_points.back());
@@ -2456,7 +2459,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetDictSize(
       fallback_dicts.clear();
       for (auto& fallback_getter : dict_fallback_getters) {
         if (auto* fb_dict = &fallback_getter(dict_id);
-            fb_dict != &ReadOnlyDictGetter<DictsAllocCheckFn>::GetEmptyDict()) {
+            fb_dict != &GetEmptyDict()) {
           fallback_dicts.push_back(fb_dict);
         }
       }
