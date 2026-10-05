@@ -170,7 +170,7 @@ class CompositeInitialDataManager(
           f' {invalid_schema_node_names}'
       )
 
-    return kd.bags.enriched(*[  # pyrefly: ignore[missing-attribute]
+    return kd.bags.enriched(*[
         m.internal_get_data_bag_for_schema_node_names(
             schema_node_names & m.get_all_schema_node_names()
         )

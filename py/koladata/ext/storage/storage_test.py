@@ -43,14 +43,14 @@ class StorageTest(absltest.TestCase):
         manager.get_data_slice(
             populate={storage.DataSlicePath.from_actions([])}
         ),
-        kd.new(),  # pyrefly: ignore[missing-attribute]
+        kd.new(),
         schemas_equality=False,
     )
     root = storage.DataSliceManagerView(manager)
-    root.x = kd.item(1)  # pyrefly: ignore[missing-attribute]
+    root.x = kd.item(1)
     kd.testing.assert_equivalent(
         root.x.get_data_slice(),
-        kd.item(1),  # pyrefly: ignore[missing-attribute]
+        kd.item(1),
     )
 
   def test_composite_initial_data_manager_is_exposed(self):

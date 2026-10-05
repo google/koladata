@@ -41,9 +41,9 @@ class DataSliceManagerViewTest(absltest.TestCase):
     root = DataSliceManagerView(manager)
 
     root.query = (
-        kd.list([  # pyrefly: ignore[missing-attribute]
-            kd.named_schema('query').new(query_id=0, text='How tall is Obama'),  # pyrefly: ignore[missing-attribute]
-            kd.named_schema('query').new(  # pyrefly: ignore[missing-attribute]
+        kd.list([
+            kd.named_schema('query').new(query_id=0, text='How tall is Obama'),
+            kd.named_schema('query').new(
                 query_id=1, text='How high is the Eiffel tower'
             ),
         ]),
@@ -52,29 +52,29 @@ class DataSliceManagerViewTest(absltest.TestCase):
 
     queries = root.query[:]
 
-    expected_query_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
+    expected_query_schema = kd.named_schema(
         'query', query_id=kd.INT32, text=kd.STRING
     )
     kd.testing.assert_equivalent(queries.get_schema(), expected_query_schema)
 
     kd.testing.assert_equivalent(
         queries.text.get(),
-        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),  # pyrefly: ignore[missing-attribute]
+        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
     )
     kd.testing.assert_equivalent(
         queries.get(populate_including_descendants=[queries]),
-        kd.slice([  # pyrefly: ignore[missing-attribute]
+        kd.slice([
             expected_query_schema.new(query_id=0, text='How tall is Obama'),
             expected_query_schema.new(
                 query_id=1, text='How high is the Eiffel tower'
             ),
         ]),
     )
-    restricted_query_schema = kd.named_schema('query', query_id=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    restricted_query_schema = kd.named_schema('query', query_id=kd.INT32)
     kd.testing.assert_equivalent(
         root.get(populate=[queries.query_id]),
-        kd.new(  # pyrefly: ignore[missing-attribute]
-            query=kd.list([  # pyrefly: ignore[missing-attribute]
+        kd.new(
+            query=kd.list([
                 restricted_query_schema.new(query_id=0),
                 restricted_query_schema.new(query_id=1),
             ])
@@ -83,13 +83,13 @@ class DataSliceManagerViewTest(absltest.TestCase):
     )
 
     queries.doc = (
-        kd.slice([  # pyrefly: ignore[missing-attribute]
-            kd.list([  # pyrefly: ignore[missing-attribute]
-                kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),  # pyrefly: ignore[missing-attribute]
-                kd.named_schema('doc').new(doc_id=2, title='Michelle Obama'),  # pyrefly: ignore[missing-attribute]
+        kd.slice([
+            kd.list([
+                kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),
+                kd.named_schema('doc').new(doc_id=2, title='Michelle Obama'),
             ]),
-            kd.list(  # pyrefly: ignore[missing-attribute]
-                [kd.named_schema('doc').new(doc_id=2, title='Tower of London')]  # pyrefly: ignore[missing-attribute]
+            kd.list(
+                [kd.named_schema('doc').new(doc_id=2, title='Tower of London')]
             ),
         ]),
         'Added docs to queries. Populated doc_id and title',
@@ -103,7 +103,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     )
     kd.testing.assert_equivalent(
         docs.title.get(),
-        kd.slice([['Barack Obama', 'Michelle Obama'], ['Tower of London']]),  # pyrefly: ignore[missing-attribute]
+        kd.slice([['Barack Obama', 'Michelle Obama'], ['Tower of London']]),
     )
 
     with self.subTest('get_path_from_root'):
@@ -287,11 +287,11 @@ class DataSliceManagerViewTest(absltest.TestCase):
           docs.title,
       )
 
-    token_info_schema = kd.named_schema('token_info', part_of_speech=kd.STRING)  # pyrefly: ignore[missing-attribute]
+    token_info_schema = kd.named_schema('token_info', part_of_speech=kd.STRING)
     with self.subTest('dict_operations'):
       queries.token = (
-          kd.slice([  # pyrefly: ignore[missing-attribute]
-              kd.dict(  # pyrefly: ignore[missing-attribute]
+          kd.slice([
+              kd.dict(
                   {
                       'How': token_info_schema.new(part_of_speech='DET'),
                       'tall': token_info_schema.new(part_of_speech='ADJ'),
@@ -299,7 +299,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
                       'Obama': token_info_schema.new(part_of_speech='NOUN'),
                   },
               ),
-              kd.dict({  # pyrefly: ignore[missing-attribute]
+              kd.dict({
                   'How': token_info_schema.new(part_of_speech='DET'),
                   'high': token_info_schema.new(part_of_speech='ADJ'),
                   'is': token_info_schema.new(part_of_speech='VERB'),
@@ -315,7 +315,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
 
       kd.testing.assert_equivalent(
           tokens.get_schema(),
-          kd.dict_schema(kd.STRING, token_info_schema),  # pyrefly: ignore[missing-attribute]
+          kd.dict_schema(kd.STRING, token_info_schema),
       )
       self.assertEqual(
           tokens.get_children(),
@@ -374,9 +374,9 @@ class DataSliceManagerViewTest(absltest.TestCase):
     manager.update(
         at_path=DataSlicePath.parse_from_string(''),
         attr_name='query',
-        attr_value=kd.list([  # pyrefly: ignore[missing-attribute]
-            kd.named_schema('query').new(query_id=0, text='How tall is Obama'),  # pyrefly: ignore[missing-attribute]
-            kd.named_schema('query').new(  # pyrefly: ignore[missing-attribute]
+        attr_value=kd.list([
+            kd.named_schema('query').new(query_id=0, text='How tall is Obama'),
+            kd.named_schema('query').new(
                 query_id=1, text='How high is the Eiffel tower'
             ),
         ]),
@@ -386,8 +386,8 @@ class DataSliceManagerViewTest(absltest.TestCase):
     )
     self.assertEqual(
         some_view.get_schema(),
-        kd.list_schema(  # pyrefly: ignore[missing-attribute]
-            kd.named_schema('query', query_id=kd.INT32, text=kd.STRING)  # pyrefly: ignore[missing-attribute]
+        kd.list_schema(
+            kd.named_schema('query', query_id=kd.INT32, text=kd.STRING)
         ),
     )
     some_view = DataSliceManagerView(
@@ -395,7 +395,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     )
     self.assertEqual(
         some_view.get_schema(),
-        kd.named_schema('query', query_id=kd.INT32, text=kd.STRING),  # pyrefly: ignore[missing-attribute]
+        kd.named_schema('query', query_id=kd.INT32, text=kd.STRING),
     )
     with self.assertRaisesRegex(
         ValueError, re.escape("invalid data slice path: '.query[:].doc'")
@@ -409,30 +409,30 @@ class DataSliceManagerViewTest(absltest.TestCase):
     manager = dsm.DataSliceManager.create_new(persistence_dir)
 
     root = DataSliceManagerView(manager)
-    root.query = kd.list([  # pyrefly: ignore[missing-attribute]
-        kd.named_schema('query').new(query_id=0, text='How tall is Obama'),  # pyrefly: ignore[missing-attribute]
-        kd.named_schema('query').new(  # pyrefly: ignore[missing-attribute]
+    root.query = kd.list([
+        kd.named_schema('query').new(query_id=0, text='How tall is Obama'),
+        kd.named_schema('query').new(
             query_id=1, text='How high is the Eiffel tower'
         ),
     ])
     query = root.query[:]
 
-    query.doc = kd.slice([  # pyrefly: ignore[missing-attribute]
-        kd.list([  # pyrefly: ignore[missing-attribute]
-            kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),  # pyrefly: ignore[missing-attribute]
-            kd.named_schema('doc').new(doc_id=2, title='Michelle Obama'),  # pyrefly: ignore[missing-attribute]
+    query.doc = kd.slice([
+        kd.list([
+            kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),
+            kd.named_schema('doc').new(doc_id=2, title='Michelle Obama'),
         ]),
-        kd.list(  # pyrefly: ignore[missing-attribute]
-            [kd.named_schema('doc').new(doc_id=2, title='Tower of London')]  # pyrefly: ignore[missing-attribute]
+        kd.list(
+            [kd.named_schema('doc').new(doc_id=2, title='Tower of London')]
         ),
     ])
     doc_list = query.doc
     doc = doc_list[:]
     doc_title = doc.title
 
-    token_info_schema = kd.named_schema('token_info', part_of_speech=kd.STRING)  # pyrefly: ignore[missing-attribute]
-    query.tokens = kd.slice([  # pyrefly: ignore[missing-attribute]
-        kd.dict(  # pyrefly: ignore[missing-attribute]
+    token_info_schema = kd.named_schema('token_info', part_of_speech=kd.STRING)
+    query.tokens = kd.slice([
+        kd.dict(
             {
                 'How': token_info_schema.new(part_of_speech='DET'),
                 'tall': token_info_schema.new(part_of_speech='ADJ'),
@@ -440,7 +440,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
                 'Obama': token_info_schema.new(part_of_speech='NOUN'),
             },
         ),
-        kd.dict({  # pyrefly: ignore[missing-attribute]
+        kd.dict({
             'How': token_info_schema.new(part_of_speech='DET'),
             'high': token_info_schema.new(part_of_speech='ADJ'),
             'is': token_info_schema.new(part_of_speech='VERB'),
@@ -454,9 +454,9 @@ class DataSliceManagerViewTest(absltest.TestCase):
     tokens_values = tokens.get_dict_values()
 
     # We now give an update that will make the non-root views above invalid.
-    root.query = kd.dict({'hello': 1, 'world': 2})  # pyrefly: ignore[missing-attribute]
+    root.query = kd.dict({'hello': 1, 'world': 2})
     # Add a new list to have a valid list in the root.
-    root.some_list = kd.list([1, 2, 3])  # pyrefly: ignore[missing-attribute]
+    root.some_list = kd.list([1, 2, 3])
 
     # Accessing/updating the underlying DataSlice and its schema should complain
     # when the views are invalid.
@@ -489,7 +489,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
         ValueError,
         re.escape("invalid data slice path: '.query[:].doc[:]'"),
     ):
-      doc.word_count = kd.item(12345)  # pyrefly: ignore[missing-attribute]
+      doc.word_count = kd.item(12345)
 
     # The state of invalid views can still be accessed:
     self.assertEqual(
@@ -713,11 +713,11 @@ class DataSliceManagerViewTest(absltest.TestCase):
       root = DataSliceManagerView(manager)
 
       root.query = (
-          kd.list([  # pyrefly: ignore[missing-attribute]
-              kd.named_schema('query').new(  # pyrefly: ignore[missing-attribute]
+          kd.list([
+              kd.named_schema('query').new(
                   query_id=0, text='How tall is Obama'
               ),
-              kd.named_schema('query').new(  # pyrefly: ignore[missing-attribute]
+              kd.named_schema('query').new(
                   query_id=1, text='How high is the Eiffel tower'
               ),
           ]),
@@ -727,13 +727,13 @@ class DataSliceManagerViewTest(absltest.TestCase):
       queries = root.query[:]
 
       queries.doc = (
-          kd.slice([  # pyrefly: ignore[missing-attribute]
-              kd.list([  # pyrefly: ignore[missing-attribute]
-                  kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),  # pyrefly: ignore[missing-attribute]
-                  kd.named_schema('doc').new(doc_id=2, title='Michelle Obama'),  # pyrefly: ignore[missing-attribute]
+          kd.slice([
+              kd.list([
+                  kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),
+                  kd.named_schema('doc').new(doc_id=2, title='Michelle Obama'),
               ]),
-              kd.list([  # pyrefly: ignore[missing-attribute]
-                  kd.named_schema('doc').new(doc_id=3, title='Tower of London')  # pyrefly: ignore[missing-attribute]
+              kd.list([
+                  kd.named_schema('doc').new(doc_id=3, title='Tower of London')
               ]),
           ]),
           'Added doc with doc_id and title populated',
@@ -756,14 +756,14 @@ class DataSliceManagerViewTest(absltest.TestCase):
       # Filter the docs to only keep the ones with "Barack" in the title, and
       # filter the queries to only keep the ones with at least one such doc.
       new_docs = docs.get_data_slice().select(
-          kd.strings.contains(docs.title.get_data_slice(), 'Barack')  # pyrefly: ignore[missing-attribute]
+          kd.strings.contains(docs.title.get_data_slice(), 'Barack')
       )
       queries.doc = (
           new_docs.implode(),
           'Filtered docs to keep only those with "Barack" in the title',
       )
       new_queries = queries.get_data_slice().select(
-          kd.agg_any(kd.has(new_docs))  # pyrefly: ignore[missing-attribute]
+          kd.agg_any(kd.has(new_docs))
       )
       root.query = (
           new_queries.implode(),
@@ -781,25 +781,25 @@ class DataSliceManagerViewTest(absltest.TestCase):
     filtered_root = DataSliceManagerView(filtered_manager)
     kd.testing.assert_equivalent(
         root.get_data_slice(populate_including_descendants=[root]),
-        kd.new(  # pyrefly: ignore[missing-attribute]
-            query=kd.list([  # pyrefly: ignore[missing-attribute]
-                kd.named_schema('query').new(  # pyrefly: ignore[missing-attribute]
+        kd.new(
+            query=kd.list([
+                kd.named_schema('query').new(
                     query_id=0,
                     text='How tall is Obama',
-                    doc=kd.list([  # pyrefly: ignore[missing-attribute]
-                        kd.named_schema('doc').new(  # pyrefly: ignore[missing-attribute]
+                    doc=kd.list([
+                        kd.named_schema('doc').new(
                             doc_id=1, title='Barack Obama'
                         ),
-                        kd.named_schema('doc').new(  # pyrefly: ignore[missing-attribute]
+                        kd.named_schema('doc').new(
                             doc_id=2, title='Michelle Obama'
                         ),
                     ]),
                 ),
-                kd.named_schema('query').new(  # pyrefly: ignore[missing-attribute]
+                kd.named_schema('query').new(
                     query_id=1,
                     text='How high is the Eiffel tower',
-                    doc=kd.list([  # pyrefly: ignore[missing-attribute]
-                        kd.named_schema('doc').new(  # pyrefly: ignore[missing-attribute]
+                    doc=kd.list([
+                        kd.named_schema('doc').new(
                             doc_id=3, title='Tower of London'
                         )
                     ]),
@@ -813,13 +813,13 @@ class DataSliceManagerViewTest(absltest.TestCase):
         filtered_root.get_data_slice(
             populate_including_descendants=[filtered_root]
         ),
-        kd.new(  # pyrefly: ignore[missing-attribute]
-            query=kd.list([  # pyrefly: ignore[missing-attribute]
-                kd.named_schema('query').new(  # pyrefly: ignore[missing-attribute]
+        kd.new(
+            query=kd.list([
+                kd.named_schema('query').new(
                     query_id=0,
                     text='How tall is Obama',
-                    doc=kd.list([  # pyrefly: ignore[missing-attribute]
-                        kd.named_schema('doc').new(  # pyrefly: ignore[missing-attribute]
+                    doc=kd.list([
+                        kd.named_schema('doc').new(
                             doc_id=1, title='Barack Obama'
                         )
                     ]),
@@ -858,29 +858,29 @@ class DataSliceManagerViewTest(absltest.TestCase):
     )
 
   def test_filter(self):
-    token_info_schema = kd.named_schema('token_info', is_noun=kd.BOOLEAN)  # pyrefly: ignore[missing-attribute]
-    doc_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
+    token_info_schema = kd.named_schema('token_info', is_noun=kd.BOOLEAN)
+    doc_schema = kd.named_schema(
         'doc',
         doc_id=kd.INT32,
         title=kd.STRING,
-        tokens=kd.dict_schema(kd.STRING, token_info_schema),  # pyrefly: ignore[missing-attribute]
+        tokens=kd.dict_schema(kd.STRING, token_info_schema),
     )
-    query_metadata_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
+    query_metadata_schema = kd.named_schema(
         'query_metadata',
         locale=kd.STRING,
     )
-    query_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
+    query_schema = kd.named_schema(
         'query',
         query_id=kd.INT32,
         text=kd.STRING,
-        doc=kd.list_schema(doc_schema),  # pyrefly: ignore[missing-attribute]
+        doc=kd.list_schema(doc_schema),
         metadata=query_metadata_schema,
     )
-    query_list = kd.list([  # pyrefly: ignore[missing-attribute]
+    query_list = kd.list([
         query_schema.new(
             query_id=0,
             text='How tall is Obama',
-            doc=kd.list([  # pyrefly: ignore[missing-attribute]
+            doc=kd.list([
                 doc_schema.new(doc_id=0, title='Barack Obama'),
                 doc_schema.new(doc_id=1, title='Michelle Obama'),
                 doc_schema.new(doc_id=2, title='George W. Bush'),
@@ -889,11 +889,11 @@ class DataSliceManagerViewTest(absltest.TestCase):
         query_schema.new(
             query_id=1,
             text='How high is the Eiffel tower',
-            doc=kd.list([  # pyrefly: ignore[missing-attribute]
+            doc=kd.list([
                 doc_schema.new(
                     doc_id=3,
                     title='Eiffel tower',
-                    tokens=kd.dict({  # pyrefly: ignore[missing-attribute]
+                    tokens=kd.dict({
                         'How': token_info_schema.new(is_noun=False),
                         'Eiffel tower': token_info_schema.new(is_noun=True),
                     }),
@@ -905,11 +905,11 @@ class DataSliceManagerViewTest(absltest.TestCase):
         query_schema.new(
             query_id=2,
             text='How old is Bush?',
-            doc=kd.list([  # pyrefly: ignore[missing-attribute]
+            doc=kd.list([
                 doc_schema.new(
                     doc_id=5,
                     title='George W. Bush hands over the baton',
-                    tokens=kd.dict({  # pyrefly: ignore[missing-attribute]
+                    tokens=kd.dict({
                         'George W. Bush': token_info_schema.new(is_noun=True),
                         'hands': token_info_schema.new(is_noun=False),
                     }),
@@ -955,7 +955,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
       # Filter the docs to only keep the ones with "Barack" in the title, and
       # filter the queries to only keep the ones with at least one such doc.
       view.filter(
-          kd.strings.contains(  # pyrefly: ignore[missing-attribute]
+          kd.strings.contains(
               root.query[:].doc[:].title.get_data_slice(), 'Barack'
           ),
           description=(
@@ -965,11 +965,11 @@ class DataSliceManagerViewTest(absltest.TestCase):
       kd.testing.assert_equivalent(
           root.get_data_slice(populate_including_descendants=[root]),
           trunk_initial_data_manager.get_schema().new(
-              query=kd.list([  # pyrefly: ignore[missing-attribute]
+              query=kd.list([
                   query_schema.new(
                       query_id=0,
                       text='How tall is Obama',
-                      doc=kd.list([  # pyrefly: ignore[missing-attribute]
+                      doc=kd.list([
                           doc_schema.new(doc_id=0, title='Barack Obama'),
                       ]),
                   ),
@@ -1014,7 +1014,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
       )
       root = DataSliceManagerView(branch_manager)
       doc = root.query[:].doc[:]
-      for selection_mask in [kd.present, kd.val_like(doc.get(), kd.present)]:  # pyrefly: ignore[missing-attribute]
+      for selection_mask in [kd.present, kd.val_like(doc.get(), kd.present)]:
         doc.filter(
             selection_mask,
             description='Filtered docs by selecting all of them',
@@ -1040,7 +1040,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
         )
 
     with self.subTest('filter_with_lambda'):
-      selection_lambda = lambda v: kd.strings.contains(  # pyrefly: ignore[missing-attribute]
+      selection_lambda = lambda v: kd.strings.contains(
           v.title.get_data_slice(), 'Barack'
       )
 
@@ -1057,11 +1057,11 @@ class DataSliceManagerViewTest(absltest.TestCase):
       kd.testing.assert_equivalent(
           root1.get_data_slice(populate_including_descendants=[root1]),
           trunk_initial_data_manager.get_schema().new(
-              query=kd.list([  # pyrefly: ignore[missing-attribute]
+              query=kd.list([
                   query_schema.new(
                       query_id=0,
                       text='How tall is Obama',
-                      doc=kd.list([  # pyrefly: ignore[missing-attribute]
+                      doc=kd.list([
                           doc_schema.new(doc_id=0, title='Barack Obama'),
                       ]),
                   ),
@@ -1082,11 +1082,11 @@ class DataSliceManagerViewTest(absltest.TestCase):
       kd.testing.assert_equivalent(
           root2.get_data_slice(populate_including_descendants=[root2]),
           trunk_initial_data_manager.get_schema().new(
-              query=kd.list([  # pyrefly: ignore[missing-attribute]
+              query=kd.list([
                   query_schema.new(
                       query_id=0,
                       text='How tall is Obama',
-                      doc=kd.list([  # pyrefly: ignore[missing-attribute]
+                      doc=kd.list([
                           doc_schema.new(doc_id=0, title='Barack Obama'),
                       ]),
                   ),
@@ -1140,7 +1140,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
           # DICT stubs, which also do not know the number of items in the dict,
           # and entity stubs, which do not know whether an attribute is present
           # or not.
-          kd.lists.size(doc_list[:].get_data_slice().implode()) <= 2,  # pyrefly: ignore[missing-attribute]
+          kd.lists.size(doc_list[:].get_data_slice().implode()) <= 2,
           description=(
               'Filtered queries to keep only those with a doc list of size at'
               ' most 2'
@@ -1149,15 +1149,15 @@ class DataSliceManagerViewTest(absltest.TestCase):
       kd.testing.assert_equivalent(
           root.get_data_slice(populate_including_descendants=[root]),
           trunk_initial_data_manager.get_schema().new(
-              query=kd.list([  # pyrefly: ignore[missing-attribute]
+              query=kd.list([
                   query_schema.new(
                       query_id=1,
                       text='How high is the Eiffel tower',
-                      doc=kd.list([  # pyrefly: ignore[missing-attribute]
+                      doc=kd.list([
                           doc_schema.new(
                               doc_id=3,
                               title='Eiffel tower',
-                              tokens=kd.dict({  # pyrefly: ignore[missing-attribute]
+                              tokens=kd.dict({
                                   'How': token_info_schema.new(is_noun=False),
                                   'Eiffel tower': token_info_schema.new(
                                       is_noun=True
@@ -1222,15 +1222,15 @@ class DataSliceManagerViewTest(absltest.TestCase):
       kd.testing.assert_equivalent(
           root.get_data_slice(populate_including_descendants=[root]),
           trunk_initial_data_manager.get_schema().new(
-              query=kd.list([  # pyrefly: ignore[missing-attribute]
+              query=kd.list([
                   query_schema.new(
                       query_id=2,
                       text='How old is Bush?',
-                      doc=kd.list([  # pyrefly: ignore[missing-attribute]
+                      doc=kd.list([
                           doc_schema.new(
                               doc_id=5,
                               title='George W. Bush hands over the baton',
-                              tokens=kd.dict({  # pyrefly: ignore[missing-attribute]
+                              tokens=kd.dict({
                                   'hands': token_info_schema.new(is_noun=False),
                                   # Note that the other tokens are filtered out.
                               }),
@@ -1253,22 +1253,22 @@ class DataSliceManagerViewTest(absltest.TestCase):
       root = DataSliceManagerView(branch_manager)
       is_noun = root.query[:].doc[:].tokens.get_dict_values().is_noun
       is_noun.filter(
-          is_noun.get_data_slice() == kd.item(True),  # pyrefly: ignore[missing-attribute]
+          is_noun.get_data_slice() == kd.item(True),
           description='Filtered token values to keep only those that are nouns',
       )
 
       kd.testing.assert_equivalent(
           root.get_data_slice(populate_including_descendants=[root]),
           trunk_initial_data_manager.get_schema().new(
-              query=kd.list([  # pyrefly: ignore[missing-attribute]
+              query=kd.list([
                   query_schema.new(
                       query_id=1,
                       text='How high is the Eiffel tower',
-                      doc=kd.list([  # pyrefly: ignore[missing-attribute]
+                      doc=kd.list([
                           doc_schema.new(
                               doc_id=3,
                               title='Eiffel tower',
-                              tokens=kd.dict({  # pyrefly: ignore[missing-attribute]
+                              tokens=kd.dict({
                                   'Eiffel tower': token_info_schema.new(
                                       is_noun=True
                                   ),
@@ -1280,11 +1280,11 @@ class DataSliceManagerViewTest(absltest.TestCase):
                   query_schema.new(
                       query_id=2,
                       text='How old is Bush?',
-                      doc=kd.list([  # pyrefly: ignore[missing-attribute]
+                      doc=kd.list([
                           doc_schema.new(
                               doc_id=5,
                               title='George W. Bush hands over the baton',
-                              tokens=kd.dict({  # pyrefly: ignore[missing-attribute]
+                              tokens=kd.dict({
                                   'George W. Bush': token_info_schema.new(
                                       is_noun=True
                                   ),
@@ -1305,22 +1305,22 @@ class DataSliceManagerViewTest(absltest.TestCase):
       root = DataSliceManagerView(branch_manager)
       tokens = root.query[:].doc[:].tokens
       tokens.filter(
-          kd.has(tokens.get_data_slice()),  # pyrefly: ignore[missing-attribute]
+          kd.has(tokens.get_data_slice()),
           description='Filtered docs to keep only those with tokens',
       )
 
       kd.testing.assert_equivalent(
           root.get_data_slice(populate_including_descendants=[root]),
           trunk_initial_data_manager.get_schema().new(
-              query=kd.list([  # pyrefly: ignore[missing-attribute]
+              query=kd.list([
                   query_schema.new(
                       query_id=1,
                       text='How high is the Eiffel tower',
-                      doc=kd.list([  # pyrefly: ignore[missing-attribute]
+                      doc=kd.list([
                           doc_schema.new(
                               doc_id=3,
                               title='Eiffel tower',
-                              tokens=kd.dict({  # pyrefly: ignore[missing-attribute]
+                              tokens=kd.dict({
                                   'How': token_info_schema.new(is_noun=False),
                                   'Eiffel tower': token_info_schema.new(
                                       is_noun=True
@@ -1333,11 +1333,11 @@ class DataSliceManagerViewTest(absltest.TestCase):
                   query_schema.new(
                       query_id=2,
                       text='How old is Bush?',
-                      doc=kd.list([  # pyrefly: ignore[missing-attribute]
+                      doc=kd.list([
                           doc_schema.new(
                               doc_id=5,
                               title='George W. Bush hands over the baton',
-                              tokens=kd.dict({  # pyrefly: ignore[missing-attribute]
+                              tokens=kd.dict({
                                   'George W. Bush': token_info_schema.new(
                                       is_noun=True
                                   ),
@@ -1394,21 +1394,21 @@ class DataSliceManagerViewTest(absltest.TestCase):
       query = root.query[:]
       tokens = query.doc[:].tokens
       tokens.filter(
-          kd.has(tokens.get()),  # pyrefly: ignore[missing-attribute]
+          kd.has(tokens.get()),
           description='Filtered docs to keep only those with tokens',
       )
       kd.testing.assert_equivalent(
           root.get_data_slice(populate_including_descendants=[root]),
           trunk_initial_data_manager.get_schema().new(
-              query=kd.list([  # pyrefly: ignore[missing-attribute]
+              query=kd.list([
                   query_schema.new(
                       query_id=1,
                       text='How high is the Eiffel tower',
-                      doc=kd.list([  # pyrefly: ignore[missing-attribute]
+                      doc=kd.list([
                           doc_schema.new(
                               doc_id=3,
                               title='Eiffel tower',
-                              tokens=kd.dict({  # pyrefly: ignore[missing-attribute]
+                              tokens=kd.dict({
                                   'How': token_info_schema.new(is_noun=False),
                                   'Eiffel tower': token_info_schema.new(
                                       is_noun=True
@@ -1421,11 +1421,11 @@ class DataSliceManagerViewTest(absltest.TestCase):
                   query_schema.new(
                       query_id=2,
                       text='How old is Bush?',
-                      doc=kd.list([  # pyrefly: ignore[missing-attribute]
+                      doc=kd.list([
                           doc_schema.new(
                               doc_id=5,
                               title='George W. Bush hands over the baton',
-                              tokens=kd.dict({  # pyrefly: ignore[missing-attribute]
+                              tokens=kd.dict({
                                   'George W. Bush': token_info_schema.new(
                                       is_noun=True
                                   ),
@@ -1440,7 +1440,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
       )
 
       query.filter(
-          kd.strings.contains(query.text.get(), 'Bush'),  # pyrefly: ignore[missing-attribute]
+          kd.strings.contains(query.text.get(), 'Bush'),
           description=(
               'Filtered queries to keep only those with "Bush" in the title'
           ),
@@ -1448,15 +1448,15 @@ class DataSliceManagerViewTest(absltest.TestCase):
       kd.testing.assert_equivalent(
           root.get(populate_including_descendants=[root]),
           trunk_initial_data_manager.get_schema().new(
-              query=kd.list([  # pyrefly: ignore[missing-attribute]
+              query=kd.list([
                   query_schema.new(
                       query_id=2,
                       text='How old is Bush?',
-                      doc=kd.list([  # pyrefly: ignore[missing-attribute]
+                      doc=kd.list([
                           doc_schema.new(
                               doc_id=5,
                               title='George W. Bush hands over the baton',
-                              tokens=kd.dict({  # pyrefly: ignore[missing-attribute]
+                              tokens=kd.dict({
                                   'George W. Bush': token_info_schema.new(
                                       is_noun=True
                                   ),
@@ -1484,9 +1484,9 @@ class DataSliceManagerViewTest(absltest.TestCase):
     manager = dsm.DataSliceManager.create_new(self.create_tempdir().full_path)
     trunk_root = DataSliceManagerView(manager)
 
-    query_schema = kd.named_schema('query', query_id=kd.INT32, text=kd.STRING)  # pyrefly: ignore[missing-attribute]
+    query_schema = kd.named_schema('query', query_id=kd.INT32, text=kd.STRING)
     trunk_root.query = (
-        kd.list([  # pyrefly: ignore[missing-attribute]
+        kd.list([
             query_schema.new(query_id=0, text='How tall is Obama'),
             query_schema.new(query_id=1, text='How high is the Eiffel tower'),
         ]),
@@ -1494,7 +1494,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     )
 
     selected_view = trunk_root.query[:].select(
-        kd.strings.contains(trunk_root.query[:].text.get_data_slice(), 'Obama'),  # pyrefly: ignore[missing-attribute]
+        kd.strings.contains(trunk_root.query[:].text.get_data_slice(), 'Obama'),
         description='Filtered queries with Obama',
     )
 
@@ -1502,8 +1502,8 @@ class DataSliceManagerViewTest(absltest.TestCase):
         selected_view.get_root().get_data_slice(
             populate_including_descendants=[selected_view.get_root()]
         ),
-        kd.new(  # pyrefly: ignore[missing-attribute]
-            query=kd.list([  # pyrefly: ignore[missing-attribute]
+        kd.new(
+            query=kd.list([
                 query_schema.new(query_id=0, text='How tall is Obama'),
             ])
         ),
@@ -1513,8 +1513,8 @@ class DataSliceManagerViewTest(absltest.TestCase):
     # Original is untouched
     kd.testing.assert_equivalent(
         trunk_root.get_data_slice(populate_including_descendants=[trunk_root]),
-        kd.new(  # pyrefly: ignore[missing-attribute]
-            query=kd.list([  # pyrefly: ignore[missing-attribute]
+        kd.new(
+            query=kd.list([
                 query_schema.new(query_id=0, text='How tall is Obama'),
                 query_schema.new(
                     query_id=1, text='How high is the Eiffel tower'
@@ -1539,9 +1539,9 @@ class DataSliceManagerViewTest(absltest.TestCase):
     trunk_root = DataSliceManagerView(manager)
 
     trunk_root.query = (
-        kd.list([  # pyrefly: ignore[missing-attribute]
-            kd.named_schema('query').new(query_id=0, text='How tall is Obama'),  # pyrefly: ignore[missing-attribute]
-            kd.named_schema('query').new(  # pyrefly: ignore[missing-attribute]
+        kd.list([
+            kd.named_schema('query').new(query_id=0, text='How tall is Obama'),
+            kd.named_schema('query').new(
                 query_id=1, text='How high is the Eiffel tower'
             ),
         ]),
@@ -1560,10 +1560,10 @@ class DataSliceManagerViewTest(absltest.TestCase):
       # branch, the branch directory is inside the trunk's branches/ directory.
       self.assertTrue(
           branch_root.get_manager()  # pyrefly: ignore[missing-attribute]
-          .get_persistence_directory()  # pytype: disable=attribute-error
+          .get_persistence_directory()
           .startswith(
               os.path.join(
-                  trunk_root.get_manager().get_persistence_directory(),  # pytype: disable=attribute-error
+                  trunk_root.get_manager().get_persistence_directory(),  # pyrefly: ignore[missing-attribute]
                   'branches',
                   os.sep,
               )
@@ -1602,12 +1602,12 @@ class DataSliceManagerViewTest(absltest.TestCase):
       branch_root = trunk_root.branch(description='Branch isolation test')
       # Update the trunk.
       trunk_query.doc = (
-          kd.slice([  # pyrefly: ignore[missing-attribute]
-              kd.list([  # pyrefly: ignore[missing-attribute]
-                  kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),  # pyrefly: ignore[missing-attribute]
+          kd.slice([
+              kd.list([
+                  kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),
               ]),
-              kd.list([  # pyrefly: ignore[missing-attribute]
-                  kd.named_schema('doc').new(doc_id=2, title='Tower of London'),  # pyrefly: ignore[missing-attribute]
+              kd.list([
+                  kd.named_schema('doc').new(doc_id=2, title='Tower of London'),
               ]),
           ]),
           'Added docs to original',
@@ -1620,7 +1620,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
       branch_query = branch_root.query[:]
       # Update the branch.
       branch_query.score = (
-          kd.slice([10, 20]),  # pyrefly: ignore[missing-attribute]
+          kd.slice([10, 20]),
           'Added a query score',
       )
       # The original should not see the new score attribute.
@@ -1640,7 +1640,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
       )
       # Verify independence: update branch_1; trunk and branch_2 are unaffected.
       branched_root_1.query[:].label = (
-          kd.slice(['a', 'b']),  # pyrefly: ignore[missing-attribute]
+          kd.slice(['a', 'b']),
           'Added label to first branch',
       )
       self.assertNotIn('label', kd.dir(trunk_root.query[:].get_schema()))
@@ -1649,10 +1649,10 @@ class DataSliceManagerViewTest(absltest.TestCase):
     with self.subTest('branch_from_invalid_view_raises'):
       manager = dsm.DataSliceManager.create_new(self.create_tempdir().full_path)
       root = DataSliceManagerView(manager)
-      root.x = kd.list([kd.named_schema('x').new(a=1)])  # pyrefly: ignore[missing-attribute]
+      root.x = kd.list([kd.named_schema('x').new(a=1)])
       x_items = root.x[:]
       # Make the path of x_items invalid by updating the root.
-      root.x = kd.item(42)  # pyrefly: ignore[missing-attribute]
+      root.x = kd.item(42)
       self.assertFalse(x_items.is_view_valid())
       with self.assertRaisesRegex(
           ValueError,
@@ -1671,9 +1671,9 @@ class DataSliceManagerViewTest(absltest.TestCase):
             " self.update('fingerprint', ...) instead"
         ),
     ):
-      root.fingerprint = kd.item(123)  # pyrefly: ignore[missing-attribute]
+      root.fingerprint = kd.item(123)
 
-    root.update('fingerprint', kd.item(123))  # pyrefly: ignore[missing-attribute]
+    root.update('fingerprint', kd.item(123))
 
     with self.assertRaisesRegex(
         AttributeError,
@@ -1685,7 +1685,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
       _ = root.fingerprint
 
     fingerprint = root.get_attr('fingerprint')
-    self.assertEqual(fingerprint.get_data_slice(), kd.item(123))  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(fingerprint.get_data_slice(), kd.item(123))
 
     # IPython auto-complete should not suggest the reserved attribute names.
     self.assertEqual(
@@ -1716,9 +1716,9 @@ class DataSliceManagerViewTest(absltest.TestCase):
   def test_getitem_raises_error_for_invalid_argument(self):
     manager = dsm.DataSliceManager.create_new(self.create_tempdir().full_path)
     root = DataSliceManagerView(manager)
-    root.query = kd.list([  # pyrefly: ignore[missing-attribute]
-        kd.named_schema('query').new(query_id=0, text='How tall is Obama'),  # pyrefly: ignore[missing-attribute]
-        kd.named_schema('query').new(  # pyrefly: ignore[missing-attribute]
+    root.query = kd.list([
+        kd.named_schema('query').new(query_id=0, text='How tall is Obama'),
+        kd.named_schema('query').new(
             query_id=1, text='How high is the Eiffel tower'
         ),
     ])
@@ -1749,15 +1749,15 @@ class DataSliceManagerViewTest(absltest.TestCase):
 
   def test_find_and_grep_descendants(self):
     # Set up a plain Koda DataSlice with query and doc data.
-    query_schema = kd.named_schema('query')  # pyrefly: ignore[missing-attribute]
+    query_schema = kd.named_schema('query')
     new_query = query_schema.new
-    doc_schema = kd.named_schema('doc')  # pyrefly: ignore[missing-attribute]
+    doc_schema = kd.named_schema('doc')
     new_doc = doc_schema.new
-    query_ds = kd.slice([  # pyrefly: ignore[missing-attribute]
+    query_ds = kd.slice([
         new_query(
             id=1,
             text='How high is the Eiffel tower',
-            doc=kd.list([  # pyrefly: ignore[missing-attribute]
+            doc=kd.list([
                 new_doc(
                     id=10, title='Attractions of Paris', content='foo' * 10000
                 )
@@ -1766,7 +1766,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
         new_query(
             id=2,
             text='How high is the empire state building',
-            doc=kd.list([  # pyrefly: ignore[missing-attribute]
+            doc=kd.list([
                 new_doc(
                     id=11,
                     title='Attractions of New York',
@@ -1896,15 +1896,15 @@ class DataSliceManagerViewTest(absltest.TestCase):
 
   def test_repr(self):
     # Set up a plain Koda DataSlice with query and doc data.
-    query_schema = kd.named_schema('query')  # pyrefly: ignore[missing-attribute]
+    query_schema = kd.named_schema('query')
     new_query = query_schema.new
-    doc_schema = kd.named_schema('doc')  # pyrefly: ignore[missing-attribute]
+    doc_schema = kd.named_schema('doc')
     new_doc = doc_schema.new
-    query_ds = kd.slice([  # pyrefly: ignore[missing-attribute]
+    query_ds = kd.slice([
         new_query(
             id=1,
             text='How high is the Eiffel tower',
-            doc=kd.list([  # pyrefly: ignore[missing-attribute]
+            doc=kd.list([
                 new_doc(
                     id=10, title='Attractions of Paris', content='foo' * 10000
                 )
@@ -1913,7 +1913,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
         new_query(
             id=2,
             text='How high is the empire state building',
-            doc=kd.list([  # pyrefly: ignore[missing-attribute]
+            doc=kd.list([
                 new_doc(
                     id=11,
                     title='Attractions of New York',
@@ -1968,26 +1968,26 @@ class DataSliceManagerViewTest(absltest.TestCase):
     )
 
   def test_get_with_populate_arguments(self):
-    token_info_schema = kd.schema.new_schema(is_noun=kd.BOOLEAN)  # pyrefly: ignore[missing-attribute]
-    doc_schema = kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+    token_info_schema = kd.schema.new_schema(is_noun=kd.BOOLEAN)
+    doc_schema = kd.schema.new_schema(
         doc_id=kd.INT32,
         title=kd.STRING,
-        tokens=kd.dict_schema(kd.STRING, token_info_schema),  # pyrefly: ignore[missing-attribute]
+        tokens=kd.dict_schema(kd.STRING, token_info_schema),
     )
-    query_metadata_schema = kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+    query_metadata_schema = kd.schema.new_schema(
         locale=kd.STRING,
     )
-    query_schema = kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+    query_schema = kd.schema.new_schema(
         query_id=kd.INT32,
         text=kd.STRING,
-        doc=kd.list_schema(doc_schema),  # pyrefly: ignore[missing-attribute]
+        doc=kd.list_schema(doc_schema),
         metadata=query_metadata_schema,
     )
-    query_list = kd.list([  # pyrefly: ignore[missing-attribute]
+    query_list = kd.list([
         query_schema.new(
             query_id=0,
             text='How tall is Obama',
-            doc=kd.list([  # pyrefly: ignore[missing-attribute]
+            doc=kd.list([
                 doc_schema.new(doc_id=0, title='Barack Obama'),
                 doc_schema.new(doc_id=1, title='Michelle Obama'),
                 doc_schema.new(doc_id=2, title='George W. Bush'),
@@ -1996,11 +1996,11 @@ class DataSliceManagerViewTest(absltest.TestCase):
         query_schema.new(
             query_id=1,
             text='How high is the Eiffel tower',
-            doc=kd.list([  # pyrefly: ignore[missing-attribute]
+            doc=kd.list([
                 doc_schema.new(
                     doc_id=3,
                     title='Eiffel tower',
-                    tokens=kd.dict({  # pyrefly: ignore[missing-attribute]
+                    tokens=kd.dict({
                         'How': token_info_schema.new(is_noun=False),
                         'Eiffel tower': token_info_schema.new(is_noun=True),
                     }),
@@ -2012,11 +2012,11 @@ class DataSliceManagerViewTest(absltest.TestCase):
         query_schema.new(
             query_id=2,
             text='How old is Bush?',
-            doc=kd.list([  # pyrefly: ignore[missing-attribute]
+            doc=kd.list([
                 doc_schema.new(
                     doc_id=5,
                     title='George W. Bush hands over the baton',
-                    tokens=kd.dict({  # pyrefly: ignore[missing-attribute]
+                    tokens=kd.dict({
                         'George W. Bush': token_info_schema.new(is_noun=True),
                         'hands': token_info_schema.new(is_noun=False),
                     }),
@@ -2041,7 +2041,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
             populate=[query_view.query_id, query_view.text],
         ),
         query_list[:]
-        .with_bag(kd.bag())  # pyrefly: ignore[missing-attribute]
+        .with_bag(kd.bag())
         .with_attrs(query_id=query_list[:].query_id, text=query_list[:].text),
         ids_equality=True,
     )
@@ -2060,11 +2060,11 @@ class DataSliceManagerViewTest(absltest.TestCase):
             # query text will be visible in the result.
             populate=[query_view.text, doc_view.doc_id],
         ),
-        kd.new(  # pyrefly: ignore[missing-attribute]
-            query=kd.list([  # pyrefly: ignore[missing-attribute]
+        kd.new(
+            query=kd.list([
                 query_schema.new(
                     text='How tall is Obama',
-                    doc=kd.list([  # pyrefly: ignore[missing-attribute]
+                    doc=kd.list([
                         doc_schema.new(doc_id=0),
                         doc_schema.new(doc_id=1),
                         doc_schema.new(doc_id=2),
@@ -2072,14 +2072,14 @@ class DataSliceManagerViewTest(absltest.TestCase):
                 ),
                 query_schema.new(
                     text='How high is the Eiffel tower',
-                    doc=kd.list([  # pyrefly: ignore[missing-attribute]
+                    doc=kd.list([
                         doc_schema.new(doc_id=3),
                         doc_schema.new(doc_id=4),
                     ]),
                 ),
                 query_schema.new(
                     text='How old is Bush?',
-                    doc=kd.list([  # pyrefly: ignore[missing-attribute]
+                    doc=kd.list([
                         doc_schema.new(doc_id=5),
                         doc_schema.new(doc_id=6),
                         doc_schema.new(doc_id=7),
@@ -2113,9 +2113,9 @@ class DataSliceManagerViewTest(absltest.TestCase):
     manager = dsm.DataSliceManager.create_new(persistence_dir)
     root = DataSliceManagerView(manager)
     root.query = (
-        kd.list([  # pyrefly: ignore[missing-attribute]
-            kd.named_schema('query').new(query_id=0, text='How tall is Obama'),  # pyrefly: ignore[missing-attribute]
-            kd.named_schema('query').new(  # pyrefly: ignore[missing-attribute]
+        kd.list([
+            kd.named_schema('query').new(query_id=0, text='How tall is Obama'),
+            kd.named_schema('query').new(
                 query_id=1, text='How high is the Eiffel tower'
             ),
         ]),
@@ -2123,10 +2123,10 @@ class DataSliceManagerViewTest(absltest.TestCase):
     )
     query = root.query[:]
     query.doc = (
-        kd.list([  # pyrefly: ignore[missing-attribute]
-            kd.named_schema('doc').new(doc_id=0, title='Barack Obama'),  # pyrefly: ignore[missing-attribute]
-            kd.named_schema('doc').new(doc_id=1, title='Michelle Obama'),  # pyrefly: ignore[missing-attribute]
-            kd.named_schema('doc').new(doc_id=2, title='George W. Bush'),  # pyrefly: ignore[missing-attribute]
+        kd.list([
+            kd.named_schema('doc').new(doc_id=0, title='Barack Obama'),
+            kd.named_schema('doc').new(doc_id=1, title='Michelle Obama'),
+            kd.named_schema('doc').new(doc_id=2, title='George W. Bush'),
         ]),
         'Added docs with doc_id and title',
     )

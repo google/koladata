@@ -232,7 +232,7 @@ def get_schema_node_name_from_schema_having_an_item_id(
 ) -> str:
   item_id = _get_item_id(schema_item)
   assert item_id is not None
-  return kd.encode_itemid(item_id).to_py()  # pyrefly: ignore[missing-attribute]
+  return kd.encode_itemid(item_id).to_py()
 
 
 def get_schema_node_name(
@@ -290,7 +290,7 @@ def get_schema_node_name(
   """
   child_schema_itemid = _get_item_id(child_schema_item)
   if child_schema_itemid is not None:
-    return kd.encode_itemid(child_schema_itemid).to_py()  # pyrefly: ignore[missing-attribute]
+    return kd.encode_itemid(child_schema_itemid).to_py()
 
   if child_schema_item.is_primitive_schema() or child_schema_item in [
       kd.ITEMID,
@@ -481,7 +481,7 @@ def _analyze_schema(
             (parent_name, child_name)
         )
         if existing_relationship_bag is not None:
-          new_relationship_bag = kd.bags.updated(  # pyrefly: ignore[missing-attribute]
+          new_relationship_bag = kd.bags.updated(
               new_relationship_bag, existing_relationship_bag
           ).merge_fallbacks()
         parent_and_child_to_schema_bag[(parent_name, child_name)] = (
@@ -852,7 +852,7 @@ class SchemaHelper:
         if c in schema_node_names
         and (p == _NO_PARENT_MARKER or p in schema_node_names)
     ]
-    return kd.bags.updated(  # pyrefly: ignore[missing-attribute]
+    return kd.bags.updated(
         *(augmented_stub_bags + minimal_bags_capturing_relationships)
     ).merge_fallbacks()
 

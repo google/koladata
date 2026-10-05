@@ -625,7 +625,7 @@ class DataBagManager:
         bag_name_to_bag[bn]
         for bn in self.canonical_topological_sorting(bag_name_to_bag.keys())
     ]
-    return kd.bags.updated(*bags)  # pyrefly: ignore[missing-attribute]
+    return kd.bags.updated(*bags)
 
   def _get_dependency_closure(
       self, bag_names: Collection[str], *, with_all_dependents: bool

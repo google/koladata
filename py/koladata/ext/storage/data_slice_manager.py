@@ -233,8 +233,8 @@ class DataSliceManager(
     schema_helper = schema_helper_lib.SchemaHelper(
         initial_data_manager.get_schema()
     )
-    initial_schema_node_name_to_data_bag_names = kd.dict({  # pyrefly: ignore[missing-attribute]
-        snn: kd.list([], item_schema=kd.STRING)  # pyrefly: ignore[missing-attribute]
+    initial_schema_node_name_to_data_bag_names = kd.dict({
+        snn: kd.list([], item_schema=kd.STRING)
         for snn in schema_helper.get_all_schema_node_names()
     })
     kd.s11n.dump(
@@ -556,7 +556,7 @@ class DataSliceManager(
         needed_schema_node_names,
     )
 
-    return kd.bags.updated(  # pyrefly: ignore[missing-attribute]
+    return kd.bags.updated(
         self._initial_data_manager.get_data_bag_for_schema_node_names(
             needed_schema_node_names
             & self._initial_data_manager.get_all_schema_node_names()
@@ -751,7 +751,7 @@ class DataSliceManager(
         self._schema_helper.get_schema_node_name_for_data_slice_path(at_path)
     )
     at_subschema = self._schema_helper.get_subschema_at(at_schema_node_name)
-    if not kd.schema.is_entity_schema(at_subschema):  # pyrefly: ignore[missing-attribute]
+    if not kd.schema.is_entity_schema(at_subschema):
       raise ValueError(
           f"the schema at data slice path '{at_path}' is {at_subschema}, which"
           ' does not support updates. Please pass a data slice path that is'
@@ -765,7 +765,7 @@ class DataSliceManager(
         )
     )
 
-    new_schema_bag = kd.attrs(  # pyrefly: ignore[missing-attribute]
+    new_schema_bag = kd.attrs(
         at_subschema,
         **{attr_name: extracted_attr_value.get_schema()},
     )
@@ -914,7 +914,7 @@ class DataSliceManager(
         continue
       merged_bag_name = self._get_fresh_bag_name()
       new_bag_ids_to_merged_bag_name[bag_ids] = merged_bag_name
-      merged_bag_name_to_merged_bag[merged_bag_name] = kd.bags.updated(  # pyrefly: ignore[missing-attribute]
+      merged_bag_name_to_merged_bag[merged_bag_name] = kd.bags.updated(
           *[new_bag_id_to_new_bag[bn] for bn in bag_ids]
       ).merge_fallbacks()
       merged_bag_names.append(merged_bag_name)
@@ -1001,20 +1001,20 @@ class DataSliceManager(
     for snn, new_bag_names in snn_to_merged_bag_name.items():
       existing_bag_names = self._get_data_bag_names(snn)
       if existing_bag_names is None:
-        update_bag = kd.dict_update(  # pyrefly: ignore[missing-attribute]
+        update_bag = kd.dict_update(
             self._initial_schema_node_name_to_data_bag_names,
-            kd.dict({snn: kd.list(new_bag_names, item_schema=kd.STRING)}),  # pyrefly: ignore[missing-attribute]
+            kd.dict({snn: kd.list(new_bag_names, item_schema=kd.STRING)}),
         )
       else:
-        update_bag = kd.list_append_update(  # pyrefly: ignore[missing-attribute]
-            existing_bag_names, kd.slice(new_bag_names, schema=kd.STRING)  # pyrefly: ignore[missing-attribute]
+        update_bag = kd.list_append_update(
+            existing_bag_names, kd.slice(new_bag_names, schema=kd.STRING)
         )
       snn_to_data_bags_updates.append(update_bag)
     map_update_bag_name = self._get_fresh_bag_name()
     self._schema_node_name_to_data_bags_updates_manager.add_bags([
         dbm.BagToAdd(
             map_update_bag_name,
-            kd.bags.updated(*snn_to_data_bags_updates).merge_fallbacks(),  # pyrefly: ignore[missing-attribute]
+            kd.bags.updated(*snn_to_data_bags_updates).merge_fallbacks(),
             # We don't specify fine-grained dependencies. Instead, we always
             # load+use all the update bags, and we rely on the manager's
             # bookkeeping of the total order in which the bags were added.
@@ -1329,7 +1329,7 @@ class DataSliceManager(
     """
     snn_to_data_bag_names = self._get_schema_node_name_to_data_bag_names()
     bag_names = snn_to_data_bag_names[schema_node_name]
-    if not kd.has(bag_names):  # pyrefly: ignore[missing-attribute]
+    if not kd.has(bag_names):
       return None
     return bag_names
 
