@@ -109,7 +109,7 @@ class SetItemTest(absltest.TestCase):
         ValueError,
         re.escape('slice is not yet supported in View.__setitem__'),
     ):
-      kv.set_item(kv.view(x)[:], slice(None), 1)  # pytype: disable=wrong-arg-types
+      kv.set_item(kv.view(x)[:], slice(None), 1)  # pyrefly: ignore[bad-argument-type]
 
   def test_auto_boxing_scalar_value(self):
     x = {'a': 1}
@@ -122,7 +122,7 @@ class SetItemTest(absltest.TestCase):
         ValueError,
         re.escape("Cannot automatically box {'a': 1}"),
     ):
-      kv.set_item(x, kv.view('a'), kv.view(10))  # pytype: disable=wrong-arg-types
+      kv.set_item(x, kv.view('a'), kv.view(10))  # pyrefly: ignore[bad-argument-type]
 
   def test_set_item_with_view_value(self):
     x = {'a': 1}

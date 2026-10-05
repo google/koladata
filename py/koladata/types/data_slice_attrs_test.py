@@ -432,7 +432,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
             r'object schema is missing for the DataItem'
         ),
     ):
-      del obj.with_bag(bag()).a  # pyrefly: ignore[missing-attribute]
+      del obj.with_bag(bag()).a
 
   def test_set_get_attr_slice_of_objects_missing_schema_attr(self):
     db = bag()
@@ -461,13 +461,13 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
             re.escape('object schema(s) are missing')
         ),
     ):
-      del obj.a  # pyrefly: ignore[missing-attribute]
+      del obj.a
 
   def test_repr_with_removed(self):
     o = bag().obj(x=1, y=2)
     o.z = 3
     self.assertEqual(str(o), 'Obj(x=1, y=2, z=3)')
-    del o.z  # pyrefly: ignore[missing-attribute]
+    del o.z
     self.assertEqual(str(o), 'Obj(x=1, y=2)')
 
   def test_set_get_attr_object_wrong_schema_attr(self):
@@ -496,7 +496,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
             )
         ),
     ):
-      del obj.a  # pyrefly: ignore[missing-attribute]
+      del obj.a
 
   def test_set_attr_merging(self):
     db1 = bag()
@@ -621,7 +621,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
   def test_clone_schema_with_removed_attr(self):
     sc1 = bag().new_schema(x=schema_constants.INT32, y=schema_constants.INT32)
     sc2 = sc1.fork_bag()
-    del sc2.x  # pyrefly: ignore[missing-attribute]
+    del sc2.x
     sc3 = sc2.clone()
     testing.assert_equal(sc3.y.no_bag(), schema_constants.INT32)
 
@@ -735,12 +735,12 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
 
     with self.subTest('entity'):
       e = db.new(a=1, b=2)
-      del e.a  # pyrefly: ignore[missing-attribute]
+      del e.a
       testing.assert_equal(e.a, ds(None, schema_constants.INT32).with_bag(db))
       testing.assert_equal(
           e.a.get_schema(), schema_constants.INT32.with_bag(db)
       )
-      del e.get_schema().b  # pyrefly: ignore[missing-attribute]
+      del e.get_schema().b
       with self.assertRaisesWithPredicateMatch(
           AttributeError,
           arolla.testing.any_cause_message_regex(
@@ -762,7 +762,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
               )
           ),
       ):
-        del e.get_schema().c  # pyrefly: ignore[missing-attribute]
+        del e.get_schema().c
       with self.assertRaisesWithPredicateMatch(
           ValueError,
           arolla.testing.any_cause_message_regex(
@@ -773,11 +773,11 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
               )
           ),
       ):
-        del e.c  # pyrefly: ignore[missing-attribute]
+        del e.c
 
     with self.subTest('object'):
       o = db.obj(a=1, b=2)
-      del o.a  # pyrefly: ignore[missing-attribute]
+      del o.a
       with self.assertRaisesWithPredicateMatch(
           AttributeError,
           arolla.testing.any_cause_message_regex(
@@ -789,7 +789,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
           ),
       ):
         _ = o.a
-      del o.get_attr('__schema__').b  # pyrefly: ignore[missing-attribute]
+      del o.get_attr('__schema__').b
       with self.assertRaisesWithPredicateMatch(
           ValueError,
           arolla.testing.any_cause_message_regex(
@@ -800,7 +800,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
               )
           ),
       ):
-        del o.b  # pyrefly: ignore[missing-attribute]
+        del o.b
       with self.assertRaisesWithPredicateMatch(
           ValueError,
           arolla.testing.any_cause_message_regex(
@@ -811,7 +811,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
               )
           ),
       ):
-        del o.c  # pyrefly: ignore[missing-attribute]
+        del o.c
 
     with self.assertRaisesWithPredicateMatch(
         AttributeError,

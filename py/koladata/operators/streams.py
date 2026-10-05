@@ -733,7 +733,7 @@ def call(
     returned by the functor.
   """
   args, kwargs = arolla.optools.fix_trace_args_kwargs(args, kwargs)
-  return arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+  return arolla.abc.bind_op(
       koda_internal_parallel.stream_call,
       M.core.default_if_unspecified(executor, current_executor()),
       fn,

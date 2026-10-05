@@ -311,7 +311,7 @@ class EagerOpUtilsTest(parameterized.TestCase):
         AssertionError, 'is not an eager operator container'
     ):
       eager_op_utils.add_overrides(
-          types.SimpleNamespace(),  # pytype: disable=wrong-arg-types
+          types.SimpleNamespace(),  # pyrefly: ignore[bad-argument-type]
           types.SimpleNamespace(),
       )
 

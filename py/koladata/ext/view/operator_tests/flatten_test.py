@@ -37,7 +37,7 @@ class FlattenTest(parameterized.TestCase):
     self.assertEqual(kv.flatten(None).get(), (None,))
     self.assertEqual(kv.flatten('foo').get(), ('foo',))
     with self.assertRaisesRegex(ValueError, 'Cannot automatically box'):
-      _ = kv.flatten([1, 2])  # pytype: disable=wrong-arg-types
+      _ = kv.flatten([1, 2])  # pyrefly: ignore[bad-argument-type]
 
 
 if __name__ == '__main__':

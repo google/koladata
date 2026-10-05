@@ -158,7 +158,7 @@ class LiteralOperatorTest(parameterized.TestCase):
     )
     l = literal_operator.literal(x)
     self.assertEqual(
-        arolla.abc.infer_attr(l.op).qvalue.fingerprint, l.qvalue.fingerprint  # pytype: disable=attribute-error
+        arolla.abc.infer_attr(l.op).qvalue.fingerprint, l.qvalue.fingerprint  # pyrefly: ignore[missing-attribute]
     )
 
 

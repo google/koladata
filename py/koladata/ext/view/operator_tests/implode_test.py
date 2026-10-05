@@ -55,7 +55,7 @@ class ImplodeTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, 'has only 0 dimensions'):
       _ = kv.implode(None)
     with self.assertRaisesRegex(ValueError, 'Cannot automatically box'):
-      _ = kv.implode([1, 2])  # pytype: disable=wrong-arg-types
+      _ = kv.implode([1, 2])  # pyrefly: ignore[bad-argument-type]
 
 
 if __name__ == '__main__':

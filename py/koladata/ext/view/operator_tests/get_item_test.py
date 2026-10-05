@@ -60,7 +60,7 @@ class GetItemTest(parameterized.TestCase):
   def test_auto_boxing(self):
     self.assertIsNone(kv.get_item(None, 'a').get())
     with self.assertRaisesRegex(ValueError, 'Cannot automatically box'):
-      _ = kv.get_item({'a': 1}, 'a')  # pytype: disable=wrong-arg-types
+      _ = kv.get_item({'a': 1}, 'a')  # pyrefly: ignore[bad-argument-type]
 
 
 if __name__ == '__main__':

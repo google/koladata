@@ -1370,7 +1370,7 @@ def _parallel_call(
     kwargs,
 ):
   """The replacement for kd.call in parallel evaluation."""
-  return arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+  return arolla.abc.bind_op(
       functor.call,
       transformed_fn,
       args=M.core.concat_tuples(M.core.make_tuple(executor), args),
@@ -2400,7 +2400,7 @@ def _parallel_if_impl(
   args = parallel_args[0]
   return_type_as = parallel_args[1]
   kwargs = parallel_args[2]
-  return arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+  return arolla.abc.bind_op(
       functor.if_,
       cond,
       transformed_yes_fn,
@@ -2460,7 +2460,7 @@ def _parallel_switch_impl(
   args = parallel_args[0]
   return_type_as = parallel_args[1]
   kwargs = parallel_args[2]
-  return arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+  return arolla.abc.bind_op(
       functor.switch,
       key,
       case_keys,
@@ -2852,7 +2852,7 @@ def _create_loop_condition_wrapping_fn():
   return py_functors_base_py_ext.create_functor(
       introspection.pack_expr(
           stream_from_future(
-              arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+              arolla.abc.bind_op(
                   functor.call,
                   V.fn,
                   args=M.core.concat_tuples(
@@ -2894,7 +2894,7 @@ def _create_while_body_wrapping_fn():
   # proper return_type_as.
   return py_functors_base_py_ext.create_functor(
       introspection.pack_expr(
-          arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+          arolla.abc.bind_op(
               functor.call_and_update_namedtuple,
               V.fn,
               args=M.core.make_tuple(V.executor),
@@ -3062,7 +3062,7 @@ def _create_for_body_wrapping_fn():
   # proper return_type_as.
   return py_functors_base_py_ext.create_functor(
       introspection.pack_expr(
-          arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+          arolla.abc.bind_op(
               functor.call_and_update_namedtuple,
               V.fn,
               args=M.core.make_tuple(V.executor, as_parallel(I.x)),
@@ -3108,7 +3108,7 @@ def _create_for_finalize_wrapping_fn():
   # proper return_type_as.
   return py_functors_base_py_ext.create_functor(
       introspection.pack_expr(
-          arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+          arolla.abc.bind_op(
               functor.call_and_update_namedtuple,
               V.fn,
               args=M.core.make_tuple(V.executor),
@@ -3315,7 +3315,7 @@ def _create_pointwise_invoke_fn_template():
       M.qtype.get_field_names(M.qtype.qtype_of(V.kwargs)),
       kwargs,
   )
-  res = arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+  res = arolla.abc.bind_op(
       functor.call,
       fn,
       args=M.core.concat_tuples(M.core.make_tuple(V.executor), args),

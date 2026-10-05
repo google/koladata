@@ -87,13 +87,13 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
         ValueError,
         re.escape('expected one of [OBJECT], got obj: DATA_SLICE'),
     ):
-      extension_type_registry.wrap(123, _EXT_TYPE)  # pytype: disable=wrong-arg-types
+      extension_type_registry.wrap(123, _EXT_TYPE)
     with self.assertRaisesRegex(
         ValueError,
         'there is no registered extension type corresponding to the QType'
         ' INT32',
     ):
-      extension_type_registry.wrap(ds([1, 2, 3]), arolla.INT32)  # pytype: disable=wrong-arg-types
+      extension_type_registry.wrap(ds([1, 2, 3]), arolla.INT32)
 
   def test_wrap_not_registered(self):
     obj = objects.Object(x=ds(1), y=ds(2))

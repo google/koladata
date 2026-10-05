@@ -257,7 +257,7 @@ class DataSliceTest(parameterized.TestCase):
           x > 1, ds([None, arolla.present(), arolla.present()])
       )
       testing.assert_equal(
-          2 > x, ds([arolla.present(), None, None])  # pyrefly: ignore[bad-argument-type]
+          2 > x, ds([arolla.present(), None, None])
       )
     with self.subTest('ge'):
       testing.assert_equal(
@@ -268,14 +268,14 @@ class DataSliceTest(parameterized.TestCase):
           x >= 2, ds([None, arolla.present(), arolla.present()])
       )
       testing.assert_equal(
-          1 >= x, ds([arolla.present(), None, None])  # pyrefly: ignore[bad-argument-type]
+          1 >= x, ds([arolla.present(), None, None])
       )
     with self.subTest('lt'):
       testing.assert_equal(y < z, ds([None, None, None], schema_constants.MASK))
       # With auto-boxing
       testing.assert_equal(x < 2, ds([arolla.present(), None, None]))
       testing.assert_equal(
-          2 < x, ds([None, None, arolla.present()])  # pyrefly: ignore[bad-argument-type]
+          2 < x, ds([None, None, arolla.present()])
       )
     with self.subTest('le'):
       testing.assert_equal(
@@ -286,7 +286,7 @@ class DataSliceTest(parameterized.TestCase):
           x <= 2, ds([arolla.present(), arolla.present(), None])
       )
       testing.assert_equal(
-          2 <= x, ds([None, arolla.present(), arolla.present()])  # pyrefly: ignore[bad-argument-type]
+          2 <= x, ds([None, arolla.present(), arolla.present()])
       )
     with self.subTest('or'):
       testing.assert_equal((x & mask) | y, ds([1, 5, 3]))

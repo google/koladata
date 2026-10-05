@@ -94,7 +94,7 @@ class DataBagTest(parameterized.TestCase):
     testing.assert_equal_by_fingerprint(x.get_bag(), db)
 
     with self.assertRaisesRegex(TypeError, 'expected DataSlice, got list'):
-      _ = db[[1, 2, 3]]  # pytype: disable=unsupported-operands
+      _ = db[[1, 2, 3]]  # pyrefly: ignore[bad-index]
 
   def test_is_empty(self):
     db = bag()
@@ -440,13 +440,13 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
           TypeError,
           "'str' object cannot be interpreted as an integer",
       ):
-        _ = repr(db.contents_repr(triple_limit='one thousand'))  # pytype: disable=wrong-arg-types
+        _ = repr(db.contents_repr(triple_limit='one thousand'))  # pyrefly: ignore[bad-argument-type]
       with self.subTest('positional-argument'):
         with self.assertRaisesRegex(
             TypeError,
             r'_contents_repr\(\) takes 1 positional argument but 2 were given',
         ):
-          _ = repr(db.contents_repr(1000))  # pytype: disable=wrong-arg-count
+          _ = repr(db.contents_repr(1000))  # pyrefly: ignore[bad-argument-count]
       with self.subTest('negative-limit'):
         with self.assertRaisesRegex(
             ValueError,
@@ -641,7 +641,7 @@ $""",
       _ = db.uu(
           a=ds([3.14], schema_constants.FLOAT64),
           b=ds(['abc'], schema_constants.STRING),
-          seed=b'seed',  # pytype: disable=wrong-arg-types
+          seed=b'seed',  # pyrefly: ignore[bad-argument-type]
       )
 
     # schema arg
@@ -738,7 +738,7 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
       _ = db.uuobj(
           a=ds([3.14], schema_constants.FLOAT64),
           b=ds(['abc'], schema_constants.STRING),
-          seed=b'seed',  # pytype: disable=wrong-arg-types
+          seed=b'seed',  # pyrefly: ignore[bad-argument-type]
       )
 
     # no args
@@ -783,7 +783,7 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
       _ = db.uu_schema(
           a=schema_constants.INT32,
           b=schema_constants.STRING,
-          seed=b'seed',  # pytype: disable=wrong-arg-types
+          seed=b'seed',  # pyrefly: ignore[bad-argument-type]
       )
 
     # no args
@@ -809,7 +809,7 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
         'argument `0`, i.e. the positional-only `schema name` must be a utf8'
         ' string, got bytes',
     ):
-      _ = db.named_schema(b'name')  # pytype: disable=wrong-arg-types
+      _ = db.named_schema(b'name')  # pyrefly: ignore[bad-argument-type]
 
     with self.assertRaisesRegex(
         ValueError,
@@ -840,7 +840,7 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
         TypeError,
         'accepts 1 positional-only argument but 0 were given',
     ):
-      _ = db.named_schema(name='SomeName')  # pytype: disable=missing-parameter
+      _ = db.named_schema(name='SomeName')  # pyrefly: ignore[bad-argument-count]
 
   def test_named_schema_no_args_whatsoever_does_not_crash(self):
     db = bag()
@@ -848,7 +848,7 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
         TypeError,
         'accepts 1 positional-only argument but 0 were given',
     ):
-      _ = db.named_schema()  # pytype:disable=missing-parameter
+      _ = db.named_schema()  # pyrefly: ignore[bad-argument-count]
 
   def test_named_schema_nested_attrs(self):
     db = bag()
@@ -985,25 +985,25 @@ Assigned schema for 'a': ENTITY(c=STRING)"""),
     with self.assertRaisesWithLiteralMatch(
         TypeError, "got an unexpected keyword 'seed'"
     ):
-      _ = db.list_schema(seed='')  # pytype: disable=wrong-keyword-args,missing-parameter
+      _ = db.list_schema(seed='')  # pyrefly: ignore[missing-argument, unexpected-keyword]
 
     with self.assertRaisesWithLiteralMatch(
         ValueError,
         'missing required argument to DataBag._list_schema: `item_schema`',
     ):
-      _ = db.list_schema()  # pytype: disable=missing-parameter
+      _ = db.list_schema()  # pyrefly: ignore[missing-argument]
 
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         'accepts 0 to 1 positional arguments but 2 were given',
     ):
-      _ = db.list_schema(1, 2)  # pytype: disable=wrong-arg-count
+      _ = db.list_schema(1, 2)  # pyrefly: ignore[bad-argument-count, bad-argument-type]
 
     with self.assertRaisesRegex(
         TypeError,
         'expecting item_schema to be a DataSlice, got NoneType',
     ):
-      _ = db.list_schema(item_schema=None)  # pytype: disable=wrong-arg-types
+      _ = db.list_schema(item_schema=None)  # pyrefly: ignore[bad-argument-type]
 
   def test_list_schema_errors(self):
     db = bag()
@@ -1056,37 +1056,37 @@ Assigned schema for list items: STRING""",
     with self.assertRaisesWithLiteralMatch(
         TypeError, "got an unexpected keyword 'seed'"
     ):
-      _ = db.dict_schema(seed='')  # pytype: disable=wrong-keyword-args
+      _ = db.dict_schema(seed='')  # pyrefly: ignore[missing-argument, unexpected-keyword]
 
     with self.assertRaisesWithLiteralMatch(
         ValueError,
         'missing required argument to DataBag._dict_schema: `key_schema`',
     ):
-      _ = db.dict_schema()  # pytype: disable=missing-parameter
+      _ = db.dict_schema()  # pyrefly: ignore[missing-argument]
 
     with self.assertRaisesWithLiteralMatch(
         ValueError,
         'missing required argument to DataBag._dict_schema: `value_schema`',
     ):
-      _ = db.dict_schema(schema_constants.INT32)  # pytype: disable=missing-parameter
+      _ = db.dict_schema(schema_constants.INT32)  # pyrefly: ignore[missing-argument]
 
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         'accepts 0 to 2 positional arguments but 3 were given',
     ):
-      _ = db.dict_schema(1, 2, 3)  # pytype: disable=wrong-arg-count
+      _ = db.dict_schema(1, 2, 3)  # pyrefly: ignore[bad-argument-count, bad-argument-type]
 
     with self.assertRaisesRegex(
         TypeError,
         'expecting key_schema to be a DataSlice, got NoneType',
     ):
-      _ = db.dict_schema(key_schema=None, value_schema=None)  # pytype: disable=wrong-arg-types
+      _ = db.dict_schema(key_schema=None, value_schema=None)  # pyrefly: ignore[bad-argument-type]
 
     with self.assertRaisesRegex(
         TypeError,
         'expecting value_schema to be a DataSlice, got NoneType',
     ):
-      _ = db.dict_schema(key_schema=schema_constants.INT32, value_schema=None)  # pytype: disable=wrong-arg-types
+      _ = db.dict_schema(key_schema=schema_constants.INT32, value_schema=None)  # pyrefly: ignore[bad-argument-type]
 
     with self.assertRaisesRegex(
         ValueError,
@@ -1180,15 +1180,15 @@ Assigned schema for keys: INT32""",
     with self.assertRaisesRegex(
         TypeError, r'accepts 1 positional-only argument but 0 were given'
     ):
-      db.new_shaped()  # pytype: disable=missing-parameter
+      db.new_shaped()  # pyrefly: ignore[missing-argument]
     with self.assertRaisesRegex(
         TypeError, 'expecting shape to be a JaggedShape, got int'
     ):
-      db.new_shaped(4)  # pytype: disable=wrong-arg-types
+      db.new_shaped(4)
     with self.assertRaisesRegex(
         TypeError, 'expecting shape to be a JaggedShape, got .*DataBag'
     ):
-      db.new_shaped(db)  # pytype: disable=wrong-arg-types
+      db.new_shaped(db)
     with self.assertRaisesRegex(
         TypeError,
         'expecting shape to be a JaggedShape, got JaggedArrayShape',
@@ -1244,11 +1244,11 @@ Assigned schema for keys: INT32""",
     with self.assertRaisesRegex(
         TypeError, r'accepts 1 positional-only argument but 0 were given'
     ):
-      db.new_like()  # pytype: disable=missing-parameter
+      db.new_like()  # pyrefly: ignore[missing-argument]
     with self.assertRaisesRegex(
         TypeError, 'expecting shape_and_mask_from to be a DataSlice, got int'
     ):
-      db.new_like(4)  # pytype: disable=wrong-arg-types
+      db.new_like(4)  # pyrefly: ignore[bad-argument-type]
 
   def test_new_like_str_as_schema_arg(self):
     shape_and_mask_from = ds([[6, 7], [8]])
@@ -1291,11 +1291,11 @@ Assigned schema for keys: INT32""",
     with self.assertRaisesRegex(
         TypeError, r'accepts 1 positional-only argument but 0 were given'
     ):
-      db.obj_shaped()  # pytype: disable=missing-parameter
+      db.obj_shaped()  # pyrefly: ignore[missing-argument]
     with self.assertRaisesRegex(
         TypeError, 'expecting shape to be a JaggedShape, got int'
     ):
-      db.obj_shaped(1)  # pytype: disable=wrong-arg-types
+      db.obj_shaped(1)
 
   def test_obj_like(self):
     db = bag()
@@ -1317,11 +1317,11 @@ Assigned schema for keys: INT32""",
     with self.assertRaisesRegex(
         TypeError, r'accepts 1 positional-only argument but 0 were given'
     ):
-      db.obj_like()  # pytype: disable=missing-parameter
+      db.obj_like()  # pyrefly: ignore[missing-argument]
     with self.assertRaisesRegex(
         TypeError, 'expecting shape_and_mask_from to be a DataSlice, got int'
     ):
-      db.obj_like(4)  # pytype: disable=wrong-arg-types
+      db.obj_like(4)  # pyrefly: ignore[bad-argument-type]
 
   def test_obj_merging(self):
     db = bag()
@@ -1395,13 +1395,13 @@ Assigned schema for keys: INT32""",
             'to DataItem) if `values` is provided, but got dict'
         ),
     ):
-      db.dict({'a': 42}, 12)  # pytype: disable=wrong-arg-types
+      db.dict({'a': 42}, 12)
     with self.assertRaisesRegex(
         TypeError,
         '`items_or_keys` must be a Python dict if `values` is not provided,'
         ' but got str',
     ):
-      db.dict('a')  # pytype: disable=wrong-arg-types
+      db.dict('a')
     with self.assertRaisesRegex(
         ValueError,
         r"""cannot find a common schema
@@ -1500,7 +1500,7 @@ Assigned schema for keys: INT32""",
     with self.assertRaisesRegex(
         TypeError, re.escape('_list() takes from 1 to 2 positional arguments')
     ):
-      db.list(ds([]), ds([]), ds([]))  # pytype: disable=wrong-arg-count
+      db.list(ds([]), ds([]), ds([]))  # pyrefly: ignore[bad-argument-count]
 
   @parameterized.parameters(
       ([], 1),
@@ -1552,15 +1552,15 @@ Assigned schema for keys: INT32""",
         TypeError,
         re.escape('_list_like() takes from 2 to 3 positional arguments'),
     ):
-      db.list_like(ds([]), ds([]), ds([]))  # pytype: disable=wrong-arg-count
+      db.list_like(ds([]), ds([]), ds([]))  # pyrefly: ignore[bad-argument-count]
     with self.assertRaisesRegex(
         TypeError, 'expecting shape_and_mask_from to be a DataSlice, got int'
     ):
-      db.list_like(56, 57)  # pytype: disable=wrong-arg-types
+      db.list_like(56, 57)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(
         TypeError, 'expecting shape_and_mask_from to be a DataSlice, got Int'
     ):
-      db.list_like(arolla.int32(56), 57)  # pytype: disable=wrong-arg-types
+      db.list_like(arolla.int32(56), 57)
 
   def test_implode_impl(self):
     # NOTE: more tests for implode in
@@ -1571,17 +1571,17 @@ Assigned schema for keys: INT32""",
         TypeError,
         re.escape('_implode() takes from 2 to 4 positional arguments'),
     ):
-      db.implode(ds([]), 1, 2, 3)  # pytype: disable=wrong-arg-count
+      db.implode(ds([]), 1, 2, 3)  # pyrefly: ignore[bad-argument-count, bad-argument-type]
     with self.assertRaisesRegex(
         TypeError, 'expecting x to be a DataSlice, got int'
     ):
-      db.implode(1, 2, 3)  # pytype: disable=wrong-arg-types
+      db.implode(1, 2, 3)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(TypeError, 'an integer is required'):
       db.implode(ds([]), ds([]), ds([]))
     with self.assertRaisesRegex(
         TypeError, 'expecting itemid to be a DataSlice, got int'
     ):
-      db.implode(ds([]), 1, 42)  # pytype: disable=wrong-arg-types
+      db.implode(ds([]), 1, 42)  # pyrefly: ignore[bad-argument-type]
 
   def test_concat_lists_impl(self):
     # NOTE: more tests for concat_lists in
@@ -1591,23 +1591,23 @@ Assigned schema for keys: INT32""",
     with self.assertRaisesRegex(
         TypeError, re.escape('expecting *lists to be a DataSlice, got NoneType')
     ):
-      db.concat_lists(ds(0), None)  # pytype: disable=wrong-arg-types
+      db.concat_lists(ds(0), None)  # pyrefly: ignore[bad-argument-type]
 
   def test_exactly_equal_impl_raises(self):
     with self.assertRaisesRegex(
         TypeError, 'takes 2 positional arguments but 3'
     ):
-      data_bag.exactly_equal(42, 42, 42)  # pytype: disable=wrong-arg-count
+      data_bag.exactly_equal(42, 42, 42)  # pyrefly: ignore[bad-argument-count, bad-argument-type]
 
     with self.assertRaisesRegex(
         TypeError, 'missing 2 required positional arguments'
     ):
-      data_bag.exactly_equal()  # pytype: disable=missing-parameter
+      data_bag.exactly_equal()  # pyrefly: ignore[missing-argument]
 
     with self.assertRaisesRegex(
         TypeError, 'expecting b to be a DataBag, got int'
     ):
-      data_bag.exactly_equal(bag(), 42)  # pytype: disable=wrong-arg-types
+      data_bag.exactly_equal(bag(), 42)  # pyrefly: ignore[bad-argument-type]
 
   def test_exactly_equal_impl(self):
     db1 = bag()
@@ -1650,22 +1650,22 @@ Assigned schema for keys: INT32""",
     with self.assertRaisesRegex(
         TypeError, 'takes 2 positional arguments but 3'
     ):
-      data_bag.content_equal(42, 42, 42)  # pytype: disable=wrong-arg-count
+      data_bag.content_equal(42, 42, 42)  # pyrefly: ignore[bad-argument-count, bad-argument-type]
 
     with self.assertRaisesRegex(
         TypeError, 'missing 2 required positional arguments'
     ):
-      data_bag.content_equal()  # pytype: disable=missing-parameter
+      data_bag.content_equal()  # pyrefly: ignore[missing-argument]
 
     with self.assertRaisesRegex(
         TypeError, 'expecting a to be a DataBag, got int'
     ):
-      data_bag.content_equal(42, bag())  # pytype: disable=wrong-arg-types
+      data_bag.content_equal(42, bag())  # pyrefly: ignore[bad-argument-type]
 
     with self.assertRaisesRegex(
         TypeError, 'expecting b to be a DataBag, got int'
     ):
-      data_bag.content_equal(bag(), 42)  # pytype: disable=wrong-arg-types
+      data_bag.content_equal(bag(), 42)  # pyrefly: ignore[bad-argument-type]
 
   def test_content_equal_impl(self):
     db1 = bag()
@@ -1729,7 +1729,7 @@ Assigned schema for keys: INT32""",
     entity1_in_db2 = db2.adopt(obj1.stub())
 
     entity1_in_db2.x = 2
-    del entity0_in_db2.x  # pyrefly: ignore[missing-attribute]
+    del entity0_in_db2.x
 
     testing.assert_equal(obj0.x.no_bag(), ds(1))
     db1.merge_inplace(db2, overwrite=True)
@@ -1986,28 +1986,28 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     db2 = bag()
     x2 = x1.with_bag(db2)
     x2.set_attr('a', 3)
-    db1.merge_inplace(db2, overwrite=0)  # pytype: disable=wrong-arg-types
+    db1.merge_inplace(db2, overwrite=0)  # pyrefly: ignore[bad-argument-type]
     self.assertEqual(x1.a, ds(1))
-    db1.merge_inplace(db2, overwrite=1)  # pytype: disable=wrong-arg-types
+    db1.merge_inplace(db2, overwrite=1)  # pyrefly: ignore[bad-argument-type]
     self.assertEqual(x1.a, ds(3))
     with self.assertRaisesRegex(TypeError, '__bool__ disabled'):
-      db1.merge_inplace(db2, overwrite=arolla.L.x)  # pytype: disable=wrong-arg-types
+      db1.merge_inplace(db2, overwrite=arolla.L.x)  # pyrefly: ignore[bad-argument-type]
 
   def test_merge_inplace_not_databags(self):
     db1 = bag()
     x1 = db1.new(a=1, b=2)
     with self.assertRaisesRegex(TypeError, 'must be an iterable'):
-      db1.merge_inplace(57)  # pytype: disable=wrong-arg-types
+      db1.merge_inplace(57)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(
         TypeError,
         'expecting each DataBag to be merged to be a DataBag, got int',
     ):
-      db1.merge_inplace([57])  # pytype: disable=wrong-arg-types
+      db1.merge_inplace([57])  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(
         TypeError,
         'expecting each DataBag to be merged to be a DataBag, got None',
     ):
-      db1.merge_inplace([None])  # pytype: disable=wrong-arg-types
+      db1.merge_inplace([None])  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(
         TypeError,
         'expecting each DataBag to be merged to be a DataBag, got None',
@@ -2018,15 +2018,15 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
         'expecting each DataBag to be merged to be a DataBag, got '
         'koladata.types.data_item.DataItem',
     ):
-      db1.merge_inplace([x1])  # pytype: disable=wrong-arg-types
+      db1.merge_inplace([x1])  # pyrefly: ignore[bad-argument-type]
 
   def test_adopt_args_errors(self):
     with self.assertRaises(TypeError):  # Python runtime error.
-      bag().adopt()  # pytype:disable=missing-parameter
+      bag().adopt()  # pyrefly: ignore[bad-argument-count]
     with self.assertRaises(TypeError):  # Python runtime error.
-      bag().adopt(ds(1), ds(2))  # pytype: disable=wrong-arg-count
+      bag().adopt(ds(1), ds(2))  # pyrefly: ignore[bad-argument-count]
     with self.assertRaisesRegex(TypeError, 'expecting slice to be a DataSlice'):
-      bag().adopt(bag())  # pytype: disable=wrong-arg-types
+      bag().adopt(bag())  # pyrefly: ignore[bad-argument-type]
 
   def test_adopt_immutable(self):
     db1 = bag()
@@ -2056,11 +2056,11 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
 
   def test_adopt_stub_args_errors(self):
     with self.assertRaises(TypeError):  # Python runtime error.
-      bag().adopt_stub()  # pytype: disable=missing-parameter
+      bag().adopt_stub()  # pyrefly: ignore[bad-argument-count]
     with self.assertRaises(TypeError):  # Python runtime error.
-      bag().adopt_stub(ds(1), ds(2))  # pytype: disable=wrong-arg-count
+      bag().adopt_stub(ds(1), ds(2))  # pyrefly: ignore[bad-argument-count]
     with self.assertRaisesRegex(TypeError, 'expecting slice to be a DataSlice'):
-      bag().adopt_stub(bag())  # pytype: disable=wrong-arg-types
+      bag().adopt_stub(bag())  # pyrefly: ignore[bad-argument-type]
 
   def test_adopt_stub_immutable(self):
     db1 = bag()
@@ -2240,7 +2240,7 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     with self.assertRaisesRegex(
         TypeError, re.escape("got an unexpected keyword 'foo'")
     ):
-      _ = db1.fork(foo=True)  # pytype: disable=wrong-keyword-args
+      _ = db1.fork(foo=True)  # pyrefly: ignore[unexpected-keyword]
 
   def test_freeze(self):
     db1 = bag().new(x=1).get_bag()
@@ -2272,49 +2272,49 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
         'DataBag._from_proto accepts exactly 4 arguments, got 3',
     ):
       db = bag()
-      _ = db._from_proto((), [], None)  # pytype: disable=missing-parameter
+      _ = db._from_proto((), [], None)  # pyrefly: ignore[bad-argument-count]
 
     with self.assertRaisesRegex(
         ValueError,
         'DataBag._from_proto expects messages to be a list, got tuple',
     ):
       db = bag()
-      _ = db._from_proto((), [], None, None)  # pytype: disable=wrong-arg-types
+      _ = db._from_proto((), [], None, None)
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape('message cast from python to C++ failed, got type tuple'),
     ):
       db = data_bag.DataBag.empty_mutable()
-      _ = db._from_proto([()], [], None, None)  # pytype: disable=wrong-arg-types
+      _ = db._from_proto([()], [], None, None)
 
     with self.assertRaisesRegex(
         ValueError,
         'DataBag._from_proto expects extensions to be a list, got tuple',
     ):
       db = bag()
-      _ = db._from_proto([], (), None, None)  # pytype: disable=wrong-arg-types
+      _ = db._from_proto([], (), None, None)
 
     with self.assertRaisesRegex(
         ValueError,
         'expected extension to be str, got bytes',
     ):
       db = bag()
-      _ = db._from_proto([], [b'x.y.z'], None, None)  # pytype: disable=wrong-arg-types
+      _ = db._from_proto([], [b'x.y.z'], None, None)
 
     with self.assertRaisesRegex(
         TypeError,
         'expecting itemid to be a DataSlice, got str',
     ):
       db = bag()
-      _ = db._from_proto([], [], 'foo', None)  # pytype: disable=wrong-arg-types
+      _ = db._from_proto([], [], 'foo', None)  # pyrefly: ignore[bad-argument-type]
 
     with self.assertRaisesRegex(
         TypeError,
         'expecting schema to be a DataSlice, got str',
     ):
       db = bag()
-      _ = db._from_proto([], [], None, 'foo')  # pytype: disable=wrong-arg-types
+      _ = db._from_proto([], [], None, 'foo')  # pyrefly: ignore[bad-argument-type]
 
   def test_schema_from_proto_minimal(self):
     # NOTE: more tests for schema_from_proto in
@@ -2330,20 +2330,20 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
         'DataBag._schema_from_proto accepts exactly 2 arguments, got 1',
     ):
       db = bag()
-      _ = db._schema_from_proto(test_pb2.MessageA())  # pytype: disable=missing-parameter
+      _ = db._schema_from_proto(test_pb2.MessageA())  # pyrefly: ignore[bad-argument-count]
 
     with self.assertRaisesRegex(
         ValueError,
         'DataBag._schema_from_proto expects extensions to be a list, got tuple',
     ):
       db = bag()
-      _ = db._schema_from_proto(test_pb2.MessageA(), ())  # pytype: disable=wrong-arg-types
+      _ = db._schema_from_proto(test_pb2.MessageA(), ())
 
     with self.assertRaisesRegex(
         ValueError, 'expected extension to be str, got bytes'
     ):
       db = bag()
-      _ = db._schema_from_proto(test_pb2.MessageA(), [b'x.y.z'])  # pytype: disable=wrong-arg-types
+      _ = db._schema_from_proto(test_pb2.MessageA(), [b'x.y.z'])
 
   def test_signatures(self):
     # Tests that all methods have an inspectable signature. This is not added
@@ -2424,7 +2424,7 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     objs.with_bag(db_fallback).x = 99
 
     # Creates SparseSource with REMOVED value
-    del objs.S[0].x  # pyrefly: ignore[missing-attribute]
+    del objs.S[0].x
 
     # Verify that objs.S[0] is REMOVED and we don't get values from the fallback
     testing.assert_equal(

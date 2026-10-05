@@ -186,7 +186,7 @@ def make_unified_signature(
   aux_options = ''.join(aux_binding_options)
   if aux_boxing_options:
     aux_options += ':' + aux_boxing_options
-  return arolla.abc.make_operator_signature((  # pytype: disable=bad-return-type
+  return arolla.abc.make_operator_signature((
       ','.join(sig_spec) + f'|{aux_policy_name}:{aux_options}',
       *sig_vals,
   ))

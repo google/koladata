@@ -77,7 +77,7 @@ class AppendTest(absltest.TestCase):
         ValueError,
         re.escape('Cannot automatically box [] of type'),
     ):
-      kv.append(x, kv.view(10))  # pytype: disable=wrong-arg-types
+      kv.append(x, kv.view(10))  # pyrefly: ignore[bad-argument-type]
 
   def test_append_with_view_value(self):
     x = []

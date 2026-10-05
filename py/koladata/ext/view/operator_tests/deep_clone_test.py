@@ -49,7 +49,7 @@ class DeepCloneTest(absltest.TestCase):
         ValueError,
         re.escape('Cannot automatically box namespace(a=1)'),
     ):
-      kv.deep_clone(x)  # pytype: disable=wrong-arg-types
+      kv.deep_clone(x)  # pyrefly: ignore[bad-argument-type]
 
   def test_deep_clone_on_none(self):
     # This should not fail.

@@ -57,7 +57,7 @@ class GetAttrTest(parameterized.TestCase):
   def test_auto_boxing(self):
     self.assertIsNone(kv.get_attr(None, 'a').get())
     with self.assertRaisesRegex(ValueError, 'Cannot automatically box'):
-      _ = kv.get_attr(Obj(a=1), 'a')  # pytype: disable=wrong-arg-types
+      _ = kv.get_attr(Obj(a=1), 'a')  # pyrefly: ignore[bad-argument-type]
 
 
 if __name__ == '__main__':

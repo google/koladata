@@ -45,7 +45,7 @@ def register_extension_type(
     raise ValueError(f'expected an extension type, got: {qtype}')
   if unsafe_override:
     if qtype in _EXTENSION_TYPE_REGISTRY.inverse:
-      del _EXTENSION_TYPE_REGISTRY.inverse[qtype]  # pytype: disable=unsupported-operands
+      del _EXTENSION_TYPE_REGISTRY.inverse[qtype]
   elif (reg_qtype := _EXTENSION_TYPE_REGISTRY.get(cls, qtype)) != qtype:
     raise ValueError(
         f'{cls} is already registered with a different qtype: {reg_qtype}'

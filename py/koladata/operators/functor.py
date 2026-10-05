@@ -139,7 +139,7 @@ def call_fn_normally_when_parallel(
     The result of the call.
   """
   args, kwargs = arolla.optools.fix_trace_args_kwargs(args, kwargs)
-  return arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+  return arolla.abc.bind_op(
       call,
       fn,
       args=args,
@@ -173,7 +173,7 @@ def call_fn_returning_stream_when_parallel(
     **kwargs: The keyword arguments to pass to the call.
   """
   args, kwargs = arolla.optools.fix_trace_args_kwargs(args, kwargs)
-  return arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+  return arolla.abc.bind_op(
       call,
       fn,
       args=args,
@@ -379,7 +379,7 @@ def if_(
       & (schema.get_schema(cond) == schema_constants.MASK),
       'the condition in kd.if_ must be a MASK scalar',
   )
-  return arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+  return arolla.abc.bind_op(
       call,
       masking.cond(cond, yes_fn, no_fn),
       args=args,
@@ -535,7 +535,7 @@ def switch(
   fn = core.with_bag(fn, core.get_bag(case_fns))
 
   return optools.fix_non_deterministic_tokens(
-      arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+      arolla.abc.bind_op(
           call,
           fn,
           args=args,
@@ -1145,7 +1145,7 @@ def _create_for_iteration_normal_step_fn():
       koda_internal_iterables.to_sequence(I.iterable),
       arolla_bridge.to_arolla_int64(I.step),
   )
-  returns = arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+  returns = arolla.abc.bind_op(
       call_and_update_namedtuple,
       I.body_fn,
       args=arolla.M.core.make_tuple(item),
@@ -1161,7 +1161,7 @@ def _create_for_iteration_normal_step_fn():
 
 def _create_for_iteration_final_step_fn():
   """Creates a functor used to express 'finalize' step of the for iteration."""
-  returns = arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+  returns = arolla.abc.bind_op(
       call_and_update_namedtuple,
       I.finalize_fn,
       args=arolla.M.core.make_tuple(),
@@ -1232,7 +1232,7 @@ def _create_constant_present_fn():
 
 def _create_for_iteration_condition_fn():
   """Creates a functor used to express for iteration condition."""
-  returns = arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+  returns = arolla.abc.bind_op(
       if_,
       I['_koda_internal_step'] < I['_koda_internal_num_steps'],
       arolla.M.core.default_if_unspecified(

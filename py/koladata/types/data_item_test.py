@@ -95,11 +95,11 @@ class DataItemTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         TypeError, 'accepts 1 to 2 positional arguments but 3 were given'
     ):
-      _ = data_item.DataItem.from_vals(1, 2, 3)  # pytype: disable=wrong-arg-count
+      _ = data_item.DataItem.from_vals(1, 2, 3)  # pyrefly: ignore[bad-argument-count, bad-argument-type]
     with self.assertRaisesRegex(
         TypeError, 'accepts 1 to 2 positional arguments but 0 were given'
     ):
-      _ = data_item.DataItem.from_vals(schema=schema_constants.INT32)  # pytype: disable=missing-parameter
+      _ = data_item.DataItem.from_vals(schema=schema_constants.INT32)  # pyrefly: ignore[bad-argument-count]
     with self.assertRaisesRegex(
         TypeError, 'expecting schema to be a DataSlice, got .*QType'
     ):
@@ -195,38 +195,38 @@ class DataItemTest(parameterized.TestCase):
       ds('42').__index__()
 
   def test_int(self):
-    self.assertEqual(int(ds(42)), 42)  # pyrefly: ignore[bad-argument-type]
-    self.assertEqual(int(ds(42, schema_constants.INT64)), 42)  # pyrefly: ignore[bad-argument-type]
-    self.assertAlmostEqual(int(ds(3.14)), 3)  # pyrefly: ignore[bad-argument-type]
-    self.assertAlmostEqual(int(ds('42')), 42)  # pyrefly: ignore[bad-argument-type]
-    self.assertAlmostEqual(int(ds(b'42')), 42)  # pyrefly: ignore[bad-argument-type]
+    self.assertEqual(int(ds(42)), 42)
+    self.assertEqual(int(ds(42, schema_constants.INT64)), 42)
+    self.assertAlmostEqual(int(ds(3.14)), 3)
+    self.assertAlmostEqual(int(ds('42')), 42)
+    self.assertAlmostEqual(int(ds(b'42')), 42)
     with self.assertRaisesRegex(ValueError, 'invalid literal for int'):
-      int(ds('xyz'))  # pyrefly: ignore[bad-argument-type]
+      int(ds('xyz'))
     with self.assertRaisesRegex(TypeError, r'must be a .*, not \'NoneType\''):
-      int(ds(None))  # pyrefly: ignore[bad-argument-type]
+      int(ds(None))
     with self.assertRaisesRegex(
         ValueError, 'cannot be a DataItem that holds an ItemId'
     ):
-      int(fns.new())  # pyrefly: ignore[bad-argument-type]
+      int(fns.new())
 
   def test_float(self):
-    self.assertAlmostEqual(float(ds(2.71)), 2.71)  # pyrefly: ignore[bad-argument-type]
-    self.assertAlmostEqual(float(ds(2.71, schema_constants.FLOAT64)), 2.71)  # pyrefly: ignore[bad-argument-type]
-    self.assertAlmostEqual(float(ds(3)), 3.0)  # pyrefly: ignore[bad-argument-type]
-    self.assertAlmostEqual(float(ds('3.14')), 3.14)  # pyrefly: ignore[bad-argument-type]
-    self.assertAlmostEqual(float(ds(b'3.14')), 3.14)  # pyrefly: ignore[bad-argument-type]
+    self.assertAlmostEqual(float(ds(2.71)), 2.71)
+    self.assertAlmostEqual(float(ds(2.71, schema_constants.FLOAT64)), 2.71)
+    self.assertAlmostEqual(float(ds(3)), 3.0)
+    self.assertAlmostEqual(float(ds('3.14')), 3.14)
+    self.assertAlmostEqual(float(ds(b'3.14')), 3.14)
     with self.assertRaisesRegex(
         ValueError, 'could not convert string to float'
     ):
-      float(ds(b'xyz'))  # pyrefly: ignore[bad-argument-type]
+      float(ds(b'xyz'))
     with self.assertRaisesRegex(
         TypeError, "must be a string or a real number, not 'NoneType'"
     ):
-      float(ds(None))  # pyrefly: ignore[bad-argument-type]
+      float(ds(None))
     with self.assertRaisesRegex(
         ValueError, 'cannot be a DataItem that holds an ItemId'
     ):
-      float(fns.new())  # pyrefly: ignore[bad-argument-type]
+      float(fns.new())
 
   @parameterized.named_parameters(
       ('int32', ds(12), 'DataItem(12, schema: INT32)'),
@@ -281,7 +281,7 @@ class DataItemTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, re.escape('the first argument of kd.call must be a functor')
     ):
-      ds(1)()  # pyrefly: ignore[not-callable]
+      ds(1)()
 
     fn = functor_factories.expr_fn(I.x)
     my_bag = bag()

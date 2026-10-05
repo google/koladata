@@ -645,7 +645,7 @@ class OptoolsTest(parameterized.TestCase):
       """MyDocstring."""
       return a + b * c
 
-    lineno = inspect.currentframe().f_lineno - 2  # pytype: disable=attribute-error
+    lineno = inspect.currentframe().f_lineno - 2  # pyrefly: ignore[missing-attribute]
     self.assertIsInstance(op, arolla.types.RestrictedLambdaOperator)
     self.assertEqual(op.display_name, 'my_op_name')
     self.assertEqual(op.getdoc(), 'MyDocstring.')
@@ -966,7 +966,7 @@ class OptoolsTest(parameterized.TestCase):
   def test_set_namespace_docstring_none(self):
     with self.assertRaisesRegex(ValueError, 'docstring must be non-empty'):
       optools.set_namespace_docstring(
-          'test.set_namespace_docstring_none.ns', None  # pytype: disable=wrong-arg-types
+          'test.set_namespace_docstring_none.ns', None  # pyrefly: ignore[bad-argument-type]
       )
 
   def test_set_namespace_docstring_empty(self):

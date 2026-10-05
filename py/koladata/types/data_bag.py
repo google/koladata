@@ -412,7 +412,7 @@ def _rshift(self: DataBag | NullDataBag, other: Any) -> DataBag:
   """Returns a merged DataBag with priority for `self`."""
   if not isinstance(other, (DataBag, NullDataBag)):
     # This routes both DataSlice and Expr to their respective implementations.
-    return NotImplemented  # pytype: disable=bad-return-type
+    return NotImplemented
   return _eval_op('kd.enriched_bag', self, other)
 
 
@@ -420,7 +420,7 @@ def _lshift(self: DataBag | NullDataBag, other: Any) -> DataBag:
   """Returns a merged DataBag with priority for `other`."""
   if not isinstance(other, (DataBag, NullDataBag)):
     # This routes both DataSlice and Expr to their respective implementations.
-    return NotImplemented  # pytype: disable=bad-return-type
+    return NotImplemented
   return _eval_op('kd.updated_bag', self, other)
 
 

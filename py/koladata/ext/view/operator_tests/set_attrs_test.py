@@ -90,7 +90,7 @@ class SetAttrTest(absltest.TestCase):
         ValueError,
         re.escape('Cannot automatically box namespace(a=1)'),
     ):
-      kv.set_attrs(x, a=kv.view(10))  # pytype: disable=wrong-arg-types
+      kv.set_attrs(x, a=kv.view(10))  # pyrefly: ignore[bad-argument-type]
 
   def test_set_attr_with_view_value(self):
     x = Obj(a=1)

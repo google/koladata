@@ -50,7 +50,7 @@ class ExplodeTest(parameterized.TestCase):
   def test_auto_boxing(self):
     self.assertEqual(kv.explode(None).get(), ())
     with self.assertRaisesRegex(ValueError, 'Cannot automatically box'):
-      _ = kv.explode([1, 2])  # pytype: disable=wrong-arg-types
+      _ = kv.explode([1, 2])  # pyrefly: ignore[bad-argument-type]
 
 
 if __name__ == '__main__':

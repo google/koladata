@@ -96,7 +96,7 @@ class _OperatorsContainer:
         eager_op = EagerOperator(self._arolla_container[op_name])
       self.__dict__[op_name] = eager_op
     assert callable(eager_op)
-    return eager_op  # pytype: disable=bad-return-type
+    return eager_op
 
   # NOTE: Adding an operator / container to __dict__, causes __getattr__ to not
   # be invoked the next time by Python runtime.

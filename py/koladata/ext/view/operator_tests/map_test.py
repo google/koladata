@@ -90,7 +90,7 @@ class MapTest(parameterized.TestCase):
         ValueError,
         re.escape('expected a View or a boxable typle, got namespace(a=1)'),
     ):
-      kv.map(lambda x: x.a, x)  # pytype: disable=wrong-arg-types
+      kv.map(lambda x: x.a, x)  # pyrefly: ignore[bad-argument-type]
 
 
 if __name__ == '__main__':

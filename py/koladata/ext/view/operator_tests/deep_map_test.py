@@ -149,7 +149,7 @@ class DeepMapTest(parameterized.TestCase):
         ValueError,
         re.escape('expected a View or a boxable typle, got namespace(a=1)'),
     ):
-      kv.deep_map(lambda x: x.a, x)  # pytype: disable=wrong-arg-types
+      kv.deep_map(lambda x: x.a, x)  # pyrefly: ignore[bad-argument-type]
 
   def test_incompatible_views(self):
     with self.assertRaisesRegex(
