@@ -47,22 +47,22 @@ A_qtype = extension_type_registry.get_extension_qtype(A)
 class ExtensionTypesGetAttrQTypeTest(parameterized.TestCase):
 
   def test_get_attr_qtype_ds(self):
-    a = A(ds(1), bag())  # pyrefly: ignore[bad-argument-count]
+    a = A(ds(1), bag())
     result = kd.extension_types.get_attr_qtype(a, "x")
     testing.assert_equal(result, qtypes.DATA_SLICE)
 
   def test_get_attr_qtype_ds_attr_name(self):
-    a = A(ds(1), bag())  # pyrefly: ignore[bad-argument-count]
+    a = A(ds(1), bag())
     result = kd.extension_types.get_attr_qtype(a, ds("x"))
     testing.assert_equal(result, qtypes.DATA_SLICE)
 
   def test_get_attr_qtype_db(self):
-    a = A(ds(1), bag())  # pyrefly: ignore[bad-argument-count]
+    a = A(ds(1), bag())
     result = kd.extension_types.get_attr_qtype(a, "y")
     testing.assert_equal(result, qtypes.DATA_BAG)
 
   def test_get_attr_qtype_non_existent_attr(self):
-    a = A(ds(1), bag())  # pyrefly: ignore[bad-argument-count]
+    a = A(ds(1), bag())
     result = kd.extension_types.get_attr_qtype(a, "z")
     testing.assert_equal(result, arolla.NOTHING)
 

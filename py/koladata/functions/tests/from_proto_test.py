@@ -48,7 +48,7 @@ class FromProtoTest(absltest.TestCase):
         'messages must be Message or nested list of Message, got type <class'
         " 'int'> with value 1",
     ):
-      proto_conversions.from_proto(1)  # pytype: disable=wrong-arg-types
+      proto_conversions.from_proto(1)  # pyrefly: ignore[bad-argument-type]
 
   def test_list_with_none(self):
     x = proto_conversions.from_proto([None])
@@ -60,7 +60,7 @@ class FromProtoTest(absltest.TestCase):
         'messages must be Message or nested list of Message, got list'
         " containing type <class 'int'> at index 0 with value 1",
     ):
-      proto_conversions.from_proto([1])  # pytype: disable=wrong-arg-types
+      proto_conversions.from_proto([1])  # pyrefly: ignore[bad-argument-type]
 
   def test_invalid_input_long_repr(self):
     class LongRepr:
@@ -77,7 +77,7 @@ class FromProtoTest(absltest.TestCase):
         + '...'
         + 'c' * 96 + 'd',
     ):
-      proto_conversions.from_proto(LongRepr())  # pytype: disable=wrong-arg-types
+      proto_conversions.from_proto(LongRepr())  # pyrefly: ignore[bad-argument-type]
 
   def test_invalid_different_types(self):
     with self.assertRaisesRegex(

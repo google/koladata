@@ -47,7 +47,7 @@ class AllocationNewDictIdTest(absltest.TestCase):
     )
     dct['abc'] = 42
     testing.assert_equal(
-        dct['abc'],  # pyrefly: ignore[bad-argument-type]
+        dct['abc'],
         ds(42).with_bag(dct.get_bag()),
     )
 

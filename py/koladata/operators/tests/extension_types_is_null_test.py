@@ -52,7 +52,7 @@ class ExtensionTypesIsNullTest(parameterized.TestCase):
     testing.assert_equal(result, mask_constants.present)
 
   def test_is_null_missing(self):
-    a = A(ds(1))  # pyrefly: ignore[bad-argument-count]
+    a = A(ds(1))
     result = expr_eval.eval(kde.extension_types.is_null(a))
     testing.assert_equal(result, mask_constants.missing)
 

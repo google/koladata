@@ -47,7 +47,7 @@ class FromProtoAnyTest(absltest.TestCase):
         'from_proto_any expects a nested container of google.protobuf.Any'
         " messages, got <class 'int'>",
     ):
-      proto_conversions.from_proto_any(1)  # pytype: disable=wrong-arg-types
+      proto_conversions.from_proto_any(1)  # pyrefly: ignore[bad-argument-type]
 
   def test_list_with_none(self):
     x = proto_conversions.from_proto_any([None])
@@ -59,7 +59,7 @@ class FromProtoAnyTest(absltest.TestCase):
         'from_proto_any expects a nested container of google.protobuf.Any'
         " messages, got <class 'int'>",
     ):
-      proto_conversions.from_proto_any([1])  # pytype: disable=wrong-arg-types
+      proto_conversions.from_proto_any([1])  # pyrefly: ignore[bad-argument-type]
 
   def test_invalid_input_wrong_proto_type(self):
     with self.assertRaisesWithLiteralMatch(
@@ -67,7 +67,7 @@ class FromProtoAnyTest(absltest.TestCase):
         'from_proto_any expects a nested container of google.protobuf.Any'
         f' messages, got {repr(test_pb2.MessageA)}',
     ):
-      proto_conversions.from_proto_any(test_pb2.MessageA())  # pytype: disable=wrong-arg-types
+      proto_conversions.from_proto_any(test_pb2.MessageA())  # pyrefly: ignore[bad-argument-type]
 
   def test_single_message(self):
     m = test_pb2.MessageA(some_text='thing 1')

@@ -53,7 +53,7 @@ class AllocationNewDictIdLikeTest(parameterized.TestCase):
         ),
     )
     dct['abc'] = 42
-    testing.assert_equal(dct['abc'], values.with_bag(dct.get_bag()))  # pyrefly: ignore[bad-argument-type]
+    testing.assert_equal(dct['abc'], values.with_bag(dct.get_bag()))
 
   def test_new_alloc_ids(self):
     expr = kde.allocation.new_dictid_like(ds([1, 1]))

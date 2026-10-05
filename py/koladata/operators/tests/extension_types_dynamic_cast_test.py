@@ -74,14 +74,14 @@ B2_qtype = extension_type_registry.get_extension_qtype(B2)
 class ExtensionTypesDynamicCastTest(parameterized.TestCase):
 
   def test_self_cast(self):
-    ext = A(1)  # pyrefly: ignore[bad-argument-count]
+    ext = A(1)
     result = expr_eval.eval(
         kde.extension_types.dynamic_cast(I.ext, A_qtype), ext=ext
     )
     testing.assert_equal(result, ext)  # pyrefly: ignore[bad-argument-type]
 
   def test_upcast(self):
-    ext = B(1, 2)  # pyrefly: ignore[bad-argument-count]
+    ext = B(1, 2)
     result = expr_eval.eval(
         kde.extension_types.dynamic_cast(I.ext, A_qtype), ext=ext
     )
@@ -92,7 +92,7 @@ class ExtensionTypesDynamicCastTest(parameterized.TestCase):
     testing.assert_equal(result.get_newest(), ds(2))
 
   def test_upcast_to_grandparent(self):
-    ext = C(1, 2, 3)  # pyrefly: ignore[bad-argument-count]
+    ext = C(1, 2, 3)
     result = expr_eval.eval(
         kde.extension_types.dynamic_cast(I.ext, A_qtype), ext=ext
     )
@@ -103,7 +103,7 @@ class ExtensionTypesDynamicCastTest(parameterized.TestCase):
     testing.assert_equal(result.get_newest(), ds(3))
 
   def test_downcast(self):
-    ext = A(1)  # pyrefly: ignore[bad-argument-count]
+    ext = A(1)
     result = expr_eval.eval(
         kde.extension_types.dynamic_cast(I.ext, B_qtype), ext=ext
     )
@@ -114,7 +114,7 @@ class ExtensionTypesDynamicCastTest(parameterized.TestCase):
     testing.assert_equal(result.get_newest(), ds(1))
 
   def test_sidecast(self):
-    ext = B2(1, 2)  # pyrefly: ignore[bad-argument-count]
+    ext = B2(1, 2)
     result = expr_eval.eval(
         kde.extension_types.dynamic_cast(I.ext, B_qtype), ext=ext
     )

@@ -190,7 +190,7 @@ class SchemaFromPyTest(absltest.TestCase):
 
   def test_errors(self):
     with self.assertRaisesRegex(TypeError, 'expects a Python type, got 57'):
-      _ = schema.schema_from_py(57)  # pytype: disable=wrong-arg-types
+      _ = schema.schema_from_py(57)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(TypeError, 'unsupported union type'):
       _ = schema.schema_from_py(int | float)
 

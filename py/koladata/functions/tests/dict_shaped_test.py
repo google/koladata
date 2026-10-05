@@ -226,15 +226,15 @@ class DictShapedTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         TypeError, 'expecting key_schema to be a DataSlice, got int'
     ):
-      fns.dict_shaped(shape, key_schema=42)  # pytype: disable=wrong-arg-types
+      fns.dict_shaped(shape, key_schema=42)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(
         TypeError, 'expecting value_schema to be a DataSlice, got int'
     ):
-      fns.dict_shaped(shape, value_schema=42)  # pytype: disable=wrong-arg-types
+      fns.dict_shaped(shape, value_schema=42)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(
         TypeError, 'expecting schema to be a DataSlice, got int'
     ):
-      fns.dict_shaped(shape, schema=42)  # pytype: disable=wrong-arg-types
+      fns.dict_shaped(shape, schema=42)  # pyrefly: ignore[bad-argument-type]
 
   def test_itemid(self):
     itemid = expr_eval.eval(
@@ -263,11 +263,11 @@ class DictShapedTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         TypeError, 'expecting shape to be a JaggedShape, got int'
     ):
-      fns.dict_shaped(4)  # pytype: disable=wrong-arg-types
+      fns.dict_shaped(4)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(
         TypeError, 'expecting shape to be a JaggedShape, got .*DataBag'
     ):
-      fns.dict_shaped(object_factories.mutable_bag())  # pytype: disable=wrong-arg-types
+      fns.dict_shaped(object_factories.mutable_bag())  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(
         TypeError,
         'expecting shape to be a JaggedShape, got JaggedArrayShape',
@@ -276,7 +276,7 @@ class DictShapedTest(parameterized.TestCase):
       shape = arolla_jagged_shape.JaggedArrayShape.from_edges(
           arolla.types.ArrayEdge.from_sizes(arolla.array([3]))
       )
-      fns.dict_shaped(shape)  # pytype: disable=wrong-arg-types
+      fns.dict_shaped(shape)  # pyrefly: ignore[bad-argument-type]
 
   def test_alias(self):
     self.assertIs(fns.dict_shaped, fns.dicts.shaped)

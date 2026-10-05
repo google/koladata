@@ -167,7 +167,7 @@ class ListShapedTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         TypeError, 'expecting shape to be a JaggedShape, got int'
     ):
-      fns.list_shaped(57)  # pytype: disable=wrong-arg-types
+      fns.list_shaped(57)  # pyrefly: ignore[bad-argument-type]
 
   def test_imcompatible_shape(self):
     shape = jagged_shape.create_shape([2], [2, 1])
@@ -237,11 +237,11 @@ class ListShapedTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         TypeError, 'expecting item_schema to be a DataSlice, got int'
     ):
-      fns.list_shaped(shape, item_schema=42)  # pytype: disable=wrong-arg-types
+      fns.list_shaped(shape, item_schema=42)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(
         TypeError, 'expecting schema to be a DataSlice, got int'
     ):
-      fns.list_shaped(shape, schema=42)  # pytype: disable=wrong-arg-types
+      fns.list_shaped(shape, schema=42)  # pyrefly: ignore[bad-argument-type]
 
   def test_schema_errors(self):
     with self.assertRaisesRegex(

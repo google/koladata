@@ -47,14 +47,14 @@ class ExtensionTypesWrapTest(parameterized.TestCase):
     result = expr_eval.eval(kde.extension_types.wrap(obj, A_qtype))
     testing.assert_equal(result.qtype, A_qtype)
     testing.assert_equal(result.a, ds(1))
-    testing.assert_equal(result, A(1))  # pyrefly: ignore[bad-argument-count, bad-argument-type]
+    testing.assert_equal(result, A(1))  # pyrefly: ignore[bad-argument-type]
 
   def test_wrap_not_an_object(self):
     with self.assertRaisesRegex(
         ValueError,
         re.escape("expected one of [OBJECT], got obj: LABEL[__main__.A]"),
     ):
-      kde.extension_types.wrap(A(1), A_qtype)  # pyrefly: ignore[bad-argument-count]
+      kde.extension_types.wrap(A(1), A_qtype)
 
   def test_wrap_not_a_qtype(self):
     with self.assertRaisesRegex(

@@ -221,7 +221,7 @@ class NewShapedTest(absltest.TestCase):
       fns.new_shaped(
           jagged_shape.create_shape(), schema=schema_constants.INT32,
           overwrite_schema=42  # pyrefly: ignore[bad-argument-type]
-      )  # pytype: disable=wrong-arg-types
+      )
 
   def test_schema_arg_overwrite_schema_error_overwriting(self):
     schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
@@ -269,7 +269,7 @@ class NewShapedTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      fns.new_shaped(jagged_shape.create_shape(), a=1, schema=5)  # pytype: disable=wrong-arg-types
+      fns.new_shaped(jagged_shape.create_shape(), a=1, schema=5)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):

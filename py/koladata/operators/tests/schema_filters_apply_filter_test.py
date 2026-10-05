@@ -72,13 +72,13 @@ class SchemaFiltersApplyFilterTest(parameterized.TestCase):
     schema = db.new_schema(
         x=schema_constants.INT32, y=schema_constants.FLOAT32
     )
-    del schema.y  # pyrefly: ignore[missing-attribute]
+    del schema.y
 
     # Filter schema only contains 'x'.
     filter_schema = db.new_schema(
         x=schema_constants.INT32, y=schema_constants.FLOAT32
     )
-    del filter_schema.y  # pyrefly: ignore[missing-attribute]
+    del filter_schema.y
 
     result = kd.schema_filters.apply_filter(schema, filter_schema)
     expected = db.new_schema(x=schema_constants.INT32)
@@ -98,7 +98,7 @@ class SchemaFiltersApplyFilterTest(parameterized.TestCase):
     schema = db.new_schema(
         x=schema_constants.INT32, y=schema_constants.FLOAT32
     )
-    del schema.y  # pyrefly: ignore[missing-attribute]
+    del schema.y
 
     # ANY_SCHEMA_FILTER should keep all present attributes and ignore removed.
     filter_schema = schema_constants.ANY_SCHEMA_FILTER

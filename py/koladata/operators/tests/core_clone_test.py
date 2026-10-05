@@ -113,7 +113,7 @@ class CoreCloneTest(parameterized.TestCase):
   def test_clone_with_removed_schema_attr(self):
     db = bag()
     e = db.new(a=1, b=2)
-    del e.get_schema().b  # pyrefly: ignore[missing-attribute]
+    del e.get_schema().b
 
     # Cloning e should succeed and ignore 'b'
     res = kd.clone(e)
@@ -137,7 +137,7 @@ class CoreCloneTest(parameterized.TestCase):
   def test_clone_schema_with_removed_attr(self):
     db = bag()
     e = db.new(a=1, b=2)
-    del e.get_schema().b  # pyrefly: ignore[missing-attribute]
+    del e.get_schema().b
 
     # Cloning e should succeed and ignore 'b'
     res = kd.clone(e.get_schema())

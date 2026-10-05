@@ -119,7 +119,7 @@ class SchemaDeepCastToTest(parameterized.TestCase):
     target_schema = db2.new_schema(
         a=schema_constants.INT32, b=schema_constants.INT32
     )
-    del target_schema.b  # pyrefly: ignore[missing-attribute]
+    del target_schema.b
 
     res = kd.schema.deep_cast_to(e1, target_schema)
 
@@ -142,7 +142,7 @@ class SchemaDeepCastToTest(parameterized.TestCase):
   def test_deep_cast_to_with_removed_input_schema_attr(self):
     db1 = data_bag.DataBag.empty_mutable()
     e1 = db1.new(a=1, b=2)
-    del e1.get_schema().b  # pyrefly: ignore[missing-attribute]
+    del e1.get_schema().b
 
     db2 = data_bag.DataBag.empty_mutable()
     target_schema = db2.new_schema(

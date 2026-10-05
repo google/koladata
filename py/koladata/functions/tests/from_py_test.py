@@ -220,7 +220,7 @@ def _get_sparse_py_object():
   a2 = _A(x=2.0)
 
   b1 = _B(a_list=[a1, a2], a_obj=a1)
-  b2 = _B(a_list=None, a_dict={'a': a1, 'b': a2, 'c': None})  # pyrefly: ignore[bad-argument-type, bad-assignment]
+  b2 = _B(a_list=None, a_dict={'a': a1, 'b': a2, 'c': None})  # pyrefly: ignore[bad-assignment]
   return _C(b=[b1, b2, None])  # pyrefly: ignore[bad-argument-type]
 
 
@@ -2487,7 +2487,7 @@ assigned schema: ENTITY(a=FLOAT32)"""),
     with self.assertRaisesRegex(
         TypeError, 'expecting itemid to be a DataSlice, got int'
     ):
-      from_py(  # pytype: disable=wrong-arg-types
+      from_py(
           [1, 2],
           dict_as_obj=False,
           itemid=42,  # pyrefly: ignore[bad-argument-type]
@@ -2496,7 +2496,7 @@ assigned schema: ENTITY(a=FLOAT32)"""),
       )
 
     with self.assertRaisesRegex(TypeError, 'incompatible function arguments'):
-      from_py([1, 2], from_dim='abc')  # pytype: disable=wrong-arg-types
+      from_py([1, 2], from_dim='abc')  # pyrefly: ignore[bad-argument-type]
 
   def test_from_py_concurrent_container_clear(self):
     def mutator(shared_list):

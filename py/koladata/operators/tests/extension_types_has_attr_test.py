@@ -48,17 +48,17 @@ A_qtype = extension_type_registry.get_extension_qtype(A)
 class ExtensionTypesHasAttrTest(parameterized.TestCase):
 
   def test_has_attr_present(self):
-    a = A(ds(1), bag())  # pyrefly: ignore[bad-argument-count]
+    a = A(ds(1), bag())
     result = kd.extension_types.has_attr(a, "x")
     testing.assert_equal(result, mask_constants.present)
 
   def test_has_attr_present_ds_attr(self):
-    a = A(ds(1), bag())  # pyrefly: ignore[bad-argument-count]
+    a = A(ds(1), bag())
     result = kd.extension_types.has_attr(a, ds("x"))
     testing.assert_equal(result, mask_constants.present)
 
   def test_has_attr_missing(self):
-    a = A(ds(1), bag())  # pyrefly: ignore[bad-argument-count]
+    a = A(ds(1), bag())
     result = kd.extension_types.has_attr(a, "z")
     testing.assert_equal(result, mask_constants.missing)
 

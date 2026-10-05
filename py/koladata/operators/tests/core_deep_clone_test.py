@@ -154,7 +154,7 @@ class CoreDeepCloneTest(parameterized.TestCase):
   def test_deep_clone_with_removed_schema_attr(self):
     db = data_bag.DataBag.empty_mutable()
     e = db.new(a=1, b=2)
-    del e.get_schema().b  # pyrefly: ignore[missing-attribute]
+    del e.get_schema().b
 
     # Deep cloning e should succeed and ignore 'b'.
     res = kd.deep_clone(e)
@@ -178,7 +178,7 @@ class CoreDeepCloneTest(parameterized.TestCase):
   def test_deep_clone_with_removed_implicit_schema_attr(self):
     db = data_bag.DataBag.empty_mutable()
     o = db.obj(a=1, b=2)
-    del o.get_obj_schema().b  # pyrefly: ignore[missing-attribute]
+    del o.get_obj_schema().b
 
     # Deep cloning o should succeed.
     res = kd.deep_clone(o)

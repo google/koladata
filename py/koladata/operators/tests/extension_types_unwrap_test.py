@@ -47,7 +47,7 @@ A_qtype = extension_type_registry.get_extension_qtype(A)
 class ExtensionTypesUnwrapTest(parameterized.TestCase):
 
   def test_unwrap(self):
-    ext = A(1)  # pyrefly: ignore[bad-argument-count]
+    ext = A(1)
     result = kd.extension_types.unwrap(ext)
     testing.assert_equal(result.qtype, objects.OBJECT)
     testing.assert_equal(result.get_attr("a", qtypes.DATA_SLICE), ds(1))

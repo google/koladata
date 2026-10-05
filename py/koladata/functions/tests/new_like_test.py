@@ -282,7 +282,7 @@ class NewLikeTest(absltest.TestCase):
 
   def test_schema_arg_overwrite_schema_error(self):
     with self.assertRaisesRegex(TypeError, 'expected bool'):
-      fns.new_like(ds(1), schema=schema_constants.INT32, overwrite_schema=42)  # pytype: disable=wrong-arg-types
+      fns.new_like(ds(1), schema=schema_constants.INT32, overwrite_schema=42)  # pyrefly: ignore[bad-argument-type]
 
   def test_schema_arg_overwrite_schema_error_overwriting(self):
     schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
@@ -309,7 +309,7 @@ class NewLikeTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      fns.new_like(ds(1), a=1, schema=5)  # pytype: disable=wrong-arg-types
+      fns.new_like(ds(1), a=1, schema=5)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):

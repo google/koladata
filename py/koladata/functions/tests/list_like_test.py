@@ -293,12 +293,12 @@ class ListLikeTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         TypeError, 'expecting shape_and_mask_from to be a DataSlice, got int'
     ):
-      fns.list_like(57)  # pytype: disable=wrong-arg-types
+      fns.list_like(57)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(
         TypeError,
         'expecting shape_and_mask_from to be a DataSlice, got .*DataBag',
     ):
-      fns.list_like(object_factories.mutable_bag())  # pytype: disable=wrong-arg-types
+      fns.list_like(object_factories.mutable_bag())  # pyrefly: ignore[bad-argument-type]
 
   def test_incompatible_shape(self):
     with self.assertRaisesRegex(ValueError, 'cannot be expanded'):
@@ -367,11 +367,11 @@ class ListLikeTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         TypeError, 'expecting item_schema to be a DataSlice, got int'
     ):
-      fns.list_like(mask_and_shape, item_schema=42)  # pytype: disable=wrong-arg-types
+      fns.list_like(mask_and_shape, item_schema=42)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(
         TypeError, 'expecting schema to be a DataSlice, got int'
     ):
-      fns.list_like(mask_and_shape, schema=42)  # pytype: disable=wrong-arg-types
+      fns.list_like(mask_and_shape, schema=42)  # pyrefly: ignore[bad-argument-type]
 
   def test_schema_errors(self):
     with self.assertRaisesRegex(

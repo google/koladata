@@ -296,7 +296,7 @@ class CoreExtractTest(parameterized.TestCase):
   def test_extract_with_removed_schema_attr(self):
     db = data_bag.DataBag.empty_mutable()
     e = db.new(a=1, b=2)
-    del e.get_schema().b  # pyrefly: ignore[missing-attribute]
+    del e.get_schema().b
 
     # Extracting e should succeed and ignore 'b'.
     res = kd.extract(e)

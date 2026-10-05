@@ -368,26 +368,26 @@ class DictLikeTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         TypeError, 'expecting key_schema to be a DataSlice, got int'
     ):
-      fns.dict_like(mask_and_shape, key_schema=42)  # pytype: disable=wrong-arg-types
+      fns.dict_like(mask_and_shape, key_schema=42)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(
         TypeError, 'expecting value_schema to be a DataSlice, got int'
     ):
-      fns.dict_like(mask_and_shape, value_schema=42)  # pytype: disable=wrong-arg-types
+      fns.dict_like(mask_and_shape, value_schema=42)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(
         TypeError, 'expecting schema to be a DataSlice, got int'
     ):
-      fns.dict_like(mask_and_shape, schema=42)  # pytype: disable=wrong-arg-types
+      fns.dict_like(mask_and_shape, schema=42)  # pyrefly: ignore[bad-argument-type]
 
   def test_wrong_shape_and_mask_from(self):
     with self.assertRaisesRegex(
         TypeError, 'expecting shape_and_mask_from to be a DataSlice, got int'
     ):
-      fns.dict_like(57, 'key', 'value')  # pytype: disable=wrong-arg-types
+      fns.dict_like(57, 'key', 'value')  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(
         TypeError,
         'expecting shape_and_mask_from to be a DataSlice, got .*DataBag',
     ):
-      fns.dict_like(object_factories.mutable_bag(), 'key', 'value')  # pytype: disable=wrong-arg-types
+      fns.dict_like(object_factories.mutable_bag(), 'key', 'value')  # pyrefly: ignore[bad-argument-type]
 
   def test_missing_values(self):
     with self.assertRaisesRegex(
