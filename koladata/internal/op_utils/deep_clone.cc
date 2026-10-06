@@ -72,9 +72,7 @@ class DerivedIdVisitor : public AbstractVisitor {
       DCHECK(transition_key->value.holds_value<arolla::Text>());
       absl::string_view attr_name =
           transition_key->value.value<arolla::Text>().view();
-      if (attr_name == schema::kListItemsSchemaAttr ||
-          attr_name == schema::kDictKeysSchemaAttr ||
-          attr_name == schema::kDictValuesSchemaAttr) {
+      if (schema::IsContainerSchemaAttr(attr_name)) {
         return true;
       }
     }

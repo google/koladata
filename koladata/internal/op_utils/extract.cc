@@ -526,8 +526,7 @@ class CopyingProcessor {
       }
       return std::make_pair(std::move(*attr_schema), false);
     }
-    if ((attr_name == schema::kSchemaNameAttr ||
-         attr_name == schema::kSchemaMetadataAttr) &&
+    if (schema::IsSchemaAnnotationAttr(attr_name) &&
         old_schema_item != schema_item) {
       return std::make_pair(DataItem(), false);
     }

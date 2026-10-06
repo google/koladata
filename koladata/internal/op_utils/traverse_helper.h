@@ -625,8 +625,7 @@ class TraverseHelper {
     transitions_set.attr_names().ForEach(
         [&](int64_t i, bool presence, std::string_view attr_name) {
           DCHECK(presence);
-          if (attr_name == schema::kSchemaNameAttr ||
-              attr_name == schema::kSchemaMetadataAttr) {
+          if (schema::IsSchemaAnnotationAttr(attr_name)) {
             return;
           }
           auto transition_or = AttributeTransition(item, schema, attr_name);
@@ -689,11 +688,6 @@ class TraverseHelper {
     }
     const auto& attr_names = attr_names_slice.values<arolla::Text>();
 
-    auto is_special_attr = [](std::string_view attr_name) {
-      return attr_name == schema::kSchemaNameAttr ||
-             attr_name == schema::kSchemaMetadataAttr;
-    };
-
     bool has_list_items_attr = false;
     bool has_dict_keys_attr = false;
     bool has_dict_values_attr = false;
@@ -708,7 +702,7 @@ class TraverseHelper {
             has_dict_keys_attr = true;
           } else if (attr_name == schema::kDictValuesSchemaAttr) {
             has_dict_values_attr = true;
-          } else if (is_special_attr(attr_name)) {
+          } else if (schema::IsSchemaAnnotationAttr(attr_name)) {
             ++special_attrs_count;
           }
         });
@@ -737,7 +731,7 @@ class TraverseHelper {
     int64_t new_id = 0;
     attr_names.ForEach(
         [&](int64_t id, bool presence, std::string_view attr_name) {
-          if (!is_special_attr(attr_name)) {
+          if (!schema::IsSchemaAnnotationAttr(attr_name)) {
             filtered_attr_names.Set(new_id, attr_name);
             ++new_id;
           }

@@ -3184,7 +3184,7 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
                                         absl::string_view attr,
                                         const DataItem& value) {
   RETURN_IF_ERROR(CheckNotFrozen());
-  if (attr != schema::kSchemaNameAttr && attr != schema::kSchemaMetadataAttr) {
+  if (!schema::IsSchemaAnnotationAttr(attr)) {
     RETURN_IF_ERROR(VerifyIsSchemaOrNone(value));
   }
   if (schema_slice.is_empty_and_unknown()) {
@@ -3310,8 +3310,7 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
                                                        ObjectId schema_id) {
       DataItem value = values[offset];
       if (!VerifyIsSchemaOrNone(value).ok() &&
-          attr != schema::kSchemaMetadataAttr &&
-          attr != schema::kSchemaNameAttr) {
+          !schema::IsSchemaAnnotationAttr(attr)) {
         status = InvalidRhsSetSchemaAttrError(values);
         return;
       }

@@ -39,6 +39,22 @@ inline constexpr absl::string_view kSchemaMetadataAttr = "__schema_metadata__";
 // Stores the order of attributes in the schema.
 inline constexpr absl::string_view kMetadataAttrsOrderAttr = "attrs_order";
 
+// Returns true if `attr` is a schema attribute of a container (list or dict)
+// schema. The presence of such an attribute means that the schema is a list or
+// dict schema rather than an entity schema.
+constexpr bool IsContainerSchemaAttr(absl::string_view attr) {
+  return attr == kListItemsSchemaAttr || attr == kDictKeysSchemaAttr ||
+         attr == kDictValuesSchemaAttr;
+}
+
+// Returns true if `attr` is a schema attribute that annotates the schema itself
+// (e.g. with a name or metadata) rather than holding a schema of its child. The
+// value of such an attribute is not necessarily a schema, and it must be
+// skipped when iterating over the attributes of an entity schema.
+constexpr bool IsSchemaAnnotationAttr(absl::string_view attr) {
+  return attr == kSchemaNameAttr || attr == kSchemaMetadataAttr;
+}
+
 // Seeds for UUID generation.
 //
 // Seed for implicit schemas.

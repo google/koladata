@@ -325,8 +325,7 @@ class ToPyVisitor : internal::AbstractVisitor {
                 schema_name =
                     std::string(assigned_name->value<arolla::Text>().view());
               }
-            } else if (attr != schema::kSchemaNameAttr &&
-                       attr != schema::kSchemaMetadataAttr) {
+            } else if (!schema::IsSchemaAnnotationAttr(attr)) {
               // TODO: Add tests for metadata support.
               attr_names_vec.push_back(attr);
             }
