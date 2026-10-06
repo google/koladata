@@ -58,12 +58,12 @@ class KdExtTest(absltest.TestCase):
       self.assertFalse(api_name.startswith('_'))
 
   def test_eager(self):
-    self.assertCountEqual(kd_ext.eager.__all__, dir(kd_ext.eager))  # pytype: disable=attribute-error
+    self.assertCountEqual(kd_ext.eager.__all__, dir(kd_ext.eager))
     self.assertCountEqual(
         set(dir(kd_ext)) - set(dir(kd_ext.eager)), ['eager']
     )
     self.assertCountEqual(set(dir(kd_ext.eager)) - set(dir(kd_ext)), [])
-    for name in kd_ext.eager.__all__:  # pytype: disable=attribute-error
+    for name in kd_ext.eager.__all__:
       self.assertIs(getattr(kd_ext.eager, name), getattr(kd_ext, name))
     for bad_name in ['eager']:
       with self.assertRaises(AttributeError):

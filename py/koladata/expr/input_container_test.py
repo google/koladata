@@ -62,7 +62,7 @@ class InputContainerTest(parameterized.TestCase):
 
   def test_kd_eval(self):
     I = input_container.InputContainer('I')
-    testing.assert_equal(expr_eval.eval(I.x, x=ds([1, 2, 3])), ds([1, 2, 3]))  # pytype: disable=attribute-error
+    testing.assert_equal(expr_eval.eval(I.x, x=ds([1, 2, 3])), ds([1, 2, 3]))
 
   def test_relationship_with_arolla_leaves(self):
     op = arolla.abc.lookup_operator('koda_internal.input')

@@ -46,7 +46,7 @@ def _get_jagged_shape_from_edge(
       parent_edge = arolla.types.DenseArrayEdge.from_sizes([edge.parent_size])  # pyrefly: ignore[missing-attribute]
       return jagged_shape.JaggedShape.from_edges(parent_edge, edge)  # pyrefly: ignore[bad-argument-type]
     case arolla.ARRAY_TO_SCALAR_EDGE | arolla.DENSE_ARRAY_TO_SCALAR_EDGE:
-      return jagged_shape.create_shape([edge.child_size])  # pytype: disable=attribute-error
+      return jagged_shape.create_shape([edge.child_size])  # pyrefly: ignore[missing-attribute]
     case arolla.types.SCALAR_TO_SCALAR_EDGE:
       return jagged_shape.JaggedShape.from_edges()
     case _:

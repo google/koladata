@@ -278,7 +278,7 @@ class ViewTest(absltest.TestCase):
             ' it.'
         ),
     ):
-      view_lib.box([1, 2])  # pytype: disable=wrong-arg-types
+      view_lib.box([1, 2])  # pyrefly: ignore[bad-argument-type]
 
   def test_box_and_unbox_scalar(self):
     l1 = view_lib.view(1)
@@ -303,7 +303,7 @@ class ViewTest(absltest.TestCase):
             ' it.'
         ),
     ):
-      view_lib.box_and_unbox_scalar([1, 2])  # pytype: disable=wrong-arg-types
+      view_lib.box_and_unbox_scalar([1, 2])  # pyrefly: ignore[bad-argument-type]
 
   def test_and_boxing(self):
     a = view_lib.view(1)

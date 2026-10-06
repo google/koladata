@@ -345,8 +345,8 @@ def _example_computation_kd_no_py_single_bag_pointwise(
       else:
         grouped[item.attr1] = bag.list([item])
     for attr1, items in zip(
-        bag.implode(grouped.get_keys()),  # pyrefly: ignore[bad-argument-type]
-        bag.implode(grouped.get_values()),  # pyrefly: ignore[bad-argument-type]
+        bag.implode(grouped.get_keys()),
+        bag.implode(grouped.get_values()),
     ):
       fitems = bag.list(item_schema=item_schema)
       pcombined = bag.dict(key_schema=kd.STRING, value_schema=item_schema)
@@ -392,7 +392,7 @@ def _example_computation_kd_no_py_single_bag_pointwise(
         )
         item_groups.append(group)
     item_groups = bag.list(
-        sorted(item_groups, key=lambda x: x.index)  # pyrefly: ignore[no-matching-overload]
+        sorted(item_groups, key=lambda x: x.index)
     )
     data.item_groups = item_groups
 

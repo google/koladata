@@ -63,8 +63,8 @@ def get_input_name(expr: arolla.Expr, container: InputContainer) -> str | None:
   """Returns the input name of `expr` if it comes from `container` else None."""
   if (
       expr.op == _KODA_INPUT_OP
-      and expr.node_deps[0].qvalue.py_value() == container.name  # pytype: disable=attribute-error
+      and expr.node_deps[0].qvalue.py_value() == container.name  # pyrefly: ignore[missing-attribute]
   ):
-    return expr.node_deps[1].qvalue.py_value()  # pytype: disable=attribute-error
+    return expr.node_deps[1].qvalue.py_value()  # pyrefly: ignore[missing-attribute]
   else:
     return None

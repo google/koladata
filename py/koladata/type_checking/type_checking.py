@@ -468,7 +468,7 @@ def _with_lazy_constraint_verification(
           (
               _signature_uuid(actual_value.get_attr('__signature__'))
               == _signature_uuid(
-                  signature_utils.from_py_signature(constraint.signature)  # pyrefly: ignore[bad-argument-type]
+                  signature_utils.from_py_signature(constraint.signature)
               ).eval()  # eval it at tracing time since we know it is a literal.
           ),
           lambda actual_value: lazy.strings.join(

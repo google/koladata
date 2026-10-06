@@ -720,8 +720,8 @@ def view(obj: Any) -> View:
   return View(obj, 0, _INTERNAL_CALL)
 
 
-_VIEW_OBJ_SETTER = View.__dict__['_obj'].__set__  # pytype: disable=attribute-error
-_VIEW_DEPTH_SETTER = View.__dict__['_depth'].__set__  # pytype: disable=attribute-error
+_VIEW_OBJ_SETTER = View.__dict__['_obj'].__set__
+_VIEW_DEPTH_SETTER = View.__dict__['_depth'].__set__
 
 AutoBoxType = (
     int | float | str | bytes | bool | type(mask_constants.present) | None

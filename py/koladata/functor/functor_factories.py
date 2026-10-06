@@ -488,7 +488,7 @@ def bind(
     kwarg_namedtuple_type = arolla.namedtuple(
         **{k: py_boxing.as_qvalue(data_slice.DataSlice) for k in kwargs}
     )
-    variables['_aux_fn_variables'] = arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+    variables['_aux_fn_variables'] = arolla.abc.bind_op(  # pyrefly: ignore[bad-assignment]
         'kd.functor.call',
         V['_aux_fn_compute_variables'],
         args=I.args,
@@ -514,7 +514,7 @@ def bind(
   return expr_fn(
       # Note: we bypass the binding policy of functor.call since we already
       # have the args/kwargs as tuple and namedtuple.
-      arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+      arolla.abc.bind_op(
           'kd.functor.call',
           V['_aux_fn'],
           args=final_args,

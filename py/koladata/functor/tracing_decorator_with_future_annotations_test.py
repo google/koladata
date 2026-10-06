@@ -43,7 +43,7 @@ class TracingDecoratorWithFutureAnnotationsTest(absltest.TestCase):
       return c.get_x()
 
     def outer_fn(x):
-      c = SimpleClass(x)  # pyrefly: ignore[bad-argument-count]
+      c = SimpleClass(x)
       return inner_fn(c)
 
     with self.subTest('direct_eval'):
@@ -54,7 +54,6 @@ class TracingDecoratorWithFutureAnnotationsTest(absltest.TestCase):
       testing.assert_equal(functor(ds(1)), ds(1))
 
   def test_forward_declaration(self):
-    # pytype: disable=name-error
     def fn(c: ForwardDeclarationClass):
       return c.x
 
@@ -66,8 +65,6 @@ class TracingDecoratorWithFutureAnnotationsTest(absltest.TestCase):
     @extension_types.extension_type()
     class ForwardDeclarationClass:
       x: data_slice.DataSlice
-
-    # pytype: enable=name-error
 
 
 if __name__ == '__main__':

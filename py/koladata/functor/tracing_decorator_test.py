@@ -270,14 +270,14 @@ class TracingDecoratorTest(parameterized.TestCase):
 
     @tracing_decorator.TraceAsFnDecorator(functor_factory=functor_factory)  # pyrefly: ignore[bad-argument-type]
     def swap(a: ExtensionPair) -> ExtensionPair:
-      return ExtensionPair(x=a.y, y=a.x)  # pyrefly: ignore[unexpected-keyword]
+      return ExtensionPair(x=a.y, y=a.x)
 
     def f(o):
-      p = ExtensionPair(x=o.x, y=o.y)  # pyrefly: ignore[unexpected-keyword]
+      p = ExtensionPair(x=o.x, y=o.y)
       p = swap(p)
       return user_facing_kd.obj(x=p.x, y=p.y)
 
-    res = swap(ExtensionPair(x=ds([1, 2, 3]), y=ds([4, 5, 6])))  # pyrefly: ignore[unexpected-keyword]
+    res = swap(ExtensionPair(x=ds([1, 2, 3]), y=ds([4, 5, 6])))
     testing.assert_equal(res.x.no_bag(), ds([4, 5, 6]))
     testing.assert_equal(res.y.no_bag(), ds([1, 2, 3]))
 
@@ -289,7 +289,7 @@ class TracingDecoratorTest(parameterized.TestCase):
     testing.assert_equal(res.y.no_bag(), ds([1, 2, 3]))
 
     fn = functor_factories.trace_py_fn(swap)
-    p = ExtensionPair(x=ds([1, 2, 3]), y=ds([4, 5, 6]))  # pyrefly: ignore[unexpected-keyword]
+    p = ExtensionPair(x=ds([1, 2, 3]), y=ds([4, 5, 6]))
     res = fn(p, return_type_as=p)
     testing.assert_equal(res.x.no_bag(), ds([4, 5, 6]))
     testing.assert_equal(res.y.no_bag(), ds([1, 2, 3]))

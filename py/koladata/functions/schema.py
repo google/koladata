@@ -151,7 +151,7 @@ def _primitive_schema_to_py(
     return Any  # pyrefly: ignore[bad-return]
   if schema not in _koda_to_py_type_map:
     raise TypeError(f'unsupported primitive schema: {schema}.')
-  return Optional[_koda_to_py_type_map[schema]]  # pyrefly: ignore[bad-return]
+  return Optional[_koda_to_py_type_map[schema]]
 
 
 def _get_dataclass_name(schema: schema_item.SchemaItem) -> str:
@@ -229,7 +229,7 @@ def _internal_schema_to_py(
 
     for field in fields:
       name = field.name
-      correct_type = _internal_schema_to_py(schema.get_attr(name), visited)  # pyrefly: ignore[bad-argument-type]
+      correct_type = _internal_schema_to_py(schema.get_attr(name), visited)
       dc_type.__annotations__[name] = (
           correct_type  # This is needed for `typing.get_type_hints`.
       )

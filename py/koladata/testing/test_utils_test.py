@@ -305,8 +305,8 @@ class TestUtilsTest(parameterized.TestCase):
     e2.b = 3
 
     # Delete 'b' from schema in db1 and db2.
-    del e1.get_schema().b  # pyrefly: ignore[missing-attribute]
-    del e2.get_schema().b  # pyrefly: ignore[missing-attribute]
+    del e1.get_schema().b
+    del e2.get_schema().b
 
     # Now e1 and e2 should be equivalent because 'b' is removed in schema,
     # so the difference in 'b' values (2 vs 3) is ignored.
@@ -315,11 +315,11 @@ class TestUtilsTest(parameterized.TestCase):
   def test_assert_equivalent_with_removed_schema_attr_different_schemas(self):
     db1 = bag()
     e1 = db1.new(a=1, b=2)
-    del e1.get_schema().b  # pyrefly: ignore[missing-attribute]
+    del e1.get_schema().b
 
     db2 = bag()
     e2 = db2.new(a=1, b=3)
-    del e2.get_schema().b  # pyrefly: ignore[missing-attribute]
+    del e2.get_schema().b
 
     # They should be equivalent if we ignore schema IDs, because 'b' is ignored.
     test_utils.assert_equivalent(e1, e2, schemas_equality=False)
@@ -331,7 +331,7 @@ class TestUtilsTest(parameterized.TestCase):
   def test_assert_equivalent_removed_vs_missing_schema_attr(self):
     db1 = bag()
     e1 = db1.new(a=1, b=2)
-    del e1.get_schema().b  # pyrefly: ignore[missing-attribute]
+    del e1.get_schema().b
 
     db2 = bag()
     schema_id = e1.get_schema().no_bag()
@@ -404,7 +404,7 @@ class TestUtilsTest(parameterized.TestCase):
 
   def test_assert_allclose_error(self):
     with self.assertRaisesRegex(TypeError, 'expected DataSlice'):
-      test_utils.assert_allclose(4, 6)  # pytype: disable=wrong-arg-types
+      test_utils.assert_allclose(4, 6)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(AssertionError, 'have different shapes'):
       test_utils.assert_allclose(
           ds([[2.71], [2.71]]),
@@ -549,7 +549,7 @@ class TestUtilsTest(parameterized.TestCase):
 
   def test_assert_unordered_equal_error(self):
     with self.assertRaisesRegex(TypeError, 'expected DataSlice'):  # pylint: disable=g-error-prone-assert-raises
-      test_utils.assert_unordered_equal(4, 6)  # pytype: disable=wrong-arg-types
+      test_utils.assert_unordered_equal(4, 6)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(AssertionError, 'have different shapes'):  # pylint: disable=g-error-prone-assert-raises
       test_utils.assert_unordered_equal(ds(1), ds([1]))
     with self.assertRaisesRegex(  # pylint: disable=g-error-prone-assert-raises

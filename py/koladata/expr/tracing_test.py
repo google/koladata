@@ -308,11 +308,11 @@ class TracingTest(absltest.TestCase):
       y: schema_constants.INT32
 
     def fn(a: ExtensionPair) -> ExtensionPair:
-      return ExtensionPair(x=a.y, y=a.x)  # pyrefly: ignore[unexpected-keyword]
+      return ExtensionPair(x=a.y, y=a.x)
 
     e = tracing.trace(fn)
-    self.assertEqual(e.eval(a=ExtensionPair(x=1, y=2)).x, 2)  # pyrefly: ignore[unexpected-keyword]
-    self.assertEqual(e.eval(a=ExtensionPair(x=1, y=2)).y, 1)  # pyrefly: ignore[unexpected-keyword]
+    self.assertEqual(e.eval(a=ExtensionPair(x=1, y=2)).x, 2)
+    self.assertEqual(e.eval(a=ExtensionPair(x=1, y=2)).y, 1)
 
   def test_extension_type_with_parallel(self):
 
@@ -327,7 +327,7 @@ class TracingTest(absltest.TestCase):
     self.assertEqual(
         parallel.call_multithreaded(
             functor_factories.py_fn(fn),
-            e=ParallelCallableExtension(x=1),  # pyrefly: ignore[unexpected-keyword]
+            e=ParallelCallableExtension(x=1),
         ),
         3,
     )
@@ -363,7 +363,7 @@ class TracingTest(absltest.TestCase):
         return b.y
 
       expr = tracing.trace(self_cast_fn)
-      self.assertEqual(expr.eval(b=B(x=1, y=2)), 2)  # pyrefly: ignore[unexpected-keyword]
+      self.assertEqual(expr.eval(b=B(x=1, y=2)), 2)
 
     with self.subTest('upcast'):
 
@@ -371,7 +371,7 @@ class TracingTest(absltest.TestCase):
         return a.x
 
       expr = tracing.trace(upcast_fn)
-      self.assertEqual(expr.eval(a=B(x=1, y=2)), 1)  # pyrefly: ignore[unexpected-keyword]
+      self.assertEqual(expr.eval(a=B(x=1, y=2)), 1)
 
     with self.subTest('downcast'):
 
@@ -380,9 +380,9 @@ class TracingTest(absltest.TestCase):
 
       expr = tracing.trace(downcast_fn)
       with self.assertRaisesRegex(ValueError, "attribute not found: 'y'"):
-        expr.eval(b=A(x=1))  # pyrefly: ignore[unexpected-keyword]
+        expr.eval(b=A(x=1))
 
-      b = B(x=1, y=2)  # pyrefly: ignore[unexpected-keyword]
+      b = B(x=1, y=2)
       b_upcasted = extension_type_registry.dynamic_cast(
           b, extension_type_registry.get_extension_qtype(A)
       )
@@ -394,7 +394,7 @@ class TracingTest(absltest.TestCase):
         return a
 
       expr = tracing.trace(upcast_self_return_fn)
-      b = B(x=1, y=2)  # pyrefly: ignore[unexpected-keyword]
+      b = B(x=1, y=2)
       b_upcasted = extension_type_registry.dynamic_cast(
           b, extension_type_registry.get_extension_qtype(A)
       )
@@ -428,7 +428,7 @@ class TracingTest(absltest.TestCase):
                 ),
                 line=(
                     inspect.getsourcelines(fn)[1] + 1
-                ),  # pytype: disable=attribute-error
+                ),
                 column=13,
                 line_text='      return a + b',
             ),

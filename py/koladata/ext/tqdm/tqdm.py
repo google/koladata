@@ -105,7 +105,7 @@ class tqdm(_tqdm_auto.tqdm):  # pylint: disable=invalid-name  # pyrefly: ignore[
 
   def display(self, msg=None, pos=None, **kwargs):
     """Display and report progress to the active reporter."""
-    ret = super().display(msg=msg, pos=pos, **kwargs)  # pytype: disable=attribute-error
+    ret = super().display(msg=msg, pos=pos, **kwargs)
     if not self.disable:
       self._set_progress()
     return ret
@@ -117,7 +117,7 @@ class tqdm(_tqdm_auto.tqdm):  # pylint: disable=invalid-name  # pyrefly: ignore[
       # Report final progress before closing, as close() sets disable=True
       # which prevents further display() calls.
       self._set_progress()
-    super().close()  # pytype: disable=attribute-error
+    super().close()
 
   def _set_progress(self):
     """Send current progress state to the active reporter."""

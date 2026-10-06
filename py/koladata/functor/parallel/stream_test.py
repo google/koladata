@@ -56,11 +56,11 @@ class StreamTest(parameterized.TestCase):
         TypeError,
         'Stream.new() takes exactly one argument (0 given)',
     ):
-      clib.Stream.new()  # pytype: disable=missing-parameter
+      clib.Stream.new()  # pyrefly: ignore[bad-argument-count]
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'Stream.new() expected a QType, got object'
     ):
-      clib.Stream.new(object())  # pytype: disable=wrong-arg-types
+      clib.Stream.new(object())  # pyrefly: ignore[bad-argument-type]
 
   def test_stream_writer_close_with_error(self):
     stream, stream_writer = clib.Stream.new(arolla.INT32)
@@ -89,11 +89,11 @@ class StreamTest(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'StreamWriter.write() takes exactly one argument (2 given)'
     ):
-      stream_writer.write(arolla.int32(0), arolla.int32(0))  # pytype: disable=wrong-arg-count
+      stream_writer.write(arolla.int32(0), arolla.int32(0))  # pyrefly: ignore[bad-argument-count]
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'expected a qvalue, got int'
     ):
-      stream_writer.write(0)  # pytype: disable=wrong-arg-types
+      stream_writer.write(0)
     with self.assertRaisesWithLiteralMatch(
         ValueError, 'expected a value of type INT32, got FLOAT32'
     ):
@@ -113,12 +113,12 @@ class StreamTest(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'expected an exception, got object'
     ):
-      stream_writer.close(object())  # pytype: disable=wrong-arg-types
+      stream_writer.close(object())  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         'StreamWriter.close() takes at most 1 argument (2 given)',
     ):
-      stream_writer.close(1, 2)  # pytype: disable=wrong-arg-count
+      stream_writer.close(1, 2)  # pyrefly: ignore[bad-argument-count, bad-argument-type]
     stream_writer.close(None)
     with self.assertRaisesWithLiteralMatch(
         RuntimeError, 'stream is already closed'
@@ -154,9 +154,9 @@ class StreamTest(parameterized.TestCase):
         TypeError,
         'StreamReader.read_available() takes at most 1 argument (2 given)',
     ):
-      stream.make_reader().read_available(object(), object())  # pytype: disable=wrong-arg-count
+      stream.make_reader().read_available(object(), object())  # pyrefly: ignore[bad-argument-count, bad-argument-type]
     with self.assertRaises(TypeError):
-      stream.make_reader().read_available(object())  # pytype: disable=wrong-arg-types
+      stream.make_reader().read_available(object())  # pyrefly: ignore[bad-argument-type]
 
     with self.assertRaises(OverflowError):
       stream.make_reader().read_available(-1)
@@ -310,23 +310,23 @@ class StreamTest(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'accepts 0 positional arguments but 1 was given'
     ):
-      stream.read_all(object())  # pytype: disable=wrong-arg-count
+      stream.read_all(object())  # pyrefly: ignore[unexpected-positional-argument]
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         "got an unexpected keyword 'foo'",
     ):
-      stream.read_all(foo=object())  # pytype: disable=wrong-keyword-args
+      stream.read_all(foo=object())  # pyrefly: ignore[missing-argument, unexpected-keyword]
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         "Stream.read_all() missing 1 required keyword-only argument: 'timeout'",
     ):
-      stream.read_all()  # pytype: disable=missing-parameter
+      stream.read_all()  # pyrefly: ignore[missing-argument]
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         "Stream.read_all() 'timeout' must specify a non-negative number of"
         " seconds (or be None), got: 'bar'",
     ):
-      stream.read_all(timeout='bar')  # pytype: disable=wrong-arg-types
+      stream.read_all(timeout='bar')  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesWithLiteralMatch(
         ValueError, "Stream.read_all() 'timeout' cannot be negative"
     ):
@@ -396,24 +396,24 @@ class StreamTest(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'accepts 0 positional arguments but 1 was given'
     ):
-      stream.yield_all(object())  # pytype: disable=wrong-arg-count
+      stream.yield_all(object())  # pyrefly: ignore[unexpected-positional-argument]
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         "got an unexpected keyword 'foo'",
     ):
-      stream.yield_all(foo=object())  # pytype: disable=wrong-keyword-args
+      stream.yield_all(foo=object())  # pyrefly: ignore[missing-argument, unexpected-keyword]
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         'Stream.yield_all() missing 1 required keyword-only argument:'
         " 'timeout'",
     ):
-      stream.yield_all()  # pytype: disable=missing-parameter
+      stream.yield_all()  # pyrefly: ignore[missing-argument]
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         "Stream.yield_all() 'timeout' must specify a non-negative number of"
         " seconds (or be None), got: 'bar'",
     ):
-      stream.yield_all(timeout='bar')  # pytype: disable=wrong-arg-types
+      stream.yield_all(timeout='bar')  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesWithLiteralMatch(
         ValueError, "Stream.yield_all() 'timeout' cannot be negative"
     ):
@@ -462,7 +462,7 @@ class StreamTest(parameterized.TestCase):
     stream_qvalue: clib.Stream[arolla.QValue] = stream_int  # co
 
     writer_qvalue: clib.StreamWriter[arolla.QValue] = writer_any
-    writer_int: clib.StreamWriter[arolla.types.Int] = writer_qvalue  # contra  # pytype: disable=annotation-type-mismatch  # pytype bug: b/418217034
+    writer_int: clib.StreamWriter[arolla.types.Int] = writer_qvalue  # contra
 
     x_any: Any = arolla.int32(1)
     x_int: arolla.types.Int = arolla.int32(2)

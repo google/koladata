@@ -38,7 +38,7 @@ class TracingWithFutureAnnotationsTest(absltest.TestCase):
     def fn(c: SimpleClass):
       return c.x + 1
 
-    c = SimpleClass(x=ds(1))  # pyrefly: ignore[unexpected-keyword]
+    c = SimpleClass(x=ds(1))
 
     with self.subTest('direct_eval'):
       testing.assert_equal(fn(c), ds(2))
@@ -48,7 +48,6 @@ class TracingWithFutureAnnotationsTest(absltest.TestCase):
       testing.assert_equal(functor.eval(c=c), ds(2))
 
   def test_forward_declaration(self):
-    # pytype: disable=name-error
     def fn(c: ForwardDeclarationClass):
       return c.x
 
@@ -60,8 +59,6 @@ class TracingWithFutureAnnotationsTest(absltest.TestCase):
     @extension_types.extension_type()
     class ForwardDeclarationClass:
       x: schema_constants.INT32
-
-    # pytype: enable=name-error
 
 
 if __name__ == '__main__':

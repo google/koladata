@@ -30,11 +30,11 @@ class TestUtilsTest(absltest.TestCase):
     with self.assertRaisesRegex(
         AssertionError, re.escape("Expected a View, got <class 'int'>")
     ):
-      test_utils.assert_equal(view_lib.view(1), 1)  # pytype: disable=wrong-arg-types
+      test_utils.assert_equal(view_lib.view(1), 1)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(
         AssertionError, re.escape("Expected a View, got <class 'int'>")
     ):
-      test_utils.assert_equal(1, view_lib.view(1))  # pytype: disable=wrong-arg-types
+      test_utils.assert_equal(1, view_lib.view(1))  # pyrefly: ignore[bad-argument-type]
 
   def test_assert_equal_different_depths(self):
     with self.assertRaisesRegex(
@@ -84,7 +84,7 @@ class TestUtilsTest(absltest.TestCase):
     with self.assertRaisesRegex(
         AssertionError, re.escape("Expected a DataSlice, got <class 'int'>")
     ):
-      test_utils.from_ds(1)  # pytype: disable=wrong-arg-types
+      test_utils.from_ds(1)
 
 
 if __name__ == "__main__":

@@ -177,7 +177,7 @@ def prepare_module_for_tracing(
   name_to_eager = {}
   name_to_tracing = {}
   configs = dict(configs)
-  for name in mod.__all__:  # pytype: disable=attribute-error
+  for name in mod.__all__:
     obj = getattr(mod, name)
     wrapper = _HashAnythingWrapper(obj)
     if wrapper in configs:
@@ -197,7 +197,7 @@ def prepare_module_for_tracing(
       # sys.modules dict.
       self._ref_to_mod = mod
       self.__doc__ = mod.__doc__
-      self.__all__ = mod.__all__  # pytype: disable=attribute-error
+      self.__all__ = mod.__all__
 
     def __dir__(self):
       return self.__all__

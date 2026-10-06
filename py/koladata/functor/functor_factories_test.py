@@ -168,7 +168,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         TypeError, 'expecting signature to be a DataSlice, got int'
     ):
-      _ = functor_factories.expr_fn(  # pytype: disable=wrong-arg-types
+      _ = functor_factories.expr_fn(
           returns=I.x,
           signature=57,  # pyrefly: ignore[bad-argument-type]
       )
@@ -1390,7 +1390,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
     def fn(x: TestExtension):
       return x.fn(2)
 
-    e = TestExtension(x=1)  # pyrefly: ignore[unexpected-keyword]
+    e = TestExtension(x=1)
     self.assertEqual(functor_factories.py_fn(fn)(e), 3)
 
   def test_extension_type_trace_py_fn(self):
@@ -1398,7 +1398,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
     def fn(x: TestExtension):
       return x.fn(2)
 
-    e = TestExtension(x=1)  # pyrefly: ignore[unexpected-keyword]
+    e = TestExtension(x=1)
     self.assertEqual(functor_factories.trace_py_fn(fn)(e), 3)
 
   def test_py_fn_not_serializable(self):
@@ -1515,7 +1515,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
     testing.assert_equal(fn(1), ds(2))
 
   def test_register_py_fn_extension_type(self):
-    e = TestExtension(x=1)  # pyrefly: ignore[unexpected-keyword]
+    e = TestExtension(x=1)
     self.assertEqual(functor_factories.register_py_fn(extension_type_fn)(e), 3)
 
 
