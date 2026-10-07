@@ -317,10 +317,25 @@ cc_test(
 )
 
 cc_library(
+    name = "abstract_visitor",
+    hdrs = ["abstract_visitor.h"],
+    deps = [
+        ":traverse_helper",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/util",
+    ],
+)
+
+cc_library(
     name = "traverser",
     srcs = [],
     hdrs = ["traverser.h"],
     deps = [
+        ":abstract_visitor",
         ":traverse_helper",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
