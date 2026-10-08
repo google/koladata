@@ -23,6 +23,8 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "arolla/util/status_macros_backport.h"
+#include "absl/strings/string_view.h"
+#include "arolla/util/text.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -32,11 +34,24 @@
 #include "koladata/internal/op_utils/deep_diff.h"
 #include "koladata/internal/op_utils/object_finder.h"
 #include "koladata/internal/op_utils/traverse_helper.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/uuid_object.h"
 
 namespace koladata::internal {
 
 namespace {
+
+// Returns true for schema attributes that are not entity attributes, i.e. for
+// list / dict schema attributes, schema name and metadata.
+bool IsSpecialSchemaAttr(const TraverseHelper::TransitionKey& key) {
+  if (key.type != TraverseHelper::TransitionType::kSchemaAttributeName ||
+      !key.value.holds_value<arolla::Text>()) {
+    return false;
+  }
+  absl::string_view attr_name = key.value.value<arolla::Text>().view();
+  return schema::IsContainerSchemaAttr(attr_name) ||
+         schema::IsSchemaAnnotationAttr(attr_name);
+}
 
 // A comparator that is used in DeepComparator to check if two schemas are
 // compatible.
@@ -76,7 +91,7 @@ class SchemaCompatibleComparator : public AbstractComparator {
   absl::Status LhsOnlyAttribute(
       const DataItem& token, const TraverseHelper::TransitionKey& key,
       const TraverseHelper::Transition& lhs) override {
-    if (params_.allow_removing_attrs) {
+    if (params_.allow_removing_attrs && !IsSpecialSchemaAttr(key)) {
       return absl::OkStatus();
     }
     if (!lhs.item.is_schema()) {
@@ -89,7 +104,7 @@ class SchemaCompatibleComparator : public AbstractComparator {
   absl::Status RhsOnlyAttribute(
       const DataItem& token, const TraverseHelper::TransitionKey& key,
       const TraverseHelper::Transition& rhs) override {
-    if (params_.allow_new_attrs) {
+    if (params_.allow_new_attrs && !IsSpecialSchemaAttr(key)) {
       return absl::OkStatus();
     }
     if (!rhs.item.is_schema()) {
@@ -103,10 +118,12 @@ class SchemaCompatibleComparator : public AbstractComparator {
                               const TraverseHelper::TransitionKey& key,
                               const TraverseHelper::Transition& lhs,
                               const TraverseHelper::Transition& rhs) override {
-    if (params_.allow_removing_attrs && !rhs.item.has_value()) {
+    if (params_.allow_removing_attrs && !rhs.item.has_value() &&
+        !IsSpecialSchemaAttr(key)) {
       return absl::OkStatus();
     }
-    if (params_.allow_new_attrs && !lhs.item.has_value()) {
+    if (params_.allow_new_attrs && !lhs.item.has_value() &&
+        !IsSpecialSchemaAttr(key)) {
       return absl::OkStatus();
     }
     if (!lhs.item.is_schema() && !rhs.item.is_schema()) {

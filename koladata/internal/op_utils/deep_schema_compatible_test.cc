@@ -15,6 +15,7 @@
 #include "koladata/internal/op_utils/deep_schema_compatible.h"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -509,6 +510,96 @@ TEST_P(DeepSchemaCompatibleTest, ObjectAttributeEarlyStop) {
                                 {GetFallbackDb(db).get()}, schema_b,
                                 *GetMainDb(db), {GetFallbackDb(db).get()}));
   EXPECT_TRUE(is_compatible);
+}
+
+TEST_P(DeepSchemaCompatibleTest, SchemaNameAndMetadataIgnoredWithAllowFlags) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto entity_schema = AllocateSchema();
+  auto named_schema = AllocateSchema();
+  auto schema_with_metadata = AllocateSchema();
+  TriplesT schema_triples = {
+      {entity_schema, {{"x", DataItem(schema::kInt32)}}},
+      {named_schema,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("named"))},
+        {"x", DataItem(schema::kInt32)}}},
+      {schema_with_metadata,
+       {{schema::kSchemaMetadataAttr, DataItem(AllocateSingleObject())},
+        {"x", DataItem(schema::kInt32)}}},
+  };
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  // Schema name and metadata present on one side only are ignored regardless
+  // of allow_removing_attrs and allow_new_attrs.
+  for (const auto& params :
+       std::vector<DeepSchemaCompatibleOp::SchemaCompatibleParams>{
+           {.allow_removing_attrs = true},
+           {.allow_new_attrs = true},
+           {.allow_removing_attrs = true, .allow_new_attrs = true},
+       }) {
+    for (const auto& [from_schema, to_schema] :
+         std::vector<std::pair<DataItem, DataItem>>{
+             {entity_schema, named_schema},
+             {named_schema, entity_schema},
+             {entity_schema, schema_with_metadata},
+             {schema_with_metadata, entity_schema},
+         }) {
+      SCOPED_TRACE(::testing::Message()
+                   << from_schema.DebugString() << " -> "
+                   << to_schema.DebugString()
+                   << ", allow_removing_attrs=" << params.allow_removing_attrs
+                   << ", allow_new_attrs=" << params.allow_new_attrs);
+      auto result_db = DataBagImpl::CreateEmptyDatabag();
+      auto op = DeepSchemaCompatibleOp(result_db.get(), params,
+                                       ImplicitCastCompatible);
+      ASSERT_OK_AND_ASSIGN(
+          (auto [is_compatible, _]),
+          op(from_schema, *GetMainDb(db), {GetFallbackDb(db).get()}, to_schema,
+             *GetMainDb(db), {GetFallbackDb(db).get()}));
+      EXPECT_TRUE(is_compatible);
+    }
+  }
+}
+
+TEST_P(DeepSchemaCompatibleTest, ListOrDictAttrsNotRemovableOrNew) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto list_schema = AllocateSchema();
+  auto dict_schema = AllocateSchema();
+  auto entity_schema = AllocateSchema();
+  TriplesT schema_triples = {
+      {list_schema, {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}},
+      {dict_schema,
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kString)},
+        {schema::kDictValuesSchemaAttr, DataItem(schema::kInt32)}}},
+      {entity_schema, {{"x", DataItem(schema::kInt32)}}},
+  };
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  // Even with allow_removing_attrs and allow_new_attrs, lists, dicts and
+  // entities are incompatible with each other.
+  for (const auto& [from_schema, to_schema] :
+       std::vector<std::pair<DataItem, DataItem>>{
+           {list_schema, entity_schema},
+           {dict_schema, entity_schema},
+           {entity_schema, list_schema},
+           {entity_schema, dict_schema},
+           {list_schema, dict_schema},
+       }) {
+    SCOPED_TRACE(from_schema.DebugString() + " -> " + to_schema.DebugString());
+    auto result_db = DataBagImpl::CreateEmptyDatabag();
+    auto op = DeepSchemaCompatibleOp(
+        result_db.get(),
+        {.allow_removing_attrs = true, .allow_new_attrs = true},
+        ImplicitCastCompatible);
+    ASSERT_OK_AND_ASSIGN(
+        (auto [is_compatible, _]),
+        op(from_schema, *GetMainDb(db), {GetFallbackDb(db).get()}, to_schema,
+           *GetMainDb(db), {GetFallbackDb(db).get()}));
+    EXPECT_FALSE(is_compatible);
+  }
 }
 
 }  // namespace

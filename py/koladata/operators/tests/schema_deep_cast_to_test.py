@@ -378,6 +378,19 @@ class SchemaDeepCastToTest(parameterized.TestCase):
     ):
       _ = kd.schema.deep_cast_to(e1, e2_schema)
 
+  def test_list_to_entity_raises(self):
+    target_schema = kd.schema.new_schema(x=schema_constants.INT32)
+    with self.assertRaisesRegex(
+        ValueError,
+        r'cannot be cast to entity schema',
+    ):
+      _ = kd.schema.deep_cast_to(
+          kd.list([1]),
+          target_schema,
+          allow_removing_attrs=True,
+          allow_new_attrs=True,
+      )
+
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.schema.deep_cast_to(I.x, I.y)))
 
