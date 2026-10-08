@@ -97,10 +97,12 @@ class EqualEntityPrimitivesComparator : public AbstractComparator {
     diffs_.push_back({token.value<int64_t>(), key});
     return DataItem(static_cast<int64_t>(-1));
   }
-  int CompareOrder(const TraverseHelper::TransitionKey& lhs,
-                   const TraverseHelper::TransitionKey& rhs) override {
+  CompareOrderResult CompareOrder(
+      const TraverseHelper::TransitionKey& lhs,
+      const TraverseHelper::TransitionKey& rhs) override {
+    using enum CompareOrderResult;
     if (lhs.type != rhs.type) {
-      return lhs.type < rhs.type ? -1 : 1;
+      return lhs.type < rhs.type ? kLess : kGreater;
     }
     if (lhs.type != TraverseHelper::TransitionType::kAttributeName &&
         lhs.type != TraverseHelper::TransitionType::kSchemaAttributeName) {
@@ -108,14 +110,14 @@ class EqualEntityPrimitivesComparator : public AbstractComparator {
       if (status_.ok()) {
         status_ = absl::InternalError("unexpected transition type");
       }
-      return 0;
+      return kEqual;
     }
     auto lhs_attr_name = lhs.value.value<arolla::Text>();
     auto rhs_attr_name = rhs.value.value<arolla::Text>();
     if (lhs_attr_name == rhs_attr_name) {
-      return 0;
+      return kEqual;
     }
-    return lhs_attr_name < rhs_attr_name ? -1 : 1;
+    return lhs_attr_name < rhs_attr_name ? kLess : kGreater;
   }
   bool Equal(const TraverseHelper::Transition& lhs,
              const TraverseHelper::Transition& rhs) override {

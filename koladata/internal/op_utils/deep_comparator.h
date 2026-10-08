@@ -44,10 +44,20 @@ class AbstractComparator {
  public:
   virtual ~AbstractComparator() = default;
 
-  // Returns -1, 0, 1 if `lhs` should be placed before, in the same
-  // position as, or after `rhs` in the sorted order of transition keys.
-  virtual int CompareOrder(const TraverseHelper::TransitionKey& lhs,
-                           const TraverseHelper::TransitionKey& rhs) = 0;
+  enum class CompareOrderResult {
+    // `lhs` is placed before `rhs`.
+    kLess,
+    // `lhs` and `rhs` are placed in the same position, and are matched.
+    kEqual,
+    // `lhs` is placed after `rhs`.
+    kGreater,
+  };
+
+  // Returns the relative order of `lhs` and `rhs` in the sorted order of
+  // transition keys.
+  virtual CompareOrderResult CompareOrder(
+      const TraverseHelper::TransitionKey& lhs,
+      const TraverseHelper::TransitionKey& rhs) = 0;
 
   // Returns true if transitions on left and right sides are equal.
   virtual bool Equal(const TraverseHelper::Transition& lhs,
@@ -151,6 +161,8 @@ class DeepComparator {
   ComparatorT& Comparator() { return *comparator_; }
 
  private:
+  using CompareOrderResult = AbstractComparator::CompareOrderResult;
+
   struct LhsRhsItems {
     DataItem lhs;
     DataItem lhs_schema;
@@ -197,8 +209,8 @@ class DeepComparator {
     std::stable_sort(keys.begin(), keys.end(),
                      [&](const TraverseHelper::TransitionKey& lhs,
                          const TraverseHelper::TransitionKey& rhs) {
-                       return comparator_->ComparatorT::CompareOrder(lhs, rhs) <
-                              0;
+                       return comparator_->ComparatorT::CompareOrder(
+                                  lhs, rhs) == CompareOrderResult::kLess;
                      });
   }
 
@@ -246,11 +258,11 @@ class DeepComparator {
       int64_t rhs_idx = 0;
       while (lhs_idx < lhs_transition_keys.size() &&
              rhs_idx < rhs_transition_keys.size()) {
-        int cmp_order = comparator_->ComparatorT::CompareOrder(
+        CompareOrderResult order = comparator_->ComparatorT::CompareOrder(
             lhs_transition_keys[lhs_idx], rhs_transition_keys[rhs_idx]);
-        if (cmp_order < 0) {
+        if (order == CompareOrderResult::kLess) {
           RETURN_IF_ERROR(lhs_only_attribute(lhs_idx++));
-        } else if (cmp_order > 0) {
+        } else if (order == CompareOrderResult::kGreater) {
           RETURN_IF_ERROR(rhs_only_attribute(rhs_idx++));
         } else {
           ASSIGN_OR_RETURN(auto lhs_transition,

@@ -108,24 +108,27 @@ class EquivalentComparator : public AbstractComparator {
     bool is_schema_mismatch = IsSchemaMismatch(lhs, rhs);
     return result_.SliceItemMismatch(key, lhs, rhs, is_schema_mismatch);
   }
-  int CompareOrder(const TraverseHelper::TransitionKey& lhs,
-                   const TraverseHelper::TransitionKey& rhs) override {
+  CompareOrderResult CompareOrder(
+      const TraverseHelper::TransitionKey& lhs,
+      const TraverseHelper::TransitionKey& rhs) override {
+    using enum CompareOrderResult;
     if (lhs.type != rhs.type) {
-      return lhs.type < rhs.type ? -1 : 1;
+      return lhs.type < rhs.type ? kLess : kGreater;
     }
     if (lhs.type == TraverseHelper::TransitionType::kListItem) {
-      if (lhs.index == rhs.index) return 0;
-      return lhs.index < rhs.index ? -1 : 1;
+      if (lhs.index == rhs.index) return kEqual;
+      return lhs.index < rhs.index ? kLess : kGreater;
     }
     auto lhs_type_id = lhs.value.type_id();
     auto rhs_type_id = rhs.value.type_id();
     if (lhs_type_id != rhs_type_id) {
-      return lhs_type_id < rhs_type_id ? -1 : 1;
+      return lhs_type_id < rhs_type_id ? kLess : kGreater;
     }
-    return rhs.value.VisitValue([&]<class T>(const T& rhs_value) -> int {
-      if (DataItem::Eq()(lhs.value, rhs_value)) return 0;
-      return DataItem::Less()(lhs.value, rhs_value) ? -1 : 1;
-    });
+    return rhs.value.VisitValue(
+        [&]<class T>(const T& rhs_value) -> CompareOrderResult {
+          if (DataItem::Eq()(lhs.value, rhs_value)) return kEqual;
+          return DataItem::Less()(lhs.value, rhs_value) ? kLess : kGreater;
+        });
   }
   bool Equal(const TraverseHelper::Transition& lhs,
              const TraverseHelper::Transition& rhs) override {

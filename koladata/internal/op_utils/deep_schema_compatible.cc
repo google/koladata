@@ -142,12 +142,15 @@ class SchemaCompatibleComparator : public AbstractComparator {
     return result_.SliceItemMismatch(key, lhs, rhs,
                                      /*is_schema_mismatch=*/false);
   }
-  int CompareOrder(const TraverseHelper::TransitionKey& lhs,
-                   const TraverseHelper::TransitionKey& rhs) override {
-    return rhs.value.VisitValue([&]<class T>(const T& rhs_value) -> int {
-      if (DataItem::Eq()(lhs.value, rhs_value)) return 0;
-      return DataItem::Less()(lhs.value, rhs_value) ? -1 : 1;
-    });
+  CompareOrderResult CompareOrder(
+      const TraverseHelper::TransitionKey& lhs,
+      const TraverseHelper::TransitionKey& rhs) override {
+    using enum CompareOrderResult;
+    return rhs.value.VisitValue(
+        [&]<class T>(const T& rhs_value) -> CompareOrderResult {
+          if (DataItem::Eq()(lhs.value, rhs_value)) return kEqual;
+          return DataItem::Less()(lhs.value, rhs_value) ? kLess : kGreater;
+        });
   }
   bool Equal(const TraverseHelper::Transition& lhs,
              const TraverseHelper::Transition& rhs) override {
