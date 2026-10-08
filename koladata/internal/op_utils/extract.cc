@@ -889,13 +889,15 @@ class CopyingProcessor {
               if (!status.ok()) {
                 return;
               }
+              // `full_alloc` is about `new_ds`, not about the group.
+              bool group_full_alloc = false;
               status = ProcessAttribute(
                   {.slice =
                        DataSliceImpl::Create(std::move(new_ds_grouped[idx])),
                    .schema = DataItem(schema::kObject),
                    .schema_source = SchemaSource::kDataDatabag,
                    .depth = depth},
-                  attr_name, DataItem(attr_schema), full_alloc);
+                  attr_name, DataItem(attr_schema), group_full_alloc);
             });
           } else {
             DCHECK(false);

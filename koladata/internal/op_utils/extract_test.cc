@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <initializer_list>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -26,6 +27,7 @@
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/text.h"
@@ -2671,6 +2673,39 @@ TEST_P(ExtractTest, DifferentSchemasInOneAllocation) {
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
+TEST_P(ExtractTest, AttrsWithMixedSchemasInFullAllocation) {
+  // For an attribute with mixed schemas, the objects are processed in groups,
+  // otherwise all at once. There are several attributes of each kind, because
+  // the order of attributes is not deterministic.
+  constexpr int kAttrCount = 8;
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(4);
+  auto schemas =
+      DataSliceImpl::ObjectsFromAllocation(AllocateExplicitSchemas(4), 4);
+  auto int32_schemas = DataSliceImpl::Create(4, DataItem(schema::kInt32));
+  auto mixed_schemas = CreateSlice<schema::DType>(
+      {schema::kInt32, schema::kFloat32, schema::kInt32, schema::kFloat32});
+  auto int32_values = CreateSlice<int>({1, 2, 3, 4});
+  auto mixed_values = DataSliceImpl::Create(CreateDenseArray<DataItem>(
+      {DataItem(1), DataItem(2.5f), DataItem(3), DataItem(4.5f)}));
+  ASSERT_OK(db->SetAttr(obj_ids, schema::kSchemaAttr, schemas));
+  for (int i = 0; i < kAttrCount; ++i) {
+    std::string uniform_attr = absl::StrCat("uniform_", i);
+    ASSERT_OK(db->SetSchemaAttr(schemas, uniform_attr, int32_schemas));
+    ASSERT_OK(db->SetAttr(obj_ids, uniform_attr, int32_values));
+    std::string mixed_attr = absl::StrCat("mixed_", i);
+    ASSERT_OK(db->SetSchemaAttr(schemas, mixed_attr, mixed_schemas));
+    ASSERT_OK(db->SetAttr(obj_ids, mixed_attr, mixed_values));
+  }
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(ExtractOp(result_db.get())(obj_ids, DataItem(schema::kObject),
+                                       *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
+
+  EXPECT_THAT(result_db, DataBagEqual(*db));
 }
 
 TEST_P(ExtractTest, MergeSchemaFromTwoDatabags) {

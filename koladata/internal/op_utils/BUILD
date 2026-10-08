@@ -172,6 +172,7 @@ cc_test(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/util",
