@@ -44,20 +44,46 @@ class AbstractComparator {
  public:
   virtual ~AbstractComparator() = default;
 
+  // The result of `CompareOrder`.
   enum class CompareOrderResult {
-    // `lhs` is placed before `rhs`.
+    // `a` is placed before `b`.
     kLess,
-    // `lhs` and `rhs` are placed in the same position, and are matched.
+    // `a` and `b` are placed in the same position, and are matched.
     kEqual,
-    // `lhs` is placed after `rhs`.
+    // `a` is placed after `b`.
     kGreater,
+    // `a` is placed before `b` (same as kLess for sorting), but when merging,
+    // the transitions are matched, and `a` can also be matched with the keys
+    // following `b`. See `CompareOrder` for details.
+    kLessAndMatch,
   };
 
-  // Returns the relative order of `lhs` and `rhs` in the sorted order of
-  // transition keys.
+  // Defines the order of transition keys. DeepComparator uses it to match the
+  // transitions of an `lhs` item with the transitions of an `rhs` item:
+  //
+  // 1. The transition keys of the `lhs` item and of the `rhs` item are sorted
+  //    separately, where `a` goes before `b` if the result is kLess or
+  //    kLessAndMatch. So here both `a` and `b` are keys of the transitions
+  //    from the same item.
+  // 2. The two sorted key sequences are merged. For the current lhs and rhs
+  //    keys, depending on the result of CompareOrder(lhs_key, rhs_key):
+  //    - kLess: the lhs transition is reported via `LhsOnlyAttribute`, and
+  //      the next lhs key is taken.
+  //    - kGreater: the rhs transition is reported via `RhsOnlyAttribute`, and
+  //      the next rhs key is taken.
+  //    - kEqual: the transitions are compared with `Equal` and reported via
+  //      `LhsRhsMatch` or `LhsRhsMismatch` under the common key, and the next
+  //      lhs and rhs keys are taken.
+  //    - kLessAndMatch: same as kEqual, but the result is reported under the
+  //      rhs key, and only the next rhs key is taken. This way a single lhs
+  //      transition can be matched with several rhs transitions (e.g. the
+  //      dict values schema with each attribute of an entity schema). The lhs
+  //      key itself is still reported via `LhsOnlyAttribute` afterwards.
+  //    Once one of the sequences is exhausted, the remaining keys of the other
+  //    one are reported via `LhsOnlyAttribute` or `RhsOnlyAttribute`.
   virtual CompareOrderResult CompareOrder(
-      const TraverseHelper::TransitionKey& lhs,
-      const TraverseHelper::TransitionKey& rhs) = 0;
+      const TraverseHelper::TransitionKey& a,
+      const TraverseHelper::TransitionKey& b) = 0;
 
   // Returns true if transitions on left and right sides are equal.
   virtual bool Equal(const TraverseHelper::Transition& lhs,
@@ -209,8 +235,10 @@ class DeepComparator {
     std::stable_sort(keys.begin(), keys.end(),
                      [&](const TraverseHelper::TransitionKey& lhs,
                          const TraverseHelper::TransitionKey& rhs) {
-                       return comparator_->ComparatorT::CompareOrder(
-                                  lhs, rhs) == CompareOrderResult::kLess;
+                       auto order =
+                           comparator_->ComparatorT::CompareOrder(lhs, rhs);
+                       return order == CompareOrderResult::kLess ||
+                              order == CompareOrderResult::kLessAndMatch;
                      });
   }
 
@@ -265,6 +293,11 @@ class DeepComparator {
         } else if (order == CompareOrderResult::kGreater) {
           RETURN_IF_ERROR(rhs_only_attribute(rhs_idx++));
         } else {
+          // kEqual or kLessAndMatch. With kLessAndMatch, the match is reported
+          // under the rhs key, and lhs is kept for the following rhs keys.
+          bool keep_lhs = order == CompareOrderResult::kLessAndMatch;
+          const auto& key = keep_lhs ? rhs_transition_keys[rhs_idx]
+                                     : lhs_transition_keys[lhs_idx];
           ASSIGN_OR_RETURN(auto lhs_transition,
                            lhs_traverse_helper_.TransitionByKey(
                                lhs.item, lhs.schema, lhs_transitions_set,
@@ -279,14 +312,15 @@ class DeepComparator {
                                            .schema = lhs_transition.schema},
                                           {.item = rhs_transition.item,
                                            .schema = rhs_transition.schema}));
-            RETURN_IF_ERROR(comparator_->ComparatorT::LhsRhsMatch(
-                token, lhs_transition_keys[lhs_idx], to_token));
+            RETURN_IF_ERROR(
+                comparator_->ComparatorT::LhsRhsMatch(token, key, to_token));
           } else {
             RETURN_IF_ERROR(comparator_->ComparatorT::LhsRhsMismatch(
-                token, lhs_transition_keys[lhs_idx], lhs_transition,
-                rhs_transition));
+                token, key, lhs_transition, rhs_transition));
           }
-          ++lhs_idx;
+          if (!keep_lhs) {
+            ++lhs_idx;
+          }
           ++rhs_idx;
         }
       }

@@ -602,6 +602,140 @@ TEST_P(DeepSchemaCompatibleTest, ListOrDictAttrsNotRemovableOrNew) {
   }
 }
 
+TEST_P(DeepSchemaCompatibleTest, DictAsEntity) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto dict_str_int_schema = AllocateSchema();
+  auto dict_int_int_schema = AllocateSchema();
+  auto entity_schema = AllocateSchema();
+  auto entity_str_schema = AllocateSchema();
+  TriplesT schema_triples = {
+      {dict_str_int_schema,
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kString)},
+        {schema::kDictValuesSchemaAttr, DataItem(schema::kInt32)}}},
+      {dict_int_int_schema,
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt32)},
+        {schema::kDictValuesSchemaAttr, DataItem(schema::kInt32)}}},
+      {entity_schema, {{"x", DataItem(schema::kFloat32)}}},
+      {entity_str_schema, {{"x", DataItem(schema::kString)}}},
+  };
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  // With allow_dict_as_entity, dict[STRING, INT32] -> entity(x=FLOAT32) is
+  // compatible.
+  {
+    auto result_db = DataBagImpl::CreateEmptyDatabag();
+    auto op =
+        DeepSchemaCompatibleOp(result_db.get(), {.allow_dict_as_entity = true},
+                               ImplicitCastCompatible);
+    ASSERT_OK_AND_ASSIGN(
+        (auto [is_compatible, _]),
+        op(dict_str_int_schema, *GetMainDb(db), {GetFallbackDb(db).get()},
+           entity_schema, *GetMainDb(db), {GetFallbackDb(db).get()}));
+    EXPECT_TRUE(is_compatible);
+  }
+
+  // Dict with non-string keys is not compatible with entity.
+  {
+    auto result_db = DataBagImpl::CreateEmptyDatabag();
+    auto op =
+        DeepSchemaCompatibleOp(result_db.get(), {.allow_dict_as_entity = true},
+                               ImplicitCastCompatible);
+    ASSERT_OK_AND_ASSIGN(
+        (auto [is_compatible, _]),
+        op(dict_int_int_schema, *GetMainDb(db), {GetFallbackDb(db).get()},
+           entity_schema, *GetMainDb(db), {GetFallbackDb(db).get()}));
+    EXPECT_FALSE(is_compatible);
+  }
+
+  // Dict with incompatible value schema is not compatible with entity.
+  {
+    auto result_db = DataBagImpl::CreateEmptyDatabag();
+    auto op =
+        DeepSchemaCompatibleOp(result_db.get(), {.allow_dict_as_entity = true},
+                               ImplicitCastCompatible);
+    ASSERT_OK_AND_ASSIGN(
+        (auto [is_compatible, _]),
+        op(dict_str_int_schema, *GetMainDb(db), {GetFallbackDb(db).get()},
+           entity_str_schema, *GetMainDb(db), {GetFallbackDb(db).get()}));
+    EXPECT_FALSE(is_compatible);
+  }
+
+  // Entity -> Dict is never compatible.
+  {
+    auto result_db = DataBagImpl::CreateEmptyDatabag();
+    auto op = DeepSchemaCompatibleOp(result_db.get(),
+                                     {.allow_removing_attrs = true,
+                                      .allow_new_attrs = true,
+                                      .allow_dict_as_entity = true},
+                                     ImplicitCastCompatible);
+    ASSERT_OK_AND_ASSIGN(
+        (auto [is_compatible, _]),
+        op(entity_schema, *GetMainDb(db), {GetFallbackDb(db).get()},
+           dict_str_int_schema, *GetMainDb(db), {GetFallbackDb(db).get()}));
+    EXPECT_FALSE(is_compatible);
+  }
+}
+
+TEST_P(DeepSchemaCompatibleTest, DictAsEntityAttrOrder) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto dict_schema = AllocateSchema();
+  auto entity_schema = AllocateSchema();
+  auto entity_str_schema = AllocateSchema();
+  auto empty_entity_schema = AllocateSchema();
+  // Attribute names sort both before ("1x", "A") and after ("z") the special
+  // dict attributes.
+  TriplesT schema_triples = {
+      {dict_schema,
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kString)},
+        {schema::kDictValuesSchemaAttr, DataItem(schema::kInt32)},
+        {schema::kSchemaNameAttr, DataItem(arolla::Text("dict"))}}},
+      {entity_schema,
+       {{"1x", DataItem(schema::kFloat32)},
+        {"A", DataItem(schema::kInt64)},
+        {"z", DataItem(schema::kInt32)},
+        {schema::kSchemaNameAttr, DataItem(arolla::Text("entity"))}}},
+      {entity_str_schema,
+       {{"1x", DataItem(schema::kFloat32)},
+        {"A", DataItem(schema::kString)},
+        {"z", DataItem(schema::kString)}}},
+  };
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  for (const auto& to_schema : {entity_schema, empty_entity_schema}) {
+    SCOPED_TRACE(to_schema.DebugString());
+    auto result_db = DataBagImpl::CreateEmptyDatabag();
+    auto op =
+        DeepSchemaCompatibleOp(result_db.get(), {.allow_dict_as_entity = true},
+                               ImplicitCastCompatible);
+    ASSERT_OK_AND_ASSIGN(
+        (auto [is_compatible, _]),
+        op(dict_schema, *GetMainDb(db), {GetFallbackDb(db).get()}, to_schema,
+           *GetMainDb(db), {GetFallbackDb(db).get()}));
+    EXPECT_TRUE(is_compatible);
+  }
+
+  // Mismatches are reported under the entity attribute names.
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  auto op = DeepSchemaCompatibleOp(
+      result_db.get(), {.allow_dict_as_entity = true}, ImplicitCastCompatible);
+  ASSERT_OK_AND_ASSIGN(
+      (auto [is_compatible, result_item]),
+      op(dict_schema, *GetMainDb(db), {GetFallbackDb(db).get()},
+         entity_str_schema, *GetMainDb(db), {GetFallbackDb(db).get()}));
+  EXPECT_FALSE(is_compatible);
+  ASSERT_OK_AND_ASSIGN(auto diffs, op.GetDiffPaths(result_item));
+  std::vector<std::string> diff_paths;
+  for (const auto& diff : diffs) {
+    diff_paths.push_back(
+        TraverseHelper::TransitionKeySequenceToAccessPath(diff.path));
+  }
+  EXPECT_THAT(diff_paths, ::testing::UnorderedElementsAre(".A", ".z"));
+}
+
 }  // namespace
 
 }  // namespace koladata::internal

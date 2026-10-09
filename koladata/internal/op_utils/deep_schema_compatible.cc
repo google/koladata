@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -41,16 +42,22 @@ namespace koladata::internal {
 
 namespace {
 
+std::optional<absl::string_view> GetSchemaAttrName(
+    const TraverseHelper::TransitionKey& key) {
+  if (key.type != TraverseHelper::TransitionType::kSchemaAttributeName ||
+      !key.value.holds_value<arolla::Text>()) {
+    return std::nullopt;
+  }
+  return key.value.value<arolla::Text>().view();
+}
+
 // Returns true for schema attributes that are not entity attributes, i.e. for
 // list / dict schema attributes, schema name and metadata.
 bool IsSpecialSchemaAttr(const TraverseHelper::TransitionKey& key) {
-  if (key.type != TraverseHelper::TransitionType::kSchemaAttributeName ||
-      !key.value.holds_value<arolla::Text>()) {
-    return false;
-  }
-  absl::string_view attr_name = key.value.value<arolla::Text>().view();
-  return schema::IsContainerSchemaAttr(attr_name) ||
-         schema::IsSchemaAnnotationAttr(attr_name);
+  std::optional<absl::string_view> attr_name = GetSchemaAttrName(key);
+  return attr_name.has_value() &&
+         (schema::IsContainerSchemaAttr(*attr_name) ||
+          schema::IsSchemaAnnotationAttr(*attr_name));
 }
 
 // A comparator that is used in DeepComparator to check if two schemas are
@@ -91,6 +98,27 @@ class SchemaCompatibleComparator : public AbstractComparator {
   absl::Status LhsOnlyAttribute(
       const DataItem& token, const TraverseHelper::TransitionKey& key,
       const TraverseHelper::Transition& lhs) override {
+    if (params_.allow_dict_as_entity) {
+      // Dict cast to an entity. The dict values schema is reported as lhs-only
+      // after it was matched with each entity attribute of the entity schema
+      // (see CompareOrder), or when the entity schema has no entity
+      // attributes. Dict keys must be STRING (or OBJECT / NONE), because the
+      // attributes are looked up by Text keys, so e.g. INT32 keys, though
+      // castable to STRING, would never match.
+      std::optional<absl::string_view> attr_name = GetSchemaAttrName(key);
+      if (attr_name == schema::kDictValuesSchemaAttr) {
+        return absl::OkStatus();
+      }
+      if (attr_name == schema::kDictKeysSchemaAttr) {
+        if (lhs.item == schema::kString || lhs.item == schema::kObject ||
+            lhs.item == schema::kNone) {
+          return absl::OkStatus();
+        }
+        return LhsRhsMismatch(token, key, lhs,
+                              {.item = DataItem(schema::kString),
+                               .schema = DataItem(schema::kSchema)});
+      }
+    }
     if (params_.allow_removing_attrs && !IsSpecialSchemaAttr(key)) {
       return absl::OkStatus();
     }
@@ -146,6 +174,22 @@ class SchemaCompatibleComparator : public AbstractComparator {
       const TraverseHelper::TransitionKey& lhs,
       const TraverseHelper::TransitionKey& rhs) override {
     using enum CompareOrderResult;
+    // With `allow_dict_as_entity`, the special attributes (dict keys and
+    // values, schema name and metadata) are placed before the entity
+    // attributes, and the dict values schema (lhs) is matched with all entity
+    // attributes of the entity schema (rhs).
+    if (params_.allow_dict_as_entity) {
+      bool lhs_is_special = IsSpecialSchemaAttr(lhs);
+      bool rhs_is_special = IsSpecialSchemaAttr(rhs);
+      if (lhs_is_special != rhs_is_special) {
+        if (!lhs_is_special) {
+          return kGreater;
+        }
+        return GetSchemaAttrName(lhs) == schema::kDictValuesSchemaAttr
+                   ? kLessAndMatch
+                   : kLess;
+      }
+    }
     return rhs.value.VisitValue(
         [&]<class T>(const T& rhs_value) -> CompareOrderResult {
           if (DataItem::Eq()(lhs.value, rhs_value)) return kEqual;

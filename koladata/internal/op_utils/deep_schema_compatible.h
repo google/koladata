@@ -45,6 +45,10 @@ class DeepSchemaCompatibleOp {
     // If true, attributes that are present in to_schema but missing in
     // from_schema will not be checked.
     bool allow_new_attrs = false;
+    // If true, dict schemas can be cast to entity schemas when the dict key
+    // schema is STRING, OBJECT or NONE and the dict value schema is compatible
+    // with all entity attribute schemas.
+    bool allow_dict_as_entity = false;
   };
 
   // A callback function that can be used to check if two DataItems are
