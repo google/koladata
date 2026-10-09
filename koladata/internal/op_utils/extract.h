@@ -15,11 +15,11 @@
 #ifndef KOLADATA_INTERNAL_OP_UTILS_EXTRACT_H_
 #define KOLADATA_INTERNAL_OP_UTILS_EXTRACT_H_
 
-#include <functional>
 #include <optional>
 #include <utility>
 
 #include "absl/base/nullability.h"
+#include "absl/functional/function_ref.h"
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
 #include "koladata/internal/data_bag.h"
@@ -28,10 +28,10 @@
 
 namespace koladata::internal {
 
-using LeafCallback = std::function<absl::Status(const DataSliceImpl& item,
-                                                const DataItem& schema)>;
+using LeafCallback = absl::FunctionRef<absl::Status(const DataSliceImpl& item,
+                                                    const DataItem& schema)>;
 
-using CastingCallback = std::function<absl::StatusOr<DataSliceImpl>(
+using CastingCallback = absl::FunctionRef<absl::StatusOr<DataSliceImpl>(
     const DataSliceImpl&, const DataItem&)>;
 
 // Extracts DataSliceImpl / DataItem.

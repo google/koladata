@@ -61,13 +61,11 @@ using testing::deep_op_utils::DeepOpTest;
 using testing::deep_op_utils::test_param_values;
 
 struct LeafCollector {
-  LeafCallback GetCallback() {
-    return [this](const DataSliceImpl& slice, const DataItem& schema) {
-      for (const DataItem& item : slice) {
-        collected_items.push_back(item);
-      }
-      return absl::OkStatus();
-    };
+  absl::Status operator()(const DataSliceImpl& slice, const DataItem& schema) {
+    for (const DataItem& item : slice) {
+      collected_items.push_back(item);
+    }
+    return absl::OkStatus();
   }
   std::vector<DataItem> collected_items;
 };
@@ -1424,7 +1422,7 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsSingleAllocation) {
       ASSERT_OK(ExtractOp(result_db.get())(
           root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()},
           nullptr, {}, /*max_depth=*/2, /*casting_callback=*/std::nullopt,
-          leaf_collector.GetCallback()));
+          leaf_collector));
 
       ASSERT_NE(result_db.get(), db.get());
       EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1446,7 +1444,7 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsSingleAllocation) {
     ASSERT_OK(ExtractOp(result_db.get())(
         root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
         {}, /*max_depth=*/1, /*casting_callback=*/std::nullopt,
-        leaf_collector.GetCallback()));
+        leaf_collector));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1465,7 +1463,7 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsSingleAllocation) {
     ASSERT_OK(ExtractOp(result_db.get())(
         root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
         {}, /*max_depth=*/0, /*casting_callback=*/std::nullopt,
-        leaf_collector.GetCallback()));
+        leaf_collector));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1566,7 +1564,7 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsMultipleAllocation) {
       ASSERT_OK(ExtractOp(result_db.get())(
           root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()},
           nullptr, {}, /*max_depth=*/2, /*casting_callback=*/std::nullopt,
-          leaf_collector.GetCallback()));
+          leaf_collector));
 
       ASSERT_NE(result_db.get(), db.get());
       EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1588,7 +1586,7 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsMultipleAllocation) {
     ASSERT_OK(ExtractOp(result_db.get())(
         root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
         {}, /*max_depth=*/1, /*casting_callback=*/std::nullopt,
-        leaf_collector.GetCallback()));
+        leaf_collector));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1607,7 +1605,7 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsMultipleAllocation) {
     ASSERT_OK(ExtractOp(result_db.get())(
         root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
         {}, /*max_depth=*/0, /*casting_callback=*/std::nullopt,
-        leaf_collector.GetCallback()));
+        leaf_collector));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1741,7 +1739,7 @@ TEST_P(ExtractTest, MaxDepth) {
       ASSERT_OK(ExtractOp(result_db.get())(
           root_obj, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()},
           nullptr, {}, /*max_depth=*/3, /*casting_callback=*/std::nullopt,
-          leaf_collector.GetCallback()));
+          leaf_collector));
 
       ASSERT_NE(result_db.get(), db.get());
       EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1766,7 +1764,7 @@ TEST_P(ExtractTest, MaxDepth) {
                                          {GetFallbackDb(db).get()}, nullptr, {},
                                          /*max_depth=*/2,
                                          /*casting_callback=*/std::nullopt,
-                                         leaf_collector.GetCallback()));
+                                         leaf_collector));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1787,7 +1785,7 @@ TEST_P(ExtractTest, MaxDepth) {
                                          {GetFallbackDb(db).get()}, nullptr, {},
                                          /*max_depth=*/1,
                                          /*casting_callback=*/std::nullopt,
-                                         leaf_collector.GetCallback()));
+                                         leaf_collector));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1806,7 +1804,7 @@ TEST_P(ExtractTest, MaxDepth) {
                                          {GetFallbackDb(db).get()}, nullptr, {},
                                          /*max_depth=*/0,
                                          /*casting_callback=*/std::nullopt,
-                                         leaf_collector.GetCallback()));
+                                         leaf_collector));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));

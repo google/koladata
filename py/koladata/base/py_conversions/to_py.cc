@@ -50,7 +50,6 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
-#include "koladata/internal/op_utils/extract.h"
 #include "koladata/internal/op_utils/traverser.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/schema_utils.h"
@@ -957,8 +956,7 @@ PyObject* absl_nullable ToPyImpl(const DataSlice& ds, DataBagPtr bag,
     return ToPyImplInternal(ds, ds.GetBag(), obj_as_dict, include_missing_attrs,
                             objects_not_to_convert, output_class);
   }
-  internal::LeafCallback leaf_callback = [&](const DataSliceImpl& slice,
-                                             const DataItem& schema) {
+  auto leaf_callback = [&](const DataSliceImpl& slice, const DataItem& schema) {
     for (const DataItem& item : slice) {
       if (item.holds_value<ObjectId>()) {
         objects_not_to_convert.insert(item.value<ObjectId>());
@@ -966,12 +964,11 @@ PyObject* absl_nullable ToPyImpl(const DataSlice& ds, DataBagPtr bag,
     }
     return absl::OkStatus();
   };
-  ASSIGN_OR_RETURN(
-      const DataSlice extracted_ds,
-      koladata::extract_utils_internal::ExtractWithSchema(
-          ds, ds.GetSchema(), max_depth,
-          /*casting_callback=*/std::nullopt, std::move(leaf_callback)),
-      arolla::python::SetPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(const DataSlice extracted_ds,
+                   koladata::extract_utils_internal::ExtractWithSchema(
+                       ds, ds.GetSchema(), max_depth,
+                       /*casting_callback=*/std::nullopt, leaf_callback),
+                   arolla::python::SetPyErrFromStatus(_));
   return ToPyImplInternal(extracted_ds, ds.GetBag(), obj_as_dict,
                           include_missing_attrs, objects_not_to_convert,
                           output_class);
