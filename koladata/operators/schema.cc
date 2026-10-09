@@ -152,7 +152,8 @@ absl::StatusOr<DataSlice> WithAdoptedSchema(const DataSlice& x,
 absl::StatusOr<DataSlice> CastToImpl(const DataSlice& x,
                                      const DataSlice& schema,
                                      bool allow_removing_attrs,
-                                     bool allow_new_attrs) {
+                                     bool allow_new_attrs,
+                                     bool allow_dict_as_entity) {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   if (schema.item() == schema::kObject &&
       x.GetSchemaImpl().is_struct_schema()) {
@@ -177,7 +178,8 @@ absl::StatusOr<DataSlice> CastToImpl(const DataSlice& x,
         x_with_bag, schema.item(),
         {.validate_schema = true,
          .allow_removing_attrs = allow_removing_attrs,
-         .allow_new_attrs = allow_new_attrs});
+         .allow_new_attrs = allow_new_attrs,
+         .allow_dict_as_entity = allow_dict_as_entity});
   }
 }
 
@@ -245,19 +247,23 @@ absl::StatusOr<DataSlice> InternalMaybeNamedSchema(
 
 absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema) {
   return CastToImpl(x, schema, /*allow_removing_attrs=*/false,
-                    /*allow_new_attrs=*/false);
+                    /*allow_new_attrs=*/false, /*allow_dict_as_entity=*/false);
 }
 
 absl::StatusOr<DataSlice> DeepCastTo(const DataSlice& x,
                                      const DataSlice& schema,
                                      const DataSlice& allow_removing_attrs,
-                                     const DataSlice& allow_new_attrs) {
+                                     const DataSlice& allow_new_attrs,
+                                     const DataSlice& allow_dict_as_entity) {
   RETURN_IF_ERROR(ExpectPresentScalar("allow_removing_attrs",
                                       allow_removing_attrs, schema::kBool));
   RETURN_IF_ERROR(
       ExpectPresentScalar("allow_new_attrs", allow_new_attrs, schema::kBool));
+  RETURN_IF_ERROR(ExpectPresentScalar("allow_dict_as_entity",
+                                      allow_dict_as_entity, schema::kBool));
   return CastToImpl(x, schema, allow_removing_attrs.item().value<bool>(),
-                    allow_new_attrs.item().value<bool>());
+                    allow_new_attrs.item().value<bool>(),
+                    allow_dict_as_entity.item().value<bool>());
 }
 
 absl::StatusOr<DataSlice> InternalCastToImplicit(const DataSlice& x,

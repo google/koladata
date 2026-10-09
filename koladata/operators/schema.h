@@ -91,7 +91,8 @@ absl::StatusOr<DataSlice> InternalCastToNarrow(const DataSlice& x,
 absl::StatusOr<DataSlice> DeepCastTo(const DataSlice& x,
                                      const DataSlice& schema,
                                      const DataSlice& allow_removing_attrs,
-                                     const DataSlice& allow_new_attrs);
+                                     const DataSlice& allow_new_attrs,
+                                     const DataSlice& allow_dict_as_entity);
 
 // kd.schema._unsafe_cast_to operator.
 absl::StatusOr<DataSlice> UnsafeCastTo(const DataSlice& x,

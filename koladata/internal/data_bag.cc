@@ -2894,26 +2894,20 @@ static DataSliceImpl SchemaAttrsVectorToSlice(
 absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttrs(
     const DataItem& schema_item, FallbackSpan fallbacks) const {
   ASSIGN_OR_RETURN(auto keys,
-                   GetSchemaAttrsAsVectorImpl(schema_item, fallbacks,
-                                              /*filter_removed=*/false));
+                   GetSchemaAttrsAsVector(schema_item, fallbacks,
+                                          /*filter_removed=*/false));
   return SchemaAttrsVectorToSlice(keys);
-}
-
-absl::StatusOr<std::vector<DataItem>> DataBagImpl::GetSchemaAttrsAsVector(
-    const DataItem& schema_item, FallbackSpan fallbacks) const {
-  return GetSchemaAttrsAsVectorImpl(schema_item, fallbacks,
-                                    /*filter_removed=*/false);
 }
 
 absl::StatusOr<DataSliceImpl> DataBagImpl::GetPresentSchemaAttrs(
     const DataItem& schema_item, FallbackSpan fallbacks) const {
   ASSIGN_OR_RETURN(auto keys,
-                   GetSchemaAttrsAsVectorImpl(schema_item, fallbacks,
-                                              /*filter_removed=*/true));
+                   GetSchemaAttrsAsVector(schema_item, fallbacks,
+                                          /*filter_removed=*/true));
   return SchemaAttrsVectorToSlice(keys);
 }
 
-absl::StatusOr<std::vector<DataItem>> DataBagImpl::GetSchemaAttrsAsVectorImpl(
+absl::StatusOr<std::vector<DataItem>> DataBagImpl::GetSchemaAttrsAsVector(
     const DataItem& schema_item, FallbackSpan fallbacks,
     bool filter_removed) const {
   if (!schema_item.holds_value<ObjectId>()) {

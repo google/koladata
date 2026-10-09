@@ -56,7 +56,7 @@ The &#34;common schema&#34; is defined according to go/koda-type-promotion.
 Args:
   x: DataSlice of schemas.</code></pre>
 
-### `kd.schema.deep_cast_to(x, schema, allow_removing_attrs=False, allow_new_attrs=False)` {#kd.schema.deep_cast_to}
+### `kd.schema.deep_cast_to(x, schema, *, allow_removing_attrs=False, allow_new_attrs=False, allow_dict_as_entity=False)` {#kd.schema.deep_cast_to}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `x` casted to provided `schema` using explicit casting rules.
 
@@ -71,7 +71,14 @@ Args:
     omitted from the result.
   allow_new_attrs: If True, the `schema` may have additional attributes that
     are not present in `x.get_schema()`. Additional attributes are set to
-    missing values.</code></pre>
+    missing values.
+  allow_dict_as_entity: If True, dicts with STRING keys in `x` can be cast to
+    entities. Dicts with OBJECT keys are also supported, but their non-STRING
+    keys are ignored. Dict items whose keys are not attribute names of the
+    entity schema are ignored, and attributes missing in a dict are set to
+    missing values, regardless of `allow_removing_attrs` and
+    `allow_new_attrs`. Within a single call, the same dict cast to the same
+    entity schema results in the same entity.</code></pre>
 
 ### `kd.schema.dict_schema(key_schema, value_schema)` {#kd.schema.dict_schema}
 Aliases:

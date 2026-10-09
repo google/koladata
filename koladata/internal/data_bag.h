@@ -576,8 +576,11 @@ class DataBagImpl : public arolla::RefcountedBase {
       const DataItem& schema_item, FallbackSpan fallbacks = {}) const;
 
   // Same as GetSchemaAttrs, but returns a vector instead of a DataSliceImpl.
+  // When `filter_removed` is true, removed attributes are excluded from the
+  // result.
   absl::StatusOr<std::vector<DataItem>> GetSchemaAttrsAsVector(
-      const DataItem& schema_item, FallbackSpan fallbacks = {}) const;
+      const DataItem& schema_item, FallbackSpan fallbacks = {},
+      bool filter_removed = false) const;
 
   // Returns attribute names of all present attributes of the given
   // `schema_item`. Removed attributes are excluded from the result.
@@ -881,13 +884,6 @@ class DataBagImpl : public arolla::RefcountedBase {
   template <bool kReturnValues>
   absl::StatusOr<std::pair<DataSliceImpl, arolla::DenseArrayEdge>>
   GetDictKeysOrValues(const DataItem& dicts, FallbackSpan fallbacks) const;
-
-  // Shared implementation for GetSchemaAttrsAsVector and
-  // GetPresentSchemaAttrsAsVector. When filter_removed is true, attributes
-  // with removed values are excluded from the result.
-  absl::StatusOr<std::vector<DataItem>> GetSchemaAttrsAsVectorImpl(
-      const DataItem& schema_item, FallbackSpan fallbacks,
-      bool filter_removed) const;
 
   // Lower level utility for GetDictKeys that returns a vector.
   // This function bypass verification of object id.

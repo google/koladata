@@ -34,6 +34,10 @@
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
@@ -46,9 +50,15 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/base62.h"
 #include "koladata/internal/op_utils/deep_diff.h"
 #include "koladata/internal/op_utils/deep_schema_compatible.h"
+#include "koladata/internal/op_utils/extract.h"
+#include "koladata/internal/op_utils/presence_and.h"
+#include "koladata/internal/op_utils/presence_or.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/internal/uuid_object.h"
 #include "koladata/schema_utils.h"
 
 namespace koladata {
@@ -132,7 +142,7 @@ absl::StatusOr<DataSlice> CastTo(const DataSlice& slice,
   DCHECK(schema.is_schema());
   if (schema.holds_value<internal::ObjectId>()) {
     return ToEntity(slice, schema, params.allow_removing_attrs,
-                    params.allow_new_attrs);
+                    params.allow_new_attrs, params.allow_dict_as_entity);
   }
   switch (schema.value<schema::DType>().type_id()) {
     case schema::kNone.type_id():
@@ -167,6 +177,147 @@ absl::StatusOr<DataSlice> CastTo(const DataSlice& slice,
 
 constexpr absl::string_view kOldName = "old_schema";
 constexpr absl::string_view kNewName = "new_schema";
+
+// A casting callback for `ExtractWithSchema` that casts the data with
+// `schema::CastDataTo` and then replaces dicts cast to an entity schema with
+// entities. The entity attributes are looked up as keys in the dicts from `db`
+// (with `fallbacks`) and written into `entities_db`.
+//
+// The entity ids are uuids derived from the dicts, the schema and a per-caster
+// salt, so that the same dict cast to the same schema results in the same
+// entity within a single cast. The salt is random (generated from a newly
+// allocated ObjectId), which guarantees that the created entities do not
+// collide with any items in `db` and `fallbacks`, including the entities
+// created by other casts of the same dicts (which may be present there with
+// outdated values). So `entities_db` never overlaps with the source DataBags.
+class CastDataWithDictsAsEntities {
+ public:
+  CastDataWithDictsAsEntities(const internal::DataBagImpl& db,
+                              internal::DataBagImpl::FallbackSpan fallbacks,
+                              internal::DataBagImpl& entities_db)
+      : db_(db),
+        fallbacks_(fallbacks),
+        entities_db_(entities_db),
+        seed_prefix_(absl::StrCat(
+            "__dict_as_entity__",
+            internal::Base62Repr(
+                internal::AllocateSingleObject().ToRawInt128()))) {}
+
+  CastDataWithDictsAsEntities(const CastDataWithDictsAsEntities&) = delete;
+  CastDataWithDictsAsEntities& operator=(const CastDataWithDictsAsEntities&) =
+      delete;
+
+  absl::StatusOr<internal::DataSliceImpl> operator()(
+      const internal::DataSliceImpl& data,
+      const internal::DataItem& schema) const {
+    ASSIGN_OR_RETURN(internal::DataSliceImpl ds,
+                     schema::CastDataTo(data, schema));
+    if (!schema.is_struct_schema() ||
+        schema.value<internal::ObjectId>().IsNoFollowSchema() ||
+        ds.dtype() != arolla::GetQType<internal::ObjectId>()) {
+      return ds;
+    }
+    arolla::DenseArrayBuilder<arolla::Unit> dict_mask_bldr(ds.size());
+    bool has_dict = false;
+    bool all_dicts = true;
+    ds.values<internal::ObjectId>().ForEachPresent(
+        [&](int64_t idx, internal::ObjectId id) {
+          if (id.IsDict()) {
+            dict_mask_bldr.Set(idx, arolla::kUnit);
+            has_dict = true;
+          } else {
+            all_dicts = false;
+          }
+        });
+    if (!has_dict) {
+      return ds;
+    }
+    ASSIGN_OR_RETURN(auto schema_attrs,
+                     db_.GetSchemaAttrsAsVector(schema, fallbacks_,
+                                                /*filter_removed=*/true));
+    std::vector<internal::DataItem> attr_names;
+    for (internal::DataItem& attr_name : schema_attrs) {
+      absl::string_view attr = attr_name.value<arolla::Text>().view();
+      if (schema::IsContainerSchemaAttr(attr)) {
+        return ds;  // Not an entity schema.
+      }
+      if (!schema::IsSchemaAnnotationAttr(attr)) {
+        attr_names.push_back(std::move(attr_name));
+      }
+    }
+    internal::DataSliceImpl dicts = ds;
+    if (!all_dicts) {
+      ASSIGN_OR_RETURN(dicts, internal::PresenceAndOp()(
+                                  ds, internal::DataSliceImpl::Create(
+                                          std::move(dict_mask_bldr).Build())));
+    }
+    ASSIGN_OR_RETURN(
+        auto entities,
+        internal::CreateUuidWithMainObject<internal::ObjectId::kUuidFlag>(
+            dicts, absl::StrCat(seed_prefix_,
+                                internal::Base62Repr(
+                                    schema.value<internal::ObjectId>()
+                                        .ToRawInt128()))));
+    for (const auto& attr_name : attr_names) {
+      ASSIGN_OR_RETURN(
+          auto values,
+          db_.GetFromDict(
+              dicts, internal::DataSliceImpl::Create(dicts.size(), attr_name),
+              fallbacks_));
+      RETURN_IF_ERROR(entities_db_.SetAttr(
+          entities, attr_name.value<arolla::Text>().view(), values));
+    }
+    if (all_dicts) {
+      return entities;
+    }
+    return internal::PresenceOrOp</*disjoint=*/false>()(entities, ds);
+  }
+
+ private:
+  const internal::DataBagImpl& db_;
+  internal::DataBagImpl::FallbackSpan fallbacks_;
+  internal::DataBagImpl& entities_db_;
+  std::string seed_prefix_;
+};
+
+// Extracts `x` with `schema` (an entity schema) using
+// `CastDataWithDictsAsEntities` as the casting callback. Similar to
+// `extract_utils_internal::ExtractWithSchema`, but additionally uses the
+// DataBag with the attributes of the created entities as a fallback, so that
+// they are extracted as well.
+absl::StatusOr<DataSlice> ExtractWithDictsAsEntities(
+    const DataSlice& x, const internal::DataItem& schema) {
+  const DataBagPtr& db = x.GetBag();
+  DCHECK(db != nullptr);
+  FlattenFallbackFinder fb_finder(*db);
+  auto fb_span = fb_finder.GetFlattenFallbacks();
+  internal::DataBagImplPtr entities_db =
+      internal::DataBagImpl::CreateEmptyDatabag();
+  CastDataWithDictsAsEntities caster(db->GetImpl(), fb_span, *entities_db);
+  // `ExtractOp` applies the casting callback only to the nested values, so the
+  // root has to be cast here.
+  ASSIGN_OR_RETURN(internal::DataSliceImpl casted_impl,
+                   caster(x.Flatten().slice(), schema));
+  std::vector<const internal::DataBagImpl*> fallbacks;
+  fallbacks.reserve(fb_span.size() + 1);
+  fallbacks.assign(fb_span.begin(), fb_span.end());
+  // Note that `entities_db` is modified by `caster` while being used as a
+  // fallback. This is safe because it is local to this function, and the
+  // caster sets all the attributes of an entity before returning it, i.e.
+  // before the extraction visits it. The position of `entities_db` among the
+  // fallbacks does not matter, because the caster uses random uuids for the
+  // created entities, so they never collide with the items in `db`.
+  fallbacks.push_back(entities_db.get());
+  auto result_db = DataBag::EmptyMutable();
+  ASSIGN_OR_RETURN(auto& result_db_impl, result_db->GetMutableImpl());
+  RETURN_IF_ERROR(internal::ExtractOp(&result_db_impl)(
+      casted_impl, schema, db->GetImpl(), fallbacks,
+      /*schema_databag=*/nullptr, /*schema_fallbacks=*/{}, /*max_depth=*/-1,
+      internal::CastingCallback(caster)));
+  result_db->UnsafeMakeImmutable();
+  return DataSlice::Create(std::move(casted_impl), x.GetShape(), schema,
+                           std::move(result_db), DataSlice::Wholeness::kWhole);
+}
 
 }  // namespace
 
@@ -300,7 +451,8 @@ absl::Status AssertSchemasCompatible(
 
 absl::StatusOr<DataSlice> CastByExtracting(
     const DataSlice& x, const internal::DataItem& schema_item,
-    bool allow_removing_attrs, bool allow_new_attrs) {
+    bool allow_removing_attrs, bool allow_new_attrs,
+    bool allow_dict_as_entity) {
   if (!schema_item.is_struct_schema()) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "casting by extracting is only supported for entity schemas, got %v",
@@ -309,7 +461,8 @@ absl::StatusOr<DataSlice> CastByExtracting(
   RETURN_IF_ERROR(
       AssertSchemasCompatible(x.GetSchema(), schema_item,
                               {.allow_removing_attrs = allow_removing_attrs,
-                               .allow_new_attrs = allow_new_attrs},
+                               .allow_new_attrs = allow_new_attrs,
+                               .allow_dict_as_entity = allow_dict_as_entity},
                               IsProbablyCastableTo));
   auto error_suffix = [&] {
     auto to_schema_str = SchemaImplToStr(schema_item, x.GetBag());
@@ -317,6 +470,11 @@ absl::StatusOr<DataSlice> CastByExtracting(
                            DataSliceRepr(x, {.show_databag_id = false}),
                            to_schema_str);
   };
+  if (allow_dict_as_entity && x.GetBag() != nullptr) {
+    ASSIGN_OR_RETURN(auto result, ExtractWithDictsAsEntities(x, schema_item),
+                     _ << error_suffix());
+    return result;
+  }
   ASSIGN_OR_RETURN(auto x_with_schema, x.WithSchema(schema_item),
                    _ << error_suffix());
   auto cast_data_callback =
@@ -469,7 +627,8 @@ absl::StatusOr<DataSlice> ToSchema(const DataSlice& slice) {
 absl::StatusOr<DataSlice> ToEntity(const DataSlice& slice,
                                    const internal::DataItem& entity_schema,
                                    bool allow_removing_attrs,
-                                   bool allow_new_attrs) {
+                                   bool allow_new_attrs,
+                                   bool allow_dict_as_entity) {
   if (!entity_schema.is_struct_schema()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("expected an entity schema, got: %v", entity_schema));
@@ -520,10 +679,9 @@ absl::StatusOr<DataSlice> ToEntity(const DataSlice& slice,
   if (from_schema == entity_schema) {
     return slice.WithSchema(entity_schema);
   }
-  return casting_internal::CastByExtracting(slice_with_schema,
-                                            entity_schema,
-                                            allow_removing_attrs,
-                                            allow_new_attrs);
+  return casting_internal::CastByExtracting(
+      slice_with_schema, entity_schema, allow_removing_attrs, allow_new_attrs,
+      allow_dict_as_entity);
 }
 
 absl::StatusOr<DataSlice> ToObject(const DataSlice& slice,

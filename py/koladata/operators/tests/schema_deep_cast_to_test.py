@@ -378,6 +378,204 @@ class SchemaDeepCastToTest(parameterized.TestCase):
     ):
       _ = kd.schema.deep_cast_to(e1, e2_schema)
 
+  def test_dict_as_entity(self):
+    db = data_bag.DataBag.empty_mutable()
+    inner_schema = db.new_schema(
+        a=schema_constants.INT64, b=schema_constants.STRING
+    )
+    outer_schema = db.new_schema(
+        x=schema_constants.FLOAT64,
+        inner=inner_schema,
+        items=db.list_schema(inner_schema),
+        extra_new=schema_constants.INT32,
+    )
+
+    def obj_dict(mapping):
+      return db.dict(
+          mapping,
+          key_schema=schema_constants.OBJECT,
+          value_schema=schema_constants.OBJECT,
+      ).embed_schema()
+
+    d = obj_dict({
+        'x': 42,
+        'unused': 'ignored',
+        2: 'ignored',
+        'inner': obj_dict({'a': 1, 'b': 'hello', 'extra': True}),
+        'items': (
+            db.list(
+                [obj_dict({'a': 2, 'b': 'world'}), obj_dict({'a': 3})],
+                item_schema=schema_constants.OBJECT,
+            ).embed_schema()
+        ),
+    })
+    res = kd.schema.deep_cast_to(
+        d,
+        outer_schema,
+        allow_removing_attrs=True,
+        allow_new_attrs=True,
+        allow_dict_as_entity=True,
+    )
+    expected = outer_schema.new(
+        x=42.0,
+        inner=inner_schema.new(a=1, b='hello'),
+        items=db.list([
+            inner_schema.new(a=2, b='world'),
+            inner_schema.new(a=3, b=None),
+        ]),
+        extra_new=None,
+    )
+    testing.assert_equivalent(res, expected)
+
+  def test_typed_dict_as_entity(self):
+    target_schema = kd.schema.new_schema(
+        x=schema_constants.FLOAT64, y=schema_constants.INT64
+    )
+    d = kd.dict({'x': 1, 'y': 2, 'z': 3})
+    res = kd.schema.deep_cast_to(d, target_schema, allow_dict_as_entity=True)
+    testing.assert_equivalent(res, target_schema.new(x=1.0, y=2))
+
+  def test_dict_as_entity_multidim(self):
+    target_schema = kd.schema.new_schema(x=schema_constants.INT64)
+    s = kd.slice([[kd.dict({'x': 1})], [kd.dict({'x': 2}), kd.dict({'x': 3})]])
+    res = kd.schema.deep_cast_to(s, target_schema, allow_dict_as_entity=True)
+    testing.assert_equal(
+        res.x.no_bag(), ds([[1], [2, 3]], schema_constants.INT64)
+    )
+
+  def test_dict_as_entity_same_dict_different_schemas(self):
+    schema_a = kd.schema.new_schema(x=schema_constants.INT64)
+    schema_b = kd.schema.new_schema(x=schema_constants.FLOAT64)
+    target_schema = kd.schema.new_schema(a=schema_a, b=schema_b)
+    d = kd.dict({'x': 1})
+    res = kd.schema.deep_cast_to(
+        kd.dict({'a': d, 'b': d}), target_schema, allow_dict_as_entity=True
+    )
+    testing.assert_equal(res.a.x.no_bag(), ds(1, schema_constants.INT64))
+    testing.assert_equal(res.b.x.no_bag(), ds(1.0, schema_constants.FLOAT64))
+    self.assertNotEqual(
+        res.a.get_itemid().no_bag().fingerprint,
+        res.b.get_itemid().no_bag().fingerprint,
+    )
+
+  def test_dict_as_entity_incompatible_value_schema_raises(self):
+    target_schema = kd.schema.new_schema(
+        x=kd.schema.new_schema(a=schema_constants.INT64)
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        r'DataSlice with schema DICT\{STRING, STRING\}.*\n\ncannot be cast to'
+        r' entity schema ENTITY\(x=ENTITY\(a=INT64\)\).*;\n\nmodified:\n'
+        r'old_schema.x:\nDataItem\(STRING, schema: SCHEMA\)\n'
+        r'-> new_schema.x:\nDataItem\(ENTITY\(a=INT64\), schema: SCHEMA\)',
+    ):
+      _ = kd.schema.deep_cast_to(
+          kd.dict({'x': 'a'}), target_schema, allow_dict_as_entity=True
+      )
+
+  def test_dict_as_entity_value_cast_error_raises(self):
+    target_schema = kd.schema.new_schema(x=schema_constants.INT64)
+    d = kd.dict({'x': 'a'}, value_schema=schema_constants.OBJECT)
+    with self.assertRaisesRegex(ValueError, r"unable to parse INT64: 'a'"):
+      _ = kd.schema.deep_cast_to(d, target_schema, allow_dict_as_entity=True)
+      _ = kd.schema.deep_cast_to(d, target_schema, allow_dict_as_entity=True)
+
+  def test_dict_as_entity_preserves_repeated_identity(self):
+    target_schema = kd.schema.new_schema(x=schema_constants.INT64)
+    d = kd.dict({'x': 42})
+    s = kd.slice([d, d])
+    res = kd.schema.deep_cast_to(s, target_schema, allow_dict_as_entity=True)
+    testing.assert_equal(res.S[0].get_itemid(), res.S[1].get_itemid())
+    testing.assert_equal(res.x.no_bag(), ds([42, 42], schema_constants.INT64))
+
+  def test_dict_as_entity_disabled_by_default_raises(self):
+    target_schema = kd.schema.new_schema(x=schema_constants.INT64)
+    d = kd.dict({'x': 42})
+    with self.assertRaisesRegex(
+        ValueError,
+        r'cannot be cast to entity schema',
+    ):
+      _ = kd.schema.deep_cast_to(
+          d,
+          target_schema,
+          allow_removing_attrs=True,
+          allow_new_attrs=True,
+      )
+
+  def test_dict_as_entity_non_string_keys_raises(self):
+    target_schema = kd.schema.new_schema(x=schema_constants.INT64)
+    d = kd.dict({1: 42})
+    with self.assertRaisesRegex(
+        ValueError,
+        r'cannot be cast to entity schema',
+    ):
+      _ = kd.schema.deep_cast_to(
+          d,
+          target_schema,
+          allow_dict_as_entity=True,
+      )
+
+  # TODO: Objects at the root are required to have a common
+  # schema, unlike nested objects (see
+  # test_dict_as_entity_mixed_with_objects_nested).
+  def test_dict_as_entity_mixed_with_objects_at_root_raises(self):
+    db = data_bag.DataBag.empty_mutable()
+    target_schema = db.new_schema(x=schema_constants.INT64)
+    s = ds([db.dict({'x': 1}).embed_schema(), db.obj(x=2)])
+    with self.assertRaisesRegex(ValueError, r'cannot find a common schema'):
+      _ = kd.schema.deep_cast_to(s, target_schema, allow_dict_as_entity=True)
+
+  def test_dict_as_entity_mixed_with_objects_nested(self):
+    db = data_bag.DataBag.empty_mutable()
+    target_schema = db.new_schema(x=schema_constants.INT64)
+    d = db.dict({'x': 1}).embed_schema()
+    e = db.obj(x=2)
+    s = db.list([d, e, None], item_schema=schema_constants.OBJECT)
+    res = kd.schema.deep_cast_to(
+        s, kd.schema.list_schema(target_schema), allow_dict_as_entity=True
+    )
+    # Non-dict items are kept as is.
+    testing.assert_equal(res[1].get_itemid().no_bag(), e.get_itemid().no_bag())
+    testing.assert_equal(
+        res[:].x.no_bag(), ds([1, 2, None], schema_constants.INT64)
+    )
+
+  def test_dict_as_entity_in_list_and_dict(self):
+    target_schema = kd.schema.new_schema(x=schema_constants.INT64)
+    with self.subTest('list'):
+      res = kd.schema.deep_cast_to(
+          kd.list([kd.dict({'x': 1}), kd.dict({'x': 2})]),
+          kd.schema.list_schema(target_schema),
+          allow_dict_as_entity=True,
+      )
+      testing.assert_equal(
+          res[:].x.no_bag(), ds([1, 2], schema_constants.INT64)
+      )
+    with self.subTest('dict_values'):
+      res = kd.schema.deep_cast_to(
+          kd.dict({'a': kd.dict({'x': 1})}),
+          kd.schema.dict_schema(schema_constants.STRING, target_schema),
+          allow_dict_as_entity=True,
+      )
+      testing.assert_equal(res['a'].x.no_bag(), ds(1, schema_constants.INT64))
+
+  def test_dict_as_entity_named_schema(self):
+    target_schema = kd.named_schema('Foo', x=schema_constants.INT64)
+    res = kd.schema.deep_cast_to(
+        kd.dict({'x': 1}), target_schema, allow_dict_as_entity=True
+    )
+    testing.assert_equivalent(res, target_schema.new(x=1))
+
+  def test_dict_as_entity_does_not_use_stale_data(self):
+    db = data_bag.DataBag.empty_mutable()
+    target_schema = db.new_schema(x=schema_constants.INT64)
+    d = db.dict({'x': 1})
+    res = kd.schema.deep_cast_to(d, target_schema, allow_dict_as_entity=True)
+    db.merge_inplace(res.get_bag())
+    d['x'] = 2
+    res = kd.schema.deep_cast_to(d, target_schema, allow_dict_as_entity=True)
+    testing.assert_equal(res.x.no_bag(), ds(2, schema_constants.INT64))
+
   def test_list_to_entity_raises(self):
     target_schema = kd.schema.new_schema(x=schema_constants.INT32)
     with self.assertRaisesRegex(
@@ -397,8 +595,10 @@ class SchemaDeepCastToTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.schema.deep_cast_to(I.x, I.schema)),
-        'kd.schema.deep_cast_to(I.x, I.schema, DataItem(False, schema:'
-        ' BOOLEAN), DataItem(False, schema: BOOLEAN))',
+        'kd.schema.deep_cast_to(I.x, I.schema,'
+        ' allow_removing_attrs=DataItem(False, schema: BOOLEAN),'
+        ' allow_new_attrs=DataItem(False, schema: BOOLEAN),'
+        ' allow_dict_as_entity=DataItem(False, schema: BOOLEAN))',
     )
 
 

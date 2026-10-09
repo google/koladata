@@ -1025,7 +1025,14 @@ def deep_clone(x, /, schema=arolla.unspecified(), **overrides):
 
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.schema.deep_cast_to')
-def deep_cast_to(x, schema, allow_removing_attrs=False, allow_new_attrs=False):
+def deep_cast_to(
+    x,
+    schema,
+    *,
+    allow_removing_attrs=False,
+    allow_new_attrs=False,
+    allow_dict_as_entity=False,
+):
   """Returns `x` casted to provided `schema` using explicit casting rules.
 
   In contrast to `kd.cast_to`, this operator always performs deep casting - even
@@ -1040,11 +1047,22 @@ def deep_cast_to(x, schema, allow_removing_attrs=False, allow_new_attrs=False):
     allow_new_attrs: If True, the `schema` may have additional attributes that
       are not present in `x.get_schema()`. Additional attributes are set to
       missing values.
+    allow_dict_as_entity: If True, dicts with STRING keys in `x` can be cast to
+      entities. Dicts with OBJECT keys are also supported, but their non-STRING
+      keys are ignored. Dict items whose keys are not attribute names of the
+      entity schema are ignored, and attributes missing in a dict are set to
+      missing values, regardless of `allow_removing_attrs` and
+      `allow_new_attrs`. Within a single call, the same dict cast to the same
+      entity schema results in the same entity.
   """
 
   return schema_ops.unsafe_with_schema(
       schema_ops.deep_cast_to_impl(
-          x, deep_clone(schema), allow_removing_attrs, allow_new_attrs
+          x,
+          deep_clone(schema),
+          allow_removing_attrs,
+          allow_new_attrs,
+          allow_dict_as_entity,
       ),
       schema,
   )

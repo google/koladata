@@ -179,7 +179,9 @@ def internal_cast_to_implicit(x, schema):  # pylint: disable=unused-argument
 
 
 @optools.as_backend_operator('kd.schema._deep_cast_to')
-def deep_cast_to_impl(x, schema, allow_removing_attrs, allow_new_attrs):
+def deep_cast_to_impl(
+    x, schema, allow_removing_attrs, allow_new_attrs, allow_dict_as_entity
+):
   raise NotImplementedError('implemented in the backend')
 
 

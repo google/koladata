@@ -133,7 +133,8 @@ absl::StatusOr<DataSlice> ToSchema(const DataSlice& slice);
 absl::StatusOr<DataSlice> ToEntity(const DataSlice& slice,
                                    const internal::DataItem& entity_schema,
                                    bool allow_removing_attrs = false,
-                                   bool allow_new_attrs = false);
+                                   bool allow_new_attrs = false,
+                                   bool allow_dict_as_entity = false);
 
 // Casts the given slice to OBJECT.
 //
@@ -165,6 +166,9 @@ struct CastToParams {
   // If `allow_new_attrs` is true, the schema is allowed to add new attributes
   // to the slice. Additional attributes are set to missing values.
   bool allow_new_attrs = false;
+  // If `allow_dict_as_entity` is true, dicts can be cast to entity schemas by
+  // looking up entity attribute names as dict keys.
+  bool allow_dict_as_entity = false;
 };
 
 // Casts the given slice to the given schema using explicit casting rules.
