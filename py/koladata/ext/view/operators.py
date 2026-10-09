@@ -259,7 +259,7 @@ def expand_to(
   dimensions. The corresponding items then will be repeated among the additional
   dimensions.
 
-  When `ndim` is set, the expansion is performed in 3 steps:
+  When `ndim=N` is set, the expansion is performed in 3 steps:
   1) the last N dimensions of `v` are first imploded into tuples
   2) the expansion operation is performed on the View of those tuples
   3) the tuples in the expanded View are exploded

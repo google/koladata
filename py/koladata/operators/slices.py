@@ -529,12 +529,12 @@ def expand_to(x, target, ndim=arolla.unspecified()):
     target: kd.slice([0, 0])
     result: incompatible shapes
 
-  When `ndim` is set, the expansion is performed in 3 steps:
+  When `ndim=N` is set, the expansion is performed in 3 steps:
     1) the last N dimensions of `x` are first imploded into lists
     2) the expansion operation is performed on the DataSlice of lists
     3) the lists in the expanded DataSlice are exploded
 
-  The result will have M + ndim dimensions where M is the number
+  The result will have M + N dimensions where M is the number
   of dimensions of `target`.
 
   For example,
@@ -602,12 +602,12 @@ def expand_to_present(
     target: kd.slice([0, 0])
     result: incompatible shapes
 
-  When `ndim` is set, the expansion is performed in 3 steps:
+  When `ndim=N` is set, the expansion is performed in 3 steps:
     1) the last N dimensions of `x` are first imploded into lists
     2) the expansion operation is performed on the DataSlice of lists
     3) the lists in the expanded DataSlice are exploded
 
-  The result will have M + ndim dimensions where M is the number
+  The result will have M + N dimensions where M is the number
   of dimensions of `target`. Where `target` is missing (`None`), the resulting
   sub-slice will be empty.
 
