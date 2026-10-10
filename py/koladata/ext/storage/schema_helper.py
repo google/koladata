@@ -712,7 +712,7 @@ class SchemaHelper:
     Which schema node names of updated_ds.get_schema() could be affected by this
     update? A schema node name is affected if the update can provide it with new
     data. So schema node names that are newly introduced are affected, as are
-    existing schema node names for which the update can provide new/overriden
+    existing schema node names for which the update can provide new/overridden
     data.
 
     Important to note:
