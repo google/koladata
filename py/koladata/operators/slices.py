@@ -1211,9 +1211,10 @@ def ordinal_rank(
 
   Args:
     x: DataSlice to rank.
-    tie_breaker: If specified, used to break ties. If `tie_breaker` does not
-      fully resolve all ties, then the remaining ties are resolved by their
-      positions in the DataSlice.
+    tie_breaker: If specified, used to break ties. Can be of any type (e.g.
+      INT64 or STRING) and is compared by the same rules as `x`. If
+      `tie_breaker` does not fully resolve all ties, then the remaining ties
+      are resolved by their positions in the DataSlice.
     descending: If true, items are compared in descending order. Does not affect
       the order of tie breaker and position in tie-breaking compairson.
     ndim: The number of dimensions to rank over. Requires 0 <= ndim <=
@@ -1222,14 +1223,23 @@ def ordinal_rank(
   Returns:
     A DataSlice of ordinal ranks.
   """
-  tie_breaker = M.core.default_if_unspecified(
-      tie_breaker, data_slice.DataSlice.from_vals(0, schema_constants.INT64)
-  )
-  res = _ordinal_rank(
-      jagged_shape_ops.flatten_last_ndim(x, ndim),
-      jagged_shape_ops.flatten_last_ndim(expand_to(tie_breaker, x), ndim),
-      descending,
-  )
+  zero = data_slice.DataSlice.from_vals(0, schema_constants.INT64)
+  flattened_x = jagged_shape_ops.flatten_last_ndim(x, ndim)
+  flattened_tie_breaker = arolla.types.DispatchOperator(
+      'x, tie_breaker, ndim, flattened_x',
+      unspecified_case=arolla.types.DispatchCase(
+          expand_to(zero, P.flattened_x),
+          condition=P.tie_breaker == arolla.UNSPECIFIED,
+      ),
+      default=_ordinal_rank(
+          jagged_shape_ops.flatten_last_ndim(
+              expand_to(P.tie_breaker, P.x), P.ndim
+          ),
+          expand_to(zero, P.flattened_x),
+          data_slice.DataSlice.from_vals(False),
+      ),
+  )(x, tie_breaker, ndim, flattened_x)
+  res = _ordinal_rank(flattened_x, flattened_tie_breaker, descending)
   # Need to reshape back to the original shape.
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
 

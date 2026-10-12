@@ -338,6 +338,39 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
           1,
           ds([None, None, None], schema=INT64),
       ),
+      # Non-integer tie_breaker.
+      (
+          ds([1, 1, 1, 6]),
+          ds(['c', 'c', 'a', 'f']),
+          1,
+          ds([1, 2, 0, 3], schema=INT64),
+      ),
+      (
+          ds([[1, 1, 1, 6], [5, 2, 2, 2]]),
+          ds([['c', 'c', 'a', 'g'], ['f', 'a', 'a', 'b']]),
+          2,
+          ds([[1, 2, 0, 7], [6, 3, 4, 5]], schema=INT64),
+      ),
+      (
+          ds([[1, 1, 1, 6], [5, 1, 1, 1]]),
+          ds(['a', 'b']),
+          2,
+          ds([[0, 1, 2, 7], [6, 3, 4, 5]], schema=INT64),
+      ),
+      (
+          ds([1, 1, 1, 6]),
+          ds([2.5, 2.5, 0.5, 6.0]),
+          1,
+          ds([1, 2, 0, 3], schema=INT64),
+      ),
+      (ds([1, 1, 1]), ds(['a', 2, 1]), 1, ds([2, 1, 0], schema=INT64)),
+      (
+          ds([1, None, 1, 6]),
+          ds(['c', None, 'a', 'f']),
+          1,
+          ds([1, None, 0, 2], schema=INT64),
+      ),
+      (ds([1, 1, 1]), ds(['b', None, 'a']), 1, ds([1, None, 0], schema=INT64)),
   )
   def test_eval_with_tie_breaker(self, x, tie_breaker, ndim, expected):
     result = kd.slices.ordinal_rank(x, tie_breaker, ndim=ndim)
@@ -391,21 +424,22 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, re.escape('cannot be expanded to')):
       kd.slices.ordinal_rank(ds([0, 3, 6]), ds([0, 3, 6, 1]))
 
-  def test_non_integral_tie_breaker(self):
-    with self.assertRaisesRegex(
-        ValueError,
-        'kd.slices.ordinal_rank: tie_breaker must be integers',
-    ):
-      kd.slices.ordinal_rank(ds([0, 3, 6]), ds([0.0, 1.0, 2.0]))
+  def test_non_integer_tie_breaker_with_descending(self):
+    # Ties are still broken by ascending tie_breaker.
+    testing.assert_equal(
+        kd.slices.ordinal_rank(
+            ds([1, 2, 1]), ds(['b', 'x', 'a']), descending=True
+        ),
+        ds([2, 0, 1], schema=INT64),
+    )
 
-  def test_entity_tie_breaker_error(self):
-    db = data_bag.DataBag.empty_mutable()
-    tie_breaker = db.new(x=ds([1]))
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex('cannot find a common schema'),
-    ):
-      kd.slices.ordinal_rank(ds([0]), tie_breaker)
+  def test_entity_tie_breaker(self):
+    # ItemIds are not deterministic, so compare with ranking the entities.
+    tie_breaker = data_bag.DataBag.empty_mutable().new(x=ds([1, 2, 1]))
+    testing.assert_equal(
+        kd.slices.ordinal_rank(ds([5, 5, 5]), tie_breaker),
+        kd.slices.ordinal_rank(tie_breaker),
+    )
 
   def test_mixed_dtypes_equal_values_are_ranked_by_position(self):
     # Note: the slice is big enough to be sorted by an unstable algorithm.

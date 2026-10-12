@@ -852,9 +852,10 @@ Example:
 
 Args:
   x: DataSlice to rank.
-  tie_breaker: If specified, used to break ties. If `tie_breaker` does not
-    fully resolve all ties, then the remaining ties are resolved by their
-    positions in the DataSlice.
+  tie_breaker: If specified, used to break ties. Can be of any type (e.g.
+    INT64 or STRING) and is compared by the same rules as `x`. If
+    `tie_breaker` does not fully resolve all ties, then the remaining ties
+    are resolved by their positions in the DataSlice.
   descending: If true, items are compared in descending order. Does not affect
     the order of tie breaker and position in tie-breaking compairson.
   ndim: The number of dimensions to rank over. Requires 0 &lt;= ndim &lt;=
