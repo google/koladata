@@ -27,7 +27,25 @@
 
 namespace koladata::internal {
 
-// An interface for a visitor that is used in Traverser.
+// An interface for a visitor that is used in Traverser and VectorizedTraverser.
+//
+// Tokens (VectorizedTraverser only):
+//
+// VectorizedTraverser previsits items in slices rather than one by one. To
+// decide which items can be previsited together, it asks the visitor to assign
+// a token to each previsited item. A token is an ObjectId chosen by the
+// visitor. It represents what the visitor needs to know about an item to
+// previsit the item's children, e.g. in ToPy, the dataclass the item is
+// converted to. The traverser doesn't interpret tokens: it only compares them
+// for equality and passes an item's token back as `parent_token` when
+// previsiting its children.
+//
+// - A missing token means the item is not traversed further.
+// - Children reached by the same transition from parents with the same token
+//   are previsited together, in one PrevisitSlice call (whenever possible).
+//   Visitors that need no per-parent information should return the same
+//   token for all items (see SameTokenForAllObjects) to keep the traversal
+//   fully vectorized.
 class AbstractVisitor {
  public:
   using TransitionKey = TraverseHelper::TransitionKey;
@@ -47,8 +65,8 @@ class AbstractVisitor {
   virtual absl::StatusOr<DataItem> GetValue(const DataItem& item,
                                             const DataItem& schema) = 0;
 
-  // Called for each reachable item and schema before any calls to Visit* or
-  // GetValue methods.
+  // Called by Traverser for each reachable item and schema before any calls to
+  // Visit* or GetValue methods.
   // `transition_key`: if provided - represents the transition key from
   // `from_item` that led to the current item being visited.
   // For objects Previsit is called twice:
@@ -56,10 +74,65 @@ class AbstractVisitor {
   // - second time with the schema written in kSchemaAttr attribute.
   // Returns if the item should be traversed further. If false is returned,
   // this item would not be listed for the Visit* methods.
+  //
+  // VectorizedTraverser calls PrevisitSlice and PrevisitObjectSchemas instead.
+  // By default, traverses all items further.
   virtual absl::StatusOr<bool> Previsit(
       const DataItem& from_item, const DataItem& from_schema,
+      const std::optional<TransitionKey>& transition_key, const DataItem& item,
+      const DataItem& schema);
+
+  // Called by VectorizedTraverser for each reachable slice before any calls to
+  // Visit* or GetValue methods.
+  //
+  // Previsits the items of `ds`, all reached with `schema` by `transition_key`
+  // from parents with the token `parent_token`. As with Previsit, an item is
+  // previsited once per edge it is reached by. So the same item may be
+  // previsited several times, from different parents or more than once within
+  // `ds`. Visitors should return the same token for it each time.
+  //
+  // Args:
+  // - ds: ObjectIds, possibly missing or duplicated. For schema::kSchema, also
+  //     DTypes. DTypes and ItemIds (schema::kItemId) are previsited (e.g. to
+  //     resolve LIST[INT32]) but never traversed further.
+  // - schema: the schema shared by all items of `ds`.
+  // - transition_key: nullopt for the root slice and the root schema.
+  // - parent_token: the token of the parents of `ds`; missing for the root
+  //     slice and the root schema.
+  //
+  // Returns a slice of tokens aligned with `ds`, where each element is either
+  // an ObjectId or missing:
+  // - an item with a missing token is not traversed further from this edge,
+  //   as when Previsit returns false;
+  // - an item with a present token is traversed further, and its token is
+  //   passed as `parent_token` when previsiting its children.
+  // Tokens of items that are never traversed further (DTypes, ItemIds) are
+  // ignored; return missing for them.
+  //
+  // By default, returns the same token for all ObjectIds of `ds`
+  // (SameTokenForAllObjects).
+  virtual absl::StatusOr<DataSliceImpl> PrevisitSlice(
+      const DataSliceImpl& ds, const DataItem& schema,
       const std::optional<TransitionKey>& transition_key,
-      const DataItem& item, const DataItem& schema) = 0;
+      const DataItem& parent_token);
+
+  // Called by VectorizedTraverser for the objects reached with
+  // schema::kObject that PrevisitSlice returned present tokens for. Previsits
+  // them together with their `__schema__`s, which are only known at this
+  // point.
+  //
+  // Args:
+  // - objects: dense ObjectIds.
+  // - schemas: the `__schema__` of each object, aligned with `objects`.
+  // - token: the token that PrevisitSlice returned for all of `objects`.
+  //
+  // Returns tokens aligned with `objects`, with the same meaning as in
+  // PrevisitSlice. These tokens replace `token`.
+  //
+  // By default, returns `token` for all objects.
+  virtual absl::StatusOr<DataSliceImpl> PrevisitObjectSchemas(
+      const DataSliceImpl& objects, const DataSliceImpl& schemas,
+      const DataItem& token);
 
   // Called for each reachable list.
   // Args:
@@ -114,6 +187,13 @@ class AbstractVisitor {
       const arolla::DenseArray<arolla::Text>& attr_names,
       const arolla::DenseArray<DataItem>& attr_schema) = 0;
 };
+
+// Returns the same token (the first present ObjectId of `ds`) for all
+// ObjectIds of `ds`, and missing tokens for other items, e.g. DTypes.
+//
+// A shortcut for PrevisitSlice implementations that traverse all ObjectIds
+// further and don't need to tell them apart. The default PrevisitSlice.
+absl::StatusOr<DataSliceImpl> SameTokenForAllObjects(const DataSliceImpl& ds);
 
 }  // namespace koladata::internal
 
