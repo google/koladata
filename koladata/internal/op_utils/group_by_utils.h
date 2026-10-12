@@ -15,15 +15,20 @@
 #ifndef KOLADATA_INTERNAL_OP_UTILS_GROUP_BY_UTILS_H_
 #define KOLADATA_INTERNAL_OP_UTILS_GROUP_BY_UTILS_H_
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
+#include "absl/functional/function_ref.h"
 #include "absl/log/check.h"
+#include "absl/status/status.h"
 #include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
+#include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/ops/dense_group_ops.h"
@@ -46,11 +51,36 @@ namespace koladata::internal {
 // group or collapse objects by edge.
 class ObjectsGroupBy {
  public:
+  // See ByKeys().
+  template <size_t kKeys, size_t kSlices>
+  class Grouping;
+
   ObjectsGroupBy()
       : ctx_(),
         collapse_items_op_(&ctx_.buffer_factory()),
         collapse_objects_op_(&ctx_.buffer_factory()),
         agg_index_op_(&ctx_.buffer_factory()) {}
+
+  // Splits slices of ObjectIds into groups of items with equal `keys` and calls
+  // a function for each group:
+  //
+  //   RETURN_IF_ERROR(group_by.ByKeys(keys_schemas, values_schemas)
+  //                       .Split(dicts)
+  //                       .ForEach([&](const DataItem& keys_schema,
+  //                                    const DataItem& values_schema,
+  //                                    DataSliceImpl dicts) {
+  //                         return ...;
+  //                       }));
+  //
+  // - `keys` (any values) and the split slices must have the same size.
+  // - Items missing in any of them are dropped, so the groups are dense.
+  // - Groups are visited in the order of the first occurrence of their keys.
+  // - If no split is needed (all items are present and have equal keys), the
+  //   function gets the slices as is. Otherwise, allocation ids are recomputed
+  //   for each group.
+  // - The function may use this ObjectsGroupBy.
+  template <class... Keys>
+  Grouping<sizeof...(Keys), 0> ByKeys(Keys... keys);
 
   // Group DataSlice by Schemas.
   absl::StatusOr<std::pair<DataSliceImpl,
@@ -81,7 +111,7 @@ class ObjectsGroupBy {
       const arolla::DenseArray<ObjectId>& objs) {
     ASSIGN_OR_RETURN(auto group_sizes,
                      arolla::DenseArrayEdgeSizesOp()(&ctx_, edge));
-    ASSIGN_OR_RETURN(auto indicies, agg_index_op_.Apply(edge, objs.ToMask()));
+    ASSIGN_OR_RETURN(auto indices, agg_index_op_.Apply(edge, objs.ToMask()));
     std::vector<arolla::DenseArrayBuilder<ObjectId>> objs_grouped_bldr;
     objs_grouped_bldr.reserve(group_sizes.size());
     group_sizes.ForEachPresent([&](int64_t idx, int64_t size) {
@@ -91,7 +121,7 @@ class ObjectsGroupBy {
         [&](size_t idx, ObjectId new_obj, int64_t group_id, int64_t index) {
           objs_grouped_bldr[group_id].Set(index - 1, new_obj);
         },
-        objs, edge.ToMappingEdge().edge_values(), indicies));
+        objs, edge.ToMappingEdge().edge_values(), indices));
     std::vector<arolla::DenseArray<ObjectId>> objs_grouped;
     objs_grouped.reserve(group_sizes.size());
     for (auto& bldr : objs_grouped_bldr) {
@@ -100,14 +130,14 @@ class ObjectsGroupBy {
     return objs_grouped;
   }
 
-  // Choose a single item from each group, defined by th edge.
+  // Choose a single item from each group, defined by the edge.
   absl::StatusOr<arolla::DenseArray<ObjectId>> CollapseByEdge(
       const arolla::DenseArrayEdge& edge,
       const arolla::DenseArray<ObjectId>& schemas) {
     return collapse_objects_op_.Apply(edge, schemas);
   }
 
-  // Choose a single item from each group, defined by th edge.
+  // Choose a single item from each group, defined by the edge.
   absl::StatusOr<DataSliceImpl> CollapseByEdge(
       const arolla::DenseArrayEdge& edge, const DataSliceImpl& schemas) {
     if (schemas.dtype() == arolla::GetQType<ObjectId>()) {
@@ -163,7 +193,7 @@ class ObjectsGroupBy {
           result = std::move(attr_schema);
         }
       });
-      if (all_equal) {
+      if (all_equal && result.has_value()) {
         result_item = DataItem(std::move(*result));
       }
     });
@@ -171,6 +201,13 @@ class ObjectsGroupBy {
   }
 
  private:
+  using GroupFn = absl::FunctionRef<absl::Status(
+      absl::Span<const DataItem> keys, absl::Span<DataSliceImpl> slices)>;
+
+  // Implements ByKeys(keys...).Split(slices...).ForEach(fn).
+  absl::Status ForEachGroup(absl::Span<const DataSliceImpl> keys,
+                            absl::Span<const DataSliceImpl> slices, GroupFn fn);
+
   absl::StatusOr<arolla::DenseArrayEdge> SplitEdgeBySchemas(
       const arolla::DenseArrayEdge& edge, const DataSliceImpl& schemas) {
     if (schemas.dtype() == arolla::GetQType<ObjectId>()) {
@@ -191,6 +228,66 @@ class ObjectsGroupBy {
       collapse_objects_op_;
   arolla::DenseGroupOps<arolla::CountPartialAccumulator> agg_index_op_;
 };
+
+// Keys and slices to split into groups, see ObjectsGroupBy::ByKeys().
+template <size_t kKeys, size_t kSlices>
+class ObjectsGroupBy::Grouping {
+ public:
+  // Sets slices of ObjectIds to split into groups.
+  template <class... Slices>
+  Grouping<kKeys, sizeof...(Slices)> Split(Slices... slices) && {
+    static_assert(kSlices == 0, "Split() can be called only once");
+    static_assert(sizeof...(Slices) > 0);
+    static_assert((std::is_same_v<Slices, DataSliceImpl> && ...));
+    return Grouping<kKeys, sizeof...(Slices)>(group_by_, std::move(keys_),
+                                              {std::move(slices)...});
+  }
+
+  // Calls `fn(const DataItem& key..., DataSliceImpl slice...) -> absl::Status`
+  // for each group. Stops at the first error.
+  template <class Fn>
+  absl::Status ForEach(Fn&& fn) && {
+    static_assert(kSlices > 0, "Split() must be called before ForEach()");
+    return group_by_.ForEachGroup(
+        absl::MakeConstSpan(keys_), absl::MakeConstSpan(slices_),
+        [&fn](absl::Span<const DataItem> keys,
+              absl::Span<DataSliceImpl> slices) {
+          return Call(fn, keys, slices, std::make_index_sequence<kKeys>(),
+                      std::make_index_sequence<kSlices>());
+        });
+  }
+
+ private:
+  friend class ObjectsGroupBy;
+  template <size_t, size_t>
+  friend class Grouping;
+
+  Grouping(ObjectsGroupBy& group_by, std::array<DataSliceImpl, kKeys> keys,
+           std::array<DataSliceImpl, kSlices> slices)
+      : group_by_(group_by),
+        keys_(std::move(keys)),
+        slices_(std::move(slices)) {}
+
+  template <class Fn, size_t... kKeyIdx, size_t... kSliceIdx>
+  static absl::Status Call(Fn& fn, absl::Span<const DataItem> keys,
+                           absl::Span<DataSliceImpl> slices,
+                           std::index_sequence<kKeyIdx...>,
+                           std::index_sequence<kSliceIdx...>) {
+    return fn(keys[kKeyIdx]..., std::move(slices[kSliceIdx])...);
+  }
+
+  ObjectsGroupBy& group_by_;
+  std::array<DataSliceImpl, kKeys> keys_;
+  std::array<DataSliceImpl, kSlices> slices_;
+};
+
+template <class... Keys>
+ObjectsGroupBy::Grouping<sizeof...(Keys), 0> ObjectsGroupBy::ByKeys(
+    Keys... keys) {
+  static_assert(sizeof...(Keys) > 0);
+  static_assert((std::is_same_v<Keys, DataSliceImpl> && ...));
+  return Grouping<sizeof...(Keys), 0>(*this, {std::move(keys)...}, {});
+}
 
 }  // namespace koladata::internal
 
