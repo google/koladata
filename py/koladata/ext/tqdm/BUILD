@@ -15,10 +15,6 @@
 load("@pip_deps//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 
-package(default_visibility = [
-    "//koladata:internal",
-])
-
 licenses(["notice"])
 
 py_library(
