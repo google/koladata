@@ -15,9 +15,11 @@
 #ifndef KOLADATA_INTERNAL_OP_UTILS_DEEP_OP_BENCHMARKS_UTIL_H_
 #define KOLADATA_INTERNAL_OP_UTILS_DEEP_OP_BENCHMARKS_UTIL_H_
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <functional>
+#include <numeric>
 #include <optional>
 #include <string>
 #include <utility>
@@ -42,6 +44,7 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/presence_and.h"
 #include "koladata/internal/schema_attrs.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/internal/uuid_object.h"
 
 namespace koladata::internal {
@@ -74,6 +77,16 @@ constexpr auto kLayersBenchmarkFn = [](auto* b) {
       ->Args({20, 100, 10, 10});
 };
 
+constexpr auto kObjectsInGroupsBenchmarkFn = [](auto* b) {
+  // Number of layers, number of allocations, percent of present attributes,
+  // number of objects per layer.
+  b->Args({2, 1, 100, 10'000})
+      ->Args({2, 2, 100, 10'000})
+      ->Args({2, 2, 50, 10'000})
+      ->Args({2, 10, 100, 10'000})
+      ->Args({5, 2, 100, 10'000});
+};
+
 constexpr auto kTreesBenchmarkFn = [](auto* b) {
   // Number of layers, number of non-leaf childs per object, number of leaves
   // per object, size of the slice.
@@ -100,16 +113,16 @@ using RunCastingBenchmarksFn = std::function<void(
     DataItem& new_schema, DataBagImplPtr& new_schema_databag,
     const DataBagImpl::FallbackSpan new_schema_fallbacks)>;
 
+inline std::vector<int64_t> RandomPermutation(int64_t size, absl::BitGen& gen) {
+  std::vector<int64_t> perm(size);
+  std::iota(perm.begin(), perm.end(), 0);
+  std::shuffle(perm.begin(), perm.end(), gen);
+  return perm;
+}
+
 inline DataSliceImpl ShuffleObjectsSlice(const DataSliceImpl& ds,
                                          absl::BitGen& gen) {
-  // Generate random permutation.
-  std::vector<int64_t> perm(ds.size());
-  for (int64_t i = 0; i < ds.size(); ++i) {
-    perm[i] = i;
-  }
-  for (int64_t i = 1; i < ds.size(); ++i) {
-    std::swap(perm[i], perm[absl::Uniform(gen, 0, i)]);
-  }
+  std::vector<int64_t> perm = RandomPermutation(ds.size(), gen);
   // Shuffle data.
   auto obj_ids_bldr = arolla::DenseArrayBuilder<ObjectId>(ds.size());
   const auto& values = ds.values<ObjectId>();
@@ -118,6 +131,37 @@ inline DataSliceImpl ShuffleObjectsSlice(const DataSliceImpl& ds,
   }
   return DataSliceImpl::CreateObjectsDataSlice(std::move(obj_ids_bldr).Build(),
                                                ds.allocation_ids());
+}
+
+inline DataSliceImpl AllocateEmptyObjectsWithMixedAllocations(
+    int64_t size, int64_t alloc_count, absl::BitGen& gen) {
+  int64_t alloc_size = (size + alloc_count - 1) / alloc_count;
+  arolla::DenseArrayBuilder<ObjectId> objects_bldr(size);
+  AllocationId alloc_id;
+  for (int64_t i = 0; i < size; ++i) {
+    if (i % alloc_size == 0) {
+      alloc_id = Allocate(alloc_size);
+    }
+    objects_bldr.Set(i, alloc_id.ObjectByOffset(i % alloc_size));
+  }
+  return ShuffleObjectsSlice(
+      DataSliceImpl::Create(std::move(objects_bldr).Build()), gen);
+}
+
+inline std::pair<DataSliceImpl, DataSliceImpl> CreateMixedPrimitivesWithSchemas(
+    int64_t size, absl::BitGen& gen) {
+  std::vector<int64_t> perm = RandomPermutation(size, gen);
+  SliceBuilder values(size);
+  SliceBuilder schemas(size);
+  for (int64_t i = 0; i < size / 2; ++i) {
+    values.InsertIfNotSet(perm[i], static_cast<int32_t>(i));
+    schemas.InsertIfNotSet(perm[i], schema::kInt32);
+  }
+  for (int64_t i = size / 2; i < size; ++i) {
+    values.InsertIfNotSet(perm[i], static_cast<float>(i));
+    schemas.InsertIfNotSet(perm[i], schema::kFloat32);
+  }
+  return {std::move(values).Build(), std::move(schemas).Build()};
 }
 
 inline DataSliceImpl ApplyRandomMask(const DataSliceImpl& ds,
@@ -255,6 +299,57 @@ inline void BM_DAGObjects(benchmark::State& state,
     }
     ds = std::move(child_ds);
   }
+  run_fn(state, root_ds, kObjectSchema, db, {});
+}
+
+// Objects from mixed allocations with mixed attribute types across layers, so
+// both schema allocations and attributes are processed in groups.
+inline void BM_ObjectsInGroups(benchmark::State& state,
+                               const RunBenchmarksFn& run_fn) {
+  int64_t schema_depth = state.range(0);
+  int64_t alloc_count = state.range(1);
+  int64_t presence_rate = state.range(2);
+  int64_t ds_size = state.range(3);
+  absl::BitGen gen;
+
+  CancellationContext::ScopeGuard cancellation_scope;
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto root_ds =
+      AllocateEmptyObjectsWithMixedAllocations(ds_size, alloc_count, gen);
+  auto ds = root_ds;
+
+  internal::DataItem kObjectSchema(schema::kObject);
+  auto kObjectSchemaSlice =
+      DataSliceImpl::Create(/*size=*/ds_size, kObjectSchema);
+  auto kInt32SchemaSlice =
+      DataSliceImpl::Create(/*size=*/ds_size, DataItem(schema::kInt32));
+  auto int32_values = DataSliceImpl::Create(/*size=*/ds_size, DataItem(1));
+  for (int64_t i = 0; i < schema_depth; ++i) {
+    ASSERT_OK_AND_ASSIGN(
+        auto schemas,
+        CreateUuidWithMainObject<internal::ObjectId::kUuidImplicitSchemaFlag>(
+            ds, schema::kImplicitSchemaSeed));
+    CHECK_OK(db->SetAttr(ds, schema::kSchemaAttr, schemas));
+
+    CHECK_OK(db->SetSchemaAttr(schemas, "a", kInt32SchemaSlice));
+    CHECK_OK(db->SetAttr(ds, "a",
+                         ApplyRandomMask(int32_values, presence_rate, gen)));
+
+    auto [b_values, b_schemas] = CreateMixedPrimitivesWithSchemas(ds_size, gen);
+    CHECK_OK(db->SetSchemaAttr(schemas, "b", b_schemas));
+    CHECK_OK(
+        db->SetAttr(ds, "b", ApplyRandomMask(b_values, presence_rate, gen)));
+
+    if (i + 1 < schema_depth) {
+      auto child_ds =
+          AllocateEmptyObjectsWithMixedAllocations(ds_size, alloc_count, gen);
+      CHECK_OK(db->SetSchemaAttr(schemas, "child", kObjectSchemaSlice));
+      CHECK_OK(db->SetAttr(ds, "child",
+                           ApplyRandomMask(child_ds, presence_rate, gen)));
+      ds = std::move(child_ds);
+    }
+  }
+  root_ds = ApplyRandomMask(root_ds, presence_rate, gen);
   run_fn(state, root_ds, kObjectSchema, db, {});
 }
 

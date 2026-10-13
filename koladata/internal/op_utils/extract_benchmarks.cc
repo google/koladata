@@ -95,6 +95,12 @@ void BM_DAGObjects(benchmark::State& state) {
 }
 BENCHMARK(BM_DAGObjects)->Apply(benchmarks_utils::kLayersBenchmarkFn);
 
+void BM_ObjectsInGroups(benchmark::State& state) {
+  benchmarks_utils::BM_ObjectsInGroups(state, RunBenchmarks);
+}
+BENCHMARK(BM_ObjectsInGroups)
+    ->Apply(benchmarks_utils::kObjectsInGroupsBenchmarkFn);
+
 void BM_TreeShapedIntToFloat(benchmark::State& state) {
   benchmarks_utils::BM_TreeShapedIntToFloat(state, RunCastingBenchmarks);
 }
