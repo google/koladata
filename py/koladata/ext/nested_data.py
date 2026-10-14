@@ -55,7 +55,7 @@ def selected_path_update(
     need to be combined with the @root_ds via
     @root_ds.updated(selected_path(....)).
   """
-  selection_ds = functools.MaybeEval(selection_ds, root_ds)
+  selection_ds: kd.types.DataSlice = functools.MaybeEval(selection_ds, root_ds)
   if selection_ds.get_schema() != kd.MASK:
     raise ValueError(
         f'selection_ds must be kd.MASK, got: {selection_ds.get_schema()}.'

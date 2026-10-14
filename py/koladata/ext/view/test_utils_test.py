@@ -84,7 +84,7 @@ class TestUtilsTest(absltest.TestCase):
     with self.assertRaisesRegex(
         AssertionError, re.escape("Expected a DataSlice, got <class 'int'>")
     ):
-      test_utils.from_ds(1)
+      test_utils.from_ds(1)  # pyrefly: ignore[bad-argument-type]
 
 
 if __name__ == "__main__":
