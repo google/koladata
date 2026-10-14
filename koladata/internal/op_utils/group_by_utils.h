@@ -24,7 +24,6 @@
 #include <vector>
 
 #include "absl/functional/function_ref.h"
-#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
@@ -47,8 +46,8 @@ namespace koladata::internal {
 
 
 // Utility class for GroupBy-related operations on data slices.
-// Provides methods to create an edge from slice or pair of slices, and to
-// group or collapse objects by edge.
+// Provides methods to create an edge from a slice, and to group or collapse
+// objects by edge.
 class ObjectsGroupBy {
  public:
   // See ByKeys().
@@ -81,29 +80,6 @@ class ObjectsGroupBy {
   // - The function may use this ObjectsGroupBy.
   template <class... Keys>
   Grouping<sizeof...(Keys), 0> ByKeys(Keys... keys);
-
-  // Group DataSlice by Schemas.
-  absl::StatusOr<std::pair<DataSliceImpl,
-                           std::vector<arolla::DenseArray<ObjectId>>>>
-  BySchemas(const DataSliceImpl& items_schemas, const DataSliceImpl& ds) {
-    ASSIGN_OR_RETURN(auto edge, EdgeFromSchemasSlice(items_schemas));
-    ASSIGN_OR_RETURN(auto group_schemas, CollapseByEdge(edge, items_schemas));
-    ASSIGN_OR_RETURN(auto ds_grouped,
-                     ByEdge(std::move(edge), ds.values<ObjectId>()));
-    return std::make_pair(std::move(group_schemas), std::move(ds_grouped));
-  }
-
-  // Creates an edge from pairs of schemas.
-  absl::StatusOr<arolla::DenseArrayEdge> EdgeFromSchemaPairs(
-      const DataSliceImpl& schemas_a, const DataSliceImpl& schemas_b) {
-    DCHECK_EQ(schemas_a.size(), schemas_b.size());
-    ASSIGN_OR_RETURN(auto edge,
-                     arolla::DenseArrayEdge::FromSplitPoints(
-                         arolla::CreateDenseArray<int64_t>(
-                             {0, static_cast<int64_t>(schemas_a.size())})));
-    ASSIGN_OR_RETURN(edge, SplitEdgeBySchemas(std::move(edge), schemas_a));
-    return SplitEdgeBySchemas(std::move(edge), schemas_b);
-  }
 
   // Assembles objects into groups defined by the edge.
   absl::StatusOr<std::vector<arolla::DenseArray<ObjectId>>> ByEdge(

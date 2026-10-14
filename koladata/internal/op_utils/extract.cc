@@ -740,39 +740,28 @@ class CopyingProcessor {
       return absl::OkStatus();
     }
     // Data or schema are not yet copied.
-    std::optional<DataItem> single_schema =
-        group_by_.GetItemIfAllEqual(items_schemas);
-    if (single_schema.has_value()) {
-      return ProcessListItems({.slice = new_ds,
-                               .schema = DataItem(schema::kObject),
-                               .schema_source = SchemaSource::kDataDatabag,
-                               .depth = depth},
-                              std::move(*single_schema));
+    // `items_schemas` may have missing values (e.g. for missing/NoFollow
+    // object schemas).
+    if (items_schemas.present_count() == items_schemas.size()) {
+      std::optional<DataItem> single_schema =
+          group_by_.GetItemIfAllEqual(items_schemas);
+      if (single_schema.has_value()) {
+        return ProcessListItems({.slice = new_ds,
+                                 .schema = DataItem(schema::kObject),
+                                 .schema_source = SchemaSource::kDataDatabag,
+                                 .depth = depth},
+                                std::move(*single_schema));
+      }
     }
-    ASSIGN_OR_RETURN((auto [group_schemas, new_ds_grouped]),
-                     group_by_.BySchemas(items_schemas, new_ds));
-    auto status = absl::OkStatus();
-    group_schemas.VisitValues(
-        [&]<class T>(const arolla::DenseArray<T>& groups_schemas_T) {
-          if constexpr (std::is_same_v<T, ObjectId> ||
-                        std::is_same_v<T, schema::DType>) {
-            groups_schemas_T.ForEachPresent([&](size_t idx, T item_schema) {
-              if (!status.ok()) {
-                return;
-              }
-              status = ProcessListItems(
-                  {.slice =
-                       DataSliceImpl::Create(std::move(new_ds_grouped[idx])),
-                   .schema = DataItem(schema::kObject),
-                   .schema_source = SchemaSource::kDataDatabag,
-                   .depth = depth},
-                  DataItem(item_schema));
-            });
-          } else {
-            DCHECK(false);
-          }
+    return group_by_.ByKeys(std::move(items_schemas))
+        .Split(new_ds)
+        .ForEach([&](const DataItem& items_schema, const DataSliceImpl& lists) {
+          return ProcessListItems({.slice = lists,
+                                   .schema = DataItem(schema::kObject),
+                                   .schema_source = SchemaSource::kDataDatabag,
+                                   .depth = depth},
+                                  items_schema);
         });
-    return status;
   }
 
   absl::Status ProcessObjectsDictKeysAndValuesAttributes(
@@ -789,61 +778,34 @@ class CopyingProcessor {
       return absl::OkStatus();
     }
     // Data or schema are not yet copied.
-    std::optional<DataItem> single_keys_schema =
-        group_by_.GetItemIfAllEqual(keys_schemas);
-    std::optional<DataItem> single_values_schema =
-        group_by_.GetItemIfAllEqual(values_schemas);
-    if (single_keys_schema.has_value() && single_values_schema.has_value()) {
-      return ProcessDictKeysAndValues(
-          {.slice = new_ds,
-           .schema = DataItem(schema::kObject),
-           .schema_source = SchemaSource::kDataDatabag,
-           .depth = depth},
-          std::move(*single_keys_schema), std::move(*single_values_schema));
+    // `keys_schemas` and `values_schemas` may have missing values (e.g. for
+    // missing/NoFollow object schemas).
+    if (keys_schemas.present_count() == keys_schemas.size() &&
+        values_schemas.present_count() == values_schemas.size()) {
+      std::optional<DataItem> single_keys_schema =
+          group_by_.GetItemIfAllEqual(keys_schemas);
+      std::optional<DataItem> single_values_schema =
+          group_by_.GetItemIfAllEqual(values_schemas);
+      if (single_keys_schema.has_value() && single_values_schema.has_value()) {
+        return ProcessDictKeysAndValues(
+            {.slice = new_ds,
+             .schema = DataItem(schema::kObject),
+             .schema_source = SchemaSource::kDataDatabag,
+             .depth = depth},
+            std::move(*single_keys_schema), std::move(*single_values_schema));
+      }
     }
-    ASSIGN_OR_RETURN(
-        auto edge, group_by_.EdgeFromSchemaPairs(keys_schemas, values_schemas));
-    ASSIGN_OR_RETURN(auto group_keys_schemas,
-                     group_by_.CollapseByEdge(edge, keys_schemas));
-    ASSIGN_OR_RETURN(auto group_values_schemas,
-                     group_by_.CollapseByEdge(edge, values_schemas));
-    ASSIGN_OR_RETURN(
-        auto new_ds_grouped,
-        group_by_.ByEdge(std::move(edge), new_ds.values<ObjectId>()));
-    auto status = absl::OkStatus();
-    group_keys_schemas.VisitValues(
-        [&]<class key_T>(
-            const arolla::DenseArray<key_T>& group_keys_schemas_T) {
-          group_values_schemas.VisitValues(
-              [&]<class value_T>(
-                  const arolla::DenseArray<value_T>& group_values_schemas_T) {
-                if constexpr ((std::is_same_v<key_T, ObjectId> ||
-                               std::is_same_v<key_T, schema::DType>) &&
-                              (std::is_same_v<value_T, ObjectId> ||
-                               std::is_same_v<value_T, schema::DType>)) {
-                  auto for_each_status = arolla::DenseArraysForEachPresent(
-                      [&](size_t idx, key_T key_schema, value_T value_schema) {
-                        if (!status.ok()) {
-                          return;
-                        }
-                        status = ProcessDictKeysAndValues(
-                            {.slice = DataSliceImpl::Create(
-                                 std::move(new_ds_grouped[idx])),
-                             .schema = DataItem(schema::kObject),
-                             .schema_source = SchemaSource::kDataDatabag,
-                             .depth = depth},
-                            DataItem(key_schema), DataItem(value_schema));
-                      },
-                      group_keys_schemas_T, group_values_schemas_T);
-                  if (status.ok() && !for_each_status.ok()) {
-                    status = std::move(for_each_status);
-                  }
-                } else {
-                  DCHECK(false);
-                }
-              });
+    return group_by_.ByKeys(std::move(keys_schemas), std::move(values_schemas))
+        .Split(new_ds)
+        .ForEach([&](const DataItem& keys_schema, const DataItem& values_schema,
+                     const DataSliceImpl& dicts) {
+          return ProcessDictKeysAndValues(
+              {.slice = dicts,
+               .schema = DataItem(schema::kObject),
+               .schema_source = SchemaSource::kDataDatabag,
+               .depth = depth},
+              keys_schema, values_schema);
         });
-    return status;
   }
 
   absl::Status ProcessObjectsAttribute(const DataSliceImpl& new_ds,
@@ -869,41 +831,32 @@ class CopyingProcessor {
     if (attr_schemas.is_empty_and_unknown()) {
       return absl::OkStatus();
     }
-    std::optional<DataItem> single_schema =
-        group_by_.GetItemIfAllEqual(attr_schemas);
-    if (single_schema.has_value()) {
-      return ProcessAttribute({.slice = new_ds,
-                               .schema = DataItem(schema::kObject),
-                               .schema_source = SchemaSource::kDataDatabag,
-                               .depth = depth},
-                              attr_name, std::move(*single_schema), full_alloc);
+    // `attr_schemas` may have missing values (e.g. for missing/NoFollow object
+    // schemas, or schemas in the same allocation without this attribute).
+    if (attr_schemas.present_count() == attr_schemas.size()) {
+      std::optional<DataItem> single_schema =
+          group_by_.GetItemIfAllEqual(attr_schemas);
+      if (single_schema.has_value()) {
+        return ProcessAttribute({.slice = new_ds,
+                                 .schema = DataItem(schema::kObject),
+                                 .schema_source = SchemaSource::kDataDatabag,
+                                 .depth = depth},
+                                attr_name, std::move(*single_schema),
+                                full_alloc);
+      }
     }
-    ASSIGN_OR_RETURN((auto [group_schemas, new_ds_grouped]),
-                     group_by_.BySchemas(attr_schemas, new_ds));
-    auto status = absl::OkStatus();
-    group_schemas.VisitValues(
-        [&]<class T>(const arolla::DenseArray<T>& group_schemas_T) {
-          if constexpr (std::is_same_v<T, ObjectId> ||
-                        std::is_same_v<T, schema::DType>) {
-            group_schemas_T.ForEachPresent([&](size_t idx, T attr_schema) {
-              if (!status.ok()) {
-                return;
-              }
-              // `full_alloc` is about `new_ds`, not about the group.
-              bool group_full_alloc = false;
-              status = ProcessAttribute(
-                  {.slice =
-                       DataSliceImpl::Create(std::move(new_ds_grouped[idx])),
-                   .schema = DataItem(schema::kObject),
-                   .schema_source = SchemaSource::kDataDatabag,
-                   .depth = depth},
-                  attr_name, DataItem(attr_schema), group_full_alloc);
-            });
-          } else {
-            DCHECK(false);
-          }
+    return group_by_.ByKeys(std::move(attr_schemas))
+        .Split(new_ds)
+        .ForEach([&](const DataItem& attr_schema,
+                     const DataSliceImpl& objects) {
+          // `full_alloc` is about `new_ds`, not about the group.
+          bool group_full_alloc = false;
+          return ProcessAttribute({.slice = objects,
+                                   .schema = DataItem(schema::kObject),
+                                   .schema_source = SchemaSource::kDataDatabag,
+                                   .depth = depth},
+                                  attr_name, attr_schema, group_full_alloc);
         });
-    return status;
   }
 
   // Process slice of objects with ObjectId schema, where all schemas are either
@@ -949,12 +902,14 @@ class CopyingProcessor {
   }
 
   // Process slice of objects with ObjectId schema.
-  absl::Status ProcessObjectsWithSchemas(const DataSliceImpl& new_ds,
-                                         const DataSliceImpl& new_schemas,
-                                         const DataSliceImpl& old_schemas,
-                                         int depth) {
+  // If `new_schemas` is not provided, `old_schemas` are used as `new_schemas`.
+  absl::Status ProcessObjectsWithSchemas(
+      const DataSliceImpl& new_ds,
+      const std::optional<DataSliceImpl>& new_schemas,
+      const DataSliceImpl& old_schemas, int depth) {
     DCHECK(new_ds.dtype() == arolla::GetQType<ObjectId>());
-    DCHECK(new_schemas.dtype() == arolla::GetQType<ObjectId>());
+    DCHECK(!new_schemas.has_value() ||
+           new_schemas->dtype() == arolla::GetQType<ObjectId>());
     DCHECK(old_schemas.dtype() == arolla::GetQType<ObjectId>());
 
     arolla::DenseArrayBuilder<ObjectId> schema_allocs_bldr(old_schemas.size());
@@ -981,30 +936,35 @@ class CopyingProcessor {
     }
     if (is_single_allocation) {
       return ProcessObjectsWithSchemasInSingleAllocation(
-          *schema_alloc, new_ds, new_schemas, old_schemas, depth);
+          *schema_alloc, new_ds,
+          new_schemas.has_value() ? *new_schemas : old_schemas, old_schemas,
+          depth);
     }
-    const auto schema_allocs = std::move(schema_allocs_bldr).Build();
-    ASSIGN_OR_RETURN(auto edge, group_by_.EdgeFromSchemasArray(schema_allocs));
-    ASSIGN_OR_RETURN(auto group_schema_allocs,
-                     group_by_.CollapseByEdge(edge, schema_allocs));
-    ASSIGN_OR_RETURN(auto new_ds_grouped,
-                     group_by_.ByEdge(edge, new_ds.values<ObjectId>()));
-    ASSIGN_OR_RETURN(auto new_schemas_grouped,
-                     group_by_.ByEdge(edge, new_schemas.values<ObjectId>()));
-    ASSIGN_OR_RETURN(
-        auto old_schemas_grouped,
-        group_by_.ByEdge(std::move(edge), old_schemas.values<ObjectId>()));
-    auto status = absl::OkStatus();
-    group_schema_allocs.ForEachPresent([&](size_t idx, ObjectId schema_alloc) {
-      if (!status.ok()) {
-        return;
-      }
-      status = ProcessObjectsWithSchemasInSingleAllocation(
-          schema_alloc, DataSliceImpl::Create(std::move(new_ds_grouped[idx])),
-          DataSliceImpl::Create(std::move(new_schemas_grouped[idx])),
-          DataSliceImpl::Create(std::move(old_schemas_grouped[idx])), depth);
-    });
-    return status;
+    // The representatives belong to the allocations of `old_schemas`.
+    DataSliceImpl schema_allocs = DataSliceImpl::CreateWithAllocIds(
+        old_schemas.allocation_ids(), std::move(schema_allocs_bldr).Build());
+    if (new_schemas.has_value()) {
+      return group_by_.ByKeys(std::move(schema_allocs))
+          .Split(new_ds, *new_schemas, old_schemas)
+          .ForEach([&](const DataItem& schema_alloc,
+                       const DataSliceImpl& group_ds,
+                       const DataSliceImpl& group_new_schemas,
+                       const DataSliceImpl& group_old_schemas) {
+            return ProcessObjectsWithSchemasInSingleAllocation(
+                schema_alloc.value<ObjectId>(), group_ds, group_new_schemas,
+                group_old_schemas, depth);
+          });
+    } else {
+      return group_by_.ByKeys(std::move(schema_allocs))
+          .Split(new_ds, old_schemas)
+          .ForEach([&](const DataItem& schema_alloc,
+                       const DataSliceImpl& group_ds,
+                       const DataSliceImpl& group_old_schemas) {
+            return ProcessObjectsWithSchemasInSingleAllocation(
+                schema_alloc.value<ObjectId>(), group_ds, group_old_schemas,
+                group_old_schemas, depth);
+          });
+    }
   }
 
   // Process slice of objects with object schema.
@@ -1032,8 +992,8 @@ class CopyingProcessor {
       if (!has_schemas || ds.extract_kschemaattr_only) {
         return absl::OkStatus();
       }
-      return ProcessObjectsWithSchemas(ds.slice, old_schemas, old_schemas,
-                                       ds.depth);
+      return ProcessObjectsWithSchemas(ds.slice, /*new_schemas=*/std::nullopt,
+                                       old_schemas, ds.depth);
     }
     // TODO: what do we do with removed schemas in shallow clone?
     if (!has_schemas) {

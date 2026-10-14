@@ -57,26 +57,6 @@ TEST(ObjectsGroupByTest, EdgeFromSchemasArray) {
               ElementsAre(0, 1, 0, 2, 3, std::nullopt, 1, std::nullopt));
 }
 
-TEST(ObjectsGroupByTest, EdgeFromSchemaPairs) {
-  auto alloc = AllocateExplicitSchemas(10);
-  auto schemas_a = DataSliceImpl::Create(CreateDenseArray<ObjectId>(
-      {alloc.ObjectByOffset(0), alloc.ObjectByOffset(1),
-       alloc.ObjectByOffset(0), alloc.ObjectByOffset(1),
-       alloc.ObjectByOffset(6), std::nullopt, alloc.ObjectByOffset(1),
-       alloc.ObjectByOffset(1)}));
-  auto schemas_b = DataSliceImpl::Create(CreateDenseArray<ObjectId>(
-      {alloc.ObjectByOffset(4), alloc.ObjectByOffset(4),
-       alloc.ObjectByOffset(4), alloc.ObjectByOffset(7),
-       alloc.ObjectByOffset(6), std::nullopt, alloc.ObjectByOffset(6),
-       std::nullopt}));
-  auto group_by = ObjectsGroupBy();
-
-  ASSERT_OK_AND_ASSIGN(auto edge,
-                       group_by.EdgeFromSchemaPairs(schemas_a, schemas_b));
-  EXPECT_THAT(edge.edge_values(),
-              ElementsAre(0, 1, 0, 2, 3, std::nullopt, 4, std::nullopt));
-}
-
 TEST(ObjectsGroupByTest, CollapseByEdge) {
   auto group_by = ObjectsGroupBy();
   {
@@ -114,34 +94,6 @@ TEST(ObjectsGroupByTest, CollapseByEdge) {
                             DataItem(alloc.ObjectByOffset(6)),
                             DataItem(schema::kObject)));
   }
-}
-
-TEST(ObjectsGroupByTest, BySchemas) {
-  auto group_by = ObjectsGroupBy();
-
-  auto ds = DataSliceImpl::AllocateEmptyObjects(8);
-  auto schema_alloc = AllocateExplicitSchemas(10);
-  auto schemas = DataSliceImpl::Create(CreateDenseArray<ObjectId>(
-      {schema_alloc.ObjectByOffset(0), schema_alloc.ObjectByOffset(1),
-        schema_alloc.ObjectByOffset(0), schema_alloc.ObjectByOffset(2),
-        schema_alloc.ObjectByOffset(6), schema_alloc.ObjectByOffset(2),
-        schema_alloc.ObjectByOffset(1), schema_alloc.ObjectByOffset(2)}));
-
-  ASSERT_OK_AND_ASSIGN((auto [group_schemas, ds_grouped]),
-                        group_by.BySchemas(schemas, ds));
-  EXPECT_THAT(group_schemas, ElementsAre(schema_alloc.ObjectByOffset(0),
-                                          schema_alloc.ObjectByOffset(1),
-                                          schema_alloc.ObjectByOffset(2),
-                                          schema_alloc.ObjectByOffset(6)));
-  EXPECT_EQ(ds_grouped.size(), 4);
-  EXPECT_THAT(ds_grouped[0],
-              ElementsAre(ds[0].value<ObjectId>(), ds[2].value<ObjectId>()));
-  EXPECT_THAT(ds_grouped[1],
-              ElementsAre(ds[1].value<ObjectId>(), ds[6].value<ObjectId>()));
-  EXPECT_THAT(ds_grouped[2],
-              ElementsAre(ds[3].value<ObjectId>(), ds[5].value<ObjectId>(),
-                          ds[7].value<ObjectId>()));
-  EXPECT_THAT(ds_grouped[3], ElementsAre(ds[4].value<ObjectId>()));
 }
 
 TEST(ObjectsGroupByTest, ByEdge) {
