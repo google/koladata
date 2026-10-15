@@ -1086,5 +1086,39 @@ BENCHMARK(BM_SetSchemaFields<SetFn>)
     ->ArgPair(100000, 7)
     ->ArgPair(10000, 1000);
 
+void BM_SetAttrIncrementalBigAlloc(benchmark::State& state) {
+  int64_t alloc_size = state.range(0);
+  auto objs = DataSliceImpl::AllocateEmptyObjects(alloc_size);
+  std::vector<DataItem> obj_items(objs.begin(), objs.end());
+
+  for (auto _ : state) {
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    for (int64_t i = 0; i < alloc_size; ++i) {
+      CHECK_OK(db->SetAttr(obj_items[i], "a", DataItem(i)));
+    }
+    benchmark::DoNotOptimize(std::move(db));
+  }
+  state.SetItemsProcessed(state.iterations() * alloc_size);
+}
+BENCHMARK(BM_SetAttrIncrementalBigAlloc)->Arg(100)->Arg(1000);
+
+void BM_GetAttrAfterIncrementalSetAttrBigAlloc(benchmark::State& state) {
+  int64_t alloc_size = state.range(0);
+  auto objs = DataSliceImpl::AllocateEmptyObjects(alloc_size);
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  for (int64_t i = 0; i < alloc_size; ++i) {
+    CHECK_OK(db->SetAttr(objs[i], "a", DataItem(i)));
+  }
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(db);
+    benchmark::DoNotOptimize(objs);
+    auto res = db->GetAttr(objs, "a");
+    benchmark::DoNotOptimize(std::move(res));
+  }
+  state.SetItemsProcessed(state.iterations() * alloc_size);
+}
+BENCHMARK(BM_GetAttrAfterIncrementalSetAttrBigAlloc)->Arg(100)->Arg(1000);
+
 }  // namespace
 }  // namespace koladata::internal

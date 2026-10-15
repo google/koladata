@@ -923,12 +923,19 @@ absl::Status DataBagImpl::GetOrCreateMutableSourceInCollection(
     SourceCollection& collection, AllocationId alloc_id, absl::string_view attr,
     const arolla::QType* qtype, size_t update_size) {
   if (!collection.mutable_dense_source) {
-    if (update_size <= alloc_id.Capacity() / kSparseSourceSparsityCoef) {
+    size_t max_sparse = alloc_id.Capacity() / kSparseSourceSparsityCoef;
+    if (update_size <= max_sparse) {
       if (!collection.mutable_sparse_source) {
         collection.mutable_sparse_source =
             std::make_shared<SparseSource>(alloc_id);
+        return absl::OkStatus();
       }
-      return absl::OkStatus();
+      // If the resulting size <= max_sparse, we return early here to avoid
+      // creating a new dense source below.
+      if (collection.mutable_sparse_source->size() + update_size <=
+          max_sparse) {
+        return absl::OkStatus();
+      }
     }
     RETURN_IF_ERROR(CreateMutableDenseSource(collection, alloc_id, attr, qtype,
                                              alloc_id.Capacity()));
@@ -1202,38 +1209,47 @@ absl::Status DataBagImpl::CreateMutableDenseSource(SourceCollection& collection,
     collection.mutable_dense_source =
         dense_sources.front()->CreateMutableCopy();
   }
+  if (sparse_sources.empty()) {
+    if (!collection.mutable_dense_source) {
+      ASSIGN_OR_RETURN(collection.mutable_dense_source,
+                       DenseSource::CreateMutable(alloc_id, size, qtype));
+    }
+    return absl::OkStatus();
+  }
+
+  std::unique_ptr<absl::flat_hash_map<ObjectId, DataItem>> mutable_data;
+  const absl::flat_hash_map<ObjectId, DataItem>* data = nullptr;
+  if (sparse_sources.size() == 1) {
+    data = &sparse_sources.front()->GetAll();
+  } else {
+    mutable_data = std::make_unique<absl::flat_hash_map<ObjectId, DataItem>>(
+        sparse_sources.front()->GetAll());
+    for (size_t i = 1; i < sparse_sources.size(); ++i) {
+      for (const auto& [obj, data_item] : sparse_sources[i]->GetAll()) {
+        mutable_data->try_emplace(obj, data_item);
+      }
+    }
+    data = mutable_data.get();
+  }
+  arolla::Buffer<ObjectId>::Builder objs_bldr(data->size());
+  int64_t offset = 0;
+  SliceBuilder slice_bldr(data->size());
+  for (const auto& [obj, data_item] : *data) {
+    objs_bldr.Set(offset, obj);
+    slice_bldr.InsertIfNotSetAndUpdateAllocIds(offset, data_item);
+    offset++;
+  }
+  ObjectIdArray sparse_objs{std::move(objs_bldr).Build()};
+  DataSliceImpl sparse_values = std::move(slice_bldr).Build();
+  if (qtype == nullptr && sparse_values.is_single_dtype()) {
+    qtype = sparse_values.dtype();
+  }
   if (!collection.mutable_dense_source) {
     ASSIGN_OR_RETURN(collection.mutable_dense_source,
                      DenseSource::CreateMutable(alloc_id, size, qtype));
   }
-
-  if (!sparse_sources.empty()) {
-    std::unique_ptr<absl::flat_hash_map<ObjectId, DataItem>> mutable_data;
-    const absl::flat_hash_map<ObjectId, DataItem>* data = nullptr;
-    if (sparse_sources.size() == 1) {
-      data = &sparse_sources.front()->GetAll();
-    } else {
-      mutable_data = std::make_unique<absl::flat_hash_map<ObjectId, DataItem>>(
-          sparse_sources.front()->GetAll());
-      for (size_t i = 1; i < sparse_sources.size(); ++i) {
-        for (const auto& [obj, data_item] : sparse_sources[i]->GetAll()) {
-          mutable_data->try_emplace(obj, data_item);
-        }
-      }
-      data = mutable_data.get();
-    }
-    arolla::Buffer<ObjectId>::Builder objs_bldr(data->size());
-    int64_t offset = 0;
-    SliceBuilder slice_bldr(data->size());
-    for (const auto& [obj, data_item] : *data) {
-      objs_bldr.Set(offset, obj);
-      slice_bldr.InsertIfNotSetAndUpdateAllocIds(offset, data_item);
-      offset++;
-    }
-    RETURN_IF_ERROR(collection.mutable_dense_source->Set(
-        ObjectIdArray{std::move(objs_bldr).Build()},
-        std::move(slice_bldr).Build()));
-  }
+  RETURN_IF_ERROR(collection.mutable_dense_source->Set(
+      std::move(sparse_objs), std::move(sparse_values)));
 
   collection.mutable_sparse_source = nullptr;
   return absl::OkStatus();

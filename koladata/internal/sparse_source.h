@@ -66,6 +66,8 @@ class SparseSource {
     return data_item_map_;
   }
 
+  size_t size() const { return data_item_map_.size(); }
+
   // Sets the value for the specified object.
   void Set(ObjectId object, const DataItem& value);
 

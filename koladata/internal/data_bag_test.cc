@@ -2776,5 +2776,59 @@ TEST(DataBagTest, GetMaybeFullAllocAttrWithRemoved) {
   }
 }
 
+TEST(DataBagTest, IncrementalSparseSourceToDensePromotion) {
+  // Capacity for 128 objects is 128; 128 / kSparseSourceSparsityCoef (64) == 2.
+  constexpr int64_t kSize = 128;
+  auto objects = DataSliceImpl::AllocateEmptyObjects(kSize);
+  auto db = DataBagImpl::CreateEmptyDatabag();
+
+  // Setting 2 distinct items stays in SparseSource (overwriting an existing
+  // item does not grow `SparseSource::size()`).
+  ASSERT_OK(db->SetAttr(objects[0], "a", DataItem(10)));
+  ASSERT_OK(db->SetAttr(objects[0], "a", DataItem(11)));
+  ASSERT_OK(db->SetAttr(objects[1], "a", DataItem(20)));
+  {
+    ASSERT_OK_AND_ASSIGN(auto content, db->ExtractContent());
+    ASSERT_TRUE(content.attrs.contains("a"));
+    EXPECT_THAT(content.attrs.at("a").items, ::testing::SizeIs(2));
+    EXPECT_THAT(content.attrs.at("a").allocs, IsEmpty());
+    ASSERT_OK_AND_ASSIGN(auto res, db->GetAttr(objects, "a"));
+    EXPECT_EQ(res[0], DataItem(11));
+    EXPECT_EQ(res[1], DataItem(20));
+  }
+
+  // Setting a 3rd distinct item exceeds Capacity() / 64 and promotes to
+  // DenseSource.
+  ASSERT_OK(db->SetAttr(objects[2], "a", DataItem(30)));
+  {
+    ASSERT_OK_AND_ASSIGN(auto content, db->ExtractContent());
+    ASSERT_TRUE(content.attrs.contains("a"));
+    EXPECT_THAT(content.attrs.at("a").items, IsEmpty());
+    EXPECT_THAT(content.attrs.at("a").allocs, ::testing::SizeIs(1));
+    ASSERT_OK_AND_ASSIGN(auto res, db->GetAttr(objects, "a"));
+    EXPECT_EQ(res[0], DataItem(11));
+    EXPECT_EQ(res[1], DataItem(20));
+    EXPECT_EQ(res[2], DataItem(30));
+  }
+
+  // Promotion triggered by a missing DataItem() still creates a single-dtype
+  // DenseSource when existing SparseSource entries share a single dtype.
+  auto db_remove = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(db_remove->SetAttr(objects[0], "a", DataItem(10)));
+  ASSERT_OK(db_remove->SetAttr(objects[1], "a", DataItem(20)));
+  ASSERT_OK(db_remove->SetAttr(objects[2], "a", DataItem()));
+  {
+    ASSERT_OK_AND_ASSIGN(auto content, db_remove->ExtractContent());
+    ASSERT_TRUE(content.attrs.contains("a"));
+    EXPECT_THAT(content.attrs.at("a").items, IsEmpty());
+    ASSERT_THAT(content.attrs.at("a").allocs, ::testing::SizeIs(1));
+    const auto& res = content.attrs.at("a").allocs[0].values;
+    EXPECT_TRUE(res.is_single_dtype());
+    EXPECT_EQ(res[0], DataItem(10));
+    EXPECT_EQ(res[1], DataItem(20));
+    EXPECT_EQ(res[2], DataItem());
+  }
+}
+
 }  // namespace
 }  // namespace koladata::internal
