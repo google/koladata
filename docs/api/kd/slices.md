@@ -1459,10 +1459,12 @@ contains the unique values.
 
 If `sort` is False elements are ordered by the appearance of the first item.
 
-If `sort` is True:
-1. Elements are ordered by the value.
-2. Mixed types are not supported.
-3. ExprQuote and DType are not supported.
+If `sort` is True elements are ordered by the value. NaNs are put in the end.
+The ordering is consistent with `kd.sort` and `kd.ordinal_rank`. In case of
+mixed types the comparison rules are the following:
+object/dict/list &lt; int &lt; float &lt; bool &lt; mask &lt; str/bytes &lt; dtype &lt; expr.
+Note that in general object ids are not deterministic, so on different runs
+the order of objects, dicts, lists might change.
 
 Example 1:
   x: kd.slice([1, 3, 2, 1, 2, 3, 1, 3])

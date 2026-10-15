@@ -18,7 +18,6 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 #include <memory>
 #include <numeric>
 #include <optional>
@@ -94,17 +93,38 @@ namespace {
 
 template <typename T>
 bool IsNan(const T& item) {
-  if constexpr (std::numeric_limits<T>::has_quiet_NaN) {
-    if constexpr (std::is_same_v<T, internal::DataItem>) {
-      return item.is_nan();
-    } else if constexpr (std::is_same_v<T, float>) {
-      return std::isnan(item);
-    } else if constexpr (std::is_same_v<T, double>) {
-      return std::isnan(item);
-    }
+  if constexpr (std::is_same_v<T, internal::DataItem>) {
+    return item.is_nan();
+  } else if constexpr (std::is_floating_point_v<T>) {
+    return std::isnan(item);
+  } else {
+    return false;
   }
-  return false;
 }
+
+// Strict weak ordering of present DataItems that is shared by the ordering
+// operators (kd.ordinal_rank, kd.sort, kd.unique(sort=True)) so that they
+// order values consistently:
+//  - values of different types are ordered by type (see DataItem::Less);
+//  - NaNs are greater than any other value regardless of `descending`.
+class DataItemLess {
+ public:
+  explicit DataItemLess(bool descending) : descending_(descending) {}
+
+  bool operator()(const internal::DataItem& a,
+                  const internal::DataItem& b) const {
+    bool a_is_nan = a.is_nan();
+    bool b_is_nan = b.is_nan();
+    if (a_is_nan || b_is_nan) {
+      return !a_is_nan && b_is_nan;
+    }
+    return descending_ ? internal::DataItem::Less{}(b, a)
+                       : internal::DataItem::Less{}(a, b);
+  }
+
+ private:
+  bool descending_;
+};
 
 class AlignOperator : public arolla::QExprOperator {
  public:
@@ -688,26 +708,21 @@ absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
       x.slice().AsDataItemDenseArray();
   const arolla::DenseArray<int64_t> tie_breaker_vals =
       tie_breaker_int64.slice().values<int64_t>();
-  bool descending_bool = descending.item().value<bool>();
+  const DataItemLess value_less(descending.item().value<bool>());
 
   auto less = [&](size_t i, size_t j) -> bool {
     if (!vals.present(i) || !tie_breaker_vals.present(i)) return false;
     if (!vals.present(j) || !tie_breaker_vals.present(j)) return true;
-    bool i_is_nan = vals.values[i].is_nan();
-    bool j_is_nan = vals.values[j].is_nan();
-    if (vals.values[i] == vals.values[j] || i_is_nan || j_is_nan) {
-      // NaNs are ranked last regardless of `descending`.
-      if (i_is_nan != j_is_nan) return j_is_nan;
-
-      if (tie_breaker_vals.values[i] != tie_breaker_vals.values[j]) {
-        return tie_breaker_vals.values[i] < tie_breaker_vals.values[j];
-      }
-      // `std::sort` is not stable, so the position is compared explicitly.
-      return i < j;
+    const internal::DataItem& vi = vals.values[i];
+    const internal::DataItem& vj = vals.values[j];
+    if (value_less(vi, vj)) return true;
+    if (value_less(vj, vi)) return false;
+    // Equivalent values (including NaN vs NaN).
+    if (tie_breaker_vals.values[i] != tie_breaker_vals.values[j]) {
+      return tie_breaker_vals.values[i] < tie_breaker_vals.values[j];
     }
-    return descending_bool
-               ? internal::DataItem::Less{}(vals.values[j], vals.values[i])
-               : internal::DataItem::Less{}(vals.values[i], vals.values[j]);
+    // `std::sort` is not stable, so the position is compared explicitly.
+    return i < j;
   };
 
   std::vector<size_t> indices(vals.size());
@@ -853,27 +868,17 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
     return x;
   }
   ASSIGN_OR_RETURN(bool sort_bool, GetBoolArgument(sort, "sort"));
-  if (sort_bool) {
-    if (x.slice().is_mixed_dtype()) {
-      return absl::FailedPreconditionError(
-          "sort is not supported for mixed dtype");
-    }
-    if (!internal::IsKodaScalarQTypeSortable(x.slice().dtype())) {
-      return absl::FailedPreconditionError(absl::StrCat(
-          "sort is not supported for ",
-          schema::schema_internal::GetQTypeName(x.slice().dtype())));
-    }
-  }
 
   const auto& split_points =
       x.GetShape().edges().back().edge_values().values.span();
   arolla::DenseArrayBuilder<int64_t> split_points_builder(split_points.size());
   split_points_builder.Set(0, 0);
 
+  absl::Status process_values_status = absl::OkStatus();
+
   auto process_values =
-      [&]<class T, class Map>(
-          const arolla::DenseArray<T>& values,
-          Map& map) -> absl::StatusOr<internal::DataSliceImpl> {
+      [&]<class T, class Map>(const arolla::DenseArray<T>& values,
+                              Map& map) -> internal::DataSliceImpl {
     std::vector<arolla::view_type_t<T>> unique_values;
     unique_values.reserve(values.size());
     map.reserve(values.size());
@@ -906,15 +911,20 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
         }
       }
       if (sort_bool) {
-        if constexpr (internal::IsKodaScalarSortable<T>()) {
+        if constexpr (std::is_same_v<T, internal::DataItem>) {
+          std::sort(unique_values.begin() + unique_values_group_begin,
+                    unique_values.end(), DataItemLess(/*descending=*/false));
+        } else if constexpr (internal::IsKodaScalarSortable<T>()) {
           std::sort(unique_values.begin() + unique_values_group_begin,
                     unique_values.end());
-          if (nan_value.has_value()) {
-            unique_values.push_back(*std::move(nan_value));
-          }
-        } else {
-          return absl::FailedPreconditionError(absl::StrCat(
-              "sort is not supported for ", arolla::GetQType<T>()->name()));
+        } else if (process_values_status.ok()) {
+          // Non-sortable types are processed as DataItems when `sort` is true.
+          process_values_status = absl::InternalError(absl::StrCat(
+              "unexpected type for sorting: ", arolla::GetQType<T>()->name()));
+        }
+        // NaNs are placed last.
+        if (nan_value.has_value()) {
+          unique_values.push_back(*std::move(nan_value));
         }
       }
       split_points_builder.Set(split_id, unique_values.size());
@@ -935,13 +945,17 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
     return std::move(builder).Build();
   };
 
-  absl::StatusOr<internal::DataSliceImpl> res_impl;
+  internal::DataSliceImpl res_impl;
   if (x.slice().is_empty_and_unknown()) {
     res_impl = internal::DataSliceImpl::CreateEmptyAndUnknownType(0);
     for (size_t split_id = 1; split_id < split_points.size(); ++split_id) {
       split_points_builder.Set(split_id, 0);
     }
-  } else if (x.slice().is_mixed_dtype()) {
+  } else if (x.slice().is_mixed_dtype() ||
+             (sort_bool &&
+              !internal::IsKodaScalarQTypeSortable(x.slice().dtype()))) {
+    // Generic path: values are compared as DataItems. Among other things it
+    // provides consistent ordering across different dtypes.
     absl::flat_hash_map<internal::DataItem, size_t, internal::DataItem::Hash,
                         internal::DataItem::Eq>
         map;
@@ -956,14 +970,14 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
       res_impl = process_values(values, map);
     });
   }
+  RETURN_IF_ERROR(process_values_status);
 
-  RETURN_IF_ERROR(res_impl.status());
   ASSIGN_OR_RETURN(auto new_shape,
                    x.GetShape()
                        .RemoveDims(/*from=*/x.GetShape().rank() - 1)
                        .AddDims({arolla::DenseArrayEdge::UnsafeFromSplitPoints(
                            std::move(split_points_builder).Build())}));
-  return DataSlice::Create(*std::move(res_impl), std::move(new_shape),
+  return DataSlice::Create(std::move(res_impl), std::move(new_shape),
                            x.GetSchemaImpl(), x.GetBag());
 }
 

@@ -37,6 +37,7 @@ obj2 = db.obj(x=2)
 obj3 = db.obj(x=3)
 
 DATA_SLICE = qtypes.DATA_SLICE
+INT64 = schema_constants.INT64
 
 
 class SlicesUniqueTest(parameterized.TestCase):
@@ -64,6 +65,11 @@ class SlicesUniqueTest(parameterized.TestCase):
       (
           ds(['A', 3, b'B', 'A', b'B', 3, 'A', 3]),
           ds(['A', 3, b'B']),
+      ),
+      # Mixed dtypes with NaN
+      (
+          ds(['A', float('nan'), 3, float('nan'), 'A']),
+          ds(['A', float('nan'), 3]),
       ),
       # 2D DataSlice 'x'
       (
@@ -116,29 +122,44 @@ class SlicesUniqueTest(parameterized.TestCase):
               [1.0, 2.0, 3.0, float('inf')],
           ]),
       ),
+      # Mixed dtypes. Values of different dtypes are ordered by dtype:
+      # INT32/INT64 < FLOAT32/FLOAT64 < BOOLEAN < STRING < BYTES.
+      (
+          ds(['A', 3, b'B', 'A', b'B', 3, 'A', 3]),
+          ds([3, 'A', b'B']),
+      ),
+      (
+          ds([['A', 3, b'B', 'A'], [b'B', 3, 'A', 1.5, 2.5]]),
+          ds([[3, 'A', b'B'], [3, 1.5, 2.5, 'A', b'B']]),
+      ),
+      (
+          ds([True, 'a', b'a', 1, 1.5, ds(2, schema=INT64), None, 'a', 1]),
+          ds([1, ds(2, schema=INT64), 1.5, True, 'a', b'a']),
+      ),
+      # Mixed dtypes, INT32 and INT64 values are compared by value.
+      (
+          ds([ds(1, schema=INT64), 'a', 1, 'a']),
+          ds([ds(1, schema=INT64), 'a']),
+      ),
+      # Mixed dtypes with NaN. NaNs are placed last.
+      (
+          ds([1.0, float('nan'), 'a', float('nan'), 3, 1.0]),
+          ds([3, 1.0, 'a', float('nan')]),
+      ),
   )
   def test_eval_one_input_sort(self, x, expected):
     result = kd.unique(x, sort=True)
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
-      ds(['A', 3, b'B', 'A', b'B', 3, 'A', 3]),
-      ds([['A', 3, b'B', 'A'], [b'B', 3, 'A', 3]]),
+      ds([obj1, obj3, obj2, obj1, obj3]),
+      ds([[obj1, obj3, obj2, obj1], [obj3, obj2, obj3]]),
+      ds([obj3, 'b', obj1, 'a', obj3, 1.5, obj2, 1]),
+      ds([schema_constants.FLOAT64, schema_constants.INT32]),
+      ds([arolla.quote(arolla.literal(1)), arolla.quote(arolla.literal(2))]),
   )
-  def test_eval_one_input_sort_mixed_dtype(self, x):
-    with self.assertRaisesRegex(
-        ValueError, 'sort is not supported for mixed dtype'
-    ):
-      kd.unique(x, sort=True)
-
-  @parameterized.parameters(
-      ds([obj1]),
-      ds([schema_constants.FLOAT64]),
-      ds([arolla.quote(arolla.literal(1))]),
-  )
-  def test_eval_one_input_sort_unsupported_dtype(self, x):
-    with self.assertRaisesRegex(ValueError, 'sort is not supported'):
-      kd.unique(x, sort=True)
+  def test_eval_one_input_sort_consistent_with_kd_sort(self, x):
+    testing.assert_equal(kd.unique(x, sort=True), kd.unique(kd.sort(x)))
 
   @parameterized.parameters(
       (ds([None] * 3), ds([], schema_constants.NONE)),
