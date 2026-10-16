@@ -15,6 +15,7 @@
 from typing import Any
 
 from koladata.functor.parallel import clib as _functor_parallel_clib
+from koladata.types import data_slice as _data_slice
 from koladata.types import iterable_qvalue as _iterable_qvalue
 from koladata.types import jagged_shape as _jagged_shape
 
@@ -22,7 +23,7 @@ from koladata.types import jagged_shape as _jagged_shape
 # into proper types.
 
 DataBag: Any
-DataSlice: Any
+DataSlice = _data_slice.DataSlice
 DataItem = DataSlice
 DictItem = DataSlice
 Executor = _functor_parallel_clib.Executor
