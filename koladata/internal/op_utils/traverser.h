@@ -182,8 +182,7 @@ class Traverser {
         }
         ASSIGN_OR_RETURN(
             TraverseHelper::TransitionsSet transitions_set,
-            traverse_helper_.GetTransitions(item.item, item.schema,
-                                            /*remove_special_attrs=*/false));
+            traverse_helper_.GetTransitions(item.item, item.schema));
         absl::Status status = absl::OkStatus();
         RETURN_IF_ERROR(traverse_helper_.ForEachObject(
             item.item, item.schema, transitions_set,

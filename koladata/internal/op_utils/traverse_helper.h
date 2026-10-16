@@ -411,11 +411,11 @@ class TraverseHelper {
       : databag_(databag), fallbacks_(fallbacks) {}
 
   // Returns view of all transitions for the given item and schema.
-  absl::StatusOr<TransitionsSet> GetTransitions(
-      DataItem item, DataItem schema, bool remove_special_attrs = true) {
+  absl::StatusOr<TransitionsSet> GetTransitions(DataItem item,
+                                                DataItem schema) {
     if (schema.holds_value<ObjectId>()) {
       // Entity schema.
-      return EntityTransitions(item, schema, remove_special_attrs);
+      return EntityTransitions(item, schema);
     } else if (schema.holds_value<schema::DType>()) {
       if (schema == schema::kObject) {
         // Object schema.
@@ -625,9 +625,6 @@ class TraverseHelper {
     transitions_set.attr_names().ForEach(
         [&](int64_t i, bool presence, std::string_view attr_name) {
           DCHECK(presence);
-          if (schema::IsSchemaAnnotationAttr(attr_name)) {
-            return;
-          }
           auto transition_or = AttributeTransition(item, schema, attr_name);
           if (!transition_or.ok()) {
             status = transition_or.status();
@@ -672,8 +669,7 @@ class TraverseHelper {
   }
 
   absl::StatusOr<TransitionsSet> EntityTransitions(const DataItem& item,
-                                                   const DataItem& schema,
-                                                   bool remove_special_attrs) {
+                                                   const DataItem& schema) {
     if (schema.template value<ObjectId>().IsNoFollowSchema()) {
       // No processing needed for NoFollowSchema.
       return TransitionsSet::CreateEmpty();
@@ -720,7 +716,7 @@ class TraverseHelper {
       }
       return DictTransitions(item, schema);
     }
-    if (!remove_special_attrs || !special_attrs_count) {
+    if (!special_attrs_count) {
       return TransitionsSet::CreateForEntity(std::move(attr_names_slice));
     }
     if (special_attrs_count == attr_names.size()) {

@@ -182,8 +182,7 @@ class ObjectFinder {
       }
       ASSIGN_OR_RETURN(
           TraverseHelper::TransitionsSet transitions_set,
-          traverse_helper_.GetTransitions(item.item, item.schema,
-                                          /*remove_special_attrs=*/false));
+          traverse_helper_.GetTransitions(item.item, item.schema));
       std::vector<TraverseHelper::TransitionKey> transition_keys =
           transitions_set.GetTransitionKeys();
       for (const auto& transition_key : transition_keys) {

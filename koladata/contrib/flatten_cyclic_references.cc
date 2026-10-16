@@ -213,8 +213,7 @@ class FlattenCyclicReferencesOp {
         }
         ASSIGN_OR_RETURN(
             TraverseHelper::TransitionsSet transitions_set,
-            traverse_helper_->GetTransitions(original.item, original.schema,
-                                             /*remove_special_attrs=*/false));
+            traverse_helper_->GetTransitions(original.item, original.schema));
         std::vector<TraverseHelper::TransitionKey> transition_keys =
             transitions_set.GetTransitionKeys();
         for (const auto& transition_key : transition_keys) {
@@ -387,12 +386,6 @@ class FlattenCyclicReferencesOp {
     if (key.type == TraverseHelper::TransitionType::kAttributeName) {
       DCHECK(key.value.holds_value<arolla::Text>());
       auto attr_name = key.value.value<arolla::Text>();
-      if (attr_name == schema::kSchemaMetadataAttr) {
-        // Skip metadata here — it's a schema-level attribute that appears as
-        // kAttributeName on entities (via EntityTransitions), but is properly
-        // handled via kSchemaAttributeName when the schema is visited.
-        return absl::OkStatus();
-      }
       return SaveAttributeTransition(std::move(item), attr_name,
                                      std::move(value));
     } else if (key.type ==
