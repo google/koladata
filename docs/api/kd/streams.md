@@ -130,6 +130,10 @@ Note: For the convenience, in Python environments, the default executor
 (see `get_default_executor`) is implicitly set as the current executor.
 However, this might not be not the case for other environments.</code></pre>
 
+### `kd.streams.empty_as(stream)` {#kd.streams.empty_as}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an empty stream with the same value type as the given stream.</code></pre>
+
 ### `kd.streams.flat_map_chained(stream, fn, *, executor=unspecified, value_type_as=None)` {#kd.streams.flat_map_chained}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Executes flat maps over the given stream.
@@ -268,6 +272,16 @@ Args:
 Returns:
   A stream of DataItems, in the order of the slice. All returned
   DataItems point to the same DataBag as the input DataSlice.</code></pre>
+
+### `kd.streams.from_iterable(iterable)` {#kd.streams.from_iterable}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a stream from the given iterable.
+
+Args:
+  iterable: The iterable with the items to be put into the stream.
+
+Returns:
+  A stream with the items from the given iterable, in the same order.</code></pre>
 
 ### `kd.streams.get_default_executor()` {#kd.streams.get_default_executor}
 

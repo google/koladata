@@ -18,6 +18,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
+from koladata.operators import optools
 from koladata.types import data_bag
 from koladata.types import iterable_qvalue
 from koladata.types import qtypes
@@ -25,6 +26,7 @@ from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 bag = data_bag.DataBag.empty_mutable
+kde = kde_operators.kde
 kde_internal = kde_operators.internal
 
 
@@ -80,6 +82,22 @@ class IterablesInternalEmptyAsTest(absltest.TestCase):
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde_internal.iterables.empty_as(I.x)))
+
+  def test_alias(self):
+    self.assertTrue(
+        optools.equiv_to_op(
+            kde_internal.iterables.empty_as, kde.iterables.empty_as
+        )
+    )
+
+  def test_repr(self):
+    self.assertEqual(
+        repr(kde_internal.iterables.empty_as(I.x)),
+        'koda_internal.iterables.empty_as(I.x)',
+    )
+    self.assertEqual(
+        repr(kde.iterables.empty_as(I.x)), 'kd.iterables.empty_as(I.x)'
+    )
 
 
 if __name__ == '__main__':

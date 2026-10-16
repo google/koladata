@@ -496,7 +496,9 @@ def stream_make(*items, value_type_as=arolla.unspecified()):
 
 # Since the stream returned by this operator is immutable, this operator can be
 # kept deterministic.
-@optools.add_to_registry(via_cc_operator_package=True)
+@optools.add_to_registry(
+    aliases=['kd.streams.from_iterable'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_from_iterable',
     qtype_constraints=[
@@ -2512,7 +2514,9 @@ def _parallel_switch(
 
 # Since the stream returned by this operator is immutable, this operator can be
 # kept deterministic.
-@optools.add_to_registry(via_cc_operator_package=True)
+@optools.add_to_registry(
+    aliases=['kd.streams.empty_as'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'koda_internal.parallel.empty_stream_like',
     qtype_constraints=[

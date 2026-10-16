@@ -30,6 +30,10 @@ Args:
 Returns:
   An iterable that chains the given iterables, in the given order.</code></pre>
 
+### `kd.iterables.empty_as(iterable)` {#kd.iterables.empty_as}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an empty iterable of the same type as `iterable`.</code></pre>
+
 ### `kd.iterables.flat_map_chain(iterable, fn, value_type_as=None)` {#kd.iterables.flat_map_chain}
 Aliases:
 

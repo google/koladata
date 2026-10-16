@@ -242,7 +242,9 @@ def sequence_interleave(sequences):
   )
 
 
-@optools.add_to_registry(via_cc_operator_package=True)
+@optools.add_to_registry(
+    aliases=['kd.iterables.empty_as'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'koda_internal.iterables.empty_as',
     qtype_constraints=[qtype_utils.expect_iterable(P.iterable)],

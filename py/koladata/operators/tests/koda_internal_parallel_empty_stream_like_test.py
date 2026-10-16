@@ -19,9 +19,11 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor.parallel import clib as _
 from koladata.operators import kde_operators
+from koladata.operators import optools
 from koladata.operators.tests.util import qtypes
 
 I = input_container.InputContainer('I')
+kde = kde_operators.kde
 kde_internal = kde_operators.internal
 
 
@@ -57,6 +59,22 @@ class KodaInternalParallelEmptyStreamLikeTest(absltest.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(kde_internal.parallel.empty_stream_like(I.x))
+    )
+
+  def test_alias(self):
+    self.assertTrue(
+        optools.equiv_to_op(
+            kde_internal.parallel.empty_stream_like, kde.streams.empty_as
+        )
+    )
+
+  def test_repr(self):
+    self.assertEqual(
+        repr(kde_internal.parallel.empty_stream_like(I.x)),
+        'koda_internal.parallel.empty_stream_like(I.x)',
+    )
+    self.assertEqual(
+        repr(kde.streams.empty_as(I.x)), 'kd.streams.empty_as(I.x)'
     )
 
 

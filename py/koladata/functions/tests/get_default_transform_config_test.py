@@ -735,6 +735,24 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
         arolla.tuple(*res.read_all(timeout=5.0)), arolla.tuple(db)
     )
 
+  def test_iterables_empty_as(self):
+
+    def f(x):
+      return kde.iterables.empty_as(x)
+
+    transformed_fn = kde_internal.parallel.transform(
+        parallel_fns.get_default_transform_config(), f
+    )
+    db = data_bag.DataBag.empty_mutable().freeze()
+    res = transformed_fn(
+        kde_internal.parallel.get_default_executor(),
+        x=kde_internal.parallel.stream_make(db),
+        return_type_as=kde_internal.parallel.stream_make(
+            value_type_as=data_bag.DataBag
+        ),
+    ).eval()
+    self.assertEmpty(res.read_all(timeout=5.0))
+
   def test_iterables_flat_map_chain(self):
     e1 = threading.Event()
     e2 = threading.Event()

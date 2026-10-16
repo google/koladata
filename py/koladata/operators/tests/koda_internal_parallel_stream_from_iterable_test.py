@@ -17,6 +17,7 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor.parallel import clib
 from koladata.operators import kde_operators
+from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
@@ -67,10 +68,21 @@ class KodaInternalParallelStreamFromIterableTest(absltest.TestCase):
         )
     )
 
+  def test_alias(self):
+    self.assertTrue(
+        optools.equiv_to_op(
+            kde_internal.parallel.stream_from_iterable,
+            kde.streams.from_iterable,
+        )
+    )
+
   def test_repr(self):
     self.assertEqual(
         repr(kde_internal.parallel.stream_from_iterable(I.a)),
         'koda_internal.parallel.stream_from_iterable(I.a)',
+    )
+    self.assertEqual(
+        repr(kde.streams.from_iterable(I.a)), 'kd.streams.from_iterable(I.a)'
     )
 
 

@@ -166,6 +166,10 @@ constexpr char kDefaultConfigTextProto[] = R"pb(
     }
   }
   operator_replacements {
+    from_op: "kd.iterables.empty_as"
+    to_op: "kd.streams.empty_as"
+  }
+  operator_replacements {
     from_op: "kd.functor.flat_map_chain"
     to_op: "koda_internal.parallel._parallel_stream_flat_map_chain"
     argument_transformation {
