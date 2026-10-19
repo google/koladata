@@ -22,6 +22,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "absl/base/optimization.h"
@@ -40,6 +41,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/schema_info.h"
 #include "koladata/internal/schema_attrs.h"
 
 namespace koladata::internal {
@@ -537,15 +539,6 @@ class TraverseHelper {
   }
 
  private:
-  DataItem GetSchemaAttrSchema(std::string_view attr_name) {
-    if (attr_name == schema::kSchemaNameAttr) {
-      return DataItem(schema::kString);
-    } else if (attr_name == schema::kSchemaMetadataAttr) {
-      return DataItem(schema::kObject);
-    }
-    return DataItem(schema::kSchema);
-  }
-
   template <typename Fn>
   void ForEachListItemObject(const TransitionsSet& transitions_set, Fn&& fn) {
     const DataSliceImpl& list_items = transitions_set.list_items();
@@ -640,10 +633,7 @@ class TraverseHelper {
   }
 
   absl::StatusOr<TransitionsSet> ListTransitions(const DataItem& item,
-                                                 const DataItem& schema) {
-    ASSIGN_OR_RETURN(DataItem list_item_schema,
-                     databag_.GetSchemaAttr(
-                         schema, schema::kListItemsSchemaAttr, fallbacks_));
+                                                 DataItem list_item_schema) {
     ASSIGN_OR_RETURN(
         DataSliceImpl list_items,
         databag_.ExplodeList(item, DataBagImpl::ListRange(), fallbacks_));
@@ -652,13 +642,8 @@ class TraverseHelper {
   }
 
   absl::StatusOr<TransitionsSet> DictTransitions(const DataItem& item,
-                                                 const DataItem& schema) {
-    ASSIGN_OR_RETURN(DataItem dict_keys_schema,
-                     databag_.GetSchemaAttr(schema, schema::kDictKeysSchemaAttr,
-                                            fallbacks_));
-    ASSIGN_OR_RETURN(DataItem dict_values_schema,
-                     databag_.GetSchemaAttr(
-                         schema, schema::kDictValuesSchemaAttr, fallbacks_));
+                                                 DataItem dict_keys_schema,
+                                                 DataItem dict_values_schema) {
     ASSIGN_OR_RETURN(auto dict_keys, databag_.GetDictKeys(item, fallbacks_));
     ASSIGN_OR_RETURN(auto dict_values,
                      databag_.GetDictValues(item, fallbacks_));
@@ -670,70 +655,21 @@ class TraverseHelper {
 
   absl::StatusOr<TransitionsSet> EntityTransitions(const DataItem& item,
                                                    const DataItem& schema) {
-    if (schema.template value<ObjectId>().IsNoFollowSchema()) {
-      // No processing needed for NoFollowSchema.
+    ASSIGN_OR_RETURN(EntitySchemaInfo info,
+                     GetEntitySchemaInfo(schema, databag_, fallbacks_));
+    if (auto* list_info = std::get_if<ListSchemaInfo>(&info)) {
+      return ListTransitions(item, std::move(list_info->item_schema));
+    }
+    if (auto* dict_info = std::get_if<DictSchemaInfo>(&info)) {
+      return DictTransitions(item, std::move(dict_info->keys_schema),
+                             std::move(dict_info->values_schema));
+    }
+    const auto& object_info = std::get<ObjectSchemaInfo>(info);
+    if (object_info.attr_names.empty()) {
       return TransitionsSet::CreateEmpty();
     }
-    ASSIGN_OR_RETURN(DataSliceImpl attr_names_slice,
-                     databag_.GetPresentSchemaAttrs(schema, fallbacks_));
-    if (attr_names_slice.size() == 0) {
-      return TransitionsSet::CreateEmpty();
-    }
-    if (attr_names_slice.present_count() != attr_names_slice.size()) {
-      return absl::InternalError("schema attribute names should be present");
-    }
-    const auto& attr_names = attr_names_slice.values<arolla::Text>();
-
-    bool has_list_items_attr = false;
-    bool has_dict_keys_attr = false;
-    bool has_dict_values_attr = false;
-    int64_t special_attrs_count = 0;
-    // Schema attributes are previsited when the item is being visited.
-    attr_names.ForEach(
-        [&](int64_t id, bool presence, std::string_view attr_name) {
-          DCHECK(presence);
-          if (attr_name == schema::kListItemsSchemaAttr) {
-            has_list_items_attr = true;
-          } else if (attr_name == schema::kDictKeysSchemaAttr) {
-            has_dict_keys_attr = true;
-          } else if (attr_name == schema::kDictValuesSchemaAttr) {
-            has_dict_values_attr = true;
-          } else if (schema::IsSchemaAnnotationAttr(attr_name)) {
-            ++special_attrs_count;
-          }
-        });
-    if (has_list_items_attr) {
-      if (attr_names.size() != 1) {
-        return absl::InvalidArgumentError(absl::StrFormat(
-            "list schema %v has unexpected attributes", schema));
-      }
-      return ListTransitions(item, schema);
-    } else if (has_dict_keys_attr || has_dict_values_attr) {
-      if (attr_names.size() != 2 || !has_dict_keys_attr ||
-          !has_dict_values_attr) {
-        return absl::InvalidArgumentError(absl::StrFormat(
-            "dict schema %v has unexpected attributes", schema));
-      }
-      return DictTransitions(item, schema);
-    }
-    if (!special_attrs_count) {
-      return TransitionsSet::CreateForEntity(std::move(attr_names_slice));
-    }
-    if (special_attrs_count == attr_names.size()) {
-      return TransitionsSet::CreateEmpty();
-    }
-    arolla::DenseArrayBuilder<arolla::Text> filtered_attr_names(
-        attr_names.size() - special_attrs_count);
-    int64_t new_id = 0;
-    attr_names.ForEach(
-        [&](int64_t id, bool presence, std::string_view attr_name) {
-          if (!schema::IsSchemaAnnotationAttr(attr_name)) {
-            filtered_attr_names.Set(new_id, attr_name);
-            ++new_id;
-          }
-        });
     return TransitionsSet::CreateForEntity(
-        DataSliceImpl::Create(std::move(filtered_attr_names).Build()));
+        DataSliceImpl::Create(object_info.attr_names));
   }
 
   absl::StatusOr<TransitionsSet> SchemaTransitions(const DataItem& item) {

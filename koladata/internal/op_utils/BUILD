@@ -1377,9 +1377,50 @@ cc_test(
 )
 
 cc_library(
+    name = "schema_info",
+    srcs = ["schema_info.cc"],
+    hdrs = ["schema_info.h"],
+    deps = [
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/internal:schema_attrs",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "schema_info_test",
+    srcs = ["schema_info_test.cc"],
+    deps = [
+        ":schema_info",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/internal:schema_attrs",
+        "//koladata/internal/testing:deep_op_utils",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "traverse_helper",
     hdrs = ["traverse_helper.h"],
     deps = [
+        ":schema_info",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
