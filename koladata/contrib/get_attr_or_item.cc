@@ -27,6 +27,7 @@
 #include "absl/strings/string_view.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
+#include "arolla/dense_array/ops/dense_ops.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "koladata/data_bag.h"
@@ -252,7 +253,7 @@ absl::Status MergeInto(ItemsWithSchemas& res, const ItemsWithSchemas& other) {
 }
 
 // Returns the schema of the looked-up `values`: NONE if all values are missing,
-// the schema shared by all present values otherwise.
+// the schema shared by all present values if any, OBJECT otherwise.
 absl::StatusOr<DataItem> DeduceResultSchema(const ItemsWithSchemas& values) {
   if (values.items.present_count() == 0) {
     return DataItem(schema::kNone);
@@ -263,10 +264,94 @@ absl::StatusOr<DataItem> DeduceResultSchema(const ItemsWithSchemas& values) {
                    internal::PresenceAndOp()(values.schemas, has_value));
   ASSIGN_OR_RETURN(auto shared_schema, GetSharedSchema(schemas));
   if (!shared_schema.has_value()) {
-    return absl::UnimplementedError(
-        "lookup of values with different schemas is not supported yet");
+    return DataItem(schema::kObject);
   }
   return shared_schema;
+}
+
+absl::Status ConflictingSchemasError(const DataItem& schema1,
+                                     const DataItem& schema2,
+                                     const DataItem& obj) {
+  return absl::InvalidArgumentError(absl::StrFormat(
+      "cannot embed conflicting schemas %v and %v for the same object %v",
+      schema1, schema2, obj));
+}
+
+// Returns an error if some of `expected.items` has a present schema in
+// `actual_schemas` that differs from the one in `expected.schemas`.
+absl::Status CheckSchemasMatch(const ItemsWithSchemas& expected,
+                               const DataSliceImpl& actual_schemas) {
+  absl::Status status = absl::OkStatus();
+  RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
+      [&](int64_t, ObjectId obj, ObjectId schema, ObjectId actual_schema) {
+        if (status.ok() && schema != actual_schema) {
+          status = ConflictingSchemasError(DataItem(actual_schema),
+                                           DataItem(schema), DataItem(obj));
+        }
+      },
+      GetObjectIds(expected.items), GetObjectIds(expected.schemas),
+      GetObjectIds(actual_schemas)));
+  return status;
+}
+
+// Returns present ItemIds from `values.items` that have struct schemas in
+// `values.schemas`, together with these schemas. NoFollow schemas are
+// unwrapped, so that the attributes of the resulting objects are accessible.
+ItemsWithSchemas GetItemsWithStructSchemas(const ItemsWithSchemas& values) {
+  const int64_t size = values.items.size();
+  arolla::DenseArrayBuilder<ObjectId> objs_bldr(size);
+  arolla::DenseArrayBuilder<ObjectId> schemas_bldr(size);
+  // OBJECT and primitive schemas are not ItemIds and so are skipped.
+  arolla::DenseArraysForEachPresent(
+      [&](int64_t i, ObjectId obj, ObjectId schema) {
+        // Like OBJECT, NoFollow OBJECT values already have `__schema__`.
+        if (schema == ObjectId::NoFollowObjectSchemaId()) {
+          return;
+        }
+        if (schema.IsNoFollowSchema()) {
+          schema = internal::GetOriginalFromNoFollow(schema);
+        }
+        objs_bldr.Set(i, obj);
+        schemas_bldr.Set(i, schema);
+      },
+      GetObjectIds(values.items), GetObjectIds(values.schemas))
+      .IgnoreError();  // The sizes match.
+  return ItemsWithSchemas{
+      DataSliceImpl::Create(std::move(objs_bldr).Build()),
+      DataSliceImpl::Create(std::move(schemas_bldr).Build())};
+}
+
+// Embeds struct schemas of `values` (see `GetItemsWithStructSchemas`) as
+// `__schema__`. Returns `db` itself if there is nothing to embed, otherwise a
+// new immutable DataBag with the schemas, falling back to (a frozen snapshot
+// of) `db`. Does not modify `db`.
+//
+// Returns an error if some object already has a different `__schema__` in
+// `db`, or if it gets conflicting schemas in `values`.
+absl::StatusOr<DataBagPtr> WithEmbeddedSchemas(
+    const ItemsWithSchemas& values, const DataBagPtr& db,
+    DataBagImpl::FallbackSpan fallbacks) {
+  ItemsWithSchemas to_embed = GetItemsWithStructSchemas(values);
+  if (to_embed.items.present_count() == 0) {
+    return db;
+  }
+  ASSIGN_OR_RETURN(
+      auto existing_schemas,
+      db->GetImpl().GetAttr(to_embed.items, schema::kSchemaAttr, fallbacks));
+  RETURN_IF_ERROR(CheckSchemasMatch(to_embed, existing_schemas));
+
+  DataBagPtr schema_db = DataBag::EmptyMutable();
+  ASSIGN_OR_RETURN(auto& schema_db_impl, schema_db->GetMutableImpl());
+  RETURN_IF_ERROR(schema_db_impl.SetAttr(to_embed.items, schema::kSchemaAttr,
+                                         to_embed.schemas));
+  // If the same object gets different schemas, only one of them is stored, so
+  // reading them back detects the conflict.
+  ASSIGN_OR_RETURN(auto stored_schemas,
+                   schema_db_impl.GetAttr(to_embed.items, schema::kSchemaAttr));
+  RETURN_IF_ERROR(CheckSchemasMatch(to_embed, stored_schemas));
+  schema_db->UnsafeMakeImmutable();
+  return DataBag::ImmutableEmptyWithFallbacks(
+      {std::move(schema_db), db->Freeze()});
 }
 
 // Returns `key` as an attribute name, if it is a string.
@@ -402,6 +487,11 @@ absl::StatusOr<DataSlice> LookupInObjectSlice(const DataSlice& ds,
   }
 
   ASSIGN_OR_RETURN(auto res_schema, DeduceResultSchema(res));
+  // With OBJECT result schema, struct schemas of the looked-up values must be
+  // embedded.
+  if (res_schema == schema::kObject) {
+    ASSIGN_OR_RETURN(db, WithEmbeddedSchemas(res, db, fallbacks));
+  }
   return DataSlice::Create(std::move(res.items), ds.GetShape(),
                            std::move(res_schema), std::move(db));
 }
