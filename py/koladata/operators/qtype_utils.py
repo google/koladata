@@ -172,7 +172,7 @@ def expect_non_deterministic(param) -> constraints.QTypeConstraint:
   )
 
 
-def expect_iterable(param):
+def expect_iterable(param) -> constraints.QTypeConstraint:
   """Returns a QType constraint that the given param is an iterable."""
   return (
       is_iterable_qtype(param),
@@ -183,7 +183,7 @@ def expect_iterable(param):
   )
 
 
-def expect_iterable_or_unspecified(param):
+def expect_iterable_or_unspecified(param) -> constraints.QTypeConstraint:
   """Returns a QType constraint that the given param is an iterable or unspecified."""
   return (
       is_iterable_qtype(param) | (param == arolla.UNSPECIFIED),
@@ -250,7 +250,7 @@ def expect_executor(param) -> constraints.QTypeConstraint:
 
 
 def expect_executor_or_unspecified(param) -> constraints.QTypeConstraint:
-  """Returns a constraint that the argument is an Executor."""
+  """Returns a constraint that the argument is an Executor or unspecified()."""
   return (
       (param == arolla.UNSPECIFIED)
       | (
@@ -312,7 +312,7 @@ def expect_stream(param, *, value_qtype=None) -> constraints.QTypeConstraint:
 def expect_stream_or_unspecified(
     param, *, value_qtype=None
 ) -> constraints.QTypeConstraint:
-  """Returns a constraint that the argument is a Stream."""
+  """Returns a constraint that the argument is a Stream or unspecified()."""
   if value_qtype is not None:
     return (
         (param == get_stream_qtype(value_qtype))

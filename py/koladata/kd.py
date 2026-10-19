@@ -130,6 +130,18 @@ optools.constraints.expect_jagged_shape = _qtype_utils.expect_jagged_shape
 optools.constraints.expect_jagged_shape_or_unspecified = (
     _qtype_utils.expect_jagged_shape_or_unspecified
 )
+optools.constraints.expect_executor = _qtype_utils.expect_executor
+optools.constraints.expect_executor_or_unspecified = (
+    _qtype_utils.expect_executor_or_unspecified
+)
+optools.constraints.expect_iterable = _qtype_utils.expect_iterable
+optools.constraints.expect_iterable_or_unspecified = (
+    _qtype_utils.expect_iterable_or_unspecified
+)
+optools.constraints.expect_stream = _qtype_utils.expect_stream
+optools.constraints.expect_stream_or_unspecified = (
+    _qtype_utils.expect_stream_or_unspecified
+)
 
 ### Tools for eager operators.
 optools.eager = _py_types.SimpleNamespace(__doc__='Eager operator utilities.')

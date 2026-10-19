@@ -29,6 +29,22 @@
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a constraint that the argument is a DataSlice or unspecified().</code></pre>
 
+### `kd.optools.constraints.expect_executor(param) -> tuple[Expr, str]` {#kd.optools.constraints.expect_executor}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a constraint that the argument is an Executor.</code></pre>
+
+### `kd.optools.constraints.expect_executor_or_unspecified(param) -> tuple[Expr, str]` {#kd.optools.constraints.expect_executor_or_unspecified}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a constraint that the argument is an Executor or unspecified().</code></pre>
+
+### `kd.optools.constraints.expect_iterable(param) -> tuple[Expr, str]` {#kd.optools.constraints.expect_iterable}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a QType constraint that the given param is an iterable.</code></pre>
+
+### `kd.optools.constraints.expect_iterable_or_unspecified(param) -> tuple[Expr, str]` {#kd.optools.constraints.expect_iterable_or_unspecified}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a QType constraint that the given param is an iterable or unspecified.</code></pre>
+
 ### `kd.optools.constraints.expect_jagged_shape(param) -> tuple[Expr, str]` {#kd.optools.constraints.expect_jagged_shape}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a constraint that the argument is a jagged shape.</code></pre>
@@ -36,6 +52,14 @@
 ### `kd.optools.constraints.expect_jagged_shape_or_unspecified(param) -> tuple[Expr, str]` {#kd.optools.constraints.expect_jagged_shape_or_unspecified}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a constraint that the argument is a jagged shape or unspecified().</code></pre>
+
+### `kd.optools.constraints.expect_stream(param, *, value_qtype=None) -> tuple[Expr, str]` {#kd.optools.constraints.expect_stream}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a constraint that the argument is a Stream.</code></pre>
+
+### `kd.optools.constraints.expect_stream_or_unspecified(param, *, value_qtype=None) -> tuple[Expr, str]` {#kd.optools.constraints.expect_stream_or_unspecified}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a constraint that the argument is a Stream or unspecified().</code></pre>
 
 ### `kd.optools.constraints.expect_tuple(param, *field_qtypes: QType) -> tuple[Expr, str]` {#kd.optools.constraints.expect_tuple}
 
