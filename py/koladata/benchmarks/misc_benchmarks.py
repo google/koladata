@@ -14,6 +14,8 @@
 
 """Misc Koladata benchmarks."""
 
+import time
+
 from arolla import arolla
 import google_benchmark
 from koladata import kd
@@ -278,6 +280,29 @@ def map_py(state):
   fn = lambda x: x + 1
   while state:
     _ = kd.map_py(fn, x)
+
+
+@google_benchmark.register
+@google_benchmark.option.use_real_time()
+@google_benchmark.option.arg_names(['size', 'sleep_us', 'max_threads'])
+@google_benchmark.option.args([1000, 0, 1])
+@google_benchmark.option.args([1000, 0, 4])
+@google_benchmark.option.args([1000, 0, 16])
+@google_benchmark.option.args([200, 1000, 1])
+@google_benchmark.option.args([200, 1000, 4])
+@google_benchmark.option.args([200, 1000, 16])
+def map_py_multithreaded(state):
+  """Benchmark for kd.map_py with threads, on cheap and on blocking functions."""
+  size, sleep_us, max_threads = (state.range(i) for i in range(3))
+  x = kd.range(size)
+
+  def fn(x):
+    if sleep_us:
+      time.sleep(sleep_us / 1e6)
+    return x + 1
+
+  while state:
+    _ = kd.map_py(fn, x, max_threads=max_threads)
 
 
 @google_benchmark.register

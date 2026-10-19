@@ -14,9 +14,10 @@
 
 """Operators that call Python functions."""
 
-import concurrent.futures
 import functools
 import itertools
+import queue
+import threading
 from typing import Any, Callable, Iterable
 
 from arolla import arolla
@@ -31,6 +32,10 @@ from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
+
+import concurrent.futures
+
+_ThreadPoolExecutor = concurrent.futures.ThreadPoolExecutor
 
 P = arolla.P
 M = arolla.M
@@ -281,24 +286,6 @@ def apply_py(fn, *args, return_type_as=arolla.unspecified(), **kwargs):
 #
 
 
-class _ThreadPoolExecutor(
-    concurrent.futures.ThreadPoolExecutor,
-):
-  """A ThreadPoolExecutor that propagates context to worker threads."""
-
-  def submit[**Args, Res](
-      self, fn: Callable[Args, Res], /, *args: Args.args, **kwargs: Args.kwargs
-  ) -> concurrent.futures.Future[Res]:
-    cancellation_context = arolla.abc.current_cancellation_context()
-    return super().submit(
-        arolla.abc.run_in_cancellation_context,
-        cancellation_context,
-        fn,
-        *args,
-        **kwargs,
-    )
-
-
 def _parallel_map(
     fn: Callable[..., Any],
     *iterables: Iterable[Any],
@@ -317,7 +304,7 @@ def _parallel_map(
   Returns:
     A list containing the results of the function calls.
   """
-  if not item_completed_callback:
+  if item_completed_callback is None:
     item_completed_callback = type  # use a cheap callable as a stub  # pyrefly: ignore[bad-assignment]
   if max_threads <= 1:  # Single-thread mode
     result = []
@@ -326,22 +313,48 @@ def _parallel_map(
       item_completed_callback(item)  # pyrefly: ignore[not-callable]
     return result
 
-  # Multi-thread mode
+  # Multi-thread mode. Up to `max_threads` workers pull the items one at a
+  # time, rather than one task per item: scheduling a task and handing over its
+  # result costs far more than a cheap `fn`, and the context propagation of
+  # `_ThreadPoolExecutor` then only happens once per worker.
+  cancellation_context = arolla.abc.current_cancellation_context()
+  items = list(zip(*iterables))
+  result = [None] * len(items)
+  index_lock = threading.Lock()
+  next_index = itertools.count()
+  # Receives the index of every completed item, or the error of a failed one.
+  completed = queue.SimpleQueue()
+  stopped = threading.Event()
+
+  def work():
+    while not stopped.is_set():
+      arolla.abc.raise_if_cancelled()
+      with index_lock:
+        idx = next(next_index)
+      if idx >= len(items):
+        return
+      result[idx] = fn(*items[idx])
+      completed.put(idx)
+
+  def worker():
+    try:
+      arolla.abc.run_in_cancellation_context(cancellation_context, work)
+    except BaseException as e:  # pylint: disable=broad-exception-caught
+      completed.put(e)
+
   executor = _ThreadPoolExecutor(max_workers=max_threads)
   try:
-    future_to_idx = {
-        executor.submit(fn, *args): idx
-        for idx, args in enumerate(zip(*iterables))
-    }
-    result = [None] * len(future_to_idx)
-    for future in concurrent.futures.as_completed(future_to_idx):
+    for _ in range(min(max_threads, len(items))):
+      executor.submit(worker)
+    for _ in range(len(items)):
+      done = completed.get()
       arolla.abc.raise_if_cancelled()
-      idx = future_to_idx[future]
-      item = future.result()
-      result[idx] = item
-      item_completed_callback(item)  # pyrefly: ignore[not-callable]
+      if isinstance(done, BaseException):
+        raise done
+      item_completed_callback(result[done])  # pyrefly: ignore[not-callable]
     return result
   finally:
+    stopped.set()
     # we do not use `with` syntax to pass non default arguments
     executor.shutdown(wait=False, cancel_futures=True)
 

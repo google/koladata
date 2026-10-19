@@ -14,10 +14,12 @@
 
 """Tests for kde.py.map_py operator."""
 
+from concurrent import futures
 import functools
 import re
 import threading
 import time
+from unittest import mock
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -107,6 +109,33 @@ class PyMapPyTest(parameterized.TestCase):
     val = ds(list(range(10**3)))
     _ = kd.py.map_py(add_one, val, max_threads=10)
     self.assertGreater(thread_idents, {threading.get_ident()})
+
+  def test_map_py_multi_thread_error(self):
+    stopped = threading.Event()
+    self.addCleanup(stopped.set)
+
+    barrier = threading.Barrier(2)
+    worker_threads = set()
+    started = []
+
+    def fn(x):
+      started.append(x)
+      worker_threads.add(threading.current_thread())
+      barrier.wait(timeout=1.0)
+      if x == 0:
+        raise ValueError('failed on 0')
+      stopped.wait(timeout=1.0)
+      return x
+
+    with self.assertRaisesWithPredicateMatch(
+        ValueError, arolla.testing.any_cause_message_regex('failed on 0')
+    ):
+      kd.py.map_py(fn, ds([0, 1, 2]), max_threads=2)
+
+    stopped.set()
+    for thread in worker_threads:
+      thread.join(timeout=1.0)
+    self.assertCountEqual(started, [0, 1])
 
   def test_map_py_with_qtype(self):
     def add_one(x):
@@ -477,6 +506,22 @@ assigned schema: ENTITY(u=INT64)"""),
         arolla.testing.any_cause_message_regex(r'\[CANCELLED\].*interrupted'),
     ):
       kd.py.map_py(fn, ds(list(range(n))), max_threads=2 * n)
+
+  @mock.patch.object(
+      futures.ThreadPoolExecutor,
+      '__init__',
+      wraps=futures.ThreadPoolExecutor.__init__,
+      autospec=True,
+  )
+  def test_cancellation_before_workers_start(self, mock_executor_init):
+    mock_executor_init.side_effect = (
+        lambda *_, **__: arolla.abc.simulate_SIGINT() or mock.DEFAULT
+    )
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(r'\[CANCELLED\].*interrupted'),
+    ):
+      kd.py.map_py(lambda x: x + 1, ds([1, 2, 3]), max_threads=4)
 
   def test_understandable_error(self):
     def foo(x):
