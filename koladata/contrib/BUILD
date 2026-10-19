@@ -28,11 +28,29 @@ cc_library(
     ],
     deps = [
         ":flatten_cyclic_references",
+        ":get_attr_or_item",
         ":sanitize_names",
         "//koladata:data_slice_qtype",
         "//koladata/internal/op_utils:qexpr",
     ],
     alwayslink = 1,
+)
+
+cc_library(
+    name = "get_attr_or_item",
+    srcs = ["get_attr_or_item.cc"],
+    hdrs = ["get_attr_or_item.h"],
+    deps = [
+        "//koladata:data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:dtype",
+        "//koladata/operators:lib",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
 )
 
 cc_library(

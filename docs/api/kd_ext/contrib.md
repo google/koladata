@@ -32,6 +32,33 @@ Args:
 Returns:
   A DataSlice with tree-like attributes structure.</code></pre>
 
+### `kd_ext.contrib.get_attr_or_item(ds, key)` {#kd_ext.contrib.get_attr_or_item}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Looks up a scalar key in a DataSlice of entities, dicts, lists, or OBJECTs.
+
+- If `ds` has an explicit ENTITY, DICT, or LIST schema, performs standard
+  attribute, dict-key, or list-index lookup (failing on schema violations).
+- If `ds` has NONE schema, returns it as is.
+- If `ds` has OBJECT schema, looks up `key` in each item where applicable:
+  string keys in entities whose schema has such an attribute, integer keys in
+  lists, and keys castable to the key schema in dicts. Items where `key` is
+  not applicable result in missing values. `ds` must not contain primitives.
+  The result schema is:
+    - NONE if all values are missing,
+    - the attribute / list item / dict value schema, if it is the same for
+      all present values,
+    - OBJECT otherwise (without implicit casting of primitives). In this
+      case, schemas of the returned non-primitive values are embedded as
+      `__schema__` into a new immutable DataBag, failing if some object gets
+      conflicting schemas.
+
+Args:
+  ds: DataSlice of entities, dicts, lists, or OBJECTs.
+  key: Scalar DataItem key or index to look up.
+
+Returns:
+  DataSlice of looked-up values with the same shape as `ds`.</code></pre>
+
 ### `kd_ext.contrib.pearson_correlation(x: DataSlice, y: DataSlice) -> DataSlice` {#kd_ext.contrib.pearson_correlation}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Computes Pearson correlation for koladata slices x and y.
