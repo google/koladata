@@ -161,6 +161,9 @@ class DataBag : public arolla::RefcountedBase {
   template <typename T>
   std::shared_ptr<const T> absl_nullable GetCachedMetadataOrNull(
       internal::ObjectId key) ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    if (IsMutable()) [[unlikely]] {
+      return nullptr;
+    }
     absl::MutexLock lock(cache_mutex_);
     auto it = cache_.find({key, typeid(T)});
     if (it == cache_.end()) {

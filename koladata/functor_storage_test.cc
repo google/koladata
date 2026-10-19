@@ -33,7 +33,6 @@
 #include "koladata/test_utils.h"
 
 namespace koladata::functor {
-
 namespace {
 
 using ::absl_testing::IsOkAndHolds;
@@ -68,6 +67,34 @@ TEST(IsFunctorTest, PrimitiveWithBag) {
               IsOkAndHolds(false));
 }
 
-}  // namespace
+TEST(IsFunctorTest, RepeatedCallsOnImmutableBag) {
+  ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(arolla::expr::Literal(57)));
+  ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
+  ASSERT_OK_AND_ASSIGN(auto koda_signature,
+                       CppSignatureToKodaSignature(signature));
+  ASSERT_OK_AND_ASSIGN(auto fn,
+                       CreateFunctor(returns_expr, koda_signature, {}, {}));
+  ASSERT_FALSE(fn.GetBag()->IsMutable());
+  EXPECT_THAT(IsFunctor(fn), IsOkAndHolds(true));
+  EXPECT_THAT(IsFunctor(fn), IsOkAndHolds(true));  // hits cache
+  ASSERT_OK_AND_ASSIGN(auto fn2, fn.ForkBag());    // fork doesn't inherit cache
+  ASSERT_OK(fn2.DelAttr(kReturnsAttrName));
+  EXPECT_THAT(IsFunctor(fn2), IsOkAndHolds(false));
+}
 
+TEST(IsFunctorTest, MutableBagIsNotCached) {
+  ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(arolla::expr::Literal(57)));
+  ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
+  ASSERT_OK_AND_ASSIGN(auto koda_signature,
+                       CppSignatureToKodaSignature(signature));
+  ASSERT_OK_AND_ASSIGN(auto immutable_fn,
+                       CreateFunctor(returns_expr, koda_signature, {}, {}));
+  ASSERT_OK_AND_ASSIGN(auto fn, immutable_fn.ForkBag());
+  ASSERT_TRUE(fn.GetBag()->IsMutable());
+  EXPECT_THAT(IsFunctor(fn), IsOkAndHolds(true));
+  ASSERT_OK(fn.DelAttr(kReturnsAttrName));
+  EXPECT_THAT(IsFunctor(fn), IsOkAndHolds(false));
+}
+
+}  // namespace
 }  // namespace koladata::functor

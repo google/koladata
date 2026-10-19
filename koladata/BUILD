@@ -971,6 +971,26 @@ cc_test(
     ],
 )
 
+cc_binary(
+    name = "functor_storage_benchmarks",
+    testonly = 1,
+    srcs = ["functor_storage_benchmarks.cc"],
+    deps = [
+        ":data_bag",
+        ":data_slice",
+        ":object_factories",
+        ":test_utils",
+        "//koladata/functor",
+        "//koladata/functor:signature_utils",
+        "@com_google_absl//absl/log:check",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/expr/operators/all",
+        "@com_google_arolla//arolla/qexpr/operators/all",
+        "@com_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest",
+    ],
+)
+
 cc_library(
     name = "all_qexpr_operators",
     deps = [
