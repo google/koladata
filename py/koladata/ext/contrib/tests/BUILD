@@ -14,6 +14,7 @@
 
 # Tests for external contributions.
 
+load("@pip_deps//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_test")
 
 licenses(["notice"])
@@ -89,5 +90,20 @@ py_test(
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "get_attr_or_item_benchmarks",
+    srcs = ["get_attr_or_item_benchmarks.py"],
+    tags = [
+        "manual",
+        "notap",
+    ],
+    deps = [
+        "//py:python_path",
+        requirement("google-benchmark"),
+        "//py/koladata:kd",
+        "//py/koladata:kd_ext",
     ],
 )
