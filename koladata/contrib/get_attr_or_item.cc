@@ -19,7 +19,7 @@
 #include <type_traits>
 #include <utility>
 
-#include "absl/log/check.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
@@ -29,10 +29,10 @@
 #include "arolla/dense_array/edge.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
-#include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/error_repr_utils.h"
+#include "koladata/internal/casting.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -43,6 +43,8 @@
 #include "koladata/internal/op_utils/presence_and.h"
 #include "koladata/internal/op_utils/presence_or.h"
 #include "koladata/internal/schema_attrs.h"
+#include "koladata/internal/schema_utils.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
 
@@ -175,6 +177,23 @@ absl::StatusOr<ItemsWithSchemas> LookupInLists(
   return ItemsWithSchemas{std::move(values), std::move(item_schemas)};
 }
 
+// Returns `key` casted to `dict_key_schema`, or a missing DataItem if `key` is
+// not compatible with it. ItemId keys are returned as is.
+DataItem CastDictKey(const DataItem& key, const DataItem& dict_key_schema) {
+  if (dict_key_schema == schema::kObject || !key.has_value() ||
+      key.holds_value<ObjectId>()) {
+    return key;
+  }
+  // Same as `CastToNarrow`, using the schema of the primitive `key` data.
+  if (auto common_schema =
+          schema::CommonSchema(schema::GetDataSchema(key), dict_key_schema);
+      !common_schema.ok() || *common_schema != dict_key_schema) {
+    return DataItem();
+  }
+  auto casted = schema::CastDataTo(key, dict_key_schema);
+  return casted.ok() ? *std::move(casted) : DataItem();
+}
+
 // Returns the schema shared by all present `schemas`, or a missing DataItem if
 // there is no such schema.
 absl::StatusOr<DataItem> GetSharedSchema(const DataSliceImpl& schemas) {
@@ -182,6 +201,44 @@ absl::StatusOr<DataItem> GetSharedSchema(const DataSliceImpl& schemas) {
       auto edge, arolla::DenseArrayEdge::FromUniformGroups(1, schemas.size()));
   ASSIGN_OR_RETURN(auto shared, internal::CollapseOp()(schemas, edge));
   return shared[0];
+}
+
+absl::StatusOr<ItemsWithSchemas> LookupInDicts(
+    const ItemsWithSchemas& dicts, const DataItem& key,
+    const DataBagImpl& db_impl, DataBagImpl::FallbackSpan fallbacks) {
+  ASSIGN_OR_RETURN(auto key_schemas,
+                   db_impl.GetSchemaAttr(
+                       dicts.schemas, schema::kDictKeysSchemaAttr, fallbacks));
+  ASSIGN_OR_RETURN(auto key_schema, GetSharedSchema(key_schemas));
+  DataSliceImpl keys;
+  if (key_schema.has_value()) {
+    // Fast path for the common case of a single key schema.
+    keys =
+        DataSliceImpl::Create(dicts.items.size(), CastDictKey(key, key_schema));
+  } else {
+    // There are usually only a few distinct key schemas, so we cast the key
+    // once per schema.
+    absl::flat_hash_map<DataItem, DataItem> casted_keys;
+    internal::SliceBuilder keys_bldr(dicts.items.size());
+    key_schemas.AsDataItemDenseArray().ForEachPresent(
+        [&](int64_t i, const DataItem& key_schema) {
+          auto [it, inserted] = casted_keys.try_emplace(key_schema);
+          if (inserted) {
+            it->second = CastDictKey(key, key_schema);
+          }
+          if (it->second.has_value()) {
+            keys_bldr.InsertIfNotSetAndUpdateAllocIds(i, it->second);
+          }
+        });
+    keys = std::move(keys_bldr).Build();
+  }
+  ASSIGN_OR_RETURN(auto values,
+                   db_impl.GetFromDict(dicts.items, keys, fallbacks));
+  ASSIGN_OR_RETURN(
+      auto value_schemas,
+      db_impl.GetSchemaAttr(dicts.schemas, schema::kDictValuesSchemaAttr,
+                            fallbacks));
+  return ItemsWithSchemas{std::move(values), std::move(value_schemas)};
 }
 
 // Merges `other` into `res`. The present items are expected to come from
@@ -213,19 +270,20 @@ absl::StatusOr<DataItem> DeduceResultSchema(const ItemsWithSchemas& values) {
 }
 
 // Returns `key` as an attribute name, if it is a string.
-std::optional<absl::string_view> GetAttrName(const DataSlice& key) {
-  DCHECK(key.is_item());
-  if (key.item().holds_value<arolla::Text>()) {
-    return key.item().value<arolla::Text>().view();
+std::optional<absl::string_view> GetAttrName(const DataItem& key) {
+  if (key.holds_value<arolla::Text>()) {
+    return key.value<arolla::Text>().view();
   }
   return std::nullopt;
 }
 
 // Returns `key` as a list index, if it is an integer.
-std::optional<int64_t> GetListIndex(const DataSlice& key) {
-  if (auto int_key = CastToNarrow(key, DataItem(schema::kInt64));
-      int_key.ok() && int_key->item().has_value()) {
-    return int_key->item().value<int64_t>();
+std::optional<int64_t> GetListIndex(const DataItem& key) {
+  if (key.holds_value<int32_t>()) {
+    return key.value<int32_t>();
+  }
+  if (key.holds_value<int64_t>()) {
+    return key.value<int64_t>();
   }
   return std::nullopt;
 }
@@ -233,7 +291,7 @@ std::optional<int64_t> GetListIndex(const DataSlice& key) {
 // Single item version of `LookupInObjectSlice` below. `obj_schema` is the
 // schema of `obj`.
 absl::StatusOr<ItemWithSchema> LookupInObjectItem(
-    ObjectId obj, const DataItem& obj_schema, const DataSlice& key,
+    ObjectId obj, const DataItem& obj_schema, const DataItem& key,
     const DataBagImpl& db_impl, DataBagImpl::FallbackSpan fallbacks) {
   ItemWithSchema res;
   if (obj.IsEntity()) {
@@ -257,8 +315,18 @@ absl::StatusOr<ItemWithSchema> LookupInObjectItem(
                        db_impl.GetFromList(DataItem(obj), *index, fallbacks));
     }
   } else if (obj.IsDict()) {
-    return absl::UnimplementedError(
-        "lookup in OBJECT dicts is not supported yet");
+    ASSIGN_OR_RETURN(auto key_schema,
+                     db_impl.GetSchemaAttr(
+                         obj_schema, schema::kDictKeysSchemaAttr, fallbacks));
+    if (auto casted_key = CastDictKey(key, key_schema);
+        casted_key.has_value()) {
+      ASSIGN_OR_RETURN(
+          res.schema,
+          db_impl.GetSchemaAttr(obj_schema, schema::kDictValuesSchemaAttr,
+                                fallbacks));
+      ASSIGN_OR_RETURN(
+          res.value, db_impl.GetFromDict(DataItem(obj), casted_key, fallbacks));
+    }
   } else {
     return UnsupportedItemsError(DataItem(obj));
   }
@@ -277,7 +345,7 @@ absl::StatusOr<ItemWithSchema> LookupInObjectItem(
 // The lookup is vectorized: items are split by kind and each kind is looked up
 // in a single batch.
 absl::StatusOr<DataSlice> LookupInObjectSlice(const DataSlice& ds,
-                                              const DataSlice& key) {
+                                              const DataItem& key) {
   if (ds.ContainsAnyPrimitives()) {
     return UnsupportedItemsError(DescribeSliceSchema(ds));
   }
@@ -309,10 +377,6 @@ absl::StatusOr<DataSlice> LookupInObjectSlice(const DataSlice& ds,
   ASSIGN_OR_RETURN(auto obj_schemas, db_impl.GetObjSchemaAttr(objs, fallbacks),
                    _.With(missing_obj_schema_error));
   ASSIGN_OR_RETURN(auto by_kind, SplitByKind({objs, std::move(obj_schemas)}));
-  if (by_kind.dicts.items.present_count() > 0) {
-    return absl::UnimplementedError(
-        "lookup in OBJECT dicts is not supported yet");
-  }
 
   ItemsWithSchemas res{DataSliceImpl::CreateEmptyAndUnknownType(objs.size()),
                        DataSliceImpl::CreateEmptyAndUnknownType(objs.size())};
@@ -330,6 +394,11 @@ absl::StatusOr<DataSlice> LookupInObjectSlice(const DataSlice& ds,
                                                     db_impl, fallbacks));
       RETURN_IF_ERROR(MergeInto(res, list_res));
     }
+  }
+  if (by_kind.dicts.items.present_count() > 0) {
+    ASSIGN_OR_RETURN(auto dict_res,
+                     LookupInDicts(by_kind.dicts, key, db_impl, fallbacks));
+    RETURN_IF_ERROR(MergeInto(res, dict_res));
   }
 
   ASSIGN_OR_RETURN(auto res_schema, DeduceResultSchema(res));
@@ -370,7 +439,7 @@ absl::StatusOr<DataSlice> GetAttrOrItem(const DataSlice& ds,
     return ds;
   }
   if (ds_schema == schema::kObject) {
-    return LookupInObjectSlice(ds, key);
+    return LookupInObjectSlice(ds, key.item());
   }
   if (ds_schema.is_struct_schema()) {
     return LookupInStructSlice(ds, key);

@@ -116,6 +116,39 @@ class GetAttrOrItemTest(parameterized.TestCase):
         ds(None),
     )
 
+  def test_object_dict_scalar(self):
+    obj_dict = kd.obj(kd.dict({'x': 99}))
+    kd.testing.assert_equivalent(get_attr_or_item(obj_dict, 'x'), ds(99))
+    kd.testing.assert_equivalent(get_attr_or_item(obj_dict, 'y'), ds(None))
+    kd.testing.assert_equivalent(get_attr_or_item(obj_dict, 0), ds(None))
+
+  def test_object_dict_entity_key(self):
+    keys = kd.new(a=ds([1, 2]))
+    d = ds([
+        kd.obj(kd.dict(keys, ds([1, 3]), key_schema=kd.OBJECT)),
+        kd.obj(kd.dict(keys, ds([2, 4]))),
+    ])
+    kd.testing.assert_equivalent(get_attr_or_item(d, keys.S[0]), ds([1, 2]))
+    kd.testing.assert_equivalent(get_attr_or_item(d.S[0], keys.S[0]), ds(1))
+    # Primitive keys are not present in the dicts.
+    kd.testing.assert_equivalent(get_attr_or_item(d, 'x'), ds([None, None]))
+
+  def test_object_dict_entity_key_schema_is_ignored(self):
+    keys = kd.new(a=ds([1, 2]))
+    d = ds([
+        kd.obj(kd.dict(keys, ds([1, 3]), key_schema=kd.OBJECT)),
+        kd.obj(kd.dict(keys, ds([2, 4]))),
+    ])
+    for key in [
+        kd.get_itemid(keys.S[0]),
+        kd.schema.unsafe_with_schema(
+            keys.S[0], kd.schema.new_schema(b=kd.INT32).no_bag()
+        ),
+    ]:
+      with self.subTest(key=key):
+        kd.testing.assert_equivalent(get_attr_or_item(d, key), ds([1, 2]))
+        kd.testing.assert_equivalent(get_attr_or_item(d.S[1], key), ds(2))
+
   def test_object_nested_entity(self):
     inner = kd.new(x=ds([1, 2]))
     o = kd.obj(inner=inner)
@@ -184,24 +217,44 @@ class GetAttrOrItemTest(parameterized.TestCase):
     kd.testing.assert_equivalent(res, inner.S[0, -1], ids_equality=True)
     kd.testing.assert_equal(res.get_bag(), l.get_bag())
 
-  def test_object_mixed_entities_and_lists(self):
-    mixed = ds([kd.obj(a=1), kd.obj(kd.list([10, 20])), None])
+  def test_object_mixed_entities_lists_and_dicts(self):
+    mixed = ds([
+        kd.obj(a=1),
+        kd.obj(kd.list([10, 20])),
+        kd.obj(kd.dict({'a': 2, 1: 3}, key_schema=kd.OBJECT)),
+        None,
+    ])
     kd.testing.assert_equivalent(
-        get_attr_or_item(mixed, 'a'), ds([1, None, None])
+        get_attr_or_item(mixed, 'a'), ds([1, None, 2, None])
     )
     kd.testing.assert_equivalent(
-        get_attr_or_item(mixed, 1), ds([None, 20, None])
+        get_attr_or_item(mixed, 1), ds([None, 20, 3, None])
+    )
+    kd.testing.assert_equivalent(get_attr_or_item(mixed, 'b'), ds([None] * 4))
+
+  def test_object_shared_schema(self):
+    s = kd.named_schema('S', x=kd.INT32)
+    # Explicit attribute and dict value schemas.
+    e1 = s.new(x=1)
+    e2 = s.new(x=2)
+    o = ds([kd.obj(a=e1), kd.obj(kd.dict({'a': e2})), kd.obj()])
+    kd.testing.assert_equivalent(
+        get_attr_or_item(o, 'a'), ds([e1, e2, None]), ids_equality=True
+    )
+
+    kd.testing.assert_equivalent(
+        get_attr_or_item(kd.obj(a=e1), 'a'), e1, ids_equality=True
+    )
+
+    l1 = kd.list([1, 2])
+    l2 = kd.list([3])
+    kd.testing.assert_equivalent(
+        get_attr_or_item(ds([kd.obj(a=l1), kd.obj(a=l2)]), 'a'),
+        ds([l1, l2]),
+        ids_equality=True,
     )
 
   def test_object_unimplemented(self):
-    with self.assertRaisesRegex(
-        ValueError, 'lookup in OBJECT dicts is not supported yet'
-    ):
-      get_attr_or_item(kd.obj(kd.dict({'a': 1})), 'a')
-    with self.assertRaisesRegex(
-        ValueError, 'lookup in OBJECT dicts is not supported yet'
-    ):
-      get_attr_or_item(ds([kd.obj(a=1), kd.obj(kd.dict({'a': 2}))]), 'a')
     with self.assertRaisesRegex(
         ValueError,
         'lookup of values with different schemas is not supported yet',
