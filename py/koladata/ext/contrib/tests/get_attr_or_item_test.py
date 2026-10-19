@@ -106,6 +106,53 @@ class GetAttrOrItemTest(parameterized.TestCase):
         get_attr_or_item(ds([None, None]), 0), ds([None, None])
     )
 
+  def test_object_entity_scalar(self):
+    obj_entity = kd.obj(x=42)
+    kd.testing.assert_equivalent(get_attr_or_item(obj_entity, 'x'), ds(42))
+    kd.testing.assert_equivalent(get_attr_or_item(obj_entity, 'y'), ds(None))
+    kd.testing.assert_equivalent(get_attr_or_item(obj_entity, 0), ds(None))
+    kd.testing.assert_equivalent(
+        get_attr_or_item(obj_entity, ds(None)),
+        ds(None),
+    )
+
+  def test_object_nested_entity(self):
+    inner = kd.new(x=ds([1, 2]))
+    o = kd.obj(inner=inner)
+    res = get_attr_or_item(o, 'inner')
+    kd.testing.assert_equivalent(res, inner, ids_equality=True)
+    kd.testing.assert_equal(res.get_bag(), o.get_bag())
+
+    res = get_attr_or_item(o.S[0], 'inner')
+    kd.testing.assert_equivalent(res, inner.S[0], ids_equality=True)
+    kd.testing.assert_equal(res.get_bag(), o.get_bag())
+
+  def test_object_attr_missing_in_schema(self):
+    e = kd.new(x=1, y=2)
+    # The entity has `y` data, but its schema has no `y` attribute.
+    o = kd.obj(
+        kd.schema.unsafe_with_schema(e, kd.schema.new_schema(x=kd.INT32))
+    )
+    kd.testing.assert_equivalent(get_attr_or_item(o, 'y'), ds(None))
+    # Adoption follows the schema, so `y` data is added back.
+    o = ds([o, kd.obj(y=3)]).enriched(e.get_bag())
+    kd.testing.assert_equivalent(get_attr_or_item(o, 'y'), ds([None, 3]))
+
+  def test_object_unimplemented(self):
+    with self.assertRaisesRegex(
+        ValueError, 'lookup in OBJECT lists and dicts is not supported yet'
+    ):
+      get_attr_or_item(kd.obj(kd.list([1, 2])), 0)
+    with self.assertRaisesRegex(
+        ValueError, 'lookup in OBJECT lists and dicts is not supported yet'
+    ):
+      get_attr_or_item(ds([kd.obj(a=1), kd.obj(kd.dict({'a': 2}))]), 'a')
+    with self.assertRaisesRegex(
+        ValueError,
+        'lookup of values with different schemas is not supported yet',
+    ):
+      get_attr_or_item(ds([kd.obj(x=1), kd.obj(x='a')]), 'x')
+
   def test_errors(self):
     # Non-scalar key.
     with self.assertRaisesRegex(
@@ -129,12 +176,38 @@ class GetAttrOrItemTest(parameterized.TestCase):
     ):
       get_attr_or_item(kd.INT32, 'x')
 
+    # OBJECT slice containing primitive.
+    with self.assertRaisesRegex(
+        ValueError,
+        'get_attr_or_item requires DataSlice to contain only entities, dicts,'
+        ' or lists',
+    ):
+      get_attr_or_item(ds([kd.obj(x=1), 42]), 'x')
+    with self.assertRaisesRegex(
+        ValueError,
+        'get_attr_or_item requires DataSlice to contain only entities, dicts,'
+        ' or lists',
+    ):
+      get_attr_or_item(kd.obj(42), 'x')
+
+    # Missing __schema__.
+    with self.assertRaisesRegex(ValueError, 'object schema is missing'):
+      get_attr_or_item(kd.obj(x=1).with_bag(kd.bag()), 'x')
+    with self.assertRaisesRegex(ValueError, r'object schema\(s\) are missing'):
+      get_attr_or_item(ds([kd.obj(x=1), kd.obj(x=2)]).with_bag(kd.bag()), 'x')
+
     # Missing DataBag.
     with self.assertRaisesRegex(ValueError, 'cannot lookup without a DataBag'):
       get_attr_or_item(kd.new(x=1).no_bag(), 'x')
+    with self.assertRaisesRegex(ValueError, 'cannot lookup without a DataBag'):
+      get_attr_or_item(kd.obj(x=1).no_bag(), 'x')
     # Missing DataBag with all items missing.
     with self.assertRaisesRegex(ValueError, 'cannot lookup without a DataBag'):
       get_attr_or_item((kd.new(x=ds([1, 2])) & kd.missing).no_bag(), 'x')
+    kd.testing.assert_equal(
+        get_attr_or_item(ds([None, None], schema=kd.OBJECT), 'x'),
+        ds([None, None]),
+    )
 
   def test_view_and_repr(self):
     expr = kde.contrib.get_attr_or_item(I.ds, I.key)
