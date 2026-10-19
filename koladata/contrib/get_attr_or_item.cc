@@ -29,6 +29,7 @@
 #include "arolla/dense_array/edge.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/error_repr_utils.h"
@@ -40,6 +41,8 @@
 #include "koladata/internal/op_utils/collapse.h"
 #include "koladata/internal/op_utils/has.h"
 #include "koladata/internal/op_utils/presence_and.h"
+#include "koladata/internal/op_utils/presence_or.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
 
@@ -158,6 +161,20 @@ absl::StatusOr<ItemsWithSchemas> LookupInEntities(
   return ItemsWithSchemas{std::move(values), std::move(attr_schemas)};
 }
 
+absl::StatusOr<ItemsWithSchemas> LookupInLists(
+    const ItemsWithSchemas& lists, int64_t index, const DataBagImpl& db_impl,
+    DataBagImpl::FallbackSpan fallbacks) {
+  ASSIGN_OR_RETURN(auto item_schemas,
+                   db_impl.GetSchemaAttr(
+                       lists.schemas, schema::kListItemsSchemaAttr, fallbacks));
+  ASSIGN_OR_RETURN(auto values,
+                   db_impl.GetFromLists(lists.items,
+                                        arolla::CreateConstDenseArray<int64_t>(
+                                            lists.items.size(), index),
+                                        fallbacks));
+  return ItemsWithSchemas{std::move(values), std::move(item_schemas)};
+}
+
 // Returns the schema shared by all present `schemas`, or a missing DataItem if
 // there is no such schema.
 absl::StatusOr<DataItem> GetSharedSchema(const DataSliceImpl& schemas) {
@@ -165,6 +182,16 @@ absl::StatusOr<DataItem> GetSharedSchema(const DataSliceImpl& schemas) {
       auto edge, arolla::DenseArrayEdge::FromUniformGroups(1, schemas.size()));
   ASSIGN_OR_RETURN(auto shared, internal::CollapseOp()(schemas, edge));
   return shared[0];
+}
+
+// Merges `other` into `res`. The present items are expected to come from
+// disjoint `ItemsByKind` parts.
+absl::Status MergeInto(ItemsWithSchemas& res, const ItemsWithSchemas& other) {
+  ASSIGN_OR_RETURN(res.items, internal::PresenceOrOp</*disjoint=*/true>()(
+                                  res.items, other.items));
+  ASSIGN_OR_RETURN(res.schemas, internal::PresenceOrOp</*disjoint=*/true>()(
+                                    res.schemas, other.schemas));
+  return absl::OkStatus();
 }
 
 // Returns the schema of the looked-up `values`: NONE if all values are missing,
@@ -194,6 +221,15 @@ std::optional<absl::string_view> GetAttrName(const DataSlice& key) {
   return std::nullopt;
 }
 
+// Returns `key` as a list index, if it is an integer.
+std::optional<int64_t> GetListIndex(const DataSlice& key) {
+  if (auto int_key = CastToNarrow(key, DataItem(schema::kInt64));
+      int_key.ok() && int_key->item().has_value()) {
+    return int_key->item().value<int64_t>();
+  }
+  return std::nullopt;
+}
+
 // Single item version of `LookupInObjectSlice` below. `obj_schema` is the
 // schema of `obj`.
 absl::StatusOr<ItemWithSchema> LookupInObjectItem(
@@ -212,9 +248,17 @@ absl::StatusOr<ItemWithSchema> LookupInObjectItem(
       ASSIGN_OR_RETURN(res.value,
                        db_impl.GetAttr(DataItem(obj), *attr, fallbacks));
     }
-  } else if (obj.IsList() || obj.IsDict()) {
+  } else if (obj.IsList()) {
+    if (auto index = GetListIndex(key); index.has_value()) {
+      ASSIGN_OR_RETURN(
+          res.schema, db_impl.GetSchemaAttr(
+                          obj_schema, schema::kListItemsSchemaAttr, fallbacks));
+      ASSIGN_OR_RETURN(res.value,
+                       db_impl.GetFromList(DataItem(obj), *index, fallbacks));
+    }
+  } else if (obj.IsDict()) {
     return absl::UnimplementedError(
-        "lookup in OBJECT lists and dicts is not supported yet");
+        "lookup in OBJECT dicts is not supported yet");
   } else {
     return UnsupportedItemsError(DataItem(obj));
   }
@@ -265,10 +309,9 @@ absl::StatusOr<DataSlice> LookupInObjectSlice(const DataSlice& ds,
   ASSIGN_OR_RETURN(auto obj_schemas, db_impl.GetObjSchemaAttr(objs, fallbacks),
                    _.With(missing_obj_schema_error));
   ASSIGN_OR_RETURN(auto by_kind, SplitByKind({objs, std::move(obj_schemas)}));
-  if (by_kind.lists.items.present_count() > 0 ||
-      by_kind.dicts.items.present_count() > 0) {
+  if (by_kind.dicts.items.present_count() > 0) {
     return absl::UnimplementedError(
-        "lookup in OBJECT lists and dicts is not supported yet");
+        "lookup in OBJECT dicts is not supported yet");
   }
 
   ItemsWithSchemas res{DataSliceImpl::CreateEmptyAndUnknownType(objs.size()),
@@ -276,7 +319,16 @@ absl::StatusOr<DataSlice> LookupInObjectSlice(const DataSlice& ds,
   if (by_kind.entities.items.present_count() > 0) {
     if (auto attr = GetAttrName(key); attr.has_value()) {
       ASSIGN_OR_RETURN(
-          res, LookupInEntities(by_kind.entities, *attr, db_impl, fallbacks));
+          auto entity_res,
+          LookupInEntities(by_kind.entities, *attr, db_impl, fallbacks));
+      RETURN_IF_ERROR(MergeInto(res, entity_res));
+    }
+  }
+  if (by_kind.lists.items.present_count() > 0) {
+    if (auto index = GetListIndex(key); index.has_value()) {
+      ASSIGN_OR_RETURN(auto list_res, LookupInLists(by_kind.lists, *index,
+                                                    db_impl, fallbacks));
+      RETURN_IF_ERROR(MergeInto(res, list_res));
     }
   }
 

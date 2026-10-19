@@ -138,13 +138,68 @@ class GetAttrOrItemTest(parameterized.TestCase):
     o = ds([o, kd.obj(y=3)]).enriched(e.get_bag())
     kd.testing.assert_equivalent(get_attr_or_item(o, 'y'), ds([None, 3]))
 
+  def test_object_lists(self):
+    l = ds([
+        kd.obj(kd.list([1, 2, 3])),
+        kd.obj(kd.list([4, None])),
+        kd.obj(kd.list([])),
+        None,
+    ])
+    kd.testing.assert_equivalent(get_attr_or_item(l, 0), ds([1, 4, None, None]))
+    kd.testing.assert_equivalent(
+        get_attr_or_item(l, 1), ds([2, None, None, None])
+    )
+    kd.testing.assert_equivalent(
+        get_attr_or_item(l, -1), ds([3, None, None, None])
+    )
+    kd.testing.assert_equivalent(
+        get_attr_or_item(l, kd.int64(1)), ds([2, None, None, None])
+    )
+    kd.testing.assert_equivalent(
+        get_attr_or_item(l, kd.obj(1)), ds([2, None, None, None])
+    )
+    kd.testing.assert_equivalent(get_attr_or_item(l, 5), ds([None] * 4))
+    # Non-integer keys result in missing values.
+    kd.testing.assert_equivalent(get_attr_or_item(l, 'x'), ds([None] * 4))
+    kd.testing.assert_equivalent(get_attr_or_item(l, 1.0), ds([None] * 4))
+    kd.testing.assert_equivalent(get_attr_or_item(l, ds(None)), ds([None] * 4))
+
+    kd.testing.assert_equivalent(get_attr_or_item(l.S[0], -1), ds(3))
+    kd.testing.assert_equivalent(get_attr_or_item(l.S[0], 5), ds(None))
+    kd.testing.assert_equivalent(get_attr_or_item(l.S[0], 'x'), ds(None))
+
+    l_2d = ds([[kd.obj(kd.list([1, 2]))], [kd.obj(kd.list([3])), None]])
+    kd.testing.assert_equivalent(
+        get_attr_or_item(l_2d, 1), ds([[2], [None, None]])
+    )
+
+  def test_object_list_nested_entity(self):
+    inner = kd.new(x=ds([[1, 2], [3]]))
+    l = kd.obj(kd.implode(inner))
+    res = get_attr_or_item(l, 0)
+    kd.testing.assert_equivalent(res, inner.S[:, 0], ids_equality=True)
+    kd.testing.assert_equal(res.get_bag(), l.get_bag())
+
+    res = get_attr_or_item(l.S[0], -1)
+    kd.testing.assert_equivalent(res, inner.S[0, -1], ids_equality=True)
+    kd.testing.assert_equal(res.get_bag(), l.get_bag())
+
+  def test_object_mixed_entities_and_lists(self):
+    mixed = ds([kd.obj(a=1), kd.obj(kd.list([10, 20])), None])
+    kd.testing.assert_equivalent(
+        get_attr_or_item(mixed, 'a'), ds([1, None, None])
+    )
+    kd.testing.assert_equivalent(
+        get_attr_or_item(mixed, 1), ds([None, 20, None])
+    )
+
   def test_object_unimplemented(self):
     with self.assertRaisesRegex(
-        ValueError, 'lookup in OBJECT lists and dicts is not supported yet'
+        ValueError, 'lookup in OBJECT dicts is not supported yet'
     ):
-      get_attr_or_item(kd.obj(kd.list([1, 2])), 0)
+      get_attr_or_item(kd.obj(kd.dict({'a': 1})), 'a')
     with self.assertRaisesRegex(
-        ValueError, 'lookup in OBJECT lists and dicts is not supported yet'
+        ValueError, 'lookup in OBJECT dicts is not supported yet'
     ):
       get_attr_or_item(ds([kd.obj(a=1), kd.obj(kd.dict({'a': 2}))]), 'a')
     with self.assertRaisesRegex(
