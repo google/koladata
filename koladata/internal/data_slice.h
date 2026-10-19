@@ -88,6 +88,13 @@ class DataSliceImpl {
     return CreateWithAllocIds(std::move(allocation_ids), std::move(objects));
   }
 
+  // Returns DataSliceImpl with specified ObjectId's, pruning unused
+  // allocations from `allocation_ids` when it contains multiple or small
+  // allocations. All present ObjectId's in `objects` must belong to
+  // `allocation_ids`.
+  static DataSliceImpl CreateWithPrunedAllocIds(AllocationIdSet allocation_ids,
+                                                ObjectIdArray objects);
+
   // Returns DataSliceImpl with specified values and allocation ids.
   template <class T, class... Ts>
   static DataSliceImpl CreateWithAllocIds(AllocationIdSet allocation_ids,

@@ -333,10 +333,16 @@ class CopyingProcessor {
     if (attr_ds.types_buffer().size() != 0) {
       auto set_mask =
           attr_ds.types_buffer().ToInvertedBitmap(TypesBuffer::kUnset);
-      if (!set_mask.empty() &&
-          !arolla::bitmap::AreAllBitsSet(set_mask.begin(), ds.size())) {
+      if (bool has_missing =
+              !set_mask.empty() &&
+              !arolla::bitmap::AreAllBitsSet(set_mask.begin(), ds.size());
+          has_missing) {
+        // Skip SetAttr entirely when the attribute is unset for all objects.
+        if (arolla::bitmap::AreAllBitsUnset(set_mask.begin(), ds.size())) {
+          return absl::OkStatus();
+        }
         const auto& objects_array = ds.values<ObjectId>();
-        ds = DataSliceImpl::CreateWithAllocIds(
+        ds = DataSliceImpl::CreateWithPrunedAllocIds(
             ds.allocation_ids(),
             ObjectIdArray{objects_array.values, std::move(set_mask)});
       }

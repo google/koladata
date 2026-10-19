@@ -12,12 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "benchmark/benchmark.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "arolla/qtype/base_types.h"
 #include "koladata/internal/casting.h"
 #include "koladata/internal/data_bag.h"
@@ -157,6 +160,60 @@ void BM_FullAllocs(benchmark::State& state) {
 }
 
 BENCHMARK(BM_FullAllocs)->Arg(10)->Arg(100)->Arg(1000)->Arg(10000);
+
+// Benchmarks `ExtractOp` on a slice concatenated from `num_chunks` allocations
+// of `kChunkSize = 64` objects sharing an explicit schema with `kNumAttrs = 16`
+// attributes, where each chunk only populates 1 attribute on 1 object, and the
+// attribute to populate is determined in a round-robin fashion.
+//
+// Because each attribute is only present on `num_chunks / kNumAttrs` objects
+// across the entire slice (1–4 objects for the benchmarks here), masking out
+// unset elements in `SetAttrToNewDatabagSkipUnset` and recomputing
+// `AllocationIdSet` prunes all chunks where that attribute is unset, so
+// `SetAttr` only visits the 1–4 allocations that actually have a value and
+// keeps them in `SparseSource`.
+void BM_MultiAllocSparseAttrs(benchmark::State& state) {
+  const int num_chunks = state.range(0);
+  constexpr int kChunkSize = 64;
+  constexpr int kNumAttrs = 16;
+  const int total_size = num_chunks * kChunkSize;
+
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto schema = DataItem(AllocateExplicitSchema());
+  std::vector<std::string> attr_names;
+  attr_names.reserve(kNumAttrs);
+  for (int a = 0; a < kNumAttrs; ++a) {
+    attr_names.push_back(absl::StrCat("attr_", a));
+    CHECK_OK(
+        db->SetSchemaAttr(schema, attr_names.back(), DataItem(schema::kInt32)));
+  }
+
+  SliceBuilder obj_bldr(total_size);
+  for (int c = 0; c < num_chunks; ++c) {
+    AllocationId alloc = Allocate(kChunkSize);
+    for (int i = 0; i < kChunkSize; ++i) {
+      const int idx = c * kChunkSize + i;
+      obj_bldr.InsertIfNotSetAndUpdateAllocIds(
+          idx, DataItem(alloc.ObjectByOffset(i)));
+    }
+    // Populate only one attribute per chunk (on the first object of that chunk)
+    // to model sparse optional fields across micro-batches.
+    const std::string& attr = attr_names[c % kNumAttrs];
+    CHECK_OK(
+        db->SetAttr(DataItem(alloc.ObjectByOffset(0)), attr, DataItem(c + 1)));
+  }
+  auto ds = std::move(obj_bldr).Build();
+
+  while (state.KeepRunning()) {
+    auto res_db = DataBagImpl::CreateEmptyDatabag();
+    benchmark::DoNotOptimize(db);
+    benchmark::DoNotOptimize(res_db);
+    ExtractOp op(res_db.get());
+    CHECK_OK(op(ds, schema, *db, {}, nullptr, {}));
+    benchmark::DoNotOptimize(std::move(res_db));
+  }
+}
+BENCHMARK(BM_MultiAllocSparseAttrs)->Arg(16)->Arg(64);
 
 }  // namespace
 }  // namespace koladata::internal

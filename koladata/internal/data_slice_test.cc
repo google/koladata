@@ -145,6 +145,76 @@ TEST(DataSliceImpl, CreateObjectsDataSlice) {
                                                  alloc_id0.ObjectByOffset(2)));
 }
 
+TEST(DataSliceImpl, CreateWithPrunedAllocIds) {
+  constexpr int64_t kSize = 3;
+  AllocationId alloc_id0 = Allocate(kSize);
+  AllocationId alloc_id1 = Allocate(kSize);
+  ObjectId small_obj = AllocateSingleObject();
+  {
+    SCOPED_TRACE("single big allocation reuses alloc id");
+    DataSliceImpl ds = DataSliceImpl::CreateWithPrunedAllocIds(
+        AllocationIdSet(alloc_id0),
+        CreateDenseArray<ObjectId>(
+            {alloc_id0.ObjectByOffset(0), std::nullopt,
+             alloc_id0.ObjectByOffset(2)}));
+    EXPECT_EQ(ds.size(), kSize);
+    EXPECT_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
+    EXPECT_THAT(ds.allocation_ids(), ElementsAre(alloc_id0));
+    EXPECT_FALSE(ds.allocation_ids().contains_small_allocation_id());
+    EXPECT_THAT(ds.values<ObjectId>(),
+                ElementsAre(alloc_id0.ObjectByOffset(0), std::nullopt,
+                            alloc_id0.ObjectByOffset(2)));
+  }
+  {
+    SCOPED_TRACE("multiple big allocations prunes masked-out allocation");
+    // `alloc_id1` is completely masked out, so it is pruned from
+    // `ds.allocation_ids()`.
+    DataSliceImpl ds = DataSliceImpl::CreateWithPrunedAllocIds(
+        AllocationIdSet({alloc_id0, alloc_id1}),
+        CreateDenseArray<ObjectId>(
+            {alloc_id0.ObjectByOffset(0), std::nullopt,
+             alloc_id0.ObjectByOffset(2)}));
+    EXPECT_EQ(ds.size(), kSize);
+    EXPECT_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
+    EXPECT_THAT(ds.allocation_ids(), ElementsAre(alloc_id0));
+    EXPECT_FALSE(ds.allocation_ids().contains_small_allocation_id());
+    EXPECT_THAT(ds.values<ObjectId>(),
+                ElementsAre(alloc_id0.ObjectByOffset(0), std::nullopt,
+                            alloc_id0.ObjectByOffset(2)));
+  }
+  {
+    SCOPED_TRACE("small allocation masked out clears small allocation flag");
+    DataSliceImpl ds = DataSliceImpl::CreateWithPrunedAllocIds(
+        AllocationIdSet({alloc_id0, AllocationId(small_obj)}),
+        CreateDenseArray<ObjectId>(
+            {alloc_id0.ObjectByOffset(0), std::nullopt}));
+    EXPECT_EQ(ds.size(), 2);
+    EXPECT_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
+    EXPECT_THAT(ds.allocation_ids(), ElementsAre(alloc_id0));
+    EXPECT_FALSE(ds.allocation_ids().contains_small_allocation_id());
+    EXPECT_THAT(ds.values<ObjectId>(),
+                ElementsAre(alloc_id0.ObjectByOffset(0), std::nullopt));
+  }
+  {
+    SCOPED_TRACE("all missing prunes single big allocation");
+    DataSliceImpl ds = DataSliceImpl::CreateWithPrunedAllocIds(
+        AllocationIdSet(alloc_id0), CreateEmptyDenseArray<ObjectId>(kSize));
+    EXPECT_EQ(ds.size(), kSize);
+    EXPECT_TRUE(ds.is_empty_and_unknown());
+    EXPECT_THAT(ds.allocation_ids(), IsEmpty());
+    EXPECT_FALSE(ds.allocation_ids().contains_small_allocation_id());
+  }
+  {
+    SCOPED_TRACE("empty array");
+    DataSliceImpl ds = DataSliceImpl::CreateWithPrunedAllocIds(
+        AllocationIdSet(alloc_id0), CreateEmptyDenseArray<ObjectId>(0));
+    EXPECT_EQ(ds.size(), 0);
+    EXPECT_TRUE(ds.is_empty_and_unknown());
+    EXPECT_THAT(ds.allocation_ids(), IsEmpty());
+    EXPECT_FALSE(ds.allocation_ids().contains_small_allocation_id());
+  }
+}
+
 TEST(DataSliceImpl, Create) {
   constexpr int64_t kSize = 3;
   auto array = arolla::CreateFullDenseArray<int64_t>({57, 75, 19});

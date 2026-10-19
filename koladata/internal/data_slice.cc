@@ -131,6 +131,21 @@ DataSliceImpl DataSliceImpl::CreateEmptyAndUnknownType(
   return DataSliceImpl(std::move(impl));
 }
 
+DataSliceImpl DataSliceImpl::CreateWithPrunedAllocIds(
+    AllocationIdSet allocation_ids, ObjectIdArray objects) {
+  DCHECK(data_slice_impl::VerifyAllocIds(allocation_ids, objects));
+  if (allocation_ids.size() > 1 ||
+      allocation_ids.contains_small_allocation_id()) {
+    return Create(std::move(objects));
+  }
+  DataSliceImpl res =
+      CreateWithAllocIds(std::move(allocation_ids), std::move(objects));
+  if (res.is_empty_and_unknown()) {
+    return CreateEmptyAndUnknownType(res.size());
+  }
+  return res;
+}
+
 DataSliceImpl DataSliceImpl::Create(const arolla::DenseArray<DataItem>& items) {
   if (items.IsAllMissing()) {
     return DataSliceImpl::CreateEmptyAndUnknownType(items.size());
