@@ -486,6 +486,54 @@ cc_test(
 )
 
 cc_library(
+    name = "vectorized_traverse_helper",
+    srcs = ["vectorized_traverse_helper.cc"],
+    hdrs = ["vectorized_traverse_helper.h"],
+    deps = [
+        ":group_by_utils",
+        ":in_degree_tracker",
+        ":schema_info",
+        ":traverse_helper",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:schema_attrs",
+        "@com_google_absl//absl/algorithm:container",
+        "@com_google_absl//absl/functional:function_ref",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "vectorized_traverse_helper_test",
+    srcs = ["vectorized_traverse_helper_test.cc"],
+    deps = [
+        ":traverse_helper",
+        ":vectorized_traverse_helper",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/internal:schema_attrs",
+        "@com_google_absl//absl/functional:function_ref",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "deep_clone",
     srcs = ["deep_clone.cc"],
     hdrs = ["deep_clone.h"],
