@@ -2830,5 +2830,138 @@ TEST(DataBagTest, IncrementalSparseSourceToDensePromotion) {
   }
 }
 
+TEST(DataBagTest, SetAttrMultiAllocAverageSizeSparsity) {
+  // Verify that in the `!HasTooManyAllocationIds` path, `SetAttr` estimates
+  // `update_size` per allocation as `objects.size() / alloc_ids.size()` rather
+  // than `objects.size()`.
+  //
+  // 4 allocations of capacity 1,024 (`max_sparse = 1024 / 64 = 16`) in a slice
+  // of size `kTotalSize = 64 > max_sparse` (16 objects per allocation,
+  // `4 <= 2 * log2(64)` so `!HasTooManyAllocationIds`). Because
+  // `objects.size() / alloc_ids.size() = 64 / 4 = 16 <= max_sparse`, all 4
+  // allocations stay in `SparseSource`s rather than creating `DenseSource`s.
+  constexpr int64_t kNumAllocs = 4;
+  constexpr int64_t kObjectsPerAlloc = 16;
+  constexpr int64_t kTotalSize = kNumAllocs * kObjectsPerAlloc;
+  SliceBuilder obj_bldr(kTotalSize);
+  SliceBuilder val_bldr(kTotalSize);
+  for (int64_t a = 0; a < kNumAllocs; ++a) {
+    AllocationId alloc = Allocate(1024);
+    for (int64_t i = 0; i < kObjectsPerAlloc; ++i) {
+      int64_t idx = a * kObjectsPerAlloc + i;
+      obj_bldr.InsertIfNotSetAndUpdateAllocIds(
+          idx, DataItem(alloc.ObjectByOffset(i)));
+      val_bldr.InsertIfNotSet(idx, idx + 10);
+    }
+  }
+  auto objs = std::move(obj_bldr).Build();
+  auto vals = std::move(val_bldr).Build();
+
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(db->SetAttr(objs, "a", vals));
+  ASSERT_OK_AND_ASSIGN(auto content, db->ExtractContent());
+  ASSERT_TRUE(content.attrs.contains("a"));
+  EXPECT_THAT(content.attrs.at("a").items, ::testing::SizeIs(kTotalSize));
+  EXPECT_THAT(content.attrs.at("a").allocs, IsEmpty());
+  ASSERT_OK_AND_ASSIGN(auto got, db->GetAttr(objs, "a"));
+  EXPECT_THAT(got, IsEquivalentTo(vals));
+}
+
+TEST(DataBagTest, GetAndSetAttrManyAllocationsContiguousRuns) {
+  // Exercise the `HasTooManyAllocationIds` path in both `SetAttr` and
+  // `GetAttrImpl`. With 33 allocations across 2,049 elements
+  // (`33 > 2 * log2(2049)`), `HasTooManyAllocationIds` is true.
+  constexpr int64_t kNumChunks = 32;
+  constexpr int64_t kChunkSize = 64;
+  constexpr int64_t kRunTotal = kNumChunks * kChunkSize + 1;
+  SliceBuilder set_obj_bldr(kRunTotal);
+  SliceBuilder get_obj_bldr(kRunTotal);
+  SliceBuilder run_val_bldr(kRunTotal);
+  // Build 32 contiguous runs of 64 objects each. Omit chunk `c == 1` from
+  // `set_obj_bldr` so that its allocation has no sources in `run_db`,
+  // exercising the transition in `GetAttrImpl` from a populated `DenseSource`
+  // (chunk 0) to an allocation with no sources (chunk 1) and back to a
+  // populated `DenseSource` (chunk 2).
+  for (int64_t c = 0; c < kNumChunks; ++c) {
+    AllocationId alloc = Allocate(kChunkSize);
+    for (int64_t i = 0; i < kChunkSize; ++i) {
+      int64_t idx = c * kChunkSize + i;
+      DataItem obj(alloc.ObjectByOffset(i));
+      get_obj_bldr.InsertIfNotSetAndUpdateAllocIds(idx, obj);
+      if (c != 1) {
+        set_obj_bldr.InsertIfNotSetAndUpdateAllocIds(idx, obj);
+        run_val_bldr.InsertIfNotSet(idx, idx);
+      }
+    }
+  }
+  // Append 1 object from a 33rd allocation of capacity 64 (`max_sparse = 1`);
+  // since only 1 item is set (`1 <= max_sparse`), it stays in a `SparseSource`.
+  AllocationId tail_sparse_alloc = Allocate(kChunkSize);
+  DataItem tail_obj(tail_sparse_alloc.ObjectByOffset(0));
+  set_obj_bldr.InsertIfNotSetAndUpdateAllocIds(kRunTotal - 1, tail_obj);
+  get_obj_bldr.InsertIfNotSetAndUpdateAllocIds(kRunTotal - 1, tail_obj);
+  run_val_bldr.InsertIfNotSet(kRunTotal - 1, 7777);
+  auto set_objs = std::move(set_obj_bldr).Build();
+  auto get_objs = std::move(get_obj_bldr).Build();
+  auto run_vals = std::move(run_val_bldr).Build();
+
+  auto run_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(run_db->SetAttr(set_objs, "a", run_vals));
+  ASSERT_OK_AND_ASSIGN(auto run_content, run_db->ExtractContent());
+  ASSERT_TRUE(run_content.attrs.contains("a"));
+  EXPECT_THAT(run_content.attrs.at("a").items, ::testing::SizeIs(1));
+  EXPECT_THAT(run_content.attrs.at("a").allocs,
+              ::testing::SizeIs(kNumChunks - 1));
+  ASSERT_OK_AND_ASSIGN(auto run_got, run_db->GetAttr(get_objs, "a"));
+  EXPECT_THAT(run_got, IsEquivalentTo(run_vals));
+}
+
+TEST(DataBagTest, SetAttrSizeMismatch) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto vals_size_2 =
+      DataSliceImpl::Create(arolla::CreateFullDenseArray<int>({1, 2}));
+  auto vals_size_4 =
+      DataSliceImpl::Create(arolla::CreateFullDenseArray<int>({1, 2, 3, 4}));
+
+  // Single big allocation.
+  auto single_objs = DataSliceImpl::AllocateEmptyObjects(3);
+  EXPECT_THAT(db->SetAttr(single_objs, "a", vals_size_2),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("argument sizes mismatch: (3, 2)")));
+  EXPECT_THAT(db->SetAttr(single_objs, "a", vals_size_4),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("argument sizes mismatch: (3, 4)")));
+
+  // Multiple big allocations (!HasTooManyAllocationIds).
+  AllocationId alloc_1 = Allocate(16);
+  AllocationId alloc_2 = Allocate(16);
+  auto multi_objs = DataSliceImpl::CreateObjectsDataSlice(
+      arolla::CreateFullDenseArray<ObjectId>({alloc_1.ObjectByOffset(0),
+                                              alloc_2.ObjectByOffset(0),
+                                              alloc_2.ObjectByOffset(1)}),
+      AllocationIdSet({alloc_1, alloc_2}));
+  EXPECT_THAT(db->SetAttr(multi_objs, "a", vals_size_2),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("argument sizes mismatch: (3, 2)")));
+  EXPECT_THAT(db->SetAttr(multi_objs, "a", vals_size_4),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("argument sizes mismatch: (3, 4)")));
+
+  // Many big allocations (HasTooManyAllocationIds: 8 allocations for 8 items).
+  constexpr int64_t kManySize = 8;
+  SliceBuilder many_bldr(kManySize);
+  for (int64_t i = 0; i < kManySize; ++i) {
+    many_bldr.InsertIfNotSetAndUpdateAllocIds(
+        i, DataItem(Allocate(16).ObjectByOffset(0)));
+  }
+  auto many_objs = std::move(many_bldr).Build();
+  EXPECT_THAT(db->SetAttr(many_objs, "a", vals_size_2),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("argument sizes mismatch: (8, 2)")));
+  EXPECT_THAT(db->SetAttr(many_objs, "a", vals_size_4),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("argument sizes mismatch: (8, 4)")));
+}
+
 }  // namespace
 }  // namespace koladata::internal

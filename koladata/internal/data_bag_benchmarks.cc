@@ -36,6 +36,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_attrs.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/internal/uuid_object.h"
 
 namespace koladata::internal {
@@ -1119,6 +1120,96 @@ void BM_GetAttrAfterIncrementalSetAttrBigAlloc(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * alloc_size);
 }
 BENCHMARK(BM_GetAttrAfterIncrementalSetAttrBigAlloc)->Arg(100)->Arg(1000);
+
+// Benchmarks `SetAttr` on a slice combining `num_allocs` allocations of
+// capacity 1,024, each contributing 8 objects (`<= max_sparse = 16`).
+void BM_SetAttrMultiAllocSparse(benchmark::State& state) {
+  const int64_t num_allocs = state.range(0);
+  constexpr int64_t kPresentPerAlloc = 8;
+  const int64_t total_size = num_allocs * kPresentPerAlloc;
+  SliceBuilder obj_bldr(total_size);
+  SliceBuilder val_bldr(total_size);
+  for (int64_t a = 0; a < num_allocs; ++a) {
+    AllocationId alloc = Allocate(1024);
+    for (int64_t i = 0; i < kPresentPerAlloc; ++i) {
+      const int64_t idx = a * kPresentPerAlloc + i;
+      obj_bldr.InsertIfNotSetAndUpdateAllocIds(
+          idx, DataItem(alloc.ObjectByOffset(i)));
+      val_bldr.InsertIfNotSet(idx, idx);
+    }
+  }
+  auto objs = std::move(obj_bldr).Build();
+  auto vals = std::move(val_bldr).Build();
+
+  for (auto _ : state) {
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    CHECK_OK(db->SetAttr(objs, "a", vals));
+    benchmark::DoNotOptimize(std::move(db));
+  }
+  state.SetItemsProcessed(state.iterations() * total_size);
+}
+BENCHMARK(BM_SetAttrMultiAllocSparse)->Arg(4)->Arg(8);
+
+// Benchmarks `SetAttr` on `num_chunks` contiguous runs of 64 objects from
+// distinct allocations.
+void BM_SetAttrMultiAllocContiguousRuns(benchmark::State& state) {
+  const int64_t num_chunks = state.range(0);
+  constexpr int64_t kChunkSize = 64;
+  const int64_t total_size = num_chunks * kChunkSize;
+  SliceBuilder obj_bldr(total_size);
+  SliceBuilder val_bldr(total_size);
+  for (int64_t c = 0; c < num_chunks; ++c) {
+    AllocationId alloc = Allocate(kChunkSize);
+    for (int64_t i = 0; i < kChunkSize; ++i) {
+      const int64_t idx = c * kChunkSize + i;
+      obj_bldr.InsertIfNotSetAndUpdateAllocIds(
+          idx, DataItem(alloc.ObjectByOffset(i)));
+      val_bldr.InsertIfNotSet(idx, idx);
+    }
+  }
+  auto objs = std::move(obj_bldr).Build();
+  auto vals = std::move(val_bldr).Build();
+
+  for (auto _ : state) {
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    CHECK_OK(db->SetAttr(objs, "a", vals));
+    benchmark::DoNotOptimize(std::move(db));
+  }
+  state.SetItemsProcessed(state.iterations() * total_size);
+}
+BENCHMARK(BM_SetAttrMultiAllocContiguousRuns)->Arg(16)->Arg(64);
+
+// Benchmarks `GetAttr` on `num_chunks` contiguous runs of 64 objects from
+// distinct allocations (`HasTooManyAllocationIds` is true).
+void BM_GetAttrMultiAllocContiguousRuns(benchmark::State& state) {
+  const int64_t num_chunks = state.range(0);
+  constexpr int64_t kChunkSize = 64;
+  const int64_t total_size = num_chunks * kChunkSize;
+  SliceBuilder obj_bldr(total_size);
+  SliceBuilder val_bldr(total_size);
+  for (int64_t c = 0; c < num_chunks; ++c) {
+    AllocationId alloc = Allocate(kChunkSize);
+    for (int64_t i = 0; i < kChunkSize; ++i) {
+      const int64_t idx = c * kChunkSize + i;
+      obj_bldr.InsertIfNotSetAndUpdateAllocIds(
+          idx, DataItem(alloc.ObjectByOffset(i)));
+      val_bldr.InsertIfNotSet(idx, idx);
+    }
+  }
+  auto objs = std::move(obj_bldr).Build();
+  auto vals = std::move(val_bldr).Build();
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  CHECK_OK(db->SetAttr(objs, "a", vals));
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(db);
+    benchmark::DoNotOptimize(objs);
+    auto res = db->GetAttr(objs, "a");
+    benchmark::DoNotOptimize(std::move(res));
+  }
+  state.SetItemsProcessed(state.iterations() * total_size);
+}
+BENCHMARK(BM_GetAttrMultiAllocContiguousRuns)->Arg(32)->Arg(64);
 
 }  // namespace
 }  // namespace koladata::internal

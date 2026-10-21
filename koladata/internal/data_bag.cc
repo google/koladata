@@ -636,7 +636,12 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttrImpl(
           break;
         }
       }
-      // Process big allocations.
+      // Process big allocations. Adjacent ObjectIds often belong to the same
+      // AllocationId (e.g. concatenated slices), so cache the data sources for
+      // `current_alloc_id` to avoid repeating hash map lookups across runs.
+      std::optional<AllocationId> current_alloc_id;
+      ConstDenseSourceArray current_alloc_dense_sources;
+      ConstSparseSourceArray current_alloc_sparse_sources;
       for (size_t i = 0; i < objs_span.size(); ++i) {
         if (bldr->IsSet(i)) {
           continue;
@@ -645,7 +650,18 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttrImpl(
         if (object_id.IsSmallAlloc()) {
           continue;
         }
-        auto item = db->LookupAttrInDataSourcesMap(object_id, attr);
+        AllocationId alloc_id(object_id);
+        if (alloc_id != current_alloc_id) {
+          current_alloc_id = alloc_id;
+          current_alloc_dense_sources.clear();
+          current_alloc_sparse_sources.clear();
+          db->GetAttributeDataSources(alloc_id, attr,
+                                      current_alloc_dense_sources,
+                                      current_alloc_sparse_sources);
+        }
+        auto item =
+            GetAttributeFromSources(object_id, current_alloc_dense_sources,
+                                    current_alloc_sparse_sources);
         if (item.has_value()) {
           bldr->InsertIfNotSetAndUpdateAllocIds(i, std::move(*item));
         }
@@ -1329,6 +1345,9 @@ absl::Status DataBagImpl::SetAttr(const DataSliceImpl& objects,
       !objects.allocation_ids().contains_small_allocation_id()) {
     return absl::OkStatus();
   }
+  if (objects.size() != values.size()) {
+    return arolla::SizeMismatchError({objects.size(), values.size()});
+  }
   const auto& objects_array = objects.values<ObjectId>();
   if (objects.allocation_ids().contains_small_allocation_id()) {
     auto& source = GetMutableSmallAllocSource(attr);
@@ -1336,6 +1355,9 @@ absl::Status DataBagImpl::SetAttr(const DataSliceImpl& objects,
   }
 
   // Process big allocations.
+  if (objects.allocation_ids().empty()) {
+    return absl::OkStatus();
+  }
 
   if (HasTooManyAllocationIds(objects.allocation_ids().size(), values.size())) {
     auto status = absl::OkStatus();
@@ -1348,12 +1370,16 @@ absl::Status DataBagImpl::SetAttr(const DataSliceImpl& objects,
     return status;
   }
 
+  const size_t update_size = objects.size() / objects.allocation_ids().size();
   for (AllocationId alloc_id : objects.allocation_ids()) {
     SourceCollection& collection = GetOrCreateSourceCollection(alloc_id, attr);
-    const arolla::QType* qtype =
-        values.dtype() == arolla::GetNothingQType() ? nullptr : values.dtype();
-    RETURN_IF_ERROR(GetOrCreateMutableSourceInCollection(
-        collection, alloc_id, attr, qtype, /*update_size=*/objects.size()));
+    if (!collection.mutable_dense_source) {
+      const arolla::QType* qtype = values.dtype() == arolla::GetNothingQType()
+                                       ? nullptr
+                                       : values.dtype();
+      RETURN_IF_ERROR(GetOrCreateMutableSourceInCollection(
+          collection, alloc_id, attr, qtype, update_size));
+    }
     if (collection.mutable_dense_source) {
       RETURN_IF_ERROR(
           collection.mutable_dense_source->Set(objects_array, values));
