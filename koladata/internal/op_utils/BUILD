@@ -539,6 +539,60 @@ cc_test(
 )
 
 cc_library(
+    name = "vectorized_traverser",
+    srcs = ["vectorized_traverser.cc"],
+    hdrs = ["vectorized_traverser.h"],
+    deps = [
+        ":abstract_visitor",
+        ":group_by_utils",
+        ":in_degree_tracker",
+        ":schema_tracker",
+        ":traverse_helper",
+        ":vectorized_traverse_helper",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "vectorized_traverser_test",
+    srcs = ["vectorized_traverser_test.cc"],
+    deps = [
+        ":abstract_visitor",
+        ":traverse_helper",
+        ":vectorized_traverser",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/internal:schema_attrs",
+        "//koladata/internal/testing:deep_op_utils",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "deep_clone",
     srcs = ["deep_clone.cc"],
     hdrs = ["deep_clone.h"],
