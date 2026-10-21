@@ -30,8 +30,10 @@ namespace koladata::internal {
 // - IncrementAndGetNew: during previsit, increments in-degree and returns
 //   previously unvisited objects (those whose in-degree reached 1).
 // - DecrementAndGetLast: during construction of topological ordering,
-// decrements
-//   in-degree and returns now-free objects (those whose in-degree reached 0).
+//   decrements in-degree and returns now-free objects (those whose in-degree
+//   reached 0).
+// - FilterToPositive: during cycle breaking, returns a dense slice of objects
+//   whose in-degree is still positive (> 0).
 class InDegreeTracker {
  public:
   InDegreeTracker() : databag_(DataBagImpl::CreateEmptyDatabag()) {}
@@ -54,6 +56,11 @@ class InDegreeTracker {
       const DataSliceImpl& slice) {
     return ProcessSlice(slice, /*delta=*/-1, /*target=*/0);
   }
+
+  // Returns a dense slice of ObjectIds from `slice` that have positive
+  // in-degree (> 0).
+  absl::StatusOr<DataSliceImpl> FilterToPositive(
+      const DataSliceImpl& slice) const;
 
  private:
   absl::StatusOr<DataSliceImpl> ProcessSlice(const DataSliceImpl& slice,

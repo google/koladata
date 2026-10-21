@@ -16,9 +16,13 @@
 
 #include <cstdint>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
+#include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "arolla/dense_array/dense_array.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_slice.h"
@@ -46,6 +50,36 @@ DataSliceImpl InDegreeTracker::FilterToObjects(const DataSliceImpl& slice) {
     }
   });
   return res;
+}
+
+absl::StatusOr<DataSliceImpl> InDegreeTracker::FilterToPositive(
+    const DataSliceImpl& slice) const {
+  DataSliceImpl objects_slice = FilterToObjects(slice);
+  if (objects_slice.present_count() == 0) {
+    return DataSliceImpl::CreateEmptyAndUnknownType(0);
+  }
+  ASSIGN_OR_RETURN(DataSliceImpl in_degrees,
+                   databag_->GetAttr(objects_slice, kInDegreeAttrName));
+  if (in_degrees.present_count() == 0) {
+    return DataSliceImpl::CreateEmptyAndUnknownType(0);
+  }
+  std::vector<ObjectId> positive_objects;
+  const ObjectIdArray& objects = objects_slice.values<ObjectId>();
+  in_degrees.values<int64_t>().ForEachPresent(
+      [&](int64_t id, int64_t in_degree) {
+        if (in_degree > 0) {
+          positive_objects.push_back(objects.values[id]);
+        }
+      });
+  if (positive_objects.empty()) {
+    return DataSliceImpl::CreateEmptyAndUnknownType(0);
+  }
+  if (positive_objects.size() == objects_slice.size()) {
+    return objects_slice;
+  }
+  return DataSliceImpl::CreateWithPrunedAllocIds(
+      objects_slice.allocation_ids(),
+      arolla::CreateFullDenseArray(std::move(positive_objects)));
 }
 
 absl::StatusOr<DataSliceImpl> InDegreeTracker::ProcessSlice(

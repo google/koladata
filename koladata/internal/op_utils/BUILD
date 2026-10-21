@@ -433,7 +433,9 @@ cc_library(
         "//koladata/internal:object_id",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util:status_backport",
     ],
 )
 

@@ -235,5 +235,74 @@ TEST(InDegreeTrackerTest, BigAndSmallAllocations) {
   EXPECT_THAT(res_dec.values<ObjectId>(), UnorderedElementsAre(big0, small1));
 }
 
+TEST(InDegreeTrackerTest, FilterToPositive) {
+  InDegreeTracker tracker;
+  auto obj0 = AllocateSingleObject();
+  auto obj1 = AllocateSingleObject();
+  auto obj2 = AllocateSingleObject();
+
+  auto ds = DataSliceImpl::Create(
+      arolla::CreateDenseArray<ObjectId>({obj0, obj1, obj2}));
+
+  // Before any increments, no objects have positive in-degree.
+  ASSERT_OK_AND_ASSIGN(auto empty_res, tracker.FilterToPositive(ds));
+  EXPECT_EQ(empty_res.present_count(), 0);
+
+  // Increment all three: all are positive -> returns full slice.
+  ASSERT_OK(tracker.IncrementAndGetNew(ds));
+  ASSERT_OK_AND_ASSIGN(auto all_res, tracker.FilterToPositive(ds));
+  EXPECT_THAT(all_res.values<ObjectId>(), ElementsAre(obj0, obj1, obj2));
+
+  // Decrement obj1 to 0 (and then -1), while obj0 and obj2 remain at 1.
+  auto ds_obj1 =
+      DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({obj1}));
+  ASSERT_OK(tracker.DecrementAndGetLast(ds_obj1));
+  ASSERT_OK(tracker.DecrementAndGetLast(ds_obj1));
+
+  // Filtering `ds` compresses to only obj0 and obj2.
+  ASSERT_OK_AND_ASSIGN(auto partial_res, tracker.FilterToPositive(ds));
+  EXPECT_EQ(partial_res.size(), 2);
+  EXPECT_THAT(partial_res.values<ObjectId>(), ElementsAre(obj0, obj2));
+
+  // Decrement obj0 and obj2 to 0 -> none are positive.
+  ASSERT_OK(tracker.DecrementAndGetLast(partial_res));
+  ASSERT_OK_AND_ASSIGN(auto none_res, tracker.FilterToPositive(ds));
+  EXPECT_EQ(none_res.present_count(), 0);
+}
+
+TEST(InDegreeTrackerTest, FilterToPositivePrimitivesAndNullopts) {
+  InDegreeTracker tracker;
+  auto obj0 = AllocateSingleObject();
+  auto obj1 = AllocateSingleObject();
+  ASSERT_OK(tracker.IncrementAndGetNew(
+      DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({obj0, obj1}))));
+
+  // Empty and unknown slice:
+  ASSERT_OK_AND_ASSIGN(
+      auto res_empty,
+      tracker.FilterToPositive(DataSliceImpl::CreateEmptyAndUnknownType(0)));
+  EXPECT_TRUE(res_empty.is_empty_and_unknown());
+
+  // Primitive slice:
+  auto ds_int = DataSliceImpl::Create(arolla::CreateDenseArray<int>({1, 2, 3}));
+  ASSERT_OK_AND_ASSIGN(auto res_int, tracker.FilterToPositive(ds_int));
+  EXPECT_TRUE(res_int.is_empty_and_unknown());
+
+  // ObjectId slice with nullopt is compressed to a dense slice:
+  auto ds_with_nullopt = DataSliceImpl::Create(
+      arolla::CreateDenseArray<ObjectId>({obj0, std::nullopt, obj1}));
+  ASSERT_OK_AND_ASSIGN(auto res_nullopt,
+                       tracker.FilterToPositive(ds_with_nullopt));
+  EXPECT_EQ(res_nullopt.size(), 2);
+  EXPECT_THAT(res_nullopt.values<ObjectId>(), ElementsAre(obj0, obj1));
+
+  // Mixed slice with primitives and nullopt:
+  auto ds_mixed = DataSliceImpl::Create(arolla::CreateDenseArray<DataItem>(
+      {DataItem(123), DataItem(), DataItem(obj0)}));
+  ASSERT_OK_AND_ASSIGN(auto res_mixed, tracker.FilterToPositive(ds_mixed));
+  EXPECT_EQ(res_mixed.size(), 1);
+  EXPECT_THAT(res_mixed.values<ObjectId>(), ElementsAre(obj0));
+}
+
 }  // namespace
 }  // namespace koladata::internal
