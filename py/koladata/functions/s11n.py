@@ -97,6 +97,7 @@ def loads(x: bytes) -> arolla.AnyQValue:
 
 _EXPERIMENTAL_SAFER_CODECS = frozenset({
     # go/keep-sorted start
+    'arolla.serialization_codecs.DecisionForestV1Proto.extension',
     'arolla.serialization_codecs.DenseArrayV1Proto.extension',
     'arolla.serialization_codecs.DerivedQTypeV1Proto.extension',
     'arolla.serialization_codecs.DictV1Proto.extension',
