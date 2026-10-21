@@ -153,7 +153,7 @@ class ObjectsGroupBy {
 
   // Returns item if all present values in the slice are equal.
   // Returns missing if slice is empty or has different values.
-  std::optional<DataItem> GetItemIfAllEqual(const DataSliceImpl& ds) {
+  static std::optional<DataItem> GetItemIfAllEqual(const DataSliceImpl& ds) {
     if (!ds.is_single_dtype()) {
       return std::nullopt;
     }
@@ -175,6 +175,19 @@ class ObjectsGroupBy {
     });
     return result_item;
   }
+
+  // Returns keys that group `schemas` (ObjectIds, some present) by big
+  // allocation: the schema itself if it belongs to a small allocation, and the
+  // first ObjectId of its allocation otherwise.
+  // NoFollow schemas get keys that differ from the keys of the original
+  // schemas.
+  // Returns `schemas` as is if they are all equal or all from small
+  // allocations.
+  // Note: Unlike big allocations, which share an attribute-name dict at offset
+  // 0 and store schema attributes as regular attributes across the allocation,
+  // each schema in a small allocation stores its attributes in its own dict, so
+  // distinct small-allocation schemas cannot be processed together.
+  static DataSliceImpl SchemaAllocationKeys(const DataSliceImpl& schemas);
 
  private:
   using GroupFn = absl::FunctionRef<absl::Status(

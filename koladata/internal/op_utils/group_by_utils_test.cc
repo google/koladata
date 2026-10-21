@@ -340,5 +340,50 @@ TEST(ObjectsGroupByTest, ByKeysNested) {
                                   ElementsAre(objs[1]), ElementsAre(objs[3])));
 }
 
+TEST(ObjectsGroupByTest, SchemaAllocationKeysSingleSchema) {
+  auto s = AllocateExplicitSchemas(10).ObjectByOffset(3);
+  auto schemas =
+      DataSliceImpl::Create(CreateDenseArray<ObjectId>({s, std::nullopt, s}));
+  EXPECT_THAT(ObjectsGroupBy::SchemaAllocationKeys(schemas),
+              ElementsAre(DataItem(s), DataItem(), DataItem(s)));
+}
+
+TEST(ObjectsGroupByTest, SchemaAllocationKeysSmallAllocations) {
+  AllocationId small_alloc = AllocateExplicitSchemas(2);
+  auto s0 = small_alloc.ObjectByOffset(0);
+  auto s1 = small_alloc.ObjectByOffset(1);
+  ASSERT_TRUE(s0.IsSmallAlloc());
+  auto s2 = AllocateExplicitSchema();
+  auto keys = ObjectsGroupBy::SchemaAllocationKeys(DataSliceImpl::Create(
+      CreateDenseArray<ObjectId>({s0, s1, std::nullopt, s2, s0})));
+  // Schemas from a small allocation get different keys.
+  EXPECT_THAT(keys, ElementsAre(DataItem(s0), DataItem(s1), DataItem(),
+                                DataItem(s2), DataItem(s0)));
+}
+
+TEST(ObjectsGroupByTest, SchemaAllocationKeysBigAllocations) {
+  AllocationId alloc_a = AllocateExplicitSchemas(10);
+  AllocationId alloc_b = AllocateExplicitSchemas(10);
+  ASSERT_FALSE(alloc_a.IsSmall());
+  auto keys = ObjectsGroupBy::SchemaAllocationKeys(DataSliceImpl::Create(
+      CreateDenseArray<ObjectId>({alloc_a.ObjectByOffset(3),
+                                  alloc_b.ObjectByOffset(1),
+                                  alloc_a.ObjectByOffset(5)})));
+  EXPECT_THAT(keys, ElementsAre(DataItem(alloc_a.ObjectByOffset(0)),
+                                DataItem(alloc_b.ObjectByOffset(0)),
+                                DataItem(alloc_a.ObjectByOffset(0))));
+}
+
+TEST(ObjectsGroupByTest, SchemaAllocationKeysNoFollowSchemas) {
+  auto small_schema = AllocateExplicitSchema();
+  auto big_schema = AllocateExplicitSchemas(10).ObjectByOffset(3);
+  auto schemas = DataSliceImpl::Create(CreateDenseArray<ObjectId>(
+      {small_schema, CreateNoFollowWithMainObject(small_schema), big_schema,
+       CreateNoFollowWithMainObject(big_schema)}));
+  auto keys = ObjectsGroupBy::SchemaAllocationKeys(schemas);
+  EXPECT_NE(keys[0], keys[1]);
+  EXPECT_NE(keys[2], keys[3]);
+}
+
 }  // namespace
 }  // namespace koladata::internal

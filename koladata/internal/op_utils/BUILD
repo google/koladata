@@ -116,6 +116,8 @@ cc_test(
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
         "//koladata/internal:object_id",
+        "//koladata/internal:uuid_object",
+        "//koladata/internal/testing:matchers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_absl//absl/status:statusor",

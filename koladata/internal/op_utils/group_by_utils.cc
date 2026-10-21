@@ -144,4 +144,21 @@ absl::Status ObjectsGroupBy::ForEachGroup(
   return absl::OkStatus();
 }
 
+DataSliceImpl ObjectsGroupBy::SchemaAllocationKeys(
+    const DataSliceImpl& schemas) {
+  DCHECK_GT(schemas.present_count(), 0);
+  if (schemas.allocation_ids().empty() ||
+      GetItemIfAllEqual(schemas).has_value()) {
+    return schemas;
+  }
+  const arolla::DenseArray<ObjectId>& ids = schemas.values<ObjectId>();
+  arolla::DenseArrayBuilder<ObjectId> keys(ids.size());
+  ids.ForEachPresent([&](int64_t i, ObjectId schema) {
+    keys.Set(i, schema.IsSmallAlloc() ? schema
+                                      : AllocationId(schema).ObjectByOffset(0));
+  });
+  return DataSliceImpl::CreateWithAllocIds(schemas.allocation_ids(),
+                                           std::move(keys).Build());
+}
+
 }  // namespace koladata::internal
