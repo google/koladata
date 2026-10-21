@@ -229,34 +229,21 @@ class Traverser {
                                              /*is_object_schema=*/false, {},
                                              {});
     }
-    const auto& attr_names = transitions_set.attr_names();
-    arolla::DenseArrayBuilder<DataItem> attr_values(attr_names.size());
-    absl::Status status = absl::OkStatus();
-    attr_names.ForEach(
-        [&](int64_t i, bool presence, const std::string_view attr_name) {
-          DCHECK(presence);
-          if (!status.ok()) {
-            return;
-          }
-          auto transition_or =
-              traverse_helper_.SchemaAttributeTransition(item.item, attr_name);
-          if (!transition_or.ok()) {
-            status = transition_or.status();
-            return;
-          }
-          auto value_or = GetValue(transition_or->item, transition_or->schema);
-          if (!value_or.ok()) {
-            status = value_or.status();
-            return;
-          }
-          attr_values.Set(i, *value_or);
-        });
-    if (!status.ok()) {
-      return status;
+    const auto& attr_names_array = transitions_set.attr_names();
+    std::vector<absl::string_view> attr_names(attr_names_array.size());
+    std::vector<DataItem> attr_values(attr_names_array.size());
+    for (int64_t i = 0; i < attr_names_array.size(); ++i) {
+      DCHECK(attr_names_array.present(i));
+      attr_names[i] = attr_names_array.values[i];
+      ASSIGN_OR_RETURN(
+          auto transition,
+          traverse_helper_.SchemaAttributeTransition(item.item, attr_names[i]));
+      ASSIGN_OR_RETURN(attr_values[i],
+                       GetValue(transition.item, transition.schema));
     }
     return visitor_->VisitorT::VisitSchema(
         item.item, item.schema,
-        /*is_object_schema=*/false, attr_names, std::move(attr_values).Build());
+        /*is_object_schema=*/false, attr_names, attr_values);
   }
 
   absl::Status VisitList(const ItemWithSchema& item, bool is_object,
@@ -304,35 +291,20 @@ class Traverser {
       return visitor_->VisitorT::VisitObject(item.item, item.schema, is_object,
                                              {}, {});
     }
-    const auto& attr_names = transitions_set.attr_names();
-    arolla::DenseArrayBuilder<DataItem> attr_values(attr_names.size());
-
-    absl::Status status = absl::OkStatus();
-    attr_names.ForEach(
-        [&](int64_t i, bool presence, const std::string_view attr_name) {
-          DCHECK(presence);
-          if (!status.ok()) {
-            return;
-          }
-          auto transition_or = traverse_helper_.AttributeTransition(
-              item.item, item.schema, attr_name);
-          if (!transition_or.ok()) {
-            status = transition_or.status();
-            return;
-          }
-          auto value_or = GetValue(transition_or->item, transition_or->schema);
-          if (!value_or.ok()) {
-            status = value_or.status();
-            return;
-          }
-          attr_values.Set(i, *value_or);
-        });
-    if (!status.ok()) {
-      return status;
+    const auto& attr_names_array = transitions_set.attr_names();
+    std::vector<absl::string_view> attr_names(attr_names_array.size());
+    std::vector<DataItem> attr_values(attr_names_array.size());
+    for (int64_t i = 0; i < attr_names_array.size(); ++i) {
+      DCHECK(attr_names_array.present(i));
+      attr_names[i] = attr_names_array.values[i];
+      ASSIGN_OR_RETURN(auto transition,
+                       traverse_helper_.AttributeTransition(
+                           item.item, item.schema, attr_names[i]));
+      ASSIGN_OR_RETURN(attr_values[i],
+                       GetValue(transition.item, transition.schema));
     }
     return visitor_->VisitorT::VisitObject(item.item, item.schema, is_object,
-                                           std::move(attr_names),
-                                           std::move(attr_values).Build());
+                                           attr_names, attr_values);
   }
 
   absl::Status VisitObject(const ItemWithSchema& item) {

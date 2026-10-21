@@ -42,6 +42,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/abstract_visitor.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/testing/deep_op_utils.h"
 #include "koladata/internal/uuid_object.h"
@@ -126,24 +127,25 @@ class NoOpVisitor : AbstractVisitor {
     return absl::OkStatus();
   }
 
-  absl::Status VisitObject(
-      const DataItem& object, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_values) override {
+  absl::Status VisitObject(const DataItem& object, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_values) override {
     DCHECK(object.holds_value<ObjectId>());
-    RETURN_IF_ERROR(CheckValues(DataSliceImpl::Create(attr_values)));
+    RETURN_IF_ERROR(CheckValues(attr_values));
     return absl::OkStatus();
   }
 
-  absl::Status VisitSchema(
-      const DataItem& item, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_schema) override {
+  absl::Status VisitSchema(const DataItem& item, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_schema) override {
     return VisitObject(item, schema, is_object_schema, attr_names, attr_schema);
   }
 
  private:
-  absl::Status CheckValues(const DataSliceImpl& items) {
+  template <typename ItemsT>
+  absl::Status CheckValues(const ItemsT& items) {
     for (size_t i = 0; i < items.size(); ++i) {
       if (items[i] != value_item_) {
         return absl::InvalidArgumentError(absl::StrFormat(
@@ -210,17 +212,17 @@ class ObjectVisitor : AbstractVisitor {
     return absl::OkStatus();
   }
 
-  absl::Status VisitObject(
-      const DataItem& object, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_values) override {
+  absl::Status VisitObject(const DataItem& object, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_values) override {
     return absl::OkStatus();
   }
 
-  absl::Status VisitSchema(
-      const DataItem& item, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_schema) override {
+  absl::Status VisitSchema(const DataItem& item, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_schema) override {
     return absl::OkStatus();
   }
 
@@ -293,20 +295,19 @@ class SaveParentVisitor : AbstractVisitor {
     return absl::OkStatus();
   }
 
-  absl::Status VisitObject(
-      const DataItem& object, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_values) override {
+  absl::Status VisitObject(const DataItem& object, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_values) override {
     DCHECK(object.holds_value<ObjectId>());
-    RETURN_IF_ERROR(
-        CheckValues(object, schema, DataSliceImpl::Create(attr_values)));
+    RETURN_IF_ERROR(CheckValues(object, schema, attr_values));
     return absl::OkStatus();
   }
 
-  absl::Status VisitSchema(
-      const DataItem& item, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_schema) override {
+  absl::Status VisitSchema(const DataItem& item, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_schema) override {
     if (!is_object_schema) {
       // We can reach same schema from different parents, so no check is needed.
       return absl::OkStatus();
@@ -315,17 +316,19 @@ class SaveParentVisitor : AbstractVisitor {
   }
 
  private:
+  template <typename ItemsT>
   absl::Status CheckValues(const DataItem& from_item,
                            const DataItem& from_schema,
-                           const DataSliceImpl& items) {
+                           const ItemsT& items) {
     for (size_t i = 0; i < items.size(); ++i) {
-      if (!items[i].holds_value<int64_t>()) {
+      const DataItem& item = items[i];
+      if (!item.holds_value<int64_t>()) {
         continue;
       }
-      int64_t offset = items[i].value<int64_t>();
+      int64_t offset = item.value<int64_t>();
       if (offset < 0 || offset >= previsited_parents_.size()) {
         return absl::InvalidArgumentError(absl::StrFormat(
-            "expected result of GetValue call, got %v", items[i]));
+            "expected result of GetValue call, got %v", item));
       }
       if (previsited_parents_[offset].first != from_item ||
           previsited_parents_[offset].second != from_schema) {
@@ -392,17 +395,17 @@ class SaveTransitionKeysVisitor : AbstractVisitor {
     return absl::OkStatus();
   }
 
-  absl::Status VisitObject(
-      const DataItem& object, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_values) override {
+  absl::Status VisitObject(const DataItem& object, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_values) override {
     return absl::OkStatus();
   }
 
-  absl::Status VisitSchema(
-      const DataItem& item, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_schema) override {
+  absl::Status VisitSchema(const DataItem& item, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_schema) override {
     return absl::OkStatus();
   }
 

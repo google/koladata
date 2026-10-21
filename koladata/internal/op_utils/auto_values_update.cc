@@ -34,15 +34,14 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/ops/dense_ops.h"
-#include "arolla/memory/optional_value.h"
+#include "absl/types/span.h"
 #include "arolla/util/text.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/abstract_visitor.h"
 #include "koladata/internal/op_utils/traverser.h"
 #include "koladata/internal/schema_attrs.h"
 
@@ -158,11 +157,10 @@ class AutoValuesVisitor : public AbstractVisitor {
   // Process object's attributes independently.
   // Expected that schema is visited before object. And if it is a metadata
   // object, it's attributes are visited before the object itself.
-  absl::Status VisitObject(
-      const DataItem& object, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_values) override {
-    auto status = absl::OkStatus();
+  absl::Status VisitObject(const DataItem& object, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_values) override {
     if (!schema.holds_value<ObjectId>()) {
       return absl::OkStatus();
     }
@@ -171,40 +169,29 @@ class AutoValuesVisitor : public AbstractVisitor {
         it != schema_metadata_.end()) {
       schema_metadata = it->second;
     }
-    RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
-        [&](int64_t i, absl::string_view attr_name,
-            arolla::OptionalValue<DataItem> attr_value) {
-          if (!status.ok() || !attr_value.present) {
-            return;
-          }
-          status = VisitObjectAttr(object, schema, schema_metadata, attr_name,
-                                   attr_value.value);
-        },
-        attr_names, attr_values));
-    return status;
+    DCHECK_EQ(attr_names.size(), attr_values.size());
+    for (size_t i = 0; i < attr_names.size(); ++i) {
+      RETURN_IF_ERROR(VisitObjectAttr(object, schema, schema_metadata,
+                                      attr_names[i], attr_values[i]));
+    }
+    return absl::OkStatus();
   }
 
   // Process schema's attributes independently.
   // Expected that schema's metadata, if present, is visited before the schema.
-  absl::Status VisitSchema(
-      const DataItem& item, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_schema) override {
+  absl::Status VisitSchema(const DataItem& item, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_schema) override {
     if (!item.holds_value<ObjectId>()) {
       return absl::InvalidArgumentError(
           absl::StrCat("schema should be an ObjectId: ", item));
     }
-    auto status = absl::OkStatus();
-    RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
-        [&](int64_t i, absl::string_view attr_name,
-            arolla::OptionalValue<DataItem> attr) {
-          if (!status.ok()) {
-            return;
-          }
-          status = VisitSchemaAttr(item, attr_name, attr.value);
-        },
-        attr_names, attr_schema));
-    return status;
+    DCHECK_EQ(attr_names.size(), attr_schema.size());
+    for (size_t i = 0; i < attr_names.size(); ++i) {
+      RETURN_IF_ERROR(VisitSchemaAttr(item, attr_names[i], attr_schema[i]));
+    }
+    return absl::OkStatus();
   }
 
   // All the ObjectIds stay intact.

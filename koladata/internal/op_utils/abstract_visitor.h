@@ -19,8 +19,8 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/util/text.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/op_utils/traverse_helper.h"
@@ -171,8 +171,8 @@ class AbstractVisitor {
   //     corresponding attr_names.
   virtual absl::Status VisitObject(
       const DataItem& object, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_values) = 0;
+      absl::Span<const absl::string_view> attr_names,
+      absl::Span<const DataItem> attr_values) = 0;
 
   // Called for each reachable schema.
   // Args:
@@ -184,8 +184,8 @@ class AbstractVisitor {
   //     corresponding attr_names.
   virtual absl::Status VisitSchema(
       const DataItem& item, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_schema) = 0;
+      absl::Span<const absl::string_view> attr_names,
+      absl::Span<const DataItem> attr_schema) = 0;
 };
 
 // Returns the same token (the first present ObjectId of `ds`) for all

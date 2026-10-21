@@ -38,10 +38,8 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/text.h"
-#include "arolla/util/view_types.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/extract_utils.h"
@@ -50,6 +48,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/abstract_visitor.h"
 #include "koladata/internal/op_utils/traverser.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/schema_utils.h"
@@ -66,8 +65,6 @@ using arolla::python::PyObjectPtr;
 using internal::DataItem;
 using internal::DataSliceImpl;
 using internal::ObjectId;
-
-using OptionalText = arolla::OptionalValue<arolla::view_type_t<arolla::Text>>;
 
 absl::StatusOr<PyObjectPtr> WrapDataSliceWithErrorCheck(DataSlice&& ds) {
   PyObjectPtr result = PyObjectPtr::Own(WrapPyDataSlice(std::move(ds)));
@@ -561,35 +558,35 @@ class ToPyVisitor : internal::AbstractVisitor {
     }
     // The target is a dataclass or a SimpleNamespace, call VisitObject.
     DCHECK(output_class_descriptor_.has_value());
-    arolla::DenseArrayBuilder<DataItem> attr_values_builder(keys.size());
-
     for (size_t i = 0; i < keys.size(); ++i) {
       if (!keys[i].holds_value<arolla::Text>()) {
         return absl::InvalidArgumentError(
             "dict keys must be strings when converting dict to dataclass");
       }
-      attr_values_builder.Set(i, values[i]);
     }
-    return VisitObject(dict, schema, is_object_schema,
-                       keys.values<arolla::Text>(),
-                       std::move(attr_values_builder).Build());
+    std::vector<absl::string_view> attr_names(keys.size());
+    std::vector<DataItem> attr_values(keys.size());
+    if (keys.size() > 0) {
+      const auto& keys_text = keys.values<arolla::Text>();
+      for (size_t i = 0; i < keys.size(); ++i) {
+        attr_names[i] = keys_text.values[i];
+        attr_values[i] = values[i];
+      }
+    }
+    return VisitObject(dict, schema, is_object_schema, attr_names, attr_values);
   }
 
   // Sets the attributes of the given Python object.
   absl::Status SetObjectAttributes(
-      PyObjectPtr object, const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_values) {
+      PyObjectPtr object, absl::Span<const absl::string_view> attr_names,
+      absl::Span<const DataItem> attr_values) {
+    DCHECK_EQ(attr_names.size(), attr_values.size());
     for (size_t i = 0; i < attr_names.size(); ++i) {
-      const OptionalText& attr_name = attr_names[i];
-      const arolla::OptionalValue<DataItem>& attr_value = attr_values[i];
-      if (!attr_value.present || !attr_name.present) {
-        continue;
-      }
       ASSIGN_OR_RETURN(PyObjectPtr py_value,
-                       GetConvertedPyObjectOrCreatePrimitive(attr_value.value,
+                       GetConvertedPyObjectOrCreatePrimitive(attr_values[i],
                                                              std::nullopt));
       ASSIGN_OR_RETURN(PyObjectPtr attr_name_py,
-                       dataclasses_util_.GetPyStr(attr_name.value));
+                       dataclasses_util_.GetPyStr(attr_names[i]));
       if (PyObject_SetAttr(object.get(), attr_name_py.get(), py_value.get()) <
           0) {
         return arolla::python::StatusWithRawPyErr(
@@ -633,10 +630,10 @@ class ToPyVisitor : internal::AbstractVisitor {
     return attr_class_it->second;
   }
 
-  absl::Status VisitObject(
-      const DataItem& object, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_values) final {
+  absl::Status VisitObject(const DataItem& object, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_values) final {
     DCHECK_EQ(attr_names.size(), attr_values.size());
 
     if (ShouldNotBeConverted(object)) {
@@ -668,25 +665,21 @@ class ToPyVisitor : internal::AbstractVisitor {
     std::vector<PyObjectPtr> attr_values_vec;
     attr_values_vec.reserve(attr_names.size());
     for (size_t i = 0; i < attr_names.size(); ++i) {
-      const OptionalText& attr_name = attr_names[i];
-      if (!attr_name.present) {
-        continue;
-      }
-
-      const arolla::OptionalValue<DataItem>& attr_value = attr_values[i];
+      absl::string_view attr_name = attr_names[i];
+      const DataItem& attr_value = attr_values[i];
 
       std::optional<DataClassesUtil::FieldTypeDescriptor> attr_class;
       if (!result_class_is_simple_namespace) {
-        ASSIGN_OR_RETURN(attr_class, GetAttrClass(object, attr_name.value));
+        ASSIGN_OR_RETURN(attr_class, GetAttrClass(object, attr_name));
         if (!attr_class.has_value()) {
           continue;  // no field with this name in the class
         }
-        if (!attr_value.present || !attr_value.value.has_value()) {
+        if (!attr_value.has_value()) {
           if (!attr_class->is_optional) {
             return absl::InvalidArgumentError(absl::StrFormat(
-                "field cannot have missing values: %s", attr_name.value));
+                "field cannot have missing values: %s", attr_name));
           } else {
-            attr_names_vec.emplace_back(attr_name.value);
+            attr_names_vec.emplace_back(attr_name);
             attr_values_vec.emplace_back(PyObjectPtr::NewRef(Py_None));
             continue;
           }
@@ -694,8 +687,8 @@ class ToPyVisitor : internal::AbstractVisitor {
       }
       ASSIGN_OR_RETURN(PyObjectPtr py_value,
                        GetConvertedPyObjectOrCreatePrimitive(
-                           attr_value.value, std::move(attr_class)));
-      attr_names_vec.push_back(attr_name.value);
+                           attr_value, std::move(attr_class)));
+      attr_names_vec.push_back(attr_name);
       attr_values_vec.push_back(std::move(py_value));
     }
 
@@ -706,10 +699,10 @@ class ToPyVisitor : internal::AbstractVisitor {
     return absl::OkStatus();
   }
 
-  absl::Status VisitSchema(
-      const DataItem& item, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_schema) final {
+  absl::Status VisitSchema(const DataItem& item, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_schema) final {
     // Visitor has to implement this method, but we don't need it, so leave it
     // as a no-op.
     return absl::OkStatus();
@@ -788,8 +781,8 @@ class ToPyVisitor : internal::AbstractVisitor {
 
   absl::Status CreateDictFromObject(
       const DataItem& object, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_values) {
+      absl::Span<const absl::string_view> attr_names,
+      absl::Span<const DataItem> attr_values) {
     ASSIGN_OR_RETURN(PyObjectPtr result, GetConvertedPyObject(object));
     if (output_class_descriptor_.has_value()) {
       return absl::InvalidArgumentError(
@@ -797,16 +790,12 @@ class ToPyVisitor : internal::AbstractVisitor {
     }
 
     // Sort the attribute names to ensure that the order is deterministic.
-    std::vector<absl::string_view> attr_names_vec;
-    attr_names_vec.reserve(attr_names.size());
+    std::vector<absl::string_view> attr_names_vec(attr_names.begin(),
+                                                  attr_names.end());
     absl::flat_hash_map<absl::string_view, size_t> attr_name_to_index;
+    attr_name_to_index.reserve(attr_names.size());
     for (size_t i = 0; i < attr_names.size(); ++i) {
-      const OptionalText& attr_name = attr_names[i];
-      if (!attr_name.present) {
-        continue;
-      }
-      attr_name_to_index[attr_name.value] = i;
-      attr_names_vec.push_back(attr_name.value);
+      attr_name_to_index[attr_names[i]] = i;
     }
     // Sort the attribute names to ensure that the keys order in the Python
     // dict is deterministic.
@@ -814,14 +803,12 @@ class ToPyVisitor : internal::AbstractVisitor {
 
     for (const absl::string_view& attr_name_str : attr_names_vec) {
       const size_t attr_index = attr_name_to_index[attr_name_str];
-
-      const arolla::OptionalValue<DataItem>& attr_value =
-          attr_values[attr_index];
       ASSIGN_OR_RETURN(PyObjectPtr attr_name_py,
                        dataclasses_util_.GetPyStr(attr_name_str));
-      ASSIGN_OR_RETURN(PyObjectPtr py_value,
-                       GetConvertedPyObjectOrCreatePrimitive(attr_value.value,
-                                                             std::nullopt));
+      ASSIGN_OR_RETURN(
+          PyObjectPtr py_value,
+          GetConvertedPyObjectOrCreatePrimitive(attr_values[attr_index],
+                                                std::nullopt));
       if (py_value.get() != Py_None || include_missing_attrs_) {
         if (PyDict_SetItem(result.get(), attr_name_py.get(), py_value.get()) <
             0) {

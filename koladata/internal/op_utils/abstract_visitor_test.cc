@@ -21,9 +21,10 @@
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/qtype/qtype_traits.h"
-#include "arolla/util/text.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
@@ -56,17 +57,17 @@ class NoOpVisitor : public AbstractVisitor {
     return absl::OkStatus();
   }
 
-  absl::Status VisitObject(
-      const DataItem& object, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_values) override {
+  absl::Status VisitObject(const DataItem& object, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_values) override {
     return absl::OkStatus();
   }
 
-  absl::Status VisitSchema(
-      const DataItem& item, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_schema) override {
+  absl::Status VisitSchema(const DataItem& item, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_schema) override {
     return absl::OkStatus();
   }
 };

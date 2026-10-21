@@ -30,6 +30,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/text.h"
 #include "koladata/internal/data_bag.h"
@@ -37,6 +38,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/abstract_visitor.h"
 #include "koladata/internal/op_utils/extract.h"
 #include "koladata/internal/op_utils/traverser.h"
 #include "koladata/internal/schema_attrs.h"
@@ -103,10 +105,10 @@ class DerivedIdVisitor : public AbstractVisitor {
     return item;
   }
 
-  absl::Status VisitSchema(
-      const DataItem& item, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_schemas) override {
+  absl::Status VisitSchema(const DataItem& item, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_schemas) override {
     if (!item.holds_value<ObjectId>()) {
       return absl::OkStatus();
     }
@@ -120,17 +122,15 @@ class DerivedIdVisitor : public AbstractVisitor {
     std::optional<DataItem> dict_keys_schema;
     std::optional<DataItem> dict_values_schema;
 
+    DCHECK_EQ(attr_names.size(), attr_schemas.size());
     for (size_t i = 0; i < attr_names.size(); ++i) {
-      if (!attr_names.present(i) || !attr_schemas.present(i)) {
-        continue;
-      }
-      absl::string_view attr_name = attr_names[i].value;
+      absl::string_view attr_name = attr_names[i];
       if (attr_name == schema::kListItemsSchemaAttr) {
-        list_items_schema = attr_schemas.values[i];
+        list_items_schema = attr_schemas[i];
       } else if (attr_name == schema::kDictKeysSchemaAttr) {
-        dict_keys_schema = attr_schemas.values[i];
+        dict_keys_schema = attr_schemas[i];
       } else if (attr_name == schema::kDictValuesSchemaAttr) {
-        dict_values_schema = attr_schemas.values[i];
+        dict_values_schema = attr_schemas[i];
       }
     }
 
@@ -157,10 +157,9 @@ class DerivedIdVisitor : public AbstractVisitor {
     return absl::OkStatus();
   }
 
-  absl::Status VisitObject(
-      const DataItem&, const DataItem&, bool,
-      const arolla::DenseArray<arolla::Text>&,
-      const arolla::DenseArray<DataItem>&) override {
+  absl::Status VisitObject(const DataItem&, const DataItem&, bool,
+                           absl::Span<const absl::string_view>,
+                           absl::Span<const DataItem>) override {
     return absl::OkStatus();
   }
 
@@ -359,39 +358,36 @@ class DeepCloneVisitor : AbstractVisitor {
     return absl::OkStatus();
   }
 
-  absl::Status VisitObject(
-      const DataItem& object, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_values) override {
+  absl::Status VisitObject(const DataItem& object, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_values) override {
     DCHECK(object.holds_value<ObjectId>());
     ASSIGN_OR_RETURN(auto new_object, GetValue(object, schema));
     if (is_object_schema) {
       RETURN_IF_ERROR(SetSchemaAttr(new_object, schema));
     }
     DCHECK_EQ(attr_names.size(), attr_values.size());
-    DCHECK(attr_names.IsAllPresent());
     for (size_t i = 0; i < attr_names.size(); ++i) {
-      if (attr_values.present(i)) {
-        auto attr_name = attr_names[i].value;
-        const DataItem& value = attr_values[i].value;
-        if (schema == schema::kSchema) {
-          if (object != new_object && attr_name == schema::kSchemaNameAttr) {
-            continue;
-          }
-          RETURN_IF_ERROR(
-              new_databag_->SetSchemaAttr(new_object, attr_name, value));
-        } else {
-          RETURN_IF_ERROR(new_databag_->SetAttr(new_object, attr_name, value));
+      absl::string_view attr_name = attr_names[i];
+      const DataItem& value = attr_values[i];
+      if (schema == schema::kSchema) {
+        if (object != new_object && attr_name == schema::kSchemaNameAttr) {
+          continue;
         }
+        RETURN_IF_ERROR(
+            new_databag_->SetSchemaAttr(new_object, attr_name, value));
+      } else {
+        RETURN_IF_ERROR(new_databag_->SetAttr(new_object, attr_name, value));
       }
     }
     return absl::OkStatus();
   }
 
-  absl::Status VisitSchema(
-      const DataItem& item, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_schema) override {
+  absl::Status VisitSchema(const DataItem& item, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_schema) override {
     return VisitObject(item, schema, is_object_schema, attr_names, attr_schema);
   }
 

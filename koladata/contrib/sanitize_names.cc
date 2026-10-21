@@ -33,14 +33,14 @@
 #include "absl/strings/ascii.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/util/text.h"
+#include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/abstract_visitor.h"
 #include "koladata/internal/op_utils/traverser.h"
 #include "koladata/internal/schema_attrs.h"
 
@@ -93,13 +93,13 @@ std::string SanitizeName(absl::string_view name) {
   return new_name;
 }
 
-std::vector<int64_t> SortedIndices(const arolla::DenseArray<arolla::Text>& s) {
+std::vector<int64_t> SortedIndices(absl::Span<const absl::string_view> s) {
   // Return indices of s, so that if i < j, s[i] <= s[j].
   std::vector<int64_t> indices(s.size());
   std::iota(indices.begin(), indices.end(), int64_t{0});
 
   std::sort(indices.begin(), indices.end(),
-            [&](int64_t i, int64_t j) { return s[i].value < s[j].value; });
+            [&](int64_t i, int64_t j) { return s[i] < s[j]; });
   return indices;
 }
 
@@ -149,41 +149,36 @@ class SanitizeNamesVisitor final : public AbstractVisitor {
     return absl::OkStatus();
   }
 
-  absl::Status VisitObject(
-      const DataItem& object, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_values) override {
+  absl::Status VisitObject(const DataItem& object, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_values) override {
     DCHECK(object.holds_value<ObjectId>());
     if (is_object_schema) {
       RETURN_IF_ERROR(SetSchemaAttr(object, schema));
     }
-    DCHECK(attr_names.size() == attr_values.size());
-    DCHECK(attr_names.IsAllPresent());
-    SetAllValidNamesAsUsed(schema, attr_names, attr_values);
+    DCHECK_EQ(attr_names.size(), attr_values.size());
+    SetAllValidNamesAsUsed(schema, attr_names);
     // When we have collisions, we add suffixes. We sort the attr_names so we
     // can assign suffixes deterministically.
     const auto indices = SortedIndices(attr_names);
     for (int64_t i : indices) {
-      if (attr_values.present(i)) {
-        auto attr_name = attr_names[i].value;
-        std::string sanitized_name = Sanitize(schema, attr_name);
-        const DataItem& value = attr_values[i].value;
-        RETURN_IF_ERROR(new_databag_->SetAttr(object, sanitized_name, value));
-      }
+      std::string sanitized_name = Sanitize(schema, attr_names[i]);
+      RETURN_IF_ERROR(
+          new_databag_->SetAttr(object, sanitized_name, attr_values[i]));
     }
     return absl::OkStatus();
   }
 
-  absl::Status VisitSchema(
-      const DataItem& item, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_schema) override {
+  absl::Status VisitSchema(const DataItem& item, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_schema) override {
     DCHECK(item.holds_value<ObjectId>());
     if (is_object_schema) {
       RETURN_IF_ERROR(SetSchemaAttr(item, schema));
     }
-    DCHECK(attr_names.size() == attr_schema.size());
-    DCHECK(attr_names.IsAllPresent());
+    DCHECK_EQ(attr_names.size(), attr_schema.size());
     // Use the schema object itself (item) as the sanitization context key,
     // NOT the schema parameter (which is always kSchema for schema
     // objects). This ensures:
@@ -191,18 +186,14 @@ class SanitizeNamesVisitor final : public AbstractVisitor {
     // 2. Consistency with VisitObject, where data attrs are sanitized
     //    under the per-object schema ID — which is the same as `item`
     //    here.
-    SetAllValidNamesAsUsed(item, attr_names, attr_schema);
+    SetAllValidNamesAsUsed(item, attr_names);
     // When we have collisions, we add suffixes. We sort the attr_names so we
     // can assign suffixes deterministically.
     const auto indices = SortedIndices(attr_names);
     for (int64_t i : indices) {
-      if (attr_schema.present(i)) {
-        auto attr_name = attr_names[i].value;
-        std::string sanitized_name = Sanitize(item, attr_name);
-        const DataItem& value = attr_schema[i].value;
-        RETURN_IF_ERROR(
-            new_databag_->SetSchemaAttr(item, sanitized_name, value));
-      }
+      std::string sanitized_name = Sanitize(item, attr_names[i]);
+      RETURN_IF_ERROR(
+          new_databag_->SetSchemaAttr(item, sanitized_name, attr_schema[i]));
     }
     return absl::OkStatus();
   }
@@ -212,18 +203,16 @@ class SanitizeNamesVisitor final : public AbstractVisitor {
     return new_databag_->SetAttr(item, schema::kSchemaAttr, schema);
   }
 
-  void SetAllValidNamesAsUsed(
-      const DataItem& schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_schema) {
+  void SetAllValidNamesAsUsed(const DataItem& schema,
+                              absl::Span<const absl::string_view> attr_names) {
     auto& used = per_schema_used_names_[schema];
     auto& mapped = per_schema_mapped_names_[schema];
-    attr_names.ForEachPresent([&](int64_t offset, std::string_view attr_name) {
+    for (absl::string_view attr_name : attr_names) {
       if (IsValid(attr_name)) {
         used.emplace(attr_name);
         mapped[attr_name] = attr_name;
       }
-    });
+    }
   }
 
   // Sanitize a name within the context of a particular schema.

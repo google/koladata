@@ -15,7 +15,6 @@
 #include "koladata/internal/op_utils/deep_uuid.h"
 
 #include <cstddef>
-#include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -30,6 +29,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/text.h"
@@ -38,6 +38,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/abstract_visitor.h"
 #include "koladata/internal/op_utils/traverser.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/uuid_object.h"
@@ -135,67 +136,51 @@ class DeepUuidVisitor : AbstractVisitor {
     return absl::OkStatus();
   }
 
-  absl::Status VisitObject(
-      const DataItem& object, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_values) override {
+  absl::Status VisitObject(const DataItem& object, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_values) override {
     DCHECK(object.holds_value<ObjectId>());
-    std::vector<std::string_view> attr_names_view;
-    attr_names_view.reserve(attr_names.size());
-    for (int64_t i = 0; i < attr_names.size(); ++i) {
-      attr_names_view.push_back(attr_names[i].value);
-    }
     std::vector<std::reference_wrapper<const DataItem>> attr_values_view;
     attr_values_view.reserve(attr_values.size());
-    auto status = absl::OkStatus();
-    attr_values.ForEach([&](size_t id, bool presence, const DataItem& item) {
+    for (const DataItem& item : attr_values) {
       if (untracked_objects_.contains(item)) {
         if (item == object) {
           attr_values_view.push_back(std::cref(self_reference_));
-          return;
+          continue;
         }
-        status = absl::InvalidArgumentError(
+        return absl::InvalidArgumentError(
             absl::StrFormat("%v contains untracked attributes. Note: "
                             "cyclic attributes are not allowed in deep_uuid",
                             object.value<ObjectId>()));
       } else {
         attr_values_view.push_back(std::cref(item));
       }
-    });
-    if (!status.ok()) {
-      return status;
     }
-    DataItem uuid =
-        CreateUuidFromFields(seed_, attr_names_view, attr_values_view);
+    DataItem uuid = CreateUuidFromFields(seed_, attr_names, attr_values_view);
     object_tracker_.emplace(object, std::move(uuid));
     untracked_objects_.erase(object);
     return absl::OkStatus();
   }
 
-  absl::Status VisitSchema(
-      const DataItem& item, const DataItem& schema, bool is_object_schema,
-      const arolla::DenseArray<arolla::Text>& attr_names,
-      const arolla::DenseArray<DataItem>& attr_schema) override {
-    std::vector<std::string_view> attr_names_view;
-    attr_names_view.reserve(attr_names.size());
-    for (int64_t i = 0; i < attr_names.size(); ++i) {
-      attr_names_view.push_back(attr_names[i].value);
-    }
+  absl::Status VisitSchema(const DataItem& item, const DataItem& schema,
+                           bool is_object_schema,
+                           absl::Span<const absl::string_view> attr_names,
+                           absl::Span<const DataItem> attr_schema) override {
     std::vector<std::reference_wrapper<const DataItem>> attr_schemas_view;
     attr_schemas_view.reserve(attr_schema.size());
     bool has_untracked_objects = false;
-    attr_schema.ForEach(
-        [&](size_t id, bool presence, const DataItem& attr_item) {
-          if (untracked_objects_.contains(attr_item)) {
-            if (attr_item == item) {
-              attr_schemas_view.push_back(std::cref(self_reference_));
-              return;
-            }
-            has_untracked_objects = true;
-          } else {
-            attr_schemas_view.push_back(std::cref(attr_item));
-          }
-        });
+    for (const DataItem& attr_item : attr_schema) {
+      if (untracked_objects_.contains(attr_item)) {
+        if (attr_item == item) {
+          attr_schemas_view.push_back(std::cref(self_reference_));
+          continue;
+        }
+        has_untracked_objects = true;
+      } else {
+        attr_schemas_view.push_back(std::cref(attr_item));
+      }
+    }
     if (has_untracked_objects) {
       // Uuid for schema is not computed, but we don't return an error unless
       // the schema's uuid is included in the result.
@@ -203,7 +188,7 @@ class DeepUuidVisitor : AbstractVisitor {
       return absl::OkStatus();
     }
     DataItem uuid =
-        CreateSchemaUuidFromFields(seed_, attr_names_view, attr_schemas_view);
+        CreateSchemaUuidFromFields(seed_, attr_names, attr_schemas_view);
     object_tracker_.emplace(item, std::move(uuid));
     untracked_objects_.erase(item);
     return absl::OkStatus();
