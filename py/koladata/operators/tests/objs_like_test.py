@@ -217,6 +217,10 @@ class ObjsLikeTest(absltest.TestCase):
     ):
       _ = x.non_existent
 
+  def test_schema_arg(self):
+    with self.assertRaisesRegex(ValueError, 'please use new'):
+      kd.objs.like(ds(1), a=1, b='a', schema=schema_constants.INT32)
+
   def test_fails_without_shape(self):
     with self.assertRaisesRegex(
         TypeError,

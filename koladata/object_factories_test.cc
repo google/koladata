@@ -1220,22 +1220,27 @@ TEST(ObjectCreatorTest, DatabagAdoption) {
   }
 }
 
-TEST(ObjectCreatorTest, InvalidSchemaArg) {
+TEST(ObjectCreatorTest, SchemaAttrAllowed) {
   auto db = DataBag::EmptyMutable();
   auto ds_a = test::DataItem(42);
   auto entity_schema = test::Schema(schema::kObject);
-  EXPECT_THAT(
-      ObjectCreator::FromAttrs(db, {"a", "schema"}, {ds_a, entity_schema}),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("please use new_...() instead of obj_...()")));
-  EXPECT_THAT(ObjectCreator::Shaped(db, DataSlice::JaggedShape::Empty(),
-                                    {"a", "schema"}, {ds_a, entity_schema}),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("please use new_...() instead of obj_...()")));
-  EXPECT_THAT(ObjectCreator::Like(db, test::DataItem(42), {"a", "schema"},
-                                  {ds_a, entity_schema}),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("please use new_...() instead of obj_...()")));
+  ASSERT_OK_AND_ASSIGN(
+      auto obj,
+      ObjectCreator::FromAttrs(db, {"a", "schema"}, {ds_a, entity_schema}));
+  EXPECT_THAT(obj.GetAttr("schema"),
+              IsOkAndHolds(IsEquivalentTo(entity_schema.WithBag(db))));
+  ASSERT_OK_AND_ASSIGN(
+      auto shaped_obj,
+      ObjectCreator::Shaped(db, DataSlice::JaggedShape::Empty(),
+                            {"a", "schema"}, {ds_a, entity_schema}));
+  EXPECT_THAT(shaped_obj.GetAttr("schema"),
+              IsOkAndHolds(IsEquivalentTo(entity_schema.WithBag(db))));
+  ASSERT_OK_AND_ASSIGN(
+      auto like_obj,
+      ObjectCreator::Like(db, test::DataItem(42), {"a", "schema"},
+                          {ds_a, entity_schema}));
+  EXPECT_THAT(like_obj.GetAttr("schema"),
+              IsOkAndHolds(IsEquivalentTo(entity_schema.WithBag(db))));
 }
 
 TEST(ObjectCreatorTest, PrimitiveToObject) {

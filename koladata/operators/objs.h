@@ -15,12 +15,16 @@
 #ifndef KOLADATA_OPERATORS_OBJS_H_
 #define KOLADATA_OPERATORS_OBJS_H_
 
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
 
 namespace koladata::ops {
+
+absl::Status VerifyNoSchemaArg(absl::Span<const absl::string_view> attr_names);
 
 // kd.objs.new.
 class ObjOperatorFamily final : public arolla::OperatorFamily {

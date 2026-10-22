@@ -49,6 +49,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
+#include "koladata/operators/objs.h"
 #include "koladata/operators/schema.h"
 #include "koladata/proto/from_proto.h"
 #include "google/protobuf/message.h"
@@ -204,6 +205,7 @@ struct ObjectCreatorHelper {
     // argument and will cause an Error to be returned.
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
     DCHECK(!overwrite_schema) << "unused and not filled";
+    RETURN_IF_ERROR(ops::VerifyNoSchemaArg(attr_names));
     // Add `db` to each DataSlice value to avoid double adoption work.
     auto adopted_values = ManyWithBag(values, db);
     return ObjectCreator::FromAttrs(db, attr_names, adopted_values, itemid);
@@ -220,6 +222,7 @@ struct ObjectCreatorHelper {
     // argument and will cause an Error to be returned.
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
     DCHECK(!overwrite_schema) << "unused and not filled";
+    RETURN_IF_ERROR(ops::VerifyNoSchemaArg(attr_names));
     // Add `db` to each DataSlice value to avoid double adoption work.
     auto adopted_values = ManyWithBag(values, db);
     return ObjectCreator::Shaped(db, std::move(shape), attr_names, values,
@@ -237,6 +240,7 @@ struct ObjectCreatorHelper {
     // argument and will cause an Error to be returned.
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
     DCHECK(!overwrite_schema) << "unused and not filled";
+    RETURN_IF_ERROR(ops::VerifyNoSchemaArg(attr_names));
     // Add `db` to each DataSlice value to avoid double adoption work.
     auto adopted_values = ManyWithBag(values, db);
     return ObjectCreator::Like(db, shape_and_mask_from, attr_names, values,

@@ -18,6 +18,7 @@
 #include <optional>
 #include <vector>
 
+#include "absl/algorithm/container.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
@@ -44,6 +45,15 @@
 #include "koladata/operators/utils.h"
 
 namespace koladata::ops {
+
+absl::Status VerifyNoSchemaArg(absl::Span<const absl::string_view> attr_names) {
+  if (absl::c_find(attr_names, "schema") != attr_names.end()) {
+    return absl::InvalidArgumentError(
+        "please use new_...() instead of obj_...() to create items with a given"
+        " schema");
+  }
+  return absl::OkStatus();
+}
 
 class ObjOperator final : public arolla::QExprOperator {
  public:
@@ -86,6 +96,7 @@ class ObjOperator final : public arolla::QExprOperator {
             ASSIGN_OR_RETURN(result, ObjectCreator::ConvertWithAdoption(
                                          result_db, *first_arg));
           } else {
+            RETURN_IF_ERROR(VerifyNoSchemaArg(attr_names));
             ASSIGN_OR_RETURN(result,
                              ObjectCreator::FromAttrs(result_db, attr_names,
                                                       attr_values, item_id));
@@ -118,6 +129,7 @@ class ObjShapedOperator : public arolla::QExprOperator {
           }
           const std::vector<absl::string_view> attr_names =
               GetFieldNames(named_tuple_slot);
+          RETURN_IF_ERROR(VerifyNoSchemaArg(attr_names));
           const std::vector<DataSlice> attr_values =
               GetValueDataSlices(named_tuple_slot, frame);
           DataBagPtr result_db = DataBag::EmptyMutable();
@@ -152,6 +164,7 @@ class ObjLikeOperator : public arolla::QExprOperator {
           }
           const std::vector<absl::string_view> attr_names =
               GetFieldNames(named_tuple_slot);
+          RETURN_IF_ERROR(VerifyNoSchemaArg(attr_names));
           const std::vector<DataSlice> attr_values =
               GetValueDataSlices(named_tuple_slot, frame);
           DataBagPtr result_db = DataBag::EmptyMutable();

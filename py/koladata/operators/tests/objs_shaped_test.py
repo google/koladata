@@ -96,6 +96,12 @@ class ObjsShapedTest(absltest.TestCase):
     ):
       _ = x.non_existent
 
+  def test_schema_arg(self):
+    with self.assertRaisesRegex(ValueError, 'please use new'):
+      kd.objs.shaped(
+          jagged_shape.create_shape(), a=1, b='a', schema=schema_constants.INT32
+      )
+
   def test_fails_without_shape(self):
     with self.assertRaisesRegex(
         TypeError, "missing 1 required positional argument: 'shape'"

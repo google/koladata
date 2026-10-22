@@ -22,7 +22,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/algorithm/container.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "arolla/util/status_macros_backport.h"
@@ -67,15 +66,6 @@ using ::koladata::internal::AllocationId;
 using ::koladata::internal::DataItem;
 using ::koladata::internal::DataSliceImpl;
 using ::koladata::internal::ObjectId;
-
-absl::Status VerifyNoSchemaArg(absl::Span<const absl::string_view> attr_names) {
-  if (absl::c_find(attr_names, "schema") != attr_names.end()) {
-    return absl::InvalidArgumentError(
-        "please use new_...() instead of obj_...() to create items with a given"
-        " schema");
-  }
-  return absl::OkStatus();
-}
 
 constexpr absl::string_view kChildListGroupIdSeed = "__nested_list_child__";
 
@@ -560,7 +550,6 @@ absl::StatusOr<DataSlice> CreateObjectsImpl(
     const CreateObjectsFn& create_objects_fn,
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> values) {
-  RETURN_IF_ERROR(VerifyNoSchemaArg(attr_names));
   ASSIGN_OR_RETURN(DataSlice res, create_objects_fn());
   RETURN_IF_ERROR(res.VisitImpl([&](const auto& impl) -> absl::Status {
     ASSIGN_OR_RETURN(
@@ -716,7 +705,6 @@ absl::StatusOr<DataSlice> ObjectCreator::FromAttrs(
   if (values.empty()) {
     return ObjectCreator::Shaped(db, DataSlice::JaggedShape::Empty(), {}, {});
   }
-  RETURN_IF_ERROR(VerifyNoSchemaArg(attr_names));
   ASSIGN_OR_RETURN(
       auto aligned_values, shape::Align(values),
       KodaErrorCausedByShapeAlignmentError(std::move(_), attr_names, values));

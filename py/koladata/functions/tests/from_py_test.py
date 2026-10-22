@@ -64,6 +64,11 @@ class TestKlassInternals:
   b: float
 
 
+@dataclasses.dataclass
+class KlassWithSchemaAttr:
+  schema: int
+
+
 from_py = py_conversions.from_py
 
 
@@ -1102,6 +1107,14 @@ assigned schema: INT32"""),
     testing.assert_equal(
         second_obj.c.no_bag(), ds(b'xyz', schema=schema_constants.OBJECT)
     )
+
+  @parameterized.named_parameters(
+      ('dict', {'schema': 1}),
+      ('dataclass', KlassWithSchemaAttr(schema=1)),
+  )
+  def test_object_schema_with_schema_attr(self, py_obj):
+    res = from_py(py_obj, dict_as_obj=True, schema=schema_constants.OBJECT)
+    testing.assert_equal(res.schema.no_bag(), ds(1, schema_constants.OBJECT))
 
   def test_dict_as_obj_different_keys_values_auto_schema(self):
     obj = from_py(

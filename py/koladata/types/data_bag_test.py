@@ -590,6 +590,10 @@ $""",
     testing.assert_equal(
         x.get_attr('__schema__').b, ds([schema_constants.STRING]).with_bag(db)
     )
+    with self.assertRaisesWithPredicateMatch(
+        ValueError, arolla.testing.any_cause_message_regex('please use new')
+    ):
+      db.obj(a=1, b='a', schema=schema_constants.INT32)
 
   def test_uu(self):
     db = bag()
@@ -1296,6 +1300,10 @@ Assigned schema for keys: INT32""",
         TypeError, 'expecting shape to be a JaggedShape, got int'
     ):
       db.obj_shaped(1)
+    with self.assertRaisesWithPredicateMatch(
+        ValueError, arolla.testing.any_cause_message_regex('please use new')
+    ):
+      db.obj_shaped(shape, a=1, b='a', schema=schema_constants.INT32)
 
   def test_obj_like(self):
     db = bag()
@@ -1322,6 +1330,12 @@ Assigned schema for keys: INT32""",
         TypeError, 'expecting shape_and_mask_from to be a DataSlice, got int'
     ):
       db.obj_like(4)  # pyrefly: ignore[bad-argument-type]
+    with self.assertRaisesWithPredicateMatch(
+        ValueError, arolla.testing.any_cause_message_regex('please use new')
+    ):
+      db.obj_like(
+          shape_and_mask_from, a=1, b='a', schema=schema_constants.INT32
+      )
 
   def test_obj_merging(self):
     db = bag()
