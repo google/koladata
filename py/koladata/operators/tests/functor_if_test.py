@@ -13,6 +13,8 @@
 # limitations under the License.
 
 from absl.testing import absltest
+from absl.testing import parameterized
+from arolla import arolla
 from koladata import kd as user_facing_kd
 from koladata.expr import expr_eval
 from koladata.expr import input_container
@@ -26,13 +28,13 @@ from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import mask_constants
 
-
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
+kd = kde_operators.kd
 kde = kde_operators.kde
 
 
-class FunctorIfTest(absltest.TestCase):
+class FunctorIfTest(parameterized.TestCase):
 
   def test_simple(self):
     expr = kde.functor.if_(I.x > 3, lambda x: x + 1, lambda x: x - 1, I.x)
@@ -86,8 +88,30 @@ class FunctorIfTest(absltest.TestCase):
     ):
       _ = expr_eval.eval(expr, x=ds(1))
 
+  @parameterized.parameters(
+      mask_constants.present,
+      mask_constants.present.with_bag(kd.bag()),
+      kd.obj(mask_constants.present),
+  )
+  def test_present_mask(self, mask):
+    arolla.testing.assert_qvalue_equal_by_fingerprint(
+        kd.functor.if_(mask, lambda: 1, lambda: 0), ds(1)
+    )
+
+  @parameterized.parameters(
+      mask_constants.missing,
+      mask_constants.missing.with_bag(kd.bag()),
+      kd.obj(mask_constants.missing),
+      ds(None),
+      ds(None).with_bag(kd.bag()),
+      kd.obj(ds(None)),
+  )
+  def test_missing_mask(self, mask):
+    arolla.testing.assert_qvalue_equal_by_fingerprint(
+        kd.functor.if_(mask, lambda: 1, lambda: 0), ds(0)
+    )
+
   def test_eager_mode(self):
-    kd = kde_operators.kd
     testing.assert_equal(
         kd.functor.if_(
             mask_constants.present, lambda x: x + 1, lambda x: x - 1, 5
@@ -138,6 +162,23 @@ class FunctorIfTest(absltest.TestCase):
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.functor.if_, kde.if_))
+
+  def test_keeps_selected_bag(self):
+    yes_fn = functor_factories.expr_fn(I.x + 1)
+    no_fn = functor_factories.expr_fn(I.x - 1)
+    self.assertNotEqual(yes_fn.fingerprint, no_fn.fingerprint)
+    self.assertEqual(
+        kd.functor._if_select(
+            mask_constants.present, yes_fn, no_fn
+        ).fingerprint,
+        yes_fn.fingerprint,
+    )
+    self.assertEqual(
+        kd.functor._if_select(
+            mask_constants.missing, yes_fn, no_fn
+        ).fingerprint,
+        no_fn.fingerprint,
+    )
 
 
 if __name__ == '__main__':

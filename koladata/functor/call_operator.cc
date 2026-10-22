@@ -44,6 +44,7 @@
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/operators/utils.h"
+#include "koladata/schema_utils.h"
 
 namespace koladata::functor {
 namespace {
@@ -258,6 +259,16 @@ absl::StatusOr<DataSlice> MaybeCall(arolla::EvaluationContext* ctx,
     return result.As<DataSlice>();
   }
   return maybe_fn;
+}
+
+absl::StatusOr<DataSlice> IfSelect(const DataSlice& cond,
+                                   const DataSlice& yes_fn,
+                                   const DataSlice& no_fn) {
+  if (!cond.is_item() || !ExpectMask("cond", cond).ok()) {
+    return absl::InvalidArgumentError(
+        "the condition in kd.if_ must be a MASK scalar");
+  }
+  return cond.item().has_value() ? yes_fn : no_fn;
 }
 
 }  // namespace koladata::functor

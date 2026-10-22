@@ -20,7 +20,6 @@ from arolla import arolla
 import google_benchmark
 from koladata import kd
 
-
 I = kd.I
 V = kd.V
 S = kd.S
@@ -107,6 +106,8 @@ def extract_10000_object(state):
   _ = kd.extract(ds)  # To initialize all lazy initializers and reduce variance.
   while state:
     _ = kd.extract(ds)
+
+
 # pylint: enable=missing-function-docstring
 
 
@@ -160,6 +161,29 @@ def add_10000_kd_call(state):
   _ = kd.call(fn, x=x, y=y)
   while state:
     kd.call(fn, x=x, y=y)
+
+
+@google_benchmark.register
+def if_(state):
+  yes_fn = kdf.expr_fn(S + 1)
+  no_fn = kdf.expr_fn(S - 1)
+  x = kd.item(1)
+  # To initialize all lazy initializers and reduce variance.
+  kd.if_(x > 0, yes_fn, no_fn, x)
+  while state:
+    kd.if_(x > 0, yes_fn, no_fn, x)
+
+
+@google_benchmark.register
+def if_call(state):
+  yes_fn = kdf.expr_fn(S + 1)
+  no_fn = kdf.expr_fn(S - 1)
+  fn = kd.fn(lambda x: kd.if_(x > 0, yes_fn, no_fn, x))
+  x = kd.item(1)
+  # To initialize all lazy initializers and reduce variance.
+  fn(x)
+  while state:
+    fn(x)
 
 
 @google_benchmark.register
@@ -329,10 +353,7 @@ def map_py_dicts(state):
   shape = kd.shapes.new(1000, kd.random.randint_shaped_as(kd.range(1000)) % 10)
   size = kd.sum(kd.shapes.dim_sizes(shape, dim=1))
   keys = kd.slice([f'key_{i}' for i in range(size.to_py())]).reshape(shape)
-  dicts = kd.dict(
-      keys,
-      kd.random.randint_shaped_as(keys) % 10
-  ).to_py()
+  dicts = kd.dict(keys, kd.random.randint_shaped_as(keys) % 10).to_py()
   indices = kd.range(1000)
   fn = lambda i: dicts[i]
   while state:
@@ -374,12 +395,10 @@ def kd_expr_fn(state):
 def kd_is_prime(n):
   k = kd.while_(
       lambda n, returns: (n % returns != 0) & (returns * returns <= n),
-      lambda n, returns: kd.namedtuple(
-          returns=returns + 2
-      ),
+      lambda n, returns: kd.namedtuple(returns=returns + 2),
       n=n,
-      returns=3
-    )
+      returns=3,
+  )
   return (n >= 2) & ((n == 2) | (n % 2 != 0)) & (k * k > n)
 
 

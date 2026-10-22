@@ -1729,7 +1729,7 @@ DataSlice([4, 5, 6], schema: INT32,...)
 ...   lambda: kd.slice([4, 5, 6]),
 ...   )
 Traceback (most recent call last):
-ValueError: [FAILED_PRECONDITION] the condition in kd.if_ must be a MASK scalar...
+ValueError: the condition in kd.if_ must be a MASK scalar...
 ```
 
 Due to the short-circuiting nature of this operator, we can rewrite the

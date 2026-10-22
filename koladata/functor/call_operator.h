@@ -54,6 +54,13 @@ absl::StatusOr<DataSlice> MaybeCall(arolla::EvaluationContext* ctx,
                                     const DataSlice& arg,
                                     internal::NonDeterministicToken);
 
+// kd.functor._if_select operator.
+// Returns `yes_fn` if `cond` is present, and `no_fn` otherwise; `cond` must be
+// a MASK scalar.
+absl::StatusOr<DataSlice> IfSelect(const DataSlice& cond,
+                                   const DataSlice& yes_fn,
+                                   const DataSlice& no_fn);
+
 }  // namespace koladata::functor
 
 #endif  // KOLADATA_FUNCTOR_CALL_OPERATOR_H_

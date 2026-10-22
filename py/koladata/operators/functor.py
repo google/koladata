@@ -41,7 +41,6 @@ from koladata.types import data_slice
 from koladata.types import mask_constants
 from koladata.types import py_boxing
 from koladata.types import qtypes
-from koladata.types import schema_constants
 from koladata.types import signature_utils
 
 P = arolla.P
@@ -335,6 +334,13 @@ def map_reduce_update(fn, *args, include_missing=False, **kwargs):  # pylint: di
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator('kd.functor._if_select')
+def _if_select(cond, yes_fn, no_fn):  # pylint: disable=unused-argument
+  """(internal) Returns `yes_fn` if `cond` is present, otherwise `no_fn`."""
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kd.if_'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.functor.if_',
@@ -372,16 +378,11 @@ def if_(
   Returns:
     The result of the call of either `yes_fn` or `no_fn`.
   """
+  _arolla_tracebackhide_ = True  # pylint: disable=unused-variable
   args, kwargs = arolla.optools.fix_trace_args_kwargs(args, kwargs)
-  cond = assertion.with_assertion(
-      cond,
-      (slices.get_ndim(cond) == 0)
-      & (schema.get_schema(cond) == schema_constants.MASK),
-      'the condition in kd.if_ must be a MASK scalar',
-  )
   return arolla.abc.bind_op(
       call,
-      masking.cond(cond, yes_fn, no_fn),
+      _if_select(cond, yes_fn, no_fn),
       args=args,
       return_type_as=return_type_as,  # pyrefly: ignore[bad-argument-type]
       kwargs=kwargs,

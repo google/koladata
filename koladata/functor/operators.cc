@@ -33,6 +33,7 @@ namespace {
 // go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY
 OPERATOR_FAMILY("kd.assertion._with_assertion",
                 std::make_unique<WithAssertionOperatorFamily>());
+OPERATOR("kd.functor._if_select", IfSelect, "");
 OPERATOR("kd.functor._maybe_call", MaybeCall);
 OPERATOR_FAMILY("kd.functor._while", std::make_unique<WhileOperatorFamily>());
 OPERATOR_FAMILY("kd.functor.bind", std::make_unique<BindOperatorFamily>());
