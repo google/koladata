@@ -49,10 +49,10 @@ class SliceAttributeTable {
     DCHECK_GE(i, 0);
     DCHECK_LT(i, slice_size_);
     if (same_attr_names_) {
-      return names_;
+      return per_object_names_;
     }
-    return absl::MakeConstSpan(names_).subspan(splits_[i],
-                                               splits_[i + 1] - splits_[i]);
+    return absl::MakeConstSpan(per_object_names_)
+        .subspan(splits_[i], splits_[i + 1] - splits_[i]);
   }
 
   // Returns the attribute values of the `i`-th item of the slice (aligned with
@@ -68,13 +68,17 @@ class SliceAttributeTable {
  private:
   int64_t slice_size_ = 0;
   bool same_attr_names_ = true;
-  // Owns the attribute name strings referenced by `names_`; not modified after
-  // `Builder::Build()`.
-  std::vector<std::string> owned_names_;
-  std::vector<absl::string_view> names_;
+  // Owns the attribute name strings referenced by `per_object_names_`; not
+  // modified after `Builder::Build()`.
+  std::vector<std::string> attr_name_set_;
+  // Attribute names for `NamesOf(i)`: a single list shared by all items when
+  // `same_attr_names_` is true, or per-item ranges indexed by `splits_`
+  // otherwise.
+  std::vector<absl::string_view> per_object_names_;
   std::vector<DataItem> values_;
   // Has size `slice_size_ + 1`. `[splits_[i], splits_[i + 1])` is the range in
-  // `values_` (and in `names_` when `!same_attr_names_`) for the `i`-th item.
+  // `values_` (and in `per_object_names_` when `!same_attr_names_`) for the
+  // `i`-th item.
   std::vector<int64_t> splits_;
 };
 

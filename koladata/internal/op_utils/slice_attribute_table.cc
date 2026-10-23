@@ -78,9 +78,9 @@ SliceAttributeTable SliceAttributeTable::Builder::Build() && {
   SliceAttributeTable table;
   table.slice_size_ = slice_size_;
   table.same_attr_names_ = same_attr_names_;
-  table.owned_names_.reserve(attrs_.size());
+  table.attr_name_set_.reserve(attrs_.size());
   for (Attribute& attr : attrs_) {
-    table.owned_names_.push_back(std::move(attr.name));
+    table.attr_name_set_.push_back(std::move(attr.name));
   }
 
   table.splits_.assign(slice_size_ + 1, 0);
@@ -94,23 +94,23 @@ SliceAttributeTable SliceAttributeTable::Builder::Build() && {
 
   const int64_t total_entries = table.splits_[slice_size_];
   if (same_attr_names_) {
-    table.names_.reserve(attrs_.size());
-    for (const std::string& name : table.owned_names_) {
-      table.names_.push_back(name);
+    table.per_object_names_.reserve(attrs_.size());
+    for (const std::string& name : table.attr_name_set_) {
+      table.per_object_names_.push_back(name);
     }
   } else {
-    table.names_.resize(total_entries);
+    table.per_object_names_.resize(total_entries);
   }
   table.values_.resize(total_entries);
 
   std::vector<int64_t> offsets = table.splits_;
   for (size_t k = 0; k < attrs_.size(); ++k) {
-    absl::string_view attr_name = table.owned_names_[k];
+    absl::string_view attr_name = table.attr_name_set_[k];
     const DataSliceImpl& values = attrs_[k].values;
     ForEachItemWithAttr(slice_size_, attrs_[k].has_attr, [&](int64_t i) {
       int64_t pos = offsets[i]++;
       if (!same_attr_names_) {
-        table.names_[pos] = attr_name;
+        table.per_object_names_[pos] = attr_name;
       }
       table.values_[pos] = values[i];
     });
