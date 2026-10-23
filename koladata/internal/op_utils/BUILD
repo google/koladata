@@ -493,6 +493,33 @@ cc_test(
 )
 
 cc_library(
+    name = "slice_attribute_table",
+    srcs = ["slice_attribute_table.cc"],
+    hdrs = ["slice_attribute_table.h"],
+    deps = [
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
+    ],
+)
+
+cc_test(
+    name = "slice_attribute_table_test",
+    srcs = ["slice_attribute_table_test.cc"],
+    deps = [
+        ":slice_attribute_table",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "vectorized_traverse_helper",
     srcs = ["vectorized_traverse_helper.cc"],
     hdrs = ["vectorized_traverse_helper.h"],
