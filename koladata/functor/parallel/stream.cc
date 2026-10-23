@@ -14,8 +14,10 @@
 //
 #include "koladata/functor/parallel/stream.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cstddef>
+#include <cstring>
 #include <deque>
 #include <memory>
 #include <new>
@@ -55,9 +57,18 @@ size_t GetDefaultChunkCapacity(QTypePtr absl_nonnull value_qtype) {
                   : kDefaultByteCapacity;
 }
 
+// A non-thread-safe, fixed-capacity storage block for stream items.
+//
+// For trivially copyable types, values are copied directly into uninitialized
+// storage. Other types require slot initialization (default construction)
+// before they can be written to.
+//
+// If 'lazy_init' is false, all slots are initialized upfront. If 'lazy_init'
+// is true, slots are initialized on-write (see the implementation for details),
+// which can be more efficient for short streams.
 class Chunk {
  public:
-  Chunk(QTypePtr absl_nonnull value_qtype, size_t capacity);
+  Chunk(QTypePtr absl_nonnull value_qtype, size_t capacity, bool lazy_init);
   ~Chunk();
 
   // Disallow copy and move.
@@ -67,13 +78,15 @@ class Chunk {
   size_t capacity() const { return capacity_; }
 
   TypedRef GetRef(size_t i) const;
-  void SetRef(size_t i, TypedRef ref);
+  void AppendRef(size_t i, TypedRef ref);
 
  private:
   const QTypePtr absl_nonnull value_qtype_;
   const size_t capacity_;
   const size_t value_bytesize_;
   const AlignedPtr storage_;
+  // The number of initialized slots. Always 0 for trivially copyable types.
+  size_t initialized_size_ = 0;
 };
 
 // Combined implementation of Stream and StreamWriter.
@@ -93,11 +106,30 @@ class StreamImpl final : public std::enable_shared_from_this<StreamImpl>,
 
   void InternalClose(absl::Status&& status);
 
+  // Returns the number of chunks.
+  size_t chunk_count() const ABSL_SHARED_LOCKS_REQUIRED(mutex_) {
+    return first_chunk_.has_value() + other_chunks_.size();
+  }
+
+  // Returns the i-th chunk.
+  Chunk& chunk(size_t i) ABSL_SHARED_LOCKS_REQUIRED(mutex_) {
+    DCHECK_LT(i, chunk_count());
+    return i == 0 ? *first_chunk_ : other_chunks_[i - 1];
+  }
+
   const size_t default_chunk_capacity_;
 
   absl::Mutex mutex_;
-  std::deque<Chunk> chunks_ ABSL_GUARDED_BY(mutex_);
+  // Note: The first chunk is stored inline to avoid extra allocations for
+  // short streams, or streams with known capacity.
+  std::optional<Chunk> first_chunk_ ABSL_GUARDED_BY(mutex_);
+  std::deque<Chunk> other_chunks_ ABSL_GUARDED_BY(mutex_);
+  // Points to the last chunk, or nullptr if there are no chunks.
+  Chunk* absl_nullable last_chunk_ ABSL_GUARDED_BY(mutex_) = nullptr;
+  // The number of values in `last_chunk_`.
   size_t last_chunk_size_ ABSL_GUARDED_BY(mutex_) = 0;
+  // The capacity of `last_chunk_`, or 0 if there are no chunks.
+  size_t last_chunk_capacity_ ABSL_GUARDED_BY(mutex_) = 0;
   std::optional<absl::Status> status_ ABSL_GUARDED_BY(mutex_);
   std::vector<absl::AnyInvocable<void() &&>> callbacks_ ABSL_GUARDED_BY(mutex_);
 };
@@ -143,7 +175,7 @@ class StreamImpl::Reader final : public StreamReader {
   size_t known_size_ = 0;
 };
 
-Chunk::Chunk(QTypePtr absl_nonnull value_qtype, size_t capacity)
+Chunk::Chunk(QTypePtr absl_nonnull value_qtype, size_t capacity, bool lazy_init)
     : value_qtype_(value_qtype),
       capacity_(capacity),
       value_bytesize_(value_qtype->type_layout().AllocSize()),
@@ -156,13 +188,17 @@ Chunk::Chunk(QTypePtr absl_nonnull value_qtype, size_t capacity)
                << ", capacity=" << capacity
                << ", element_size=" << value_bytesize_;
   }
-  value_qtype->type_layout().InitializeAlignedAllocN(storage_.get(), capacity_);
+  if (!lazy_init && !value_qtype->is_trivially_copyable()) {
+    value_qtype->type_layout().InitializeAlignedAllocN(storage_.get(),
+                                                       capacity_);
+    initialized_size_ = capacity_;
+  }
 }
 
 Chunk::~Chunk() {
   // Note: Assuming that no concurrent access can happen to the chunk during
   // the destruction.
-  value_qtype_->type_layout().DestroyAllocN(storage_.get(), capacity_);
+  value_qtype_->type_layout().DestroyAllocN(storage_.get(), initialized_size_);
 }
 
 TypedRef Chunk::GetRef(size_t i) const {
@@ -172,12 +208,25 @@ TypedRef Chunk::GetRef(size_t i) const {
       reinterpret_cast<const char*>(storage_.get()) + i * value_bytesize_);
 }
 
-void Chunk::SetRef(size_t i, TypedRef ref) {
+void Chunk::AppendRef(size_t i, TypedRef ref) {
   DCHECK_LT(i, capacity_);
   DCHECK_EQ(ref.GetType(), value_qtype_);
-  value_qtype_->UnsafeCopy(
-      ref.GetRawPointer(),
-      reinterpret_cast<char*>(storage_.get()) + i * value_bytesize_);
+  char* slot = reinterpret_cast<char*>(storage_.get()) + i * value_bytesize_;
+  if (value_qtype_->is_trivially_copyable()) {
+    // Trivially copyable values need neither initialization nor destruction.
+    std::memcpy(slot, ref.GetRawPointer(), value_bytesize_);
+    return;
+  }
+  DCHECK_LE(i, initialized_size_);
+  if (i == initialized_size_) [[unlikely]] {
+    // Initialize the next batch of slots, doubling the number of initialized
+    // slots (1, 1, 2, 4, ...) within the capacity.
+    const size_t batch_size = std::min(capacity_ - initialized_size_,
+                                       std::max<size_t>(1, initialized_size_));
+    value_qtype_->type_layout().InitializeAlignedAllocN(slot, batch_size);
+    initialized_size_ += batch_size;
+  }
+  value_qtype_->UnsafeCopy(ref.GetRawPointer(), slot);
 }
 
 StreamImpl::StreamImpl(QTypePtr absl_nonnull value_qtype,
@@ -185,7 +234,11 @@ StreamImpl::StreamImpl(QTypePtr absl_nonnull value_qtype,
     : Stream(value_qtype),
       default_chunk_capacity_(GetDefaultChunkCapacity(value_qtype)) {
   if (initial_capacity > 0) {
-    chunks_.emplace_back(value_qtype, initial_capacity);
+    // The `initial_capacity` is expected to match the stream size (see
+    // MakeStream()), so we initialize the chunk upfront.
+    last_chunk_ = &first_chunk_.emplace(value_qtype, initial_capacity,
+                                        /*lazy_init=*/false);
+    last_chunk_capacity_ = last_chunk_->capacity();
   }
 }
 
@@ -202,11 +255,21 @@ StreamImpl::InternalWriteResult StreamImpl::InternalWrite(
     if (status_.has_value()) {
       return InternalWriteResult::kClosed;
     }
-    if (chunks_.empty() || chunks_.back().capacity() == last_chunk_size_) {
-      chunks_.emplace_back(value_qtype(), default_chunk_capacity_);
+    if (last_chunk_size_ == last_chunk_capacity_) [[unlikely]] {
+      // Only the first chunk is initialized lazily; a stream that has
+      // filled a chunk is likely to fill the next one too.
+      if (last_chunk_ == nullptr) {
+        last_chunk_ = &first_chunk_.emplace(
+            value_qtype(), default_chunk_capacity_, /*lazy_init=*/true);
+      } else {
+        last_chunk_ = &other_chunks_.emplace_back(
+            value_qtype(), default_chunk_capacity_, /*lazy_init=*/false);
+      }
+      last_chunk_capacity_ = last_chunk_->capacity();
       last_chunk_size_ = 0;
     }
-    chunks_.back().SetRef(last_chunk_size_++, value);
+    DCHECK(last_chunk_ != nullptr);
+    last_chunk_->AppendRef(last_chunk_size_++, value);
     callbacks_.swap(callbacks);
   }
   for (auto& callback : callbacks) {
@@ -305,7 +368,8 @@ StreamImpl::Writer::~Writer() {
 
 StreamImpl::Reader::Reader(std::shared_ptr<StreamImpl> absl_nonnull stream)
     : stream_(std::move(stream)) {
-  static absl::NoDestructor<Chunk> kEmptyUnitChunk(GetNothingQType(), 0);
+  static absl::NoDestructor<Chunk> kEmptyUnitChunk(GetNothingQType(), 0,
+                                                   /*lazy_init=*/true);
   chunk_ = kEmptyUnitChunk.get();
 }
 
@@ -326,12 +390,12 @@ StreamReader::TryReadResult StreamImpl::Reader::TryRead() {
 }
 
 void StreamImpl::Reader::Update() {
-  if (offset_ == chunk_->capacity() &&
-      next_chunk_index_ < stream_->chunks_.size()) {
-    chunk_ = &stream_->chunks_[next_chunk_index_++];
+  const size_t chunk_count = stream_->chunk_count();
+  if (offset_ == chunk_->capacity() && next_chunk_index_ < chunk_count) {
+    chunk_ = &stream_->chunk(next_chunk_index_++);
     offset_ = 0;
   }
-  if (next_chunk_index_ == stream_->chunks_.size()) {
+  if (next_chunk_index_ == chunk_count) {
     known_size_ = stream_->last_chunk_size_;
   } else {
     known_size_ = chunk_->capacity();

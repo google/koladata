@@ -294,6 +294,21 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "stream_benchmarks",
+    srcs = ["stream_benchmarks.cc"],
+    deps = [
+        ":stream",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata:test_utils",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest",
+    ],
+)
+
 cc_library(
     name = "stream_qtype",
     srcs = ["stream_qtype.cc"],

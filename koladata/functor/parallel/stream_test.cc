@@ -14,6 +14,7 @@
 //
 #include "koladata/functor/parallel/stream.h"
 
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <utility>
@@ -113,6 +114,30 @@ TEST(StreamTest, BasicWithNonTrivialType) {
                   Pointee(QValueWith<std::string>(absl::StrCat(i))));
     }
     EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
+  }
+}
+
+TEST(StreamTest, NonTrivialTypeVariousSizes) {
+  auto make_value = [](int i) {
+    return absl::StrCat("a string that does not fit into SSO: ", i);
+  };
+  for (size_t initial_capacity : {0, 1, 3, 100}) {
+    for (int item_count : {0, 1, 2, 3, 4, 5, 8, 9, 17, 100, 1000}) {
+      SCOPED_TRACE(absl::StrCat("initial_capacity=", initial_capacity,
+                                ", item_count=", item_count));
+      auto [stream, writer] =
+          MakeStream(GetQType<std::string>(), initial_capacity);
+      for (int i = 0; i < item_count; ++i) {
+        writer->Write(TypedRef::FromValue(make_value(i)));
+      }
+      std::move(*writer).Close();
+      auto reader = stream->MakeReader();
+      for (int i = 0; i < item_count; ++i) {
+        EXPECT_THAT(reader->TryRead().item(),
+                    Pointee(QValueWith<std::string>(make_value(i))));
+      }
+      EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
+    }
   }
 }
 
