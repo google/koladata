@@ -28,6 +28,7 @@
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
+#include "koladata/lazy_uuid.h"
 
 namespace koladata::functor::parallel {
 
@@ -49,12 +50,12 @@ class Stream {
   arolla::QTypePtr absl_nonnull value_qtype() const { return value_qtype_; }
 
   // Returns a unique identifier for the stream.
-  arolla::Fingerprint uuid() const { return uuid_; };
+  arolla::Fingerprint uuid() const { return uuid_.get(); }
 
   // Creates a new reader for the stream.
   virtual StreamReaderPtr absl_nonnull MakeReader() = 0;
 
-  // Disallow copy and move.
+  // Not copyable or movable.
   Stream(const Stream&) = delete;
   Stream& operator=(const Stream&) = delete;
 
@@ -65,11 +66,11 @@ class Stream {
       : value_qtype_(value_qtype) {}
 
  private:
+  // Unique identifier for the stream.
+  LazyUuid uuid_;
+
   // Value type of the stream.
   const arolla::QTypePtr absl_nonnull value_qtype_;
-
-  // Unique identifier for the stream.
-  const arolla::Fingerprint uuid_ = arolla::RandomFingerprint();
 };
 
 // Writer interface for the stream.
@@ -116,7 +117,7 @@ class StreamWriter {
   // already been closed or orphaned.
   virtual void TryClose(absl::Status status) = 0;
 
-  // Disallow copy and move.
+  // Not copyable or movable.
   StreamWriter(const StreamWriter&) = delete;
   StreamWriter& operator=(const StreamWriter&) = delete;
 
@@ -153,7 +154,7 @@ class StreamReader {
   // guarantee whether the callback will be invoked.
   virtual void SubscribeOnce(absl::AnyInvocable<void() &&>&& callback) = 0;
 
-  // Disallow copy and move.
+  // Not copyable or movable.
   StreamReader(const StreamReader&) = delete;
   StreamReader& operator=(const StreamReader&) = delete;
 

@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <deque>
 #include <memory>
@@ -50,7 +51,7 @@ using ::arolla::GetNothingQType;
 using ::arolla::QTypePtr;
 using ::arolla::TypedRef;
 
-size_t GetDefaultChunkCapacity(QTypePtr absl_nonnull value_qtype) {
+uint32_t GetDefaultChunkCapacity(QTypePtr absl_nonnull value_qtype) {
   constexpr size_t kDefaultByteCapacity = 512;
   const size_t bytesize = value_qtype->type_layout().AllocSize();
   return bytesize ? (kDefaultByteCapacity + bytesize - 1) / bytesize
@@ -117,8 +118,6 @@ class StreamImpl final : public std::enable_shared_from_this<StreamImpl>,
     return i == 0 ? *first_chunk_ : other_chunks_[i - 1];
   }
 
-  const size_t default_chunk_capacity_;
-
   absl::Mutex mutex_;
   // Note: The first chunk is stored inline to avoid extra allocations for
   // short streams, or streams with known capacity.
@@ -132,6 +131,8 @@ class StreamImpl final : public std::enable_shared_from_this<StreamImpl>,
   size_t last_chunk_capacity_ ABSL_GUARDED_BY(mutex_) = 0;
   std::optional<absl::Status> status_ ABSL_GUARDED_BY(mutex_);
   std::vector<absl::AnyInvocable<void() &&>> callbacks_ ABSL_GUARDED_BY(mutex_);
+
+  const uint32_t default_chunk_capacity_;
 };
 
 // A stream writer implementation.

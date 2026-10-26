@@ -156,6 +156,29 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "lazy_uuid",
+    hdrs = ["lazy_uuid.h"],
+    deps = [
+        "//koladata/internal:pseudo_random",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_arolla//arolla/util",
+    ],
+)
+
+cc_test(
+    name = "lazy_uuid_test",
+    srcs = ["lazy_uuid_test.cc"],
+    deps = [
+        ":lazy_uuid",
+        "//koladata/internal:pseudo_random",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "data_slice_op_test",
     srcs = ["data_slice_op_test.cc"],

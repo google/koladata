@@ -69,6 +69,15 @@ TEST(StreamTest, Basic) {
   }
 }
 
+TEST(StreamTest, Uuid) {
+  auto [stream1, writer1] = MakeStream(GetQType<int>());
+  auto [stream2, writer2] = MakeStream(GetQType<int>());
+  // The uuid is generated lazily, but stays the same across calls.
+  const auto uuid1 = stream1->uuid();
+  EXPECT_EQ(stream1->uuid(), uuid1);
+  EXPECT_NE(stream2->uuid(), uuid1);
+}
+
 TEST(StreamTest, Empty) {
   auto [stream, writer] = MakeStream(GetQType<int>(), /*initial_capacity=*/0);
   ASSERT_NE(stream, nullptr);

@@ -31,6 +31,7 @@
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
 #include "koladata/functor/parallel/stream.h"
+#include "koladata/lazy_uuid.h"
 
 namespace koladata::functor::parallel {
 
@@ -78,9 +79,9 @@ class Future {
   arolla::QTypePtr value_qtype() const { return value_qtype_; }
 
   // Returns a randomly generated unique identifier of the future.
-  arolla::Fingerprint uuid() const { return uuid_; }
+  arolla::Fingerprint uuid() const { return uuid_.get(); }
 
-  // Disable copy and move.
+  // Not copyable or movable.
   Future(const Future&) = delete;
   Future(Future&&) = delete;
   Future& operator=(const Future&) = delete;
@@ -91,8 +92,8 @@ class Future {
   // at most once.
   void SetValue(absl::StatusOr<arolla::TypedValue> value);
 
+  LazyUuid uuid_;
   arolla::QTypePtr value_qtype_;
-  arolla::Fingerprint uuid_ = arolla::RandomFingerprint();
   absl::Mutex lock_;
   std::optional<absl::StatusOr<arolla::TypedValue>> value_
       ABSL_GUARDED_BY(lock_) = std::nullopt;
