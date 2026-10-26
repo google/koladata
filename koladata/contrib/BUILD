@@ -15,6 +15,7 @@
 # C++-only parts of Koda Contrib. See the rest in //py/koladata/ext/contrib.
 
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 package(default_visibility = ["//visibility:private"])
 
@@ -34,6 +35,54 @@ cc_library(
         "//koladata/internal/op_utils:qexpr",
     ],
     alwayslink = 1,
+)
+
+cc_library(
+    name = "cascade",
+    srcs = ["cascade.cc"],
+    hdrs = ["cascade.h"],
+    deps = [
+        "//koladata/functor/parallel:basic_routine",
+        "//koladata/functor/parallel:executor",
+        "//koladata/functor/parallel:stream",
+        "//koladata/functor/parallel:stream_loop_internal",
+        "//koladata/functor/parallel:stream_qtype",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/cleanup",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "cascade_test",
+    srcs = ["cascade_test.cc"],
+    deps = [
+        ":cascade",
+        "//koladata/functor/parallel:eager_executor",
+        "//koladata/functor/parallel:stream",
+        "//koladata/functor/parallel:stream_qtype",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/qtype/testing",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+        "@com_google_googletest//:gtest_main",
+    ],
 )
 
 cc_library(
