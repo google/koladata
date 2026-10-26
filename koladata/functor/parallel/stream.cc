@@ -19,14 +19,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <deque>
+#include <list>
 #include <memory>
 #include <new>
 #include <optional>
 #include <utility>
 #include <vector>
 
-#include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
 #include "absl/base/optimization.h"
 #include "absl/base/thread_annotations.h"
@@ -47,7 +46,6 @@ namespace {
 
 using ::arolla::AlignedAllocN;
 using ::arolla::AlignedPtr;
-using ::arolla::GetNothingQType;
 using ::arolla::QTypePtr;
 using ::arolla::TypedRef;
 
@@ -107,22 +105,11 @@ class StreamImpl final : public std::enable_shared_from_this<StreamImpl>,
 
   void InternalClose(absl::Status&& status);
 
-  // Returns the number of chunks.
-  size_t chunk_count() const ABSL_SHARED_LOCKS_REQUIRED(mutex_) {
-    return first_chunk_.has_value() + other_chunks_.size();
-  }
-
-  // Returns the i-th chunk.
-  Chunk& chunk(size_t i) ABSL_SHARED_LOCKS_REQUIRED(mutex_) {
-    DCHECK_LT(i, chunk_count());
-    return i == 0 ? *first_chunk_ : other_chunks_[i - 1];
-  }
-
   absl::Mutex mutex_;
   // Note: The first chunk is stored inline to avoid extra allocations for
   // short streams, or streams with known capacity.
   std::optional<Chunk> first_chunk_ ABSL_GUARDED_BY(mutex_);
-  std::deque<Chunk> other_chunks_ ABSL_GUARDED_BY(mutex_);
+  std::list<Chunk> other_chunks_ ABSL_GUARDED_BY(mutex_);
   // Points to the last chunk, or nullptr if there are no chunks.
   Chunk* absl_nullable last_chunk_ ABSL_GUARDED_BY(mutex_) = nullptr;
   // The number of values in `last_chunk_`.
@@ -166,12 +153,18 @@ class StreamImpl::Reader final : public StreamReader {
   void SubscribeOnce(absl::AnyInvocable<void() &&>&& callback) final;
 
  private:
+  // If the current one has been fully read and the next one exists, moves to
+  // the next chunk. Updates `known_size_` (the number of values available for
+  // reading in the current chunk).
   void Update() ABSL_EXCLUSIVE_LOCKS_REQUIRED(stream_->mutex_);
 
   const std::shared_ptr<StreamImpl> absl_nonnull stream_;
 
-  size_t next_chunk_index_ = 0;
-  Chunk* absl_nonnull chunk_;
+  // The current chunk; or nullptr if the reader has read nothing yet.
+  Chunk* absl_nullable chunk_ = nullptr;
+  // Points to the current chunk within `stream_->other_chunks_`. Only valid if
+  // the current chunk is neither nullptr nor the first chunk.
+  std::list<Chunk>::iterator chunks_it_;
   size_t offset_ = 0;
   size_t known_size_ = 0;
 };
@@ -368,11 +361,7 @@ StreamImpl::Writer::~Writer() {
 }
 
 StreamImpl::Reader::Reader(std::shared_ptr<StreamImpl> absl_nonnull stream)
-    : stream_(std::move(stream)) {
-  static absl::NoDestructor<Chunk> kEmptyUnitChunk(GetNothingQType(), 0,
-                                                   /*lazy_init=*/true);
-  chunk_ = kEmptyUnitChunk.get();
-}
+    : stream_(std::move(stream)) {}
 
 StreamReader::TryReadResult StreamImpl::Reader::TryRead() {
   if (offset_ < known_size_) [[likely]] {
@@ -391,16 +380,27 @@ StreamReader::TryReadResult StreamImpl::Reader::TryRead() {
 }
 
 void StreamImpl::Reader::Update() {
-  const size_t chunk_count = stream_->chunk_count();
-  if (offset_ == chunk_->capacity() && next_chunk_index_ < chunk_count) {
-    chunk_ = &stream_->chunk(next_chunk_index_++);
+  Chunk* const absl_nullable last_chunk = stream_->last_chunk_;
+  if (chunk_ != last_chunk &&
+      (chunk_ == nullptr || offset_ == chunk_->capacity())) {
+    // NOTE: The next chunk exists, because the current one is not the last.
+    DCHECK(stream_->first_chunk_.has_value());
+    Chunk* const absl_nonnull first_chunk = &(*stream_->first_chunk_);
+    if (chunk_ == nullptr) {
+      chunk_ = first_chunk;
+    } else if (chunk_ == first_chunk) {
+      chunks_it_ = stream_->other_chunks_.begin();
+      chunk_ = &(*chunks_it_);
+    } else {
+      ++chunks_it_;
+      chunk_ = &(*chunks_it_);
+    }
     offset_ = 0;
   }
-  if (next_chunk_index_ == chunk_count) {
-    known_size_ = stream_->last_chunk_size_;
-  } else {
-    known_size_ = chunk_->capacity();
-  }
+  // NOTE: If the stream has no chunks, both `chunk_` and `last_chunk` are
+  // nullptr, and `last_chunk_size_` is 0.
+  known_size_ =
+      (chunk_ == last_chunk ? stream_->last_chunk_size_ : chunk_->capacity());
 }
 
 void StreamImpl::Reader::SubscribeOnce(
