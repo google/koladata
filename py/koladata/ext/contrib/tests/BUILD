@@ -107,3 +107,14 @@ py_test(
         "//py/koladata:kd_ext",
     ],
 )
+
+py_test(
+    name = "batched_cascade_test",
+    srcs = ["batched_cascade_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata:kd_ext",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)

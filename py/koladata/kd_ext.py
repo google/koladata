@@ -78,24 +78,24 @@ def _load_functions(
   # operator and function. E.g. kd.obj/dict/list. We need to override the
   # eager operator derived from Expr op with the function.
   if namespace in globals():
-    globals()[namespace] = _dispatch(
+    return _dispatch(
         eager=_eager_op_utils.add_overrides(globals()[namespace], fake_module),
         tracing=getattr(_kde_operators.kde_ext, namespace),
     )
   else:
-    globals()[namespace] = _eager_only(fake_module)
+    return _eager_only(fake_module)
 
 
-_load_functions('npkd', _npkd)
-_load_functions('pdkd', _pdkd)
-_load_functions('nested_data', _nested_data)
-_load_functions('storage', _storage)
-_load_functions('vis', _vis)
-_load_functions('contrib', _contrib_functions)
-_load_functions('kv', _kv)
-_load_functions('pseudo_random', _pseudo_random)
-_load_functions('tqdm', _kd_ext_tqdm)
-_load_functions('functor', _functor)
+npkd = _load_functions('npkd', _npkd)
+pdkd = _load_functions('pdkd', _pdkd)
+nested_data = _load_functions('nested_data', _nested_data)
+storage = _load_functions('storage', _storage)
+vis = _load_functions('vis', _vis)
+contrib = _load_functions('contrib', _contrib_functions)
+kv = _load_functions('kv', _kv)
+pseudo_random = _load_functions('pseudo_random', _pseudo_random)
+tqdm = _load_functions('tqdm', _kd_ext_tqdm)
+functor = _load_functions('functor', _functor)
 
 
 lazy = _eager_only(_kde_operators.kde_ext)

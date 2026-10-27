@@ -55,6 +55,7 @@ arolla_py_cc_deps(
     dynamic_deps = [
         "//py/koladata/dynamic_deps:koladata_so",
         "//py/koladata/dynamic_deps:koladata_operators_so",
+        "//py/koladata/dynamic_deps:koladata_ext_operators_so",
     ],
     visibility = [
         "//koladata:internal",

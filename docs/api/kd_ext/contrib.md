@@ -13,6 +13,55 @@
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Computes average rank natively in koladata.</code></pre>
 
+### `kd_ext.contrib.batched_cascade(cascade, step_fn, /, *, yields, **initial_state)` {#kd_ext.contrib.batched_cascade}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Processes batches of items with `step_fn`, which can feed back new items.
+
+`step_fn(batch, **state)` is called sequentially on batches of items,
+threading `state` across calls. Each call must return a namedtuple
+(see `kd.namedtuple`) with updated `state` values. The namedtuple doesn&#39;t
+have to contain all `state` variables, only those that change. Additionally,
+it may contain the following fields:
+
+  * `yields`: an iterable of items for the result; it must have the same
+    type as the `yields` argument.
+  * `cascades`: an iterable of new items (of the same type as the `cascade`
+    argument), which are processed by `step_fn` as well.
+
+How items are grouped into batches is unspecified; only the relative order
+of items within the initial `cascade` and each returned `cascades` is
+preserved. Items from different cascades can be interleaved.
+
+The result chains the initial `yields` and the subsequent `yields` returned
+by `step_fn`.
+
+Example:
+  kd_ext.contrib.batched_cascade(
+      kd.iterables.make(2, 1),
+      lambda batch: kd.namedtuple(
+          yields=batch,
+          cascades=kd.functor.flat_map_chain(
+              batch,
+              lambda n: kd.iterables.from_1d_slice(
+                  kd.select(kd.stack(n - 1), n &gt; 0)
+              ),
+          ),
+      ),
+      yields=kd.iterables.make(),
+  )
+  # -&gt; An iterable with items 2, 1, 1, 0, 0 (batches [2, 1], [1, 0], [0]).
+
+Args:
+  cascade: The input iterable.
+  step_fn: A functor `step_fn(batch, **state)` that returns updates for the
+    state and optional `yields` and `cascades`.
+  yields: The initial value of `yields`; usually an empty iterable, e.g.
+    `kd.iterables.make()`.
+  **initial_state: The initial values of the state variables.
+
+Returns:
+  An iterable that chains the items of all `yields`.</code></pre>
+
 ### `kd_ext.contrib.flatten_cyclic_references(x, *, max_recursion_depth)` {#kd_ext.contrib.flatten_cyclic_references}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a DataSlice with tree-like copy of the input DataSlice.

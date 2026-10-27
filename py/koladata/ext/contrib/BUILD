@@ -21,11 +21,6 @@ package(default_visibility = ["//visibility:private"])
 licenses(["notice"])
 
 py_library(
-    name = "kde_operators",
-    deps = ["//py:python_path"],
-)
-
-py_library(
     name = "operators",
     srcs = ["operators.py"],
     visibility = [

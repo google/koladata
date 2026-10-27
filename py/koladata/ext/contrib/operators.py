@@ -22,9 +22,248 @@ M = arolla.M | jagged_shape.M
 
 P = arolla.P
 to_arolla_int64 = arolla.abc.lookup_operator('koda_internal.to_arolla_int64')
+future_iterable_from_stream = arolla.abc.lookup_operator(
+    'koda_internal.parallel.future_iterable_from_stream'
+)
 
 
 kd.optools.set_namespace_docstring('kd_ext.contrib', __doc__)
+
+
+def _create_batched_cascade_step_fn_adapter():
+  """Returns a `step_fn` adapter for the `batched_cascade` operator.
+
+  The adapter is a functor with signature:
+      _koda_internal_batch,     # a closed stream with the batch of items
+      /,
+      *,
+      _koda_internal_step_fn,   # the original `step_fn`
+      _koda_internal_defaults,  # namedtuple with empty iterables 'yields' and
+                                # 'cascades'
+      **_koda_internal_state    # state variables
+  """
+  # NOTE: Using `unsafe_blocking_wait` is safe since the batch is closed.
+  batch = kd.lazy.streams.unsafe_blocking_wait(
+      future_iterable_from_stream(kd.I['_koda_internal_batch'])
+  )
+  update = arolla.abc.bind_op(
+      kd.lazy.functor.call_and_update_namedtuple,
+      kd.I['_koda_internal_step_fn'],
+      args=M.core.make_tuple(batch),
+      namedtuple_to_update=M.namedtuple.union(
+          kd.I['_koda_internal_state'], kd.I['_koda_internal_defaults']
+      ),
+      kwargs=kd.I['_koda_internal_state'],
+      **kd.optools.unified_non_deterministic_kwarg(),
+  )
+  parameter = kd.functor.signature_utils.parameter
+  kind = kd.functor.signature_utils.ParameterKind
+  return kd.functor.expr_fn(
+      M.namedtuple.union(
+          update,
+          M.namedtuple.make(
+              yields=kd.lazy.streams.from_iterable(
+                  M.namedtuple.get_field(update, 'yields')
+              ),
+              cascades=kd.lazy.streams.from_iterable(
+                  M.namedtuple.get_field(update, 'cascades')
+              ),
+          ),
+      ),
+      signature=kd.functor.signature_utils.signature([
+          parameter('_koda_internal_batch', kind.POSITIONAL_ONLY),
+          parameter('_koda_internal_step_fn', kind.KEYWORD_ONLY),
+          parameter('_koda_internal_defaults', kind.KEYWORD_ONLY),
+          parameter('_koda_internal_state', kind.VAR_KEYWORD),
+      ]),
+  )
+
+
+def _create_parallel_batched_cascade_step_fn_adapter():
+  """Returns a `step_fn` adapter for the parallel version of `batched_cascade`.
+
+  The adapter is a functor with signature:
+      _koda_internal_batch,     # a closed stream with the batch of items
+      /,
+      *,
+      _koda_internal_transformed_step_fn,  # the parallel-transformed `step_fn`
+      _koda_internal_executor,  # the executor to use for the computations
+      _koda_internal_defaults,  # namedtuple with empty streams 'yields' and
+                                # 'cascades'
+      **_koda_internal_transformed_state    # the transformed state variables
+  """
+  parameter = kd.functor.signature_utils.parameter
+  kind = kd.functor.signature_utils.ParameterKind
+  return kd.functor.expr_fn(
+      arolla.abc.bind_op(
+          kd.lazy.functor.call_and_update_namedtuple,
+          kd.I['_koda_internal_transformed_step_fn'],
+          # NOTE: A stream is already the parallel form of an iterable.
+          args=M.core.make_tuple(
+              kd.I['_koda_internal_executor'], kd.I['_koda_internal_batch']
+          ),
+          namedtuple_to_update=M.namedtuple.union(
+              kd.I['_koda_internal_transformed_state'],
+              kd.I['_koda_internal_defaults'],
+          ),
+          kwargs=kd.I['_koda_internal_transformed_state'],
+          **kd.optools.unified_non_deterministic_kwarg(),
+      ),
+      signature=kd.functor.signature_utils.signature([
+          parameter('_koda_internal_batch', kind.POSITIONAL_ONLY),
+          parameter('_koda_internal_transformed_step_fn', kind.KEYWORD_ONLY),
+          parameter('_koda_internal_executor', kind.KEYWORD_ONLY),
+          parameter('_koda_internal_defaults', kind.KEYWORD_ONLY),
+          parameter('_koda_internal_transformed_state', kind.VAR_KEYWORD),
+      ]),
+  )
+
+
+_BATCHED_CASCADE_STEP_FN_ADAPTER = _create_batched_cascade_step_fn_adapter()
+_PARALLEL_BATCHED_CASCADE_STEP_FN_ADAPTER = (
+    _create_parallel_batched_cascade_step_fn_adapter()
+)
+
+
+@kd.optools.as_backend_operator(
+    'kd_ext.contrib._stream_batched_cascade',
+    qtype_inference_expr=kd.lazy.streams.get_stream_qtype(P.initial_yields),
+    deterministic=False,
+)
+def _stream_batched_cascade(
+    executor, stream, step_fn, yields_param_name, initial_yields, initial_state
+):
+  """(internal) Writes the initial yields and the yields of all steps.
+
+  The backend for kd_ext.contrib.batched_cascade; see StreamBatchedCascade() in
+  //koladata/contrib/cascade.h.
+  """
+  del executor, stream, step_fn  # Unused.
+  del yields_param_name, initial_yields, initial_state  # Unused.
+  raise NotImplementedError('implemented in the backend')
+
+
+@kd.optools.add_to_registry(via_cc_operator_package=True)
+@kd.optools.as_lambda_operator(
+    'kd_ext.contrib.batched_cascade',
+    qtype_constraints=[
+        kd.optools.constraints.expect_iterable(P.cascade),
+        kd.optools.constraints.expect_data_slice(P.step_fn),
+        kd.optools.constraints.expect_iterable(P.yields),
+    ],
+)
+def batched_cascade(cascade, step_fn, /, *, yields, **initial_state):
+  """Processes batches of items with `step_fn`, which can feed back new items.
+
+  `step_fn(batch, **state)` is called sequentially on batches of items,
+  threading `state` across calls. Each call must return a namedtuple
+  (see `kd.namedtuple`) with updated `state` values. The namedtuple doesn't
+  have to contain all `state` variables, only those that change. Additionally,
+  it may contain the following fields:
+
+    * `yields`: an iterable of items for the result; it must have the same
+      type as the `yields` argument.
+    * `cascades`: an iterable of new items (of the same type as the `cascade`
+      argument), which are processed by `step_fn` as well.
+
+  How items are grouped into batches is unspecified; only the relative order
+  of items within the initial `cascade` and each returned `cascades` is
+  preserved. Items from different cascades can be interleaved.
+
+  The result chains the initial `yields` and the subsequent `yields` returned
+  by `step_fn`.
+
+  Example:
+    kd_ext.contrib.batched_cascade(
+        kd.iterables.make(2, 1),
+        lambda batch: kd.namedtuple(
+            yields=batch,
+            cascades=kd.functor.flat_map_chain(
+                batch,
+                lambda n: kd.iterables.from_1d_slice(
+                    kd.select(kd.stack(n - 1), n > 0)
+                ),
+            ),
+        ),
+        yields=kd.iterables.make(),
+    )
+    # -> An iterable with items 2, 1, 1, 0, 0 (batches [2, 1], [1, 0], [0]).
+
+  Args:
+    cascade: The input iterable.
+    step_fn: A functor `step_fn(batch, **state)` that returns updates for the
+      state and optional `yields` and `cascades`.
+    yields: The initial value of `yields`; usually an empty iterable, e.g.
+      `kd.iterables.make()`.
+    **initial_state: The initial values of the state variables.
+
+  Returns:
+    An iterable that chains the items of all `yields`.
+  """
+  initial_state = arolla.optools.fix_trace_kwargs(initial_state)
+  hidden_state = M.namedtuple.make(
+      _koda_internal_step_fn=step_fn,
+      _koda_internal_defaults=M.namedtuple.make(
+          yields=kd.iterables.empty_as(yields),
+          cascades=kd.iterables.empty_as(cascade),
+      ),
+  )
+  # NOTE: Using `unsafe_blocking_wait` is safe since we use the eager executor,
+  # which guarantees that the resulting stream is fully computed before the
+  # operator returns.
+  return kd.streams.unsafe_blocking_wait(
+      future_iterable_from_stream(
+          kd.streams.chain_from_stream(
+              arolla.abc.bind_op(
+                  _stream_batched_cascade,
+                  kd.streams.get_eager_executor(),
+                  kd.streams.from_iterable(cascade),
+                  _BATCHED_CASCADE_STEP_FN_ADAPTER,
+                  arolla.text('yields'),
+                  kd.streams.from_iterable(yields),
+                  M.namedtuple.union(initial_state, hidden_state),
+                  kd.eager.optools.unified_non_deterministic_arg(),
+              )
+          )
+      )
+  )
+
+
+# NOTE: This operator is the replacement for kd_ext.contrib.batched_cascade in
+# the parallel transform, which is registered in
+# //koladata/contrib/operators.cc.
+@kd.optools.add_to_registry(via_cc_operator_package=True)
+@kd.optools.as_lambda_operator(
+    'kd_ext.contrib._parallel_batched_cascade',
+    qtype_constraints=[
+        kd.optools.constraints.expect_executor(P.executor),
+        kd.optools.constraints.expect_data_slice(P.transformed_step_fn),
+    ],
+)
+def _parallel_batched_cascade(
+    executor, stream, transformed_step_fn, yields, initial_state
+):
+  """(internal) The parallel version of kd_ext.contrib.batched_cascade."""
+  hidden_state = M.namedtuple.make(
+      _koda_internal_transformed_step_fn=transformed_step_fn,
+      _koda_internal_executor=executor,
+      _koda_internal_defaults=M.namedtuple.make(
+          yields=kd.streams.empty_as(yields),
+          cascades=kd.streams.empty_as(stream),
+      ),
+  )
+  return kd.streams.chain_from_stream(
+      arolla.abc.bind_op(
+          _stream_batched_cascade,
+          executor,
+          stream,
+          _PARALLEL_BATCHED_CASCADE_STEP_FN_ADAPTER,
+          arolla.text('yields'),
+          yields,
+          M.namedtuple.union(initial_state, hidden_state),
+          kd.eager.optools.unified_non_deterministic_arg(),
+      )
+  )
 
 
 @kd.optools.as_backend_operator('kd_ext.contrib._flatten_cyclic_references')
