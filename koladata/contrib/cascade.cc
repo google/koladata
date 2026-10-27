@@ -163,6 +163,10 @@ class InterleaveMixer : public std::enable_shared_from_this<InterleaveMixer> {
     const auto guard = absl::Cleanup([&] { SubscribeForReady(waiting_it); });
     {
       absl::MutexLock lock(mutex_);
+      if (ready_readers_.empty() && waiting_readers_.empty()) {
+        // Previously, there was no event to wait for, but now there is one.
+        ResetReadyEvent();
+      }
       waiting_it =
           waiting_readers_.insert(waiting_readers_.end(), std::move(reader));
     }

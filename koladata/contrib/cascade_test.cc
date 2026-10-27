@@ -226,6 +226,44 @@ TEST(StreamBatchedCascadeTest, PendingSources) {
                                        1004, 1003, 1002, 1001, 1000)));
 }
 
+TEST(StreamBatchedCascadeTest, PendingCascades) {
+  auto [cascades, cascades_writer] = MakeStream(arolla::GetQType<int>());
+  auto step_fn = [&cascades](absl::Span<const arolla::TypedRef> args,
+                             absl::Span<const std::string> /*kwnames*/)
+      -> absl::StatusOr<arolla::TypedValue> {
+    ASSIGN_OR_RETURN(std::vector<int> batch,
+                     ReadAllInts(args[0].UnsafeAs<StreamPtr>()));
+    int yields = 0;
+    for (int x : batch) {
+      yields += x;
+    }
+    if (cascades != nullptr) {
+      return arolla::MakeNamedTuple(
+          {"yields", "cascades"},
+          {arolla::TypedRef::FromValue(yields),
+           MakeStreamQValueRef(std::exchange(cascades, nullptr))});
+    }
+    return arolla::MakeNamedTuple({"yields"},
+                                  {arolla::TypedRef::FromValue(yields)});
+  };
+  ASSERT_OK_AND_ASSIGN(
+      StreamPtr stream,
+      StreamBatchedCascade(
+          GetEagerExecutor(), MakeIntStream({1}), std::move(step_fn), "yields",
+          arolla::TypedRef::FromValue(kInitialYields), EmptyState().AsRef()));
+  auto reader = stream->MakeReader();
+  EXPECT_THAT(reader->TryRead().item(),
+              Pointee(QValueWith<int>(kInitialYields)));
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(1)));
+  EXPECT_TRUE(reader->TryRead().empty());
+  cascades_writer->Write(arolla::TypedRef::FromValue(2));
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(2)));
+  EXPECT_TRUE(reader->TryRead().empty());
+  std::move(*cascades_writer).Close();
+  EXPECT_THAT(ReadAllInts(stream),
+              IsOkAndHolds(ElementsAre(kInitialYields, 1, 2)));
+}
+
 TEST(StreamBatchedCascadeTest, InputStreamError) {
   ASSERT_OK_AND_ASSIGN(
       StreamPtr stream,
