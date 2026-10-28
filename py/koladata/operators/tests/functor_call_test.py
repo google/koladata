@@ -39,7 +39,7 @@ ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 kd = kde_operators.kd
 
-SRC_PIN = optools.SRC_PIN
+SRC_PIN = arolla.optools.SRC_PIN
 
 
 class FunctorCallTest(parameterized.TestCase):

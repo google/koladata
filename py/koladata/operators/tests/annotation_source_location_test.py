@@ -31,7 +31,7 @@ kde = kde_operators.kde
 kd_item = data_item.DataItem.from_vals
 eval_op = py_expr_eval_py_ext.eval_op
 
-SRC_PIN = kd_optools.SRC_PIN
+SRC_PIN = arolla.optools.SRC_PIN
 
 
 class AnnotationSourceLocationTest(absltest.TestCase):

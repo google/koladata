@@ -93,6 +93,7 @@ py_test(
         "//py/koladata/functions",
         "//py/koladata/functor:functor_factories",
         "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_item",

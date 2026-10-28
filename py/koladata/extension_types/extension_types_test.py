@@ -43,6 +43,7 @@ M = arolla.M | derived_qtype.M | objects.M
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+SRC_PIN = arolla.optools.SRC_PIN
 
 _EXT_TYPE = M.derived_qtype.get_labeled_qtype(
     extension_type_registry.BASE_QTYPE, '__main__._MyTestExtension'
@@ -1161,8 +1162,8 @@ class ExtensionTypesTest(parameterized.TestCase):
     with self.subTest('lazy'):
       expected_repr = (
           re.escape(
-              """kd.extension_types.make(LABEL['__main__.ExtensionTypesTest.test_default_repr.<locals>.A'], Object{attributes={_functor_impl__virt_fn=DataItem(Functor ExtensionTypesTest.test_default_repr.<locals>.A.virt_fn[self](
-  returns=kd.extension_types.get_attr(kd.extension_types.dynamic_cast(S, LABEL['__main__.ExtensionTypesTest.test_default_repr.<locals>.A'])📍, DataItem('x', schema: STRING), DATA_SLICE)📍,
+              f"""kd.extension_types.make(LABEL['__main__.ExtensionTypesTest.test_default_repr.<locals>.A'], Object{{attributes={{_functor_impl__virt_fn=DataItem(Functor ExtensionTypesTest.test_default_repr.<locals>.A.virt_fn[self](
+  returns=kd.extension_types.get_attr(kd.extension_types.dynamic_cast(S, LABEL['__main__.ExtensionTypesTest.test_default_repr.<locals>.A']){SRC_PIN}, DataItem('x', schema: STRING), DATA_SLICE){SRC_PIN},
 ), schema: OBJECT, bag_id: $"""
           )
           + '[a-z0-9]+'
@@ -1217,8 +1218,8 @@ class ExtensionTypesTest(parameterized.TestCase):
     with self.subTest('lazy'):
       expected_repr = (
           re.escape(
-              """kd.extension_types.make(LABEL['__main__.ExtensionTypesTest.test_custom_repr.<locals>.A'], Object{attributes={_functor_impl__virt_fn=DataItem(Functor ExtensionTypesTest.test_custom_repr.<locals>.A.virt_fn[self](
-  returns=kd.extension_types.get_attr(kd.extension_types.dynamic_cast(S, LABEL['__main__.ExtensionTypesTest.test_custom_repr.<locals>.A'])📍, DataItem('x', schema: STRING), DATA_SLICE)📍,
+              f"""kd.extension_types.make(LABEL['__main__.ExtensionTypesTest.test_custom_repr.<locals>.A'], Object{{attributes={{_functor_impl__virt_fn=DataItem(Functor ExtensionTypesTest.test_custom_repr.<locals>.A.virt_fn[self](
+  returns=kd.extension_types.get_attr(kd.extension_types.dynamic_cast(S, LABEL['__main__.ExtensionTypesTest.test_custom_repr.<locals>.A']){SRC_PIN}, DataItem('x', schema: STRING), DATA_SLICE){SRC_PIN},
 ), schema: OBJECT, bag_id: $"""
           )
           + '[a-z0-9]+'

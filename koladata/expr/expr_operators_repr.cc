@@ -20,6 +20,7 @@
 #include "arolla/util/status_macros_backport.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "arolla/expr/annotation_expr_operators.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/operator_repr_functions.h"
 #include "arolla/expr/registered_expr_operator.h"
@@ -31,7 +32,6 @@
 #include "koladata/expr/expr_operators.h"
 
 namespace koladata::expr {
-
 namespace {
 
 // koda_internal.input(container_name, input_key) repr. Printed as:
@@ -74,14 +74,15 @@ std::optional<arolla::ReprToken> KodaLiteralOpRepr(
 std::optional<arolla::ReprToken> KodaSourceLocationOpRepr(
     const arolla::expr::ExprNodePtr& node,
     const absl::flat_hash_map<arolla::Fingerprint, arolla::ReprToken>& tokens) {
-  constexpr absl::string_view kSrcPin = "📍";
   const arolla::ReprToken& annotated =
       tokens.at(node->node_deps()[0]->fingerprint());
   std::string str;
   if (annotated.precedence.right >= arolla::ReprToken::kOpSubscription.left) {
-    str = absl::StrCat("(", annotated.str, ")", kSrcPin);
+    str = absl::StrCat("(", annotated.str, ")",
+                       arolla::expr::SourceLocationAnnotation::kSrcPin);
   } else {
-    str = absl::StrCat(annotated.str, kSrcPin);
+    str = absl::StrCat(annotated.str,
+                       arolla::expr::SourceLocationAnnotation::kSrcPin);
   }
   return arolla::ReprToken{std::move(str), arolla::ReprToken::kOpSubscription};
 }

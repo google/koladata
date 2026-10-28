@@ -32,8 +32,6 @@ from koladata.operators import unified_binding_policy
 from koladata.types import py_boxing
 from koladata.types import qtypes
 
-SRC_PIN = op_repr.SRC_PIN
-
 
 # False means that Arolla operators are already registered, and will be looked
 # up by name instead of registration.

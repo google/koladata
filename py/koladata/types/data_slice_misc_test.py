@@ -26,7 +26,6 @@ from koladata.functor import boxing as _
 from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
 from koladata.operators import kde_operators
-from koladata.operators import optools
 from koladata.testing import signature_test_utils
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -45,7 +44,7 @@ ds = data_slice.DataSlice.from_vals
 
 INT64 = schema_constants.INT64
 
-SRC_PIN = optools.SRC_PIN
+SRC_PIN = arolla.optools.SRC_PIN
 
 
 @tracing_decorator.TraceAsFnDecorator()

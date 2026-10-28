@@ -26,12 +26,12 @@ from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import schema_constants
 
-
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 kd = kde_operators.kd
 kd_SWITCH_DEFAULT = kde_operators.SWITCH_DEFAULT
+SRC_PIN = arolla.optools.SRC_PIN
 
 
 class FunctorSwitchTest(absltest.TestCase):
@@ -273,19 +273,19 @@ class FunctorSwitchTest(absltest.TestCase):
     )
     self.assertEqual(
         repr(expr),
-        """kd.functor.switch(
+        f"""kd.functor.switch(
     I.k,
-    {
+    {{
         'b': Functor FunctorSwitchTest.test_repr.<locals>.<lambda>[x](
-          returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('b', schema: STRING))📍,
+          returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('b', schema: STRING)){SRC_PIN},
         ),
         'a': Functor FunctorSwitchTest.test_repr.<locals>.<lambda>[x](
-          returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('a', schema: STRING))📍,
+          returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('a', schema: STRING)){SRC_PIN},
         ),
         kd.SWITCH_DEFAULT: Functor FunctorSwitchTest.test_repr.<locals>.<lambda>[x](
-          returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('default', schema: STRING))📍,
+          returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('default', schema: STRING)){SRC_PIN},
         ),
-    },
+    }},
     x=I.x, return_type_as=kd.attrs(I.k, overwrite_schema=DataItem(False, schema: BOOLEAN)))""",
     )
 
@@ -313,13 +313,13 @@ class FunctorSwitchTest(absltest.TestCase):
     )
     self.assertEqual(
         repr(expr),
-        """kd.functor.switch(
+        f"""kd.functor.switch(
     I.k,
-    {
+    {{
         'a': Functor FunctorSwitchTest.test_repr_no_args.<locals>.<lambda>[x](
-          returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('a', schema: STRING))📍,
+          returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('a', schema: STRING)){SRC_PIN},
         ),
-    })""",
+    }})""",
     )
 
   def test_view(self):
