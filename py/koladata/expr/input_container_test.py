@@ -88,6 +88,14 @@ class InputContainerTest(parameterized.TestCase):
     I = input_container.InputContainer('I')
     self.assertEqual(repr(I), "InputContainer('I')")
 
+  def test_default_containers(self):
+    self.assertEqual(repr(input_container.I), "InputContainer('I')")
+    self.assertEqual(repr(input_container.V), "InputContainer('V')")
+    arolla.testing.assert_expr_equal_by_fingerprint(
+        input_container.S, input_container.I.self
+    )
+    self.assertTrue(view.has_koda_view(input_container.S))
+
 
 # pylint: enable=invalid-name
 

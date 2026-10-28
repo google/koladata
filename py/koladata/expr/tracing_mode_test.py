@@ -115,6 +115,7 @@ class TracingModeTest(absltest.TestCase):
     mod = types.ModuleType('mod')
     mod.__all__ = ['a', 'b', 'c']  # pyrefly: ignore[missing-attribute]
     mod.__doc__ = 'Testing module.'
+    mod.__package__ = 'pkg'
     mod.a = {'a': 1}  # pyrefly: ignore[missing-attribute]
     mod.b = {'b': 2}  # pyrefly: ignore[missing-attribute]
     mod.c = {'c': 3}  # pyrefly: ignore[missing-attribute]
@@ -139,6 +140,7 @@ class TracingModeTest(absltest.TestCase):
     self.assertEqual(res.__all__, ['a', 'b', 'c'])
     self.assertCountEqual(dir(res), ['a', 'b', 'c'])
     self.assertEqual(res.__doc__, 'Testing module.')
+    self.assertEqual(res.__package__, 'pkg')
 
     with tracing_mode.enable_tracing():
       self.assertEqual(res.a, 1)

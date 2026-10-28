@@ -274,9 +274,9 @@ _LoadImpureFunctions(_functions, _functor_functions, _extension_type_functions)
 
 
 ### Expr-related functions, Input/Variable containers and operator container.
-I = _eager_only(_input_container.InputContainer('I'))
-V = _eager_only(_input_container.InputContainer('V'))
-S = _eager_only(I.self)
+I = _eager_only(_input_container.I)
+V = _eager_only(_input_container.V)
+S = _eager_only(_input_container.S)
 eval = _eager_only(_expr_eval.eval)  # pylint: disable=redefined-builtin
 lazy = _eager_only(_kde_operators.kde)
 named_container = _same_when_tracing(_expr_container.NamedContainer)

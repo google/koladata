@@ -24,9 +24,11 @@ _KODA_INPUT_OP = arolla.abc.lookup_operator('koda_internal.input')
 
 @functools.lru_cache()
 def _get_input(container_name: str, input_key: str) -> arolla.Expr:
-  container_name = literal_operator.literal(arolla.text(container_name))
-  input_key = literal_operator.literal(arolla.text(input_key))
-  return _KODA_INPUT_OP(container_name, input_key)
+  return arolla.abc.bind_op(
+      _KODA_INPUT_OP,
+      literal_operator.literal(arolla.text(container_name)),
+      literal_operator.literal(arolla.text(input_key)),
+  )
 
 
 class InputContainer:
@@ -68,3 +70,8 @@ def get_input_name(expr: arolla.Expr, container: InputContainer) -> str | None:
     return expr.node_deps[1].qvalue.py_value()  # pyrefly: ignore[missing-attribute]
   else:
     return None
+
+
+I = InputContainer('I')
+V = InputContainer('V')
+S = I.self

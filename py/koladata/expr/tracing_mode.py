@@ -198,6 +198,7 @@ def prepare_module_for_tracing(
       self._ref_to_mod = mod
       self.__doc__ = mod.__doc__
       self.__all__ = mod.__all__
+      self.__package__ = mod.__package__
 
     def __dir__(self):
       return self.__all__
