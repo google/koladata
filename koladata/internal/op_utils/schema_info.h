@@ -20,6 +20,7 @@
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "arolla/util/text.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -70,6 +71,14 @@ inline DataItem GetSchemaAttrSchema(absl::string_view attr_name) {
     return DataItem(schema::kObject);
   }
   return DataItem(schema::kSchema);
+}
+
+inline bool IsContainerSchemaAttrName(const DataItem& attr_name) {
+  return schema::IsContainerSchemaAttr(attr_name.value<arolla::Text>().view());
+}
+
+inline bool IsSchemaAnnotationAttrName(const DataItem& attr_name) {
+  return schema::IsSchemaAnnotationAttr(attr_name.value<arolla::Text>().view());
 }
 
 }  // namespace koladata::internal

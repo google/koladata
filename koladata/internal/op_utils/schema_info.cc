@@ -40,10 +40,9 @@ absl::StatusOr<EntitySchemaInfo> GetEntitySchemaInfo(
     // Attributes of NoFollow schemas are not traversed.
     return ObjectSchemaInfo();
   }
-  ASSIGN_OR_RETURN(
-      std::vector<DataItem> attr_names,
-      databag.GetSchemaAttrsAsVector(schema, fallbacks,
-                                     /*filter_removed=*/true));
+  ASSIGN_OR_RETURN(std::vector<DataItem> attr_names,
+                   databag.GetSchemaAttrsAsVector(schema, fallbacks,
+                                                  /*filter_removed=*/true));
   if (attr_names.empty()) {
     return ObjectSchemaInfo();
   }
@@ -85,10 +84,7 @@ absl::StatusOr<EntitySchemaInfo> GetEntitySchemaInfo(
     return DictSchemaInfo{.keys_schema = std::move(keys_schema),
                           .values_schema = std::move(values_schema)};
   }
-  std::erase_if(attr_names, [](const DataItem& attr_name) {
-    return schema::IsSchemaAnnotationAttr(
-        attr_name.value<arolla::Text>().view());
-  });
+  std::erase_if(attr_names, IsSchemaAnnotationAttrName);
   return ObjectSchemaInfo{.attr_names = std::move(attr_names)};
 }
 

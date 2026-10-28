@@ -15,12 +15,15 @@
 #include "koladata/internal/op_utils/vectorized_traverser.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
+#include "absl/functional/function_ref.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "arolla/util/status_macros_backport.h"
@@ -28,9 +31,13 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/dense_array/edge.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/cancellation.h"
+#include "arolla/util/text.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -38,8 +45,13 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/abstract_visitor.h"
 #include "koladata/internal/op_utils/group_by_utils.h"
+#include "koladata/internal/op_utils/has.h"
 #include "koladata/internal/op_utils/in_degree_tracker.h"
+#include "koladata/internal/op_utils/presence_and.h"
+#include "koladata/internal/op_utils/schema_info.h"
+#include "koladata/internal/op_utils/slice_attribute_table.h"
 #include "koladata/internal/op_utils/vectorized_traverse_helper.h"
+#include "koladata/internal/slice_builder.h"
 
 namespace koladata::internal {
 namespace {
@@ -66,6 +78,29 @@ absl::Status ValidatePrevisitTokens(absl::string_view method,
   return absl::OkStatus();
 }
 
+absl::Status PrimitiveTypeError(schema::DType schema_dtype,
+                                arolla::QTypePtr actual_qtype) {
+  if (auto actual_dtype = schema::DType::FromQType(actual_qtype);
+      actual_dtype.ok()) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        "during traversal, got a slice with primitive type ", schema_dtype,
+        " while the actual content has type ", actual_dtype->name()));
+  }
+  return absl::InvalidArgumentError(absl::StrCat(
+      "during traversal, got a slice with primitive type ", schema_dtype,
+      " while the actual content is not a primitive"));
+}
+
+absl::Status ValidatePrimitiveType(const DataItem& item,
+                                   const DataItem& schema) {
+  DCHECK(schema.is_primitive_schema());
+  auto schema_dtype = schema.value<schema::DType>();
+  if (!item.has_value() || item.dtype() == schema_dtype.qtype()) {
+    return absl::OkStatus();
+  }
+  return PrimitiveTypeError(schema_dtype, item.dtype());
+}
+
 absl::Status ValidatePrimitiveTypes(const DataSliceImpl& ds,
                                     const DataItem& schema) {
   DCHECK(schema.is_primitive_schema());
@@ -82,15 +117,42 @@ absl::Status ValidatePrimitiveTypes(const DataSliceImpl& ds,
       }
     });
   }
-  if (auto actual_dtype = schema::DType::FromQType(actual_qtype);
-      actual_dtype.ok()) {
-    return absl::InvalidArgumentError(absl::StrCat(
-        "during traversal, got a slice with primitive type ", schema_dtype,
-        " while the actual content has type ", actual_dtype->name()));
+  return PrimitiveTypeError(schema_dtype, actual_qtype);
+}
+
+// Returns true iff objects reached with `schema` are traversed further.
+bool IsTraversableSchema(const DataItem& schema) {
+  return schema == schema::kSchema || schema == schema::kObject ||
+         schema.holds_value<ObjectId>();
+}
+
+// Returns the items of the `i`-th parent, where `edge` maps `items` to their
+// parents (e.g. list items to lists).
+DataSliceImpl ChildItems(const DataSliceImpl& items,
+                         const arolla::DenseArrayEdge& edge, int64_t i) {
+  absl::Span<const int64_t> split_points = edge.edge_values().values.span();
+  int64_t from = split_points[i];
+  int64_t to = split_points[i + 1];
+  if (from == to) {
+    return DataSliceImpl::CreateEmptyAndUnknownType(0);
   }
-  return absl::InvalidArgumentError(absl::StrCat(
-      "during traversal, got a slice with primitive type ", schema_dtype,
-      " while the actual content is not a primitive"));
+  if (from == 0 && to == items.size()) {
+    return items;
+  }
+  return items.SubSlice(from, to - from);
+}
+
+absl::StatusOr<DataSliceImpl> MapPresentItems(
+    const DataSliceImpl& values,
+    absl::FunctionRef<absl::StatusOr<DataItem>(int64_t, const DataItem&)> fn) {
+  SliceBuilder builder(values.size());
+  for (int64_t i = 0; i < values.size(); ++i) {
+    if (values.present(i)) {
+      ASSIGN_OR_RETURN(DataItem converted, fn(i, values[i]));
+      builder.InsertIfNotSetAndUpdateAllocIds(i, std::move(converted));
+    }
+  }
+  return std::move(builder).Build();
 }
 
 }  // namespace
@@ -107,7 +169,9 @@ VectorizedTraverser::VectorizedTraverser(
 
 absl::Status VectorizedTraverser::TraverseSlice(const DataSliceImpl& ds,
                                                 const DataItem& schema) {
-  return PrevisitAndCalculateInDegrees(ds, schema);
+  RETURN_IF_ERROR(PrevisitAndCalculateInDegrees(ds, schema));
+  RETURN_IF_ERROR(BuildTopologicalOrderFromInDegrees(ds, schema));
+  return VisitInReverseTopologicalOrder();
 }
 
 absl::StatusOr<DataSliceImpl> VectorizedTraverser::PrevisitSlice(
@@ -117,6 +181,21 @@ absl::StatusOr<DataSliceImpl> VectorizedTraverser::PrevisitSlice(
                    visitor_->PrevisitSlice(values, schema, key, parent_token));
   RETURN_IF_ERROR(ValidatePrevisitTokens("PrevisitSlice", values, tokens));
   return tokens;
+}
+
+absl::Status VectorizedTraverser::PrevisitByToken(
+    const DataSliceImpl& values, const DataItem& schema,
+    const std::optional<TransitionKey>& key, const DataItem& parent_token,
+    TokenGroupCallback callback) {
+  ASSIGN_OR_RETURN(DataSliceImpl tokens,
+                   PrevisitSlice(values, schema, key, parent_token));
+  DataSliceImpl objects = InDegreeTracker::FilterToObjects(values);
+  if (objects.present_count() == 0) {
+    return absl::OkStatus();
+  }
+  return group_by_.ByKeys(std::move(tokens))
+      .Split(std::move(objects))
+      .ForEach(callback);
 }
 
 absl::StatusOr<DataSliceImpl> VectorizedTraverser::PrevisitObjectSchemas(
@@ -146,6 +225,34 @@ VectorizedTraverser::QueuedSlice VectorizedTraverser::MakeObjectsSlice(
           .is_object_schema = true,
           .object_schemas = std::move(schemas),
           .token = token};
+}
+
+absl::Status VectorizedTraverser::ForEachSchemaSlice(
+    DataSliceImpl schemas, const DataItem& token,
+    QueuedSliceCallback callback) {
+  DataSliceImpl allocation_keys = ObjectsGroupBy::SchemaAllocationKeys(schemas);
+  return group_by_.ByKeys(std::move(allocation_keys))
+      .Split(std::move(schemas))
+      .ForEach([&](const DataItem& /*allocation_key*/,
+                   DataSliceImpl allocation_schemas) {
+        return callback({.slice = std::move(allocation_schemas),
+                         .schema_item = DataItem(schema::kSchema),
+                         .token = token});
+      });
+}
+
+absl::Status VectorizedTraverser::ForEachObjectSlice(
+    DataSliceImpl objects, DataSliceImpl schemas, const DataItem& token,
+    QueuedSliceCallback callback) {
+  DataSliceImpl allocation_keys = ObjectsGroupBy::SchemaAllocationKeys(schemas);
+  return group_by_.ByKeys(std::move(allocation_keys))
+      .Split(std::move(objects), std::move(schemas))
+      .ForEach([&](const DataItem& /*allocation_key*/,
+                   DataSliceImpl allocation_objects,
+                   DataSliceImpl allocation_schemas) {
+        return callback(MakeObjectsSlice(std::move(allocation_objects),
+                                         std::move(allocation_schemas), token));
+      });
 }
 
 absl::Status VectorizedTraverser::TrackSchemas(const QueuedSlice& slice) {
@@ -198,74 +305,33 @@ absl::Status VectorizedTraverser::PrevisitAndEnqueue(
   if (schema.is_primitive_schema()) {
     return ValidatePrimitiveTypes(transition.values, schema);
   }
-  if (schema == schema::kSchema) {
-    return PrevisitAndEnqueueSchemas(parent_token, transition.key,
-                                     transition.values);
-  }
-  DataSliceImpl objects = InDegreeTracker::FilterToObjects(transition.values);
-  if (objects.present_count() == 0) {
-    return absl::OkStatus();
-  }
-  if (schema == schema::kObject) {
-    return PrevisitAndEnqueueObjects(parent_token, transition.key, objects);
-  }
-  if (schema == schema::kItemId) {
-    // ItemIds are previsited, but not traversed further.
-    return PrevisitSlice(objects, schema, transition.key, parent_token)
-        .status();
-  }
-  return PrevisitAndEnqueueEntities(parent_token, transition.key, objects,
-                                    schema);
-}
-
-absl::Status VectorizedTraverser::PrevisitAndEnqueueSchemas(
-    const DataItem& parent_token, const std::optional<TransitionKey>& key,
-    const DataSliceImpl& values) {
+  // For SCHEMA, all values (including DTypes) are previsited, and filtered to
+  // ObjectIds afterwards.
+  DataSliceImpl values =
+      schema == schema::kSchema
+          ? transition.values
+          : InDegreeTracker::FilterToObjects(transition.values);
   if (values.present_count() == 0) {
     return absl::OkStatus();
   }
-  ASSIGN_OR_RETURN(
-      DataSliceImpl tokens,
-      PrevisitSlice(values, DataItem(schema::kSchema), key, parent_token));
-  DataSliceImpl schemas = InDegreeTracker::FilterToObjects(values);
-  if (schemas.present_count() == 0) {
-    return absl::OkStatus();
+  if (schema == schema::kItemId) {
+    // ItemIds are previsited, but not traversed further.
+    return PrevisitSlice(values, schema, transition.key, parent_token).status();
   }
-  DataSliceImpl allocation_keys = ObjectsGroupBy::SchemaAllocationKeys(schemas);
-  return group_by_.ByKeys(std::move(tokens), std::move(allocation_keys))
-      .Split(std::move(schemas))
-      .ForEach([&](const DataItem& token, const DataItem& /*allocation_key*/,
-                   DataSliceImpl allocation_schemas) {
-        return Enqueue({.slice = std::move(allocation_schemas),
-                        .schema_item = DataItem(schema::kSchema),
-                        .token = token});
-      });
-}
-
-absl::Status VectorizedTraverser::PrevisitAndEnqueueEntities(
-    const DataItem& parent_token, const std::optional<TransitionKey>& key,
-    const DataSliceImpl& objects, const DataItem& schema) {
-  ASSIGN_OR_RETURN(DataSliceImpl tokens,
-                   PrevisitSlice(objects, schema, key, parent_token));
-  return group_by_.ByKeys(std::move(tokens))
-      .Split(objects)
-      .ForEach([&](const DataItem& token, DataSliceImpl objects_group) {
-        return Enqueue({.slice = std::move(objects_group),
+  return PrevisitByToken(
+      values, schema, transition.key, parent_token,
+      [&](const DataItem& token, DataSliceImpl objects) {
+        if (schema == schema::kSchema) {
+          return ForEachSchemaSlice(
+              std::move(objects), token,
+              [&](QueuedSlice slice) { return Enqueue(std::move(slice)); });
+        }
+        if (schema == schema::kObject) {
+          return PrevisitAndEnqueueObjectSchemas(token, objects);
+        }
+        return Enqueue({.slice = std::move(objects),
                         .schema_item = schema,
                         .token = token});
-      });
-}
-
-absl::Status VectorizedTraverser::PrevisitAndEnqueueObjects(
-    const DataItem& parent_token, const std::optional<TransitionKey>& key,
-    const DataSliceImpl& objects) {
-  ASSIGN_OR_RETURN(
-      DataSliceImpl tokens,
-      PrevisitSlice(objects, DataItem(schema::kObject), key, parent_token));
-  return group_by_.ByKeys(std::move(tokens))
-      .Split(objects)
-      .ForEach([&](const DataItem& token, DataSliceImpl objects_group) {
-        return PrevisitAndEnqueueObjectSchemas(token, objects_group);
       });
 }
 
@@ -281,16 +347,13 @@ absl::Status VectorizedTraverser::PrevisitAndEnqueueObjectSchemas(
   }
   ASSIGN_OR_RETURN(DataSliceImpl tokens,
                    PrevisitObjectSchemas(objects, schemas, token));
-  DataSliceImpl allocation_keys = ObjectsGroupBy::SchemaAllocationKeys(schemas);
-  return group_by_.ByKeys(std::move(tokens), std::move(allocation_keys))
+  return group_by_.ByKeys(std::move(tokens))
       .Split(objects, std::move(schemas))
-      .ForEach([&](const DataItem& new_token,
-                   const DataItem& /*allocation_key*/,
-                   DataSliceImpl allocation_objects,
-                   DataSliceImpl allocation_schemas) {
-        return Enqueue(MakeObjectsSlice(std::move(allocation_objects),
-                                        std::move(allocation_schemas),
-                                        new_token));
+      .ForEach([&](const DataItem& new_token, DataSliceImpl token_objects,
+                   DataSliceImpl token_schemas) {
+        return ForEachObjectSlice(
+            std::move(token_objects), std::move(token_schemas), new_token,
+            [&](QueuedSlice slice) { return Enqueue(std::move(slice)); });
       });
 }
 
@@ -307,6 +370,308 @@ absl::Status VectorizedTraverser::PrevisitAndCalculateInDegrees(
     RETURN_IF_ERROR(ForEachChild(parent, [&](const Transition& transition) {
       return PrevisitAndEnqueue(parent.token, transition);
     }));
+  }
+  return absl::OkStatus();
+}
+
+absl::Status VectorizedTraverser::AppendToOrder(DataSliceImpl values,
+                                                const DataItem& schema) {
+  auto append = [&](QueuedSlice slice) {
+    topological_order_.push_back(std::move(slice));
+    return absl::OkStatus();
+  };
+  if (schema == schema::kSchema) {
+    return ForEachSchemaSlice(std::move(values), /*token=*/DataItem(), append);
+  }
+  if (schema == schema::kObject) {
+    ASSIGN_OR_RETURN(DataSliceImpl schemas, schema_tracker_.GetSchemas(values));
+    if (schemas.present_count() != values.size()) {
+      return absl::InternalError(
+          "schemas of objects reached with OBJECT schema are not tracked");
+    }
+    return ForEachObjectSlice(std::move(values), std::move(schemas),
+                              /*token=*/DataItem(), append);
+  }
+  return append({.slice = std::move(values), .schema_item = schema});
+}
+
+absl::Status VectorizedTraverser::DecrementAndAppendToOrder(
+    const DataSliceImpl& values, const DataItem& schema) {
+  if (!IsTraversableSchema(schema)) {
+    return absl::OkStatus();
+  }
+  DataSliceImpl objects = InDegreeTracker::FilterToObjects(values);
+  if (objects.present_count() == 0) {
+    return absl::OkStatus();
+  }
+  ASSIGN_OR_RETURN(DataSliceImpl free_objects,
+                   in_degree_tracker_.DecrementAndGetLast(objects));
+  if (free_objects.present_count() == 0) {
+    return absl::OkStatus();
+  }
+  return AppendToOrder(std::move(free_objects), schema);
+}
+
+absl::Status VectorizedTraverser::BreakCycle(size_t& slice_idx) {
+  for (; slice_idx < reachable_slices_.size(); ++slice_idx) {
+    RETURN_IF_ERROR(arolla::CheckCancellation());
+    const QueuedSlice& candidate = reachable_slices_[slice_idx];
+    ASSIGN_OR_RETURN(DataSliceImpl objects,
+                     in_degree_tracker_.FilterToPositive(candidate.slice));
+    if (objects.present_count() == 0) {
+      continue;
+    }
+    DataSliceImpl free_objects;
+    while (free_objects.present_count() == 0) {
+      RETURN_IF_ERROR(arolla::CheckCancellation());
+      ASSIGN_OR_RETURN(free_objects,
+                       in_degree_tracker_.DecrementAndGetLast(objects));
+    }
+    return AppendToOrder(std::move(free_objects), candidate.schema_item);
+  }
+  return absl::InternalError(
+      "no slices with positive in-degree found while breaking a cycle");
+}
+
+absl::Status VectorizedTraverser::BuildTopologicalOrderFromInDegrees(
+    const DataSliceImpl& ds, const DataItem& schema) {
+  topological_order_.reserve(reachable_slices_.size());
+  auto decrement_callback = [&](const Transition& transition) {
+    return DecrementAndAppendToOrder(transition.values, transition.schema);
+  };
+  RETURN_IF_ERROR(VectorizedTraverseHelper::ForEachRootTransition(
+      ds, schema, decrement_callback));
+
+  int64_t num_objects_to_process = 0;
+  for (const QueuedSlice& slice : reachable_slices_) {
+    num_objects_to_process += slice.slice.size();
+  }
+  size_t head = 0;
+  size_t cycle_breaking_idx = 0;
+  while (num_objects_to_process > 0) {
+    RETURN_IF_ERROR(arolla::CheckCancellation());
+    if (head == topological_order_.size()) {
+      RETURN_IF_ERROR(BreakCycle(cycle_breaking_idx));
+    }
+    DCHECK_LT(head, topological_order_.size());
+    // Copy, since `topological_order_` grows during the iteration.
+    QueuedSlice parent = topological_order_[head++];
+    num_objects_to_process -= parent.slice.size();
+    RETURN_IF_ERROR(ForEachChild(parent, decrement_callback));
+  }
+  return absl::OkStatus();
+}
+
+absl::StatusOr<DataItem> VectorizedTraverser::GetValue(const DataItem& item,
+                                                       const DataItem& schema) {
+  if (schema.is_primitive_schema()) {
+    RETURN_IF_ERROR(ValidatePrimitiveType(item, schema));
+    return item;
+  }
+  return visitor_->GetValue(item, schema);
+}
+
+absl::StatusOr<DataSliceImpl> VectorizedTraverser::GetValues(
+    const DataSliceImpl& values, const DataItem& schema) {
+  if (schema.is_primitive_schema()) {
+    RETURN_IF_ERROR(ValidatePrimitiveTypes(values, schema));
+    return values;
+  }
+  // TODO: Use vectorized AbstractVisitor::GetValues once
+  // available.
+  if (values.present_count() == 0) {
+    return DataSliceImpl::CreateEmptyAndUnknownType(values.size());
+  }
+  if (values.present_count() == values.size()) {
+    if (std::optional<DataItem> value =
+            ObjectsGroupBy::GetItemIfAllEqual(values);
+        value.has_value()) {
+      ASSIGN_OR_RETURN(DataItem converted, visitor_->GetValue(*value, schema));
+      return DataSliceImpl::Create(values.size(), converted);
+    }
+  }
+  return MapPresentItems(values, [&](int64_t /*i*/, const DataItem& item) {
+    return visitor_->GetValue(item, schema);
+  });
+}
+
+absl::StatusOr<DataSliceImpl> VectorizedTraverser::GetValues(
+    const DataSliceImpl& values, const DataSliceImpl& schemas) {
+  DataSliceImpl present_values = values;
+  if (schemas.present_count() < schemas.size() && values.present_count() > 0) {
+    ASSIGN_OR_RETURN(DataSliceImpl mask, HasOp()(schemas));
+    ASSIGN_OR_RETURN(present_values, PresenceAndOp()(values, mask));
+  }
+  if (present_values.present_count() == 0) {
+    return DataSliceImpl::CreateEmptyAndUnknownType(values.size());
+  }
+  if (std::optional<DataItem> schema =
+          ObjectsGroupBy::GetItemIfAllEqual(schemas);
+      schema.has_value()) {
+    return GetValues(present_values, *schema);
+  }
+  // TODO: Use vectorized AbstractVisitor::GetValues once
+  // available.
+  return MapPresentItems(present_values, [&](int64_t i, const DataItem& item) {
+    return GetValue(item, schemas[i]);
+  });
+}
+
+absl::Status VectorizedTraverser::Visit(const QueuedSlice& slice) {
+  if (slice.schema_item == schema::kSchema) {
+    return VisitSchemas(slice.slice);
+  }
+  if (slice.schema_item == schema::kObject) {
+    // A small allocation means a single schema, so a slice with OBJECT
+    // schema has `object_schemas` from a single big allocation.
+    return VisitObjectsWithSchemasInBigAllocation(slice.slice,
+                                                  slice.object_schemas);
+  }
+  ASSIGN_OR_RETURN(ObjectSchemaFlags is_object_schema,
+                   GetObjectSchemaFlags(slice));
+  return VisitEntities(slice.slice, slice.schema_item, is_object_schema);
+}
+
+absl::StatusOr<VectorizedTraverser::ObjectSchemaFlags>
+VectorizedTraverser::GetObjectSchemaFlags(const QueuedSlice& slice) const {
+  if (slice.is_object_schema) {
+    return ObjectSchemaFlags{.all = true};
+  }
+  ASSIGN_OR_RETURN(DataSliceImpl mask,
+                   schema_tracker_.GetObjectSchemaMask(slice.slice));
+  return ObjectSchemaFlags{.mask = std::move(mask)};
+}
+
+absl::Status VectorizedTraverser::VisitSchemas(const DataSliceImpl& schemas) {
+  ASSIGN_OR_RETURN(std::vector<DataItem> attr_names,
+                   GetSchemasAttrNames(schemas, databag_, fallbacks_));
+  SliceAttributeTable::Builder builder(schemas.size(), attr_names.size());
+  for (const DataItem& attr_name_item : attr_names) {
+    absl::string_view attr_name = attr_name_item.value<arolla::Text>().view();
+    ASSIGN_OR_RETURN(
+        DataSliceImpl attr_values,
+        databag_.GetSchemaAttrAllowMissing(schemas, attr_name, fallbacks_));
+    if (attr_values.present_count() == 0) {
+      continue;
+    }
+    ASSIGN_OR_RETURN(DataSliceImpl converted_values,
+                     GetValues(attr_values, GetSchemaAttrSchema(attr_name)));
+    builder.Add(attr_name, std::move(converted_values), std::move(attr_values));
+  }
+  SliceAttributeTable attrs = std::move(builder).Build();
+  for (int64_t i = 0; i < schemas.size(); ++i) {
+    RETURN_IF_ERROR(visitor_->VisitSchema(schemas[i], DataItem(schema::kSchema),
+                                          /*is_object_schema=*/false,
+                                          attrs.NamesOf(i), attrs.ValuesOf(i)));
+  }
+  return absl::OkStatus();
+}
+
+absl::Status VectorizedTraverser::VisitEntities(
+    const DataSliceImpl& entities, const DataItem& schema,
+    const ObjectSchemaFlags& is_object_schema) {
+  ASSIGN_OR_RETURN(EntitySchemaInfo info,
+                   GetEntitySchemaInfo(schema, databag_, fallbacks_));
+  if (const auto* list_info = std::get_if<ListSchemaInfo>(&info)) {
+    return VisitLists(entities, schema, list_info->item_schema,
+                      is_object_schema);
+  }
+  if (const auto* dict_info = std::get_if<DictSchemaInfo>(&info)) {
+    return VisitDicts(entities, schema, dict_info->keys_schema,
+                      dict_info->values_schema, is_object_schema);
+  }
+  const auto& object_info = std::get<ObjectSchemaInfo>(info);
+  SliceAttributeTable::Builder builder(entities.size(),
+                                       object_info.attr_names.size());
+  for (const DataItem& attr_name_item : object_info.attr_names) {
+    absl::string_view attr_name = attr_name_item.value<arolla::Text>().view();
+    ASSIGN_OR_RETURN(DataItem attr_schema,
+                     databag_.GetSchemaAttr(schema, attr_name, fallbacks_));
+    ASSIGN_OR_RETURN(DataSliceImpl values,
+                     databag_.GetAttr(entities, attr_name, fallbacks_));
+    ASSIGN_OR_RETURN(values, GetValues(values, attr_schema));
+    builder.Add(attr_name, std::move(values));
+  }
+  SliceAttributeTable attrs = std::move(builder).Build();
+  for (int64_t i = 0; i < entities.size(); ++i) {
+    RETURN_IF_ERROR(visitor_->VisitObject(entities[i], schema,
+                                          is_object_schema[i], attrs.NamesOf(i),
+                                          attrs.ValuesOf(i)));
+  }
+  return absl::OkStatus();
+}
+
+absl::Status VectorizedTraverser::VisitLists(
+    const DataSliceImpl& lists, const DataItem& schema,
+    const DataItem& item_schema, const ObjectSchemaFlags& is_object_schema) {
+  ASSIGN_OR_RETURN(
+      (auto [items, edge]),
+      databag_.ExplodeLists(lists, DataBagImpl::ListRange(), fallbacks_));
+  ASSIGN_OR_RETURN(DataSliceImpl converted_items,
+                   GetValues(items, item_schema));
+  for (int64_t i = 0; i < lists.size(); ++i) {
+    RETURN_IF_ERROR(visitor_->VisitList(lists[i], schema, is_object_schema[i],
+                                        ChildItems(converted_items, edge, i)));
+  }
+  return absl::OkStatus();
+}
+
+absl::Status VectorizedTraverser::VisitDicts(
+    const DataSliceImpl& dicts, const DataItem& schema,
+    const DataItem& keys_schema, const DataItem& values_schema,
+    const ObjectSchemaFlags& is_object_schema) {
+  ASSIGN_OR_RETURN((auto [keys, edge]),
+                   databag_.GetDictKeys(dicts, fallbacks_));
+  // Values are returned in the same order as keys.
+  ASSIGN_OR_RETURN(auto values_and_edge,
+                   databag_.GetDictValues(dicts, fallbacks_));
+  ASSIGN_OR_RETURN(DataSliceImpl converted_keys, GetValues(keys, keys_schema));
+  ASSIGN_OR_RETURN(DataSliceImpl converted_values,
+                   GetValues(values_and_edge.first, values_schema));
+  for (int64_t i = 0; i < dicts.size(); ++i) {
+    RETURN_IF_ERROR(visitor_->VisitDict(dicts[i], schema, is_object_schema[i],
+                                        ChildItems(converted_keys, edge, i),
+                                        ChildItems(converted_values, edge, i)));
+  }
+  return absl::OkStatus();
+}
+
+absl::Status VectorizedTraverser::VisitObjectsWithSchemasInBigAllocation(
+    const DataSliceImpl& objects, const DataSliceImpl& schemas) {
+  ASSIGN_OR_RETURN(std::vector<DataItem> attr_names,
+                   GetSchemasAttrNames(schemas, databag_, fallbacks_));
+  SliceAttributeTable::Builder builder(objects.size(), attr_names.size());
+  for (const DataItem& attr_name_item : attr_names) {
+    DCHECK(!IsContainerSchemaAttrName(attr_name_item));
+    if (IsSchemaAnnotationAttrName(attr_name_item)) {
+      continue;
+    }
+    absl::string_view attr_name = attr_name_item.value<arolla::Text>().view();
+    ASSIGN_OR_RETURN(
+        DataSliceImpl attr_schemas,
+        databag_.GetSchemaAttrAllowMissing(schemas, attr_name, fallbacks_));
+    if (attr_schemas.present_count() == 0) {
+      continue;
+    }
+    ASSIGN_OR_RETURN(DataSliceImpl values,
+                     databag_.GetAttr(objects, attr_name, fallbacks_));
+    ASSIGN_OR_RETURN(values, GetValues(values, attr_schemas));
+    builder.Add(attr_name, std::move(values), std::move(attr_schemas));
+  }
+  SliceAttributeTable attrs = std::move(builder).Build();
+  for (int64_t i = 0; i < objects.size(); ++i) {
+    RETURN_IF_ERROR(visitor_->VisitObject(objects[i], schemas[i],
+                                          /*is_object_schema=*/true,
+                                          attrs.NamesOf(i), attrs.ValuesOf(i)));
+  }
+  return absl::OkStatus();
+}
+
+absl::Status VectorizedTraverser::VisitInReverseTopologicalOrder() {
+  for (auto it = topological_order_.rbegin(); it != topological_order_.rend();
+       ++it) {
+    RETURN_IF_ERROR(arolla::CheckCancellation());
+    RETURN_IF_ERROR(Visit(*it));
   }
   return absl::OkStatus();
 }

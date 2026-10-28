@@ -31,21 +31,12 @@
 #include "koladata/internal/op_utils/in_degree_tracker.h"
 #include "koladata/internal/op_utils/schema_info.h"
 #include "koladata/internal/op_utils/traverse_helper.h"
-#include "koladata/internal/schema_attrs.h"
 
 namespace koladata::internal::vectorized_traverser_internal {
 namespace {
 
 using TransitionKey = TraverseHelper::TransitionKey;
 using TransitionType = TraverseHelper::TransitionType;
-
-bool IsContainerSchemaAttrName(const DataItem& attr_name) {
-  return schema::IsContainerSchemaAttr(attr_name.value<arolla::Text>().view());
-}
-
-bool IsSchemaAnnotationAttrName(const DataItem& attr_name) {
-  return schema::IsSchemaAnnotationAttr(attr_name.value<arolla::Text>().view());
-}
 
 }  // namespace
 
