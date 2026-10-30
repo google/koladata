@@ -1648,39 +1648,60 @@ TEST_P(VectorizedTraverserTest,
 TEST_P(VectorizedTraverserTest, VisitObjectsWithSchemasInBigAllocation) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto child_schema = AllocateSchema();
+  auto other_child_schema = AllocateSchema();
   AllocationId schema_alloc = AllocateExplicitSchemas(4);
   ASSERT_FALSE(schema_alloc.IsSmall());
   DataItem s0(schema_alloc.ObjectByOffset(0));
   DataItem s1(schema_alloc.ObjectByOffset(1));
   SetSchemaTriples(*db,
-                   {{child_schema, {{"val", DataItem(schema::kInt32)}}},
+                   {{child_schema,
+                     {{"val", DataItem(schema::kInt32)},
+                      {"prim_as_obj", DataItem(schema::kObject)}}},
+                    {other_child_schema, {{"val", DataItem(schema::kInt32)}}},
                     {s0,
                      {{"x", DataItem(schema::kInt32)},
                       {"y", DataItem(schema::kInt32)},
                       {"z", DataItem(schema::kInt32)},
+                      {"obj_prim", DataItem(schema::kInt32)},
+                      {"obj_ref", DataItem(schema::kInt32)},
+                      {"ent", child_schema},
                       {"deleted", DataItem(schema::kInt32)},
                       {schema::kSchemaNameAttr, DataItem(arolla::Text("S0"))}}},
                     {s1,
-                     {{"x", DataItem(schema::kInt32)},
+                     {{"x", DataItem(schema::kFloat32)},
                       {"y", child_schema},
-                      {"w", DataItem(schema::kString)}}}});
+                      {"w", DataItem(schema::kString)},
+                      {"obj_prim", DataItem(schema::kObject)},
+                      {"obj_ref", DataItem(schema::kObject)},
+                      {"ent", other_child_schema}}}});
   ASSERT_OK(db->DelSchemaAttr(s0, "deleted"));
 
-  auto objs = AllocateEmptyObjects(3);
+  auto objs = AllocateEmptyObjects(4);
   DataItem obj0 = objs[0];
   DataItem obj1 = objs[1];
   DataItem child = objs[2];
-  SetDataTriples(*db, {{child, {{"val", DataItem(99)}}},
+  DataItem other_child = objs[3];
+  SetDataTriples(*db, {{child,
+                        {{"val", DataItem(99)},
+                         {"prim_as_obj", DataItem(7)}}},
+                       {other_child,
+                        {{schema::kSchemaAttr, other_child_schema},
+                         {"val", DataItem(100)}}},
                        {obj0,
                         {{schema::kSchemaAttr, s0},
                          {"x", DataItem(1)},
                          {"y", DataItem(2)},
+                         {"obj_prim", DataItem(3)},
+                         {"obj_ref", DataItem(5)},
+                         {"ent", child},
                          {"deleted", DataItem(arolla::Text("deleted"))}}},
                        {obj1,
                         {{schema::kSchemaAttr, s1},
-                         {"x", DataItem(3)},
                          {"y", child},
-                         {"w", DataItem(arolla::Text("hi"))}}}});
+                         {"w", DataItem(arolla::Text("hi"))},
+                         {"obj_prim", DataItem(4)},
+                         {"obj_ref", other_child},
+                         {"ent", other_child}}}});
 
   auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>({obj0, obj1}));
   EXPECT_OK(TraverseSlice(ds, DataItem(schema::kObject), db));

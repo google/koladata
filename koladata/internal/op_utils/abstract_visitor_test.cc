@@ -14,7 +14,10 @@
 //
 #include "koladata/internal/op_utils/abstract_visitor.h"
 
+#include <cstdint>
 #include <optional>
+#include <utility>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -34,8 +37,10 @@ namespace koladata::internal {
 namespace {
 
 using ::absl_testing::IsOkAndHolds;
+using ::absl_testing::StatusIs;
 using ::arolla::CreateDenseArray;
 using ::testing::ElementsAre;
+using ::testing::Pair;
 
 // A visitor that relies on the default previsit implementations.
 class NoOpVisitor : public AbstractVisitor {
@@ -151,6 +156,139 @@ TEST(AbstractVisitorTest, DefaultPrevisitObjectSchemas) {
                        visitor.PrevisitObjectSchemas(objects, schemas, token));
   EXPECT_EQ(tokens.dtype(), arolla::GetQType<ObjectId>());
   EXPECT_THAT(tokens, ElementsAre(token, token));
+}
+
+class RecordingGetValueVisitor : public NoOpVisitor {
+ public:
+  absl::StatusOr<DataItem> GetValue(const DataItem& item,
+                                    const DataItem& schema) override {
+    calls_.emplace_back(item, schema);
+    if (item.holds_value<int32_t>()) {
+      return DataItem(item.value<int32_t>() + 10);
+    }
+    return absl::InvalidArgumentError("unexpected item");
+  }
+
+  const std::vector<std::pair<DataItem, DataItem>>& calls() const {
+    return calls_;
+  }
+
+ private:
+  std::vector<std::pair<DataItem, DataItem>> calls_;
+};
+
+TEST(AbstractVisitorTest, DefaultGetValuesSingleSchema) {
+  DataItem schema(schema::kInt32);
+
+  {
+    RecordingGetValueVisitor visitor;
+    ASSERT_OK_AND_ASSIGN(
+        DataSliceImpl res,
+        visitor.GetValues(DataSliceImpl::CreateEmptyAndUnknownType(3), schema));
+    EXPECT_EQ(res.size(), 3);
+    EXPECT_EQ(res.present_count(), 0);
+    EXPECT_TRUE(visitor.calls().empty());
+  }
+
+  {
+    // Dense all-equal slice calls GetValue once.
+    RecordingGetValueVisitor visitor;
+    auto items = DataSliceImpl::Create(CreateDenseArray<int32_t>({5, 5, 5}));
+    ASSERT_OK_AND_ASSIGN(DataSliceImpl res, visitor.GetValues(items, schema));
+    EXPECT_THAT(res, ElementsAre(DataItem(15), DataItem(15), DataItem(15)));
+    EXPECT_THAT(visitor.calls(), ElementsAre(Pair(DataItem(5), schema)));
+  }
+
+  {
+    // Sparse slice calls GetValue for each present item (even if all present
+    // items are equal).
+    RecordingGetValueVisitor visitor;
+    auto items = DataSliceImpl::Create(
+        CreateDenseArray<int32_t>({5, std::nullopt, 5, 2}));
+    ASSERT_OK_AND_ASSIGN(DataSliceImpl res, visitor.GetValues(items, schema));
+    EXPECT_THAT(res,
+                ElementsAre(DataItem(15), DataItem(), DataItem(15),
+                            DataItem(12)));
+    EXPECT_THAT(visitor.calls(),
+                ElementsAre(Pair(DataItem(5), schema),
+                            Pair(DataItem(5), schema),
+                            Pair(DataItem(2), schema)));
+  }
+
+  {
+    // Sparse slice with all-equal present items preserves missing elements.
+    RecordingGetValueVisitor visitor;
+    auto items =
+        DataSliceImpl::Create(CreateDenseArray<int32_t>({5, std::nullopt, 5}));
+    ASSERT_OK_AND_ASSIGN(DataSliceImpl res, visitor.GetValues(items, schema));
+    EXPECT_THAT(res, ElementsAre(DataItem(15), DataItem(), DataItem(15)));
+  }
+
+  {
+    RecordingGetValueVisitor visitor;
+    auto items = DataSliceImpl::AllocateEmptyObjects(1);
+    EXPECT_THAT(visitor.GetValues(items, schema),
+                StatusIs(absl::StatusCode::kInvalidArgument));
+  }
+}
+
+class SingleSchemaOverrideVisitor : public RecordingGetValueVisitor {
+ public:
+  using AbstractVisitor::GetValues;
+
+  absl::StatusOr<DataSliceImpl> GetValues(const DataSliceImpl& items,
+                                          const DataItem& schema) override {
+    single_schema_calls_.push_back(schema);
+    return items;
+  }
+
+  const std::vector<DataItem>& single_schema_calls() const {
+    return single_schema_calls_;
+  }
+
+ private:
+  std::vector<DataItem> single_schema_calls_;
+};
+
+TEST(AbstractVisitorTest, DefaultGetValuesPerItemSchemas) {
+  DataItem s0(AllocateExplicitSchema());
+  DataItem s1(AllocateExplicitSchema());
+
+  {
+    RecordingGetValueVisitor visitor;
+    auto schemas = DataSliceImpl::Create(CreateDenseArray<DataItem>({s0, s1}));
+    ASSERT_OK_AND_ASSIGN(
+        DataSliceImpl res,
+        visitor.GetValues(DataSliceImpl::CreateEmptyAndUnknownType(2),
+                          schemas));
+    EXPECT_EQ(res.size(), 2);
+    EXPECT_EQ(res.present_count(), 0);
+    EXPECT_TRUE(visitor.calls().empty());
+  }
+
+  {
+    // All-equal schemas delegate to GetValues(items, DataItem).
+    SingleSchemaOverrideVisitor visitor;
+    auto items = DataSliceImpl::Create(CreateDenseArray<int32_t>({1, 2}));
+    auto schemas = DataSliceImpl::Create(CreateDenseArray<DataItem>({s0, s0}));
+    ASSERT_OK_AND_ASSIGN(DataSliceImpl res, visitor.GetValues(items, schemas));
+    EXPECT_THAT(res, ElementsAre(DataItem(1), DataItem(2)));
+    EXPECT_THAT(visitor.single_schema_calls(), ElementsAre(s0));
+    EXPECT_TRUE(visitor.calls().empty());
+  }
+
+  {
+    // Distinct schemas call GetValue(items[i], schemas[i]) per present item.
+    RecordingGetValueVisitor visitor;
+    auto items =
+        DataSliceImpl::Create(CreateDenseArray<int32_t>({1, std::nullopt, 2}));
+    auto schemas =
+        DataSliceImpl::Create(CreateDenseArray<DataItem>({s0, DataItem(), s1}));
+    ASSERT_OK_AND_ASSIGN(DataSliceImpl res, visitor.GetValues(items, schemas));
+    EXPECT_THAT(res, ElementsAre(DataItem(11), DataItem(), DataItem(12)));
+    EXPECT_THAT(visitor.calls(),
+                ElementsAre(Pair(DataItem(1), s0), Pair(DataItem(2), s1)));
+  }
 }
 
 }  // namespace

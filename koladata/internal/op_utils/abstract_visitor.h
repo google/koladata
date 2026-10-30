@@ -65,6 +65,22 @@ class AbstractVisitor {
   virtual absl::StatusOr<DataItem> GetValue(const DataItem& item,
                                             const DataItem& schema) = 0;
 
+  // Returns values for the present items of `items` with `schema` (aligned with
+  // `items`). Called by VectorizedTraverser instead of GetValue.
+  //
+  // By default, calls `GetValue(items[i], schema)` for each present item.
+  virtual absl::StatusOr<DataSliceImpl> GetValues(const DataSliceImpl& items,
+                                                  const DataItem& schema);
+
+  // Same as above, but with per-item `schemas` (aligned with `items`, and
+  // present wherever `items` is present).
+  //
+  // By default, delegates to `GetValues(items, *schema)` if all present
+  // `schemas` are equal, and calls `GetValue(items[i], schemas[i])` for each
+  // present item otherwise.
+  virtual absl::StatusOr<DataSliceImpl> GetValues(const DataSliceImpl& items,
+                                                  const DataSliceImpl& schemas);
+
   // Called by Traverser for each reachable item and schema before any calls to
   // Visit* or GetValue methods.
   // `transition_key`: if provided - represents the transition key from

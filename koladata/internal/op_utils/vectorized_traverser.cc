@@ -51,7 +51,6 @@
 #include "koladata/internal/op_utils/schema_info.h"
 #include "koladata/internal/op_utils/slice_attribute_table.h"
 #include "koladata/internal/op_utils/vectorized_traverse_helper.h"
-#include "koladata/internal/slice_builder.h"
 
 namespace koladata::internal {
 namespace {
@@ -120,6 +119,30 @@ absl::Status ValidatePrimitiveTypes(const DataSliceImpl& ds,
   return PrimitiveTypeError(schema_dtype, actual_qtype);
 }
 
+// Validates items of `ds` with primitive `schemas`, and returns true iff all
+// present items of `ds` are valid primitives (with primitive or OBJECT
+// `schemas`).
+absl::StatusOr<bool> ContainsOnlyValidPrimitives(const DataSliceImpl& ds,
+                                                 const DataSliceImpl& schemas) {
+  if (!schemas.ContainsAnyPrimitives()) {
+    return false;
+  }
+  bool only_primitives = true;
+  for (int64_t i = 0; i < ds.size(); ++i) {
+    if (!ds.present(i)) {
+      continue;
+    }
+    const DataItem item = ds[i];
+    const DataItem schema = schemas[i];
+    if (schema.is_primitive_schema()) {
+      RETURN_IF_ERROR(ValidatePrimitiveType(item, schema));
+    } else if (schema != schema::kObject || item.holds_value<ObjectId>()) {
+      only_primitives = false;
+    }
+  }
+  return only_primitives;
+}
+
 // Returns true iff objects reached with `schema` are traversed further.
 bool IsTraversableSchema(const DataItem& schema) {
   return schema == schema::kSchema || schema == schema::kObject ||
@@ -140,19 +163,6 @@ DataSliceImpl ChildItems(const DataSliceImpl& items,
     return items;
   }
   return items.SubSlice(from, to - from);
-}
-
-absl::StatusOr<DataSliceImpl> MapPresentItems(
-    const DataSliceImpl& values,
-    absl::FunctionRef<absl::StatusOr<DataItem>(int64_t, const DataItem&)> fn) {
-  SliceBuilder builder(values.size());
-  for (int64_t i = 0; i < values.size(); ++i) {
-    if (values.present(i)) {
-      ASSIGN_OR_RETURN(DataItem converted, fn(i, values[i]));
-      builder.InsertIfNotSetAndUpdateAllocIds(i, std::move(converted));
-    }
-  }
-  return std::move(builder).Build();
 }
 
 }  // namespace
@@ -462,37 +472,17 @@ absl::Status VectorizedTraverser::BuildTopologicalOrderFromInDegrees(
   return absl::OkStatus();
 }
 
-absl::StatusOr<DataItem> VectorizedTraverser::GetValue(const DataItem& item,
-                                                       const DataItem& schema) {
-  if (schema.is_primitive_schema()) {
-    RETURN_IF_ERROR(ValidatePrimitiveType(item, schema));
-    return item;
-  }
-  return visitor_->GetValue(item, schema);
-}
-
 absl::StatusOr<DataSliceImpl> VectorizedTraverser::GetValues(
     const DataSliceImpl& values, const DataItem& schema) {
   if (schema.is_primitive_schema()) {
     RETURN_IF_ERROR(ValidatePrimitiveTypes(values, schema));
     return values;
   }
-  // TODO: Use vectorized AbstractVisitor::GetValues once
-  // available.
-  if (values.present_count() == 0) {
-    return DataSliceImpl::CreateEmptyAndUnknownType(values.size());
+  if (schema == schema::kObject &&
+      InDegreeTracker::FilterToObjects(values).present_count() == 0) {
+    return values;
   }
-  if (values.present_count() == values.size()) {
-    if (std::optional<DataItem> value =
-            ObjectsGroupBy::GetItemIfAllEqual(values);
-        value.has_value()) {
-      ASSIGN_OR_RETURN(DataItem converted, visitor_->GetValue(*value, schema));
-      return DataSliceImpl::Create(values.size(), converted);
-    }
-  }
-  return MapPresentItems(values, [&](int64_t /*i*/, const DataItem& item) {
-    return visitor_->GetValue(item, schema);
-  });
+  return visitor_->GetValues(values, schema);
 }
 
 absl::StatusOr<DataSliceImpl> VectorizedTraverser::GetValues(
@@ -510,11 +500,12 @@ absl::StatusOr<DataSliceImpl> VectorizedTraverser::GetValues(
       schema.has_value()) {
     return GetValues(present_values, *schema);
   }
-  // TODO: Use vectorized AbstractVisitor::GetValues once
-  // available.
-  return MapPresentItems(present_values, [&](int64_t i, const DataItem& item) {
-    return GetValue(item, schemas[i]);
-  });
+  ASSIGN_OR_RETURN(bool only_primitives,
+                   ContainsOnlyValidPrimitives(present_values, schemas));
+  if (only_primitives) {
+    return present_values;
+  }
+  return visitor_->GetValues(present_values, schemas);
 }
 
 absl::Status VectorizedTraverser::Visit(const QueuedSlice& slice) {

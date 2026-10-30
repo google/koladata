@@ -336,10 +336,13 @@ cc_library(
     srcs = ["abstract_visitor.cc"],
     hdrs = ["abstract_visitor.h"],
     deps = [
+        ":group_by_utils",
         ":traverse_helper",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:object_id",
+        "@com_google_absl//absl/functional:function_ref",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:string_view",

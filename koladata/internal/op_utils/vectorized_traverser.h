@@ -203,13 +203,9 @@ class VectorizedTraverser {
   absl::Status BuildTopologicalOrderFromInDegrees(const DataSliceImpl& ds,
                                                   const DataItem& schema);
 
-  // Returns the value to pass to `Visit*` for a present `item` with `schema`.
-  // Primitives are passed as is; other items are converted with
-  // `visitor_->GetValue`.
-  absl::StatusOr<DataItem> GetValue(const DataItem& item,
-                                    const DataItem& schema);
-
   // Returns the values to pass to `Visit*` for `values` with `schema`.
+  // Primitives are validated and passed as is; other items are converted with
+  // `visitor_->GetValues`.
   absl::StatusOr<DataSliceImpl> GetValues(const DataSliceImpl& values,
                                           const DataItem& schema);
 

@@ -19,6 +19,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "absl/functional/function_ref.h"
+#include "absl/log/check.h"
 #include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
 #include "arolla/dense_array/dense_array.h"
@@ -28,6 +30,8 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/group_by_utils.h"
+#include "koladata/internal/slice_builder.h"
 
 namespace koladata::internal {
 namespace {
@@ -61,7 +65,54 @@ std::optional<ObjectId> FirstPresentObjectId(
   return std::nullopt;
 }
 
+absl::StatusOr<DataSliceImpl> MapPresentItems(
+    const DataSliceImpl& items,
+    absl::FunctionRef<absl::StatusOr<DataItem>(int64_t, const DataItem&)> fn) {
+  SliceBuilder builder(items.size());
+  for (int64_t i = 0; i < items.size(); ++i) {
+    if (items.present(i)) {
+      ASSIGN_OR_RETURN(DataItem converted, fn(i, items[i]));
+      builder.InsertIfNotSetAndUpdateAllocIds(i, std::move(converted));
+    }
+  }
+  return std::move(builder).Build();
+}
+
 }  // namespace
+
+absl::StatusOr<DataSliceImpl> AbstractVisitor::GetValues(
+    const DataSliceImpl& items, const DataItem& schema) {
+  if (items.present_count() == 0) {
+    return DataSliceImpl::CreateEmptyAndUnknownType(items.size());
+  }
+  if (items.present_count() == items.size()) {
+    if (std::optional<DataItem> item = ObjectsGroupBy::GetItemIfAllEqual(items);
+        item.has_value()) {
+      ASSIGN_OR_RETURN(DataItem converted, GetValue(*item, schema));
+      return DataSliceImpl::Create(items.size(), converted);
+    }
+  }
+  return MapPresentItems(items, [&](int64_t /*i*/, const DataItem& item) {
+    return GetValue(item, schema);
+  });
+}
+
+absl::StatusOr<DataSliceImpl> AbstractVisitor::GetValues(
+    const DataSliceImpl& items, const DataSliceImpl& schemas) {
+  DCHECK_EQ(items.size(), schemas.size());
+  if (items.present_count() == 0) {
+    return DataSliceImpl::CreateEmptyAndUnknownType(items.size());
+  }
+  if (std::optional<DataItem> schema =
+          ObjectsGroupBy::GetItemIfAllEqual(schemas);
+      schema.has_value()) {
+    return GetValues(items, *schema);
+  }
+  return MapPresentItems(items, [&](int64_t i, const DataItem& item) {
+    DCHECK(schemas.present(i));
+    return GetValue(item, schemas[i]);
+  });
+}
 
 absl::StatusOr<bool> AbstractVisitor::Previsit(
     const DataItem& from_item, const DataItem& from_schema,
