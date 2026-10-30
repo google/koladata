@@ -48,20 +48,35 @@ class FileSystemInteraction(fs_interface.FileSystemInterface):
     else:
       os.remove(filepath)
 
-  def bulk_remove(self, filepaths: Collection[str]):
+  def bulk_remove(self, filepaths: Collection[str]) -> dict[str, str]:
+    errors: dict[str, str] = {}
     by_depth = _group_by_depth(filepaths)
     for depth in sorted(by_depth.keys(), reverse=True):
       for path in by_depth[depth]:
-        self.remove(path)
+        try:
+          self.remove(path)
+        except OSError as e:
+          errors[path] = str(e)
+    return errors
 
-  def bulk_make_dirs(self, dirpaths: Collection[str]):
+  def bulk_make_dirs(self, dirpaths: Collection[str]) -> dict[str, str]:
+    errors: dict[str, str] = {}
     for dirpath in dirpaths:
-      self.make_dirs(dirpath)
+      try:
+        self.make_dirs(dirpath)
+      except OSError as e:
+        errors[dirpath] = str(e)
+    return errors
 
-  def bulk_write(self, files: Mapping[str, bytes]):
+  def bulk_write(self, files: Mapping[str, bytes]) -> dict[str, str]:
+    errors: dict[str, str] = {}
     for filepath, data in files.items():
-      with open(filepath, 'wb') as f:
-        f.write(data)
+      try:
+        with open(filepath, 'wb') as f:
+          f.write(data)
+      except OSError as e:
+        errors[filepath] = str(e)
+    return errors
 
   def open(self, filepath: str, mode: str) -> IO[bytes | str]:
     return open(filepath, mode)
@@ -78,20 +93,28 @@ class FileSystemInteraction(fs_interface.FileSystemInterface):
   def bulk_stat(
       self, filepaths: Collection[str]
   ) -> dict[str, fs_interface.StatResult]:
-    res = {}
+    res: dict[str, fs_interface.StatResult] = {}
     for p in filepaths:
-      st = os.stat(p)
-      res[p] = fs_interface.StatResult(
-          is_dir=stat.S_ISDIR(st.st_mode),
-          mtime_ns=st.st_mtime_ns,
-          size=st.st_size,
-      )
+      try:
+        st = os.stat(p)
+        res[p] = fs_interface.StatResult(
+            is_dir=stat.S_ISDIR(st.st_mode),
+            mtime_ns=st.st_mtime_ns,
+            size=st.st_size,
+        )
+      except OSError as e:
+        res[p] = fs_interface.StatResult(error=str(e))
     return res
 
   def walk(self, top: str) -> Iterator[tuple[str, list[str], list[str]]]:
     if not os.path.exists(top):
       return
-    yield from os.walk(top)
+    for dirpath, dirnames, filenames in os.walk(top):
+      yield (
+          dirpath,
+          dirnames,
+          [f for f in filenames if os.path.isfile(os.path.join(dirpath, f))],
+      )
 
   def rename(self, oldpath: str, newpath: str, overwrite: bool = False):
     if not overwrite:

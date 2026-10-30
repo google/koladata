@@ -167,25 +167,50 @@ class FsImplementationTest(parameterized.TestCase):
     sub_dir = os.path.join(test_dir, 'sub')
     nested_child = os.path.join(test_dir, 'x', 'y', 'z')
     nested_parent = os.path.join(test_dir, 'x', 'y')
-    fs.bulk_make_dirs([sub_dir, nested_child, nested_parent])
+    self.assertEmpty(
+        fs.bulk_make_dirs([sub_dir, nested_child, nested_parent])
+    )
     self.assertTrue(fs.exists(sub_dir))
     self.assertTrue(fs.exists(nested_child))
-    fs.bulk_remove([nested_child, nested_parent, os.path.join(test_dir, 'x')])
+    self.assertEmpty(
+        fs.bulk_remove(
+            [nested_child, nested_parent, os.path.join(test_dir, 'x')]
+        )
+    )
 
     f1 = os.path.join(test_dir, 'a.txt')
     f2 = os.path.join(sub_dir, 'b.txt')
     missing = os.path.join(test_dir, 'missing.txt')
-    fs.bulk_write({f1: b'hello', f2: b'world'})
+    self.assertEmpty(fs.bulk_write({f1: b'hello', f2: b'world'}))
 
-    bulk_stats = fs.bulk_stat([f1, sub_dir])
-    self.assertCountEqual(bulk_stats.keys(), [f1, sub_dir])
+    # Per-path errors in bulk_make_dirs and bulk_write (e.g., file vs dir
+    # conflict or missing parent directory).
+    make_dir_errors = fs.bulk_make_dirs([f1, os.path.join(test_dir, 'ok_dir')])
+    self.assertEqual(set(make_dir_errors.keys()), {f1})
+    self.assertIsInstance(make_dir_errors[f1], str)
+    self.assertNotEmpty(make_dir_errors[f1])
+    self.assertTrue(fs.is_dir(os.path.join(test_dir, 'ok_dir')))
+    fs.remove(os.path.join(test_dir, 'ok_dir'))
+
+    bad_write_path = os.path.join(test_dir, 'no_such_dir', 'c.txt')
+    write_errors = fs.bulk_write({f1: b'hello', bad_write_path: b'fail'})
+    self.assertEqual(set(write_errors.keys()), {bad_write_path})
+    self.assertIsInstance(write_errors[bad_write_path], str)
+    self.assertNotEmpty(write_errors[bad_write_path])
+
+    bulk_stats = fs.bulk_stat([f1, sub_dir, missing])
+    self.assertCountEqual(bulk_stats.keys(), [f1, sub_dir, missing])
+    self.assertIsNone(bulk_stats[f1].error)
     self.assertFalse(bulk_stats[f1].is_dir)
     self.assertGreater(bulk_stats[f1].mtime_ns, 0)
     self.assertEqual(bulk_stats[f1].size, 5)
+    self.assertIsNone(bulk_stats[sub_dir].error)
     self.assertTrue(bulk_stats[sub_dir].is_dir)
-
-    with self.assertRaises(Exception):
-      fs.bulk_stat([f1, missing])
+    self.assertIsInstance(bulk_stats[missing].error, str)
+    self.assertNotEmpty(bulk_stats[missing].error)
+    self.assertFalse(bulk_stats[missing].is_dir)
+    self.assertEqual(bulk_stats[missing].mtime_ns, 0)
+    self.assertEqual(bulk_stats[missing].size, 0)
 
     walked = {
         dirpath: (sorted(dirnames), sorted(filenames))
@@ -201,14 +226,31 @@ class FsImplementationTest(parameterized.TestCase):
     self.assertEmpty(list(fs.walk(os.path.join(test_dir, 'non_existent'))))
 
     # Pass parent `sub_dir` before child `f2` to verify child-before-parent
-    # deletion ordering.
-    fs.bulk_remove([f1, sub_dir, f2])
+    # deletion ordering, and include `missing` to verify per-path errors.
+    remove_errors = fs.bulk_remove([f1, sub_dir, f2, missing])
+    self.assertEqual(set(remove_errors.keys()), {missing})
+    self.assertIsInstance(remove_errors[missing], str)
+    self.assertNotEmpty(remove_errors[missing])
     self.assertFalse(fs.exists(f1))
     self.assertFalse(fs.exists(f2))
     self.assertFalse(fs.exists(sub_dir))
 
-    with self.assertRaises(Exception):
-      fs.bulk_remove([missing])
+  def test_file_system_interaction_walk_excludes_non_regular_files(self):
+    fs = fs_implementation.FileSystemInteraction()
+    test_dir = self.create_tempdir().full_path
+    regular_file = os.path.join(test_dir, 'regular.txt')
+    self.assertEmpty(fs.bulk_write({regular_file: b'ok'}))
+    os.mkfifo(os.path.join(test_dir, 'pipe.fifo'))
+    os.symlink(
+        os.path.join(test_dir, 'nonexistent_target'),
+        os.path.join(test_dir, 'broken_link'),
+    )
+
+    walked = {
+        dirpath: (sorted(dirnames), sorted(filenames))
+        for dirpath, dirnames, filenames in fs.walk(test_dir)
+    }
+    self.assertEqual(walked, {test_dir: ([], ['regular.txt'])})
 
 
 if __name__ == '__main__':

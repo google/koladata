@@ -9,22 +9,22 @@
 
 
 
-### `FileSystemInterface.bulk_make_dirs(self, dirpaths: Collection[str])` {#kd.file_io.FileSystemInterface.bulk_make_dirs}
+### `FileSystemInterface.bulk_make_dirs(self, dirpaths: Collection[str]) -> dict[str, str]` {#kd.file_io.FileSystemInterface.bulk_make_dirs}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates multiple directory paths (and intermediate directories).
 
-Raises an exception on error; it is not specified whether some operations
-may be partially completed.
+Does not raise on per-directory errors; instead returns a mapping from
+failed directory paths to their error messages.
 
 Args:
   dirpaths: Collection of directory paths to create.</code></pre>
 
-### `FileSystemInterface.bulk_remove(self, filepaths: Collection[str])` {#kd.file_io.FileSystemInterface.bulk_remove}
+### `FileSystemInterface.bulk_remove(self, filepaths: Collection[str]) -> dict[str, str]` {#kd.file_io.FileSystemInterface.bulk_remove}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Removes multiple files or directories.
 
-Raises an exception on error; it is not specified whether some operations
-may be partially completed.
+Does not raise on per-path errors; instead returns a mapping from failed
+paths to their error messages.
 
 Args:
   filepaths: Collection of file or directory paths to remove.</code></pre>
@@ -33,18 +33,19 @@ Args:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns metadata for multiple files or directories.
 
-Raises an exception on error, for example if at least one file or directory
-does not exist.
+Does not raise on per-path errors (for example, if a file or directory does
+not exist); instead sets `StatResult.error` to the error message for any
+path that could not be inspected.
 
 Args:
   filepaths: Collection of file or directory paths to inspect.</code></pre>
 
-### `FileSystemInterface.bulk_write(self, files: Mapping[str, bytes])` {#kd.file_io.FileSystemInterface.bulk_write}
+### `FileSystemInterface.bulk_write(self, files: Mapping[str, bytes]) -> dict[str, str]` {#kd.file_io.FileSystemInterface.bulk_write}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Writes multiple files with their respective byte contents.
 
-Raises an exception on error; it is not specified whether some operations
-may be partially completed.
+Does not raise on per-file errors; instead returns a mapping from failed
+file paths to their error messages.
 
 Args:
   files: Mapping from file paths to their byte contents.</code></pre>

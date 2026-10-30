@@ -22,9 +22,10 @@ from typing import Collection, IO, Iterator, Mapping
 class StatResult:
   """Metadata for a file or directory."""
 
-  is_dir: bool
-  mtime_ns: int
-  size: int
+  is_dir: bool = False
+  mtime_ns: int = 0
+  size: int = 0
+  error: str | None = None
 
 
 class FileSystemInterface:
@@ -38,22 +39,22 @@ class FileSystemInterface:
     """Removes a file or an empty directory."""
     raise NotImplementedError
 
-  def bulk_remove(self, filepaths: Collection[str]):
+  def bulk_remove(self, filepaths: Collection[str]) -> dict[str, str]:
     """Removes multiple files or directories.
 
-    Raises an exception on error; it is not specified whether some operations
-    may be partially completed.
+    Does not raise on per-path errors; instead returns a mapping from failed
+    paths to their error messages.
 
     Args:
       filepaths: Collection of file or directory paths to remove.
     """
     raise NotImplementedError
 
-  def bulk_write(self, files: Mapping[str, bytes]):
+  def bulk_write(self, files: Mapping[str, bytes]) -> dict[str, str]:
     """Writes multiple files with their respective byte contents.
 
-    Raises an exception on error; it is not specified whether some operations
-    may be partially completed.
+    Does not raise on per-file errors; instead returns a mapping from failed
+    file paths to their error messages.
 
     Args:
       files: Mapping from file paths to their byte contents.
@@ -68,11 +69,11 @@ class FileSystemInterface:
     """Creates a directory path (and intermediate directories) if not exists."""
     raise NotImplementedError
 
-  def bulk_make_dirs(self, dirpaths: Collection[str]):
+  def bulk_make_dirs(self, dirpaths: Collection[str]) -> dict[str, str]:
     """Creates multiple directory paths (and intermediate directories).
 
-    Raises an exception on error; it is not specified whether some operations
-    may be partially completed.
+    Does not raise on per-directory errors; instead returns a mapping from
+    failed directory paths to their error messages.
 
     Args:
       dirpaths: Collection of directory paths to create.
@@ -90,8 +91,9 @@ class FileSystemInterface:
   def bulk_stat(self, filepaths: Collection[str]) -> dict[str, StatResult]:
     """Returns metadata for multiple files or directories.
 
-    Raises an exception on error, for example if at least one file or directory
-    does not exist.
+    Does not raise on per-path errors (for example, if a file or directory does
+    not exist); instead sets `StatResult.error` to the error message for any
+    path that could not be inspected.
 
     Args:
       filepaths: Collection of file or directory paths to inspect.
