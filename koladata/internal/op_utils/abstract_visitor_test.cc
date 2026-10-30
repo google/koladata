@@ -122,6 +122,63 @@ TEST(SameTokenForAllObjectsTest, NoObjectIds) {
   EXPECT_EQ(empty_tokens.present_count(), 0);
 }
 
+TEST(SameTokenForObjectsIfTest, CallsPredicateForPresentItemsInOrder) {
+  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(2);
+  auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>(
+      {obj_ids[0], DataItem(), DataItem(5), obj_ids[1]}));
+  std::vector<std::pair<int64_t, DataItem>> calls;
+  ASSERT_OK(SameTokenForObjectsIf(
+      ds, [&](int64_t i, const DataItem& item) -> absl::StatusOr<bool> {
+        calls.push_back({i, item});
+        return true;
+      }));
+  EXPECT_THAT(calls, ElementsAre(Pair(0, obj_ids[0]), Pair(2, DataItem(5)),
+                                 Pair(3, obj_ids[1])));
+}
+
+TEST(SameTokenForObjectsIfTest, TokenOfFirstTraversedObjectId) {
+  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>(
+      {obj_ids[0], DataItem(5), DataItem(), obj_ids[1], obj_ids[2]}));
+  ASSERT_OK_AND_ASSIGN(
+      auto tokens,
+      SameTokenForObjectsIf(
+          ds, [&](int64_t i, const DataItem& item) -> absl::StatusOr<bool> {
+            return item != obj_ids[0];
+          }));
+  EXPECT_EQ(tokens.dtype(), arolla::GetQType<ObjectId>());
+  EXPECT_THAT(tokens, ElementsAre(DataItem(), DataItem(), DataItem(),
+                                  obj_ids[1], obj_ids[1]));
+}
+
+TEST(SameTokenForObjectsIfTest, NothingTraversed) {
+  auto ds = DataSliceImpl::AllocateEmptyObjects(3);
+  ASSERT_OK_AND_ASSIGN(
+      auto tokens,
+      SameTokenForObjectsIf(
+          ds, [](int64_t i, const DataItem& item) -> absl::StatusOr<bool> {
+            return false;
+          }));
+  EXPECT_EQ(tokens.size(), 3);
+  EXPECT_EQ(tokens.present_count(), 0);
+}
+
+TEST(SameTokenForObjectsIfTest, PropagatesErrors) {
+  auto ds = DataSliceImpl::AllocateEmptyObjects(3);
+  std::vector<int64_t> calls;
+  EXPECT_THAT(SameTokenForObjectsIf(
+                  ds,
+                  [&](int64_t i, const DataItem& item) -> absl::StatusOr<bool> {
+                    calls.push_back(i);
+                    if (i == 1) {
+                      return absl::InvalidArgumentError("fail");
+                    }
+                    return true;
+                  }),
+              StatusIs(absl::StatusCode::kInvalidArgument, "fail"));
+  EXPECT_THAT(calls, ElementsAre(0, 1));
+}
+
 TEST(AbstractVisitorTest, DefaultPrevisit) {
   auto obj_ids = DataSliceImpl::AllocateEmptyObjects(2);
   NoOpVisitor visitor;

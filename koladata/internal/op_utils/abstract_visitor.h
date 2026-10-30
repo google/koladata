@@ -15,8 +15,10 @@
 #ifndef KOLADATA_INTERNAL_OP_UTILS_ABSTRACT_VISITOR_H_
 #define KOLADATA_INTERNAL_OP_UTILS_ABSTRACT_VISITOR_H_
 
+#include <cstdint>
 #include <optional>
 
+#include "absl/functional/function_ref.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -210,6 +212,19 @@ class AbstractVisitor {
 // A shortcut for PrevisitSlice implementations that traverse all ObjectIds
 // further and don't need to tell them apart. The default PrevisitSlice.
 absl::StatusOr<DataSliceImpl> SameTokenForAllObjects(const DataSliceImpl& ds);
+
+// Calls `should_traverse(i, ds[i])` for each present item of `ds` in order.
+// Returns the same token (the first of such ObjectIds) for the ObjectIds for
+// which it returned true, and missing tokens for other items. Errors returned
+// by `should_traverse` are propagated.
+//
+// A shortcut for PrevisitSlice and PrevisitObjectSchemas implementations that
+// previsit items one by one, and don't need to tell the traversed ObjectIds
+// apart.
+absl::StatusOr<DataSliceImpl> SameTokenForObjectsIf(
+    const DataSliceImpl& ds,
+    absl::FunctionRef<absl::StatusOr<bool>(int64_t, const DataItem&)>
+        should_traverse);
 
 }  // namespace koladata::internal
 

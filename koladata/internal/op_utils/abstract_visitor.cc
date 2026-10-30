@@ -152,4 +152,27 @@ absl::StatusOr<DataSliceImpl> SameTokenForAllObjects(const DataSliceImpl& ds) {
       AllocationIdSet(AllocationId(*token)), std::move(tokens));
 }
 
+absl::StatusOr<DataSliceImpl> SameTokenForObjectsIf(
+    const DataSliceImpl& ds,
+    absl::FunctionRef<absl::StatusOr<bool>(int64_t, const DataItem&)>
+        should_traverse) {
+  SliceBuilder tokens_builder(ds.size());
+  std::optional<DataItem> token;
+  for (int64_t i = 0; i < ds.size(); ++i) {
+    if (!ds.present(i)) {
+      continue;
+    }
+    DataItem item = ds[i];
+    ASSIGN_OR_RETURN(bool traverse, should_traverse(i, item));
+    if (!traverse || !item.holds_value<ObjectId>()) {
+      continue;
+    }
+    if (!token.has_value()) {
+      token = std::move(item);
+    }
+    tokens_builder.InsertIfNotSetAndUpdateAllocIds(i, *token);
+  }
+  return std::move(tokens_builder).Build();
+}
+
 }  // namespace koladata::internal
