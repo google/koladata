@@ -22,6 +22,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/cleanup/cleanup.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
@@ -44,7 +45,10 @@ using ::arolla::GetQType;
 using ::arolla::QTypePtr;
 using ::arolla::TypedRef;
 using ::arolla::testing::QValueWith;
+using ::testing::ElementsAre;
+using ::testing::IsEmpty;
 using ::testing::Pointee;
+using ::testing::UnorderedElementsAre;
 
 TEST(StreamTest, Basic) {
   constexpr int kItemCount = 1000;
@@ -219,6 +223,163 @@ TEST(StreamTest, SubscriptionCallbackTriggeredOnStreamWriterDestructor) {
   ASSERT_TRUE(callback_done);
 }
 
+TEST(StreamTest, NoCallbackAfterReaderDestruction) {
+  auto [stream, writer] = MakeStream(GetQType<int>());
+  auto reader = stream->MakeReader();
+  auto token = std::make_shared<int>(0);
+  std::weak_ptr<int> weak_token = token;
+  for (int i = 0; i < 3; ++i) {
+    reader->SubscribeOnce(
+        [token] { FAIL() << "callback must not be triggered"; });
+  }
+  token.reset();
+  ASSERT_FALSE(weak_token.expired());
+  reader.reset();
+  EXPECT_TRUE(weak_token.expired());
+  std::move(*writer).Close();
+}
+
+TEST(StreamTest, NoCallbackAfterResubscribedReaderDestruction) {
+  auto [stream, writer] = MakeStream(GetQType<int>());
+  auto reader = stream->MakeReader();
+  int callback_count = 0;
+  reader->SubscribeOnce([&callback_count] { ++callback_count; });
+  writer->Write(TypedRef::FromValue(1));
+  ASSERT_EQ(callback_count, 1);
+  ASSERT_NE(reader->TryRead().item(), nullptr);
+  auto token = std::make_shared<int>(0);
+  std::weak_ptr<int> weak_token = token;
+  reader->SubscribeOnce([token = std::move(token)] {
+    FAIL() << "callback must not be triggered";
+  });
+  ASSERT_FALSE(weak_token.expired());
+  reader.reset();
+  EXPECT_TRUE(weak_token.expired());
+}
+
+TEST(StreamTest, AllSubscribedReadersDestroyed) {
+  auto [stream, writer] = MakeStream(GetQType<int>());
+  std::vector<StreamReaderPtr> readers(3);
+  for (auto& reader : readers) {
+    reader = stream->MakeReader();
+    reader->SubscribeOnce([] { FAIL() << "callback must not be triggered"; });
+  }
+  readers[2].reset();
+  readers[0].reset();
+  readers[1].reset();
+  bool callback_done = false;
+  auto reader = stream->MakeReader();
+  reader->SubscribeOnce([&callback_done] { callback_done = true; });
+  writer->Write(TypedRef::FromValue(1));
+  EXPECT_TRUE(callback_done);
+}
+
+TEST(StreamTest, OtherReadersNotifiedAfterReaderDestruction) {
+  auto [stream, writer] = MakeStream(GetQType<int>());
+  std::vector<StreamReaderPtr> readers;
+  std::vector<int> calls;
+  for (int i = 0; i < 3; ++i) {
+    auto reader = stream->MakeReader();
+    reader->SubscribeOnce([&calls, i] { calls.push_back(i); });
+    readers.push_back(std::move(reader));
+  }
+  readers[1].reset();
+  writer->Write(TypedRef::FromValue(1));
+  EXPECT_THAT(calls, UnorderedElementsAre(0, 2));
+}
+
+TEST(StreamTest, MultipleSubscriptionsOnSameReader) {
+  auto [stream, writer] = MakeStream(GetQType<int>());
+  auto reader = stream->MakeReader();
+  std::vector<int> calls;
+  for (int i = 0; i < 3; ++i) {
+    reader->SubscribeOnce([&calls, i] { calls.push_back(i); });
+  }
+  EXPECT_THAT(calls, IsEmpty());
+  std::move(*writer).Close();
+  EXPECT_THAT(calls, UnorderedElementsAre(0, 1, 2));
+}
+
+TEST(StreamTest, ResubscribeAfterNotification) {
+  auto [stream, writer] = MakeStream(GetQType<int>());
+  auto reader = stream->MakeReader();
+  int callback_count = 0;
+  reader->SubscribeOnce([&callback_count] { ++callback_count; });
+  writer->Write(TypedRef::FromValue(1));
+  EXPECT_EQ(callback_count, 1);
+  ASSERT_FALSE(reader->TryRead().empty());
+  reader->SubscribeOnce([&callback_count] { ++callback_count; });
+  EXPECT_EQ(callback_count, 1);
+  std::move(*writer).Close();
+  EXPECT_EQ(callback_count, 2);
+}
+
+TEST(StreamTest, ResubscribeFromCallback) {
+  auto [stream, writer] = MakeStream(GetQType<int>());
+  auto reader_a = stream->MakeReader();
+  auto reader_b = stream->MakeReader();
+  int a_count = 0;
+  int a_resubscribed_count = 0;
+  int b_count = 0;
+  reader_a->SubscribeOnce([&] {
+    ++a_count;
+    ASSERT_FALSE(reader_a->TryRead().empty());
+    reader_a->SubscribeOnce([&] { ++a_resubscribed_count; });
+  });
+  reader_b->SubscribeOnce([&] { ++b_count; });
+  writer->Write(TypedRef::FromValue(1));
+  EXPECT_EQ(a_count, 1);
+  EXPECT_EQ(a_resubscribed_count, 0);
+  EXPECT_EQ(b_count, 1);
+  writer->Write(TypedRef::FromValue(2));
+  EXPECT_EQ(a_count, 1);
+  EXPECT_EQ(a_resubscribed_count, 1);
+  EXPECT_EQ(b_count, 1);
+}
+
+TEST(StreamTest, DestroyReaderFromAnotherReaderCallback) {
+  auto [stream, writer] = MakeStream(GetQType<int>());
+  auto reader_a = stream->MakeReader();
+  auto reader_b = stream->MakeReader();
+  auto reader_c = stream->MakeReader();
+  auto token = std::make_shared<int>(0);
+  std::weak_ptr<int> weak_token = token;
+  reader_a->SubscribeOnce([token] {});
+  reader_b->SubscribeOnce(
+      [cleanup = absl::Cleanup([&reader_a, &reader_b, &reader_c] {
+         reader_a.reset();
+         reader_b.reset();
+         reader_c.reset();
+       })] {});
+  reader_c->SubscribeOnce([token] {});
+  token.reset();
+  writer->Write(TypedRef::FromValue(1));
+  EXPECT_EQ(reader_a, nullptr);
+  EXPECT_EQ(reader_b, nullptr);
+  EXPECT_EQ(reader_c, nullptr);
+  EXPECT_TRUE(weak_token.expired());
+}
+
+TEST(StreamTest, CallbackDestructorDestroysAnotherReader) {
+  auto [stream, writer] = MakeStream(GetQType<int>());
+  auto reader_a = stream->MakeReader();
+  auto reader_b = stream->MakeReader();
+  auto reader_c = stream->MakeReader();
+  auto token = std::make_shared<int>(0);
+  std::weak_ptr<int> weak_token = token;
+  reader_a->SubscribeOnce([token] {});
+  reader_b->SubscribeOnce([cleanup = absl::Cleanup([&reader_a, &reader_c] {
+                             reader_a.reset();
+                             reader_c.reset();
+                           })] {});
+  reader_c->SubscribeOnce([token] {});
+  token.reset();
+  reader_b.reset();  // Must not deadlock.
+  EXPECT_EQ(reader_a, nullptr);
+  EXPECT_EQ(reader_c, nullptr);
+  EXPECT_TRUE(weak_token.expired());
+}
+
 TEST(StreamTest, CloseWithError) {
   auto [stream, writer] = MakeStream(GetQType<int>(), 10);
   auto reader = stream->MakeReader();
@@ -335,9 +496,8 @@ TEST(StreamTest, DemoFilter) {
       break;
     }
   }
-  ASSERT_THAT(values,
-              testing::ElementsAre(11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47,
-                                   53, 59, 61, 67, 71, 73, 79, 83, 89, 97));
+  ASSERT_THAT(values, ElementsAre(11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47,
+                                  53, 59, 61, 67, 71, 73, 79, 83, 89, 97));
 }
 
 class StresstestConsumer

@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <iterator>
 #include <list>
 #include <memory>
 #include <new>
@@ -26,6 +27,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
 #include "absl/base/optimization.h"
 #include "absl/base/thread_annotations.h"
@@ -100,10 +102,20 @@ class StreamImpl final : public std::enable_shared_from_this<StreamImpl>,
   StreamReaderPtr absl_nonnull MakeReader() final ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
+  // A pending subscription callback, registered by `reader`.
+  struct Subscription {
+    Reader* absl_nonnull reader;
+    absl::AnyInvocable<void() &&> callback;
+  };
+  using Subscriptions = std::vector<Subscription>;
+
   enum class [[nodiscard]] InternalWriteResult { kOk, kClosed };
   InternalWriteResult InternalWrite(arolla::TypedRef value);
 
   void InternalClose(absl::Status&& status);
+
+  // Removes the pending subscriptions of the given `reader`.
+  void InternalRemoveSubscriptions(const Reader& reader);
 
   absl::Mutex mutex_;
   // Note: The first chunk is stored inline to avoid extra allocations for
@@ -117,7 +129,7 @@ class StreamImpl final : public std::enable_shared_from_this<StreamImpl>,
   // The capacity of `last_chunk_`, or 0 if there are no chunks.
   size_t last_chunk_capacity_ ABSL_GUARDED_BY(mutex_) = 0;
   std::optional<absl::Status> status_ ABSL_GUARDED_BY(mutex_);
-  std::vector<absl::AnyInvocable<void() &&>> callbacks_ ABSL_GUARDED_BY(mutex_);
+  Subscriptions subscriptions_ ABSL_GUARDED_BY(mutex_);
 
   const uint32_t default_chunk_capacity_;
 };
@@ -147,26 +159,31 @@ class StreamImpl::Writer final : public StreamWriter {
 class StreamImpl::Reader final : public StreamReader {
  public:
   explicit Reader(std::shared_ptr<StreamImpl> absl_nonnull stream);
+  ~Reader() final;
 
   TryReadResult TryRead() final;
 
   void SubscribeOnce(absl::AnyInvocable<void() &&>&& callback) final;
 
  private:
-  // If the current one has been fully read and the next one exists, moves to
-  // the next chunk. Updates `known_size_` (the number of values available for
-  // reading in the current chunk).
-  void Update() ABSL_EXCLUSIVE_LOCKS_REQUIRED(stream_->mutex_);
+  TryReadResult TryReadSlow() ABSL_LOCKS_EXCLUDED(stream_->mutex_);
+
+  // Updates the internal state of the reader. Returns true if TryRead() would
+  // return a non-empty result (an item or the close status).
+  bool Update() ABSL_EXCLUSIVE_LOCKS_REQUIRED(stream_->mutex_);
 
   const std::shared_ptr<StreamImpl> absl_nonnull stream_;
 
   // The current chunk; or nullptr if the reader has read nothing yet.
   Chunk* absl_nullable chunk_ = nullptr;
+  size_t chunk_offset_ = 0;
+  size_t chunk_cached_size_ = 0;
   // Points to the current chunk within `stream_->other_chunks_`. Only valid if
   // the current chunk is neither nullptr nor the first chunk.
   std::list<Chunk>::iterator chunks_it_;
-  size_t offset_ = 0;
-  size_t known_size_ = 0;
+
+  // If the reader potentially has any subscriptions.
+  bool may_have_subscriptions_ ABSL_GUARDED_BY(stream_->mutex_) = false;
 };
 
 Chunk::Chunk(QTypePtr absl_nonnull value_qtype, size_t capacity, bool lazy_init)
@@ -242,8 +259,8 @@ StreamReaderPtr absl_nonnull StreamImpl::MakeReader() {
 
 StreamImpl::InternalWriteResult StreamImpl::InternalWrite(
     arolla::TypedRef value) {
-  DCHECK_EQ(value.GetType(), value_qtype());  // Tested by the public method.
-  std::vector<absl::AnyInvocable<void() &&>> callbacks;
+  DCHECK_EQ(value.GetType(), value_qtype());  // Tested by the public API.
+  Subscriptions subscriptions;                // Called outside of the lock.
   {
     absl::MutexLock lock(mutex_);
     if (status_.has_value()) {
@@ -264,16 +281,16 @@ StreamImpl::InternalWriteResult StreamImpl::InternalWrite(
     }
     DCHECK(last_chunk_ != nullptr);
     last_chunk_->AppendRef(last_chunk_size_++, value);
-    callbacks_.swap(callbacks);
+    subscriptions_.swap(subscriptions);
   }
-  for (auto& callback : callbacks) {
-    std::move(callback)();
+  for (auto& subscription : subscriptions) {
+    std::move(subscription.callback)();
   }
   return InternalWriteResult::kOk;
 }
 
 void StreamImpl::InternalClose(absl::Status&& status) {
-  std::vector<absl::AnyInvocable<void() &&>> callbacks;
+  Subscriptions subscriptions;  // Called outside of the lock.
   {
     absl::MutexLock lock(mutex_);
     DCHECK(!status_.has_value());  // Protected by the atomic flag `closed_`
@@ -281,10 +298,24 @@ void StreamImpl::InternalClose(absl::Status&& status) {
       return;
     }
     status_.emplace(std::move(status));
-    callbacks_.swap(callbacks);
+    subscriptions_.swap(subscriptions);
   }
-  for (auto& callback : callbacks) {
-    std::move(callback)();
+  for (auto& subscription : subscriptions) {
+    std::move(subscription.callback)();
+  }
+}
+
+void StreamImpl::InternalRemoveSubscriptions(const Reader& reader) {
+  Subscriptions subscriptions;  // Destroyed outside of the lock.
+  {
+    absl::MutexLock lock(mutex_);
+    auto begin = subscriptions_.begin(), end = subscriptions_.end(),
+         mid =
+             std::partition(begin, end, [&](const Subscription& subscription) {
+               return subscription.reader != &reader;
+             });
+    subscriptions.assign(std::move_iterator(mid), std::move_iterator(end));
+    subscriptions_.erase(mid, subscriptions_.end());
   }
 }
 
@@ -316,7 +347,7 @@ void StreamImpl::Writer::Write(TypedRef value) {
 }
 
 bool StreamImpl::Writer::TryWrite(arolla::TypedRef value) {
-  if (value.GetType() != value_qtype()) {
+  if (value.GetType() != value_qtype()) [[unlikely]] {
     LOG(FATAL) << "expected a value of type " << value_qtype()->name()
                << ", got " << value.GetType()->name();
   }
@@ -356,33 +387,49 @@ StreamImpl::Writer::~Writer() {
     return;
   }
   if (auto stream = weak_stream_.lock()) {
-    stream->InternalClose(absl::CancelledError("orphaned"));
+    static const absl::NoDestructor kOrphanedError(
+        absl::CancelledError("orphaned"));
+    stream->InternalClose(absl::Status(*kOrphanedError));
   }
 }
 
 StreamImpl::Reader::Reader(std::shared_ptr<StreamImpl> absl_nonnull stream)
     : stream_(std::move(stream)) {}
 
-StreamReader::TryReadResult StreamImpl::Reader::TryRead() {
-  if (offset_ < known_size_) [[likely]] {
-    return chunk_->GetRef(offset_++);
+StreamImpl::Reader::~Reader() {
+  // NOTE: `may_have_subscriptions_` can be safely read without acquiring
+  // `stream_->mutex_` since the destructor guarantees exclusive access.
+  if (may_have_subscriptions_) [[unlikely]] {
+    stream_->InternalRemoveSubscriptions(*this);
   }
-  absl::MutexLock lock(stream_->mutex_);
-  Update();
-  TryReadResult result;
-  if (offset_ < known_size_) {
-    result = chunk_->GetRef(offset_++);
-    Update();
-  } else if (stream_->status_.has_value()) {
-    result = *stream_->status_;
-  }
-  return result;
 }
 
-void StreamImpl::Reader::Update() {
+StreamReader::TryReadResult StreamImpl::Reader::TryRead() {
+  if (chunk_offset_ < chunk_cached_size_) [[likely]] {
+    ABSL_ASSUME(chunk_ != nullptr);
+    return chunk_->GetRef(chunk_offset_++);
+  }
+  return TryReadSlow();
+}
+
+StreamReader::TryReadResult StreamImpl::Reader::TryReadSlow() {
+  absl::MutexLock lock(stream_->mutex_);
+  if (!Update()) {
+    return {};
+  }
+  may_have_subscriptions_ = false;
+  if (chunk_offset_ < chunk_cached_size_) {
+    ABSL_ASSUME(chunk_ != nullptr);
+    return chunk_->GetRef(chunk_offset_++);
+  }
+  DCHECK(stream_->status_.has_value());
+  return *stream_->status_;
+}
+
+bool StreamImpl::Reader::Update() {
   Chunk* const absl_nullable last_chunk = stream_->last_chunk_;
   if (chunk_ != last_chunk &&
-      (chunk_ == nullptr || offset_ == chunk_->capacity())) {
+      (chunk_ == nullptr || chunk_offset_ == chunk_->capacity())) {
     // NOTE: The next chunk exists, because the current one is not the last.
     DCHECK(stream_->first_chunk_.has_value());
     Chunk* const absl_nonnull first_chunk = &(*stream_->first_chunk_);
@@ -395,24 +442,25 @@ void StreamImpl::Reader::Update() {
       ++chunks_it_;
       chunk_ = &(*chunks_it_);
     }
-    offset_ = 0;
+    chunk_offset_ = 0;
   }
   // NOTE: If the stream has no chunks, both `chunk_` and `last_chunk` are
   // nullptr, and `last_chunk_size_` is 0.
-  known_size_ =
+  chunk_cached_size_ =
       (chunk_ == last_chunk ? stream_->last_chunk_size_ : chunk_->capacity());
+  return chunk_offset_ < chunk_cached_size_ || stream_->status_.has_value();
 }
 
 void StreamImpl::Reader::SubscribeOnce(
     absl::AnyInvocable<void() &&>&& callback) {
   {
     absl::MutexLock lock(stream_->mutex_);
-    if (!stream_->status_.has_value()) {
-      Update();
-      if (offset_ == known_size_) {
-        stream_->callbacks_.push_back(std::move(callback));
-        return;
-      }
+    if (!Update()) {
+      auto& subscriptions = stream_->subscriptions_;
+      subscriptions.reserve(4);  // Reduce the number of reallocations.
+      subscriptions.push_back({this, std::move(callback)});
+      may_have_subscriptions_ = true;
+      return;
     }
   }
   std::move(callback)();
