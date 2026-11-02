@@ -788,7 +788,7 @@ cc_library(
     hdrs = ["deep_uuid.h"],
     deps = [
         ":abstract_visitor",
-        ":traverser",
+        ":vectorized_traverser",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",

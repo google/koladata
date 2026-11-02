@@ -17,7 +17,6 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
-#include <optional>
 #include <utility>
 #include <vector>
 
@@ -39,7 +38,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/abstract_visitor.h"
-#include "koladata/internal/op_utils/traverser.h"
+#include "koladata/internal/op_utils/vectorized_traverser.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/uuid_object.h"
 
@@ -47,20 +46,13 @@ namespace koladata::internal {
 
 namespace {
 
-class DeepUuidVisitor : AbstractVisitor {
+class DeepUuidVisitor : public AbstractVisitor {
   constexpr static absl::string_view kSelfReference =
       "__self_reference_placeholder__";
 
  public:
   explicit DeepUuidVisitor(absl::string_view seed)
       : self_reference_(arolla::Text(kSelfReference)), seed_(seed) {}
-
-  absl::StatusOr<bool> Previsit(
-      const DataItem& from_item, const DataItem& from_schema,
-      const std::optional<AbstractVisitor::TransitionKey>& transition_key,
-      const DataItem& item, const DataItem& schema) override {
-    return true;
-  }
 
   absl::StatusOr<DataItem> GetValue(const DataItem& item,
                                     const DataItem& schema) override {
@@ -231,12 +223,11 @@ absl::StatusOr<DataSliceImpl> DeepUuidOp::operator()(
     }
   }
   auto visitor = std::make_shared<DeepUuidVisitor>(seed_str);
-  auto traverse_op = Traverser<DeepUuidVisitor>(databag, fallbacks, visitor);
+  VectorizedTraverser traverse_op(databag, fallbacks, visitor);
   RETURN_IF_ERROR(traverse_op.TraverseSlice(ds, schema));
   SliceBuilder result_items(ds.size());
   for (size_t i = 0; i < ds.size(); ++i) {
-    ASSIGN_OR_RETURN(auto value,
-                     visitor->DeepUuidVisitor::GetValueSafe(ds[i], schema));
+    ASSIGN_OR_RETURN(auto value, visitor->GetValueSafe(ds[i], schema));
     if (!value.holds_value<ObjectId>() && schema != schema::kItemId) {
       if (seed_str.empty()) {
         value = DataItem(CreateUuidObject(value.StableFingerprint()));
