@@ -18,7 +18,6 @@
 #include <cstdint>
 #include <memory>
 #include <numeric>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -41,7 +40,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/abstract_visitor.h"
-#include "koladata/internal/op_utils/traverser.h"
+#include "koladata/internal/op_utils/vectorized_traverser.h"
 #include "koladata/internal/schema_attrs.h"
 
 namespace koladata::contrib {
@@ -53,7 +52,7 @@ using ::koladata::internal::DataBagImplPtr;
 using ::koladata::internal::DataItem;
 using ::koladata::internal::DataSliceImpl;
 using ::koladata::internal::ObjectId;
-using ::koladata::internal::Traverser;
+using ::koladata::internal::VectorizedTraverser;
 
 constexpr std::string_view kSanitizePrefix = "san_";
 
@@ -107,14 +106,6 @@ class SanitizeNamesVisitor final : public AbstractVisitor {
  public:
   explicit SanitizeNamesVisitor(DataBagImplPtr new_databag)
       : new_databag_(std::move(new_databag)) {}
-
-  absl::StatusOr<bool> Previsit(
-      const DataItem& from_item, const DataItem& from_schema,
-      const std::optional<AbstractVisitor::TransitionKey>& transition_key,
-      const DataItem& item, const DataItem& schema) override {
-    // Visit all reachable items, including attributes and schemas.
-    return true;
-  }
 
   absl::StatusOr<DataItem> GetValue(const DataItem& item,
                                     const DataItem& schema) override {
@@ -275,8 +266,7 @@ absl::StatusOr<DataSliceImpl> SanitizeNamesOp::operator()(
     DataBagImpl::FallbackSpan fallbacks) const {
   auto visitor = std::make_shared<SanitizeNamesVisitor>(
       DataBagImplPtr::NewRef(new_databag_));
-  auto traverse_op =
-      Traverser<SanitizeNamesVisitor>(databag, fallbacks, std::move(visitor));
+  VectorizedTraverser traverse_op(databag, fallbacks, std::move(visitor));
   RETURN_IF_ERROR(traverse_op.TraverseSlice(ds, schema));
   return ds;
 }
