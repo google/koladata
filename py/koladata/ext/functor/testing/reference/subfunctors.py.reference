@@ -5,6 +5,7 @@ Do not edit manually.
 
 from arolla import arolla
 from koladata import kd
+from koladata import kd_ext
 
 
 @kd.trace_as_fn()

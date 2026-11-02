@@ -74,6 +74,7 @@ py_test(
         ":test_cases",  # buildcleaner: keep
         "//py:python_path",
         "//py/koladata:kd",
+        "//py/koladata:kd_ext",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
     ],

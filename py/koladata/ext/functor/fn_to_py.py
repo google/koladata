@@ -255,8 +255,12 @@ def fn_to_py(fn: kd.types.DataItem, name: str = 'top') -> ast.Module:
   import_kd = ast.ImportFrom(
       module='koladata', names=[ast.alias(name='kd', asname=None)], level=0
   )
+  import_kd_ext = ast.ImportFrom(
+      module='koladata', names=[ast.alias(name='kd_ext', asname=None)], level=0
+  )
   module = ast.Module(
-      body=[module_docstring, import_arolla, import_kd] + function_defs,  # pyrefly: ignore[bad-argument-type]
+      body=[module_docstring, import_arolla, import_kd, import_kd_ext]  # pyrefly: ignore[bad-argument-type]
+      + function_defs,
       type_ignores=[],
   )
   ast.fix_missing_locations(module)

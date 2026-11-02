@@ -19,6 +19,7 @@ import textwrap
 from absl.testing import absltest
 from absl.testing import parameterized
 from koladata import kd
+from koladata import kd_ext
 
 from koladata.ext.functor import fn_to_py
 
@@ -356,11 +357,12 @@ class FnToPyTest(absltest.TestCase):
     result = fn_to_py.fn_to_py(fn)
 
     self.assertIsInstance(result, ast.Module)
-    self.assertLen(result.body, 5)
+    self.assertLen(result.body, 6)
 
     expected_code = _MODULE_DOCSTRING + textwrap.dedent("""
         from arolla import arolla
         from koladata import kd
+        from koladata import kd_ext
 
         @kd.trace_as_fn()
         def helper(x):
@@ -395,6 +397,7 @@ class FnToPyTest(absltest.TestCase):
     expected_code = _MODULE_DOCSTRING + textwrap.dedent("""
         from arolla import arolla
         from koladata import kd
+        from koladata import kd_ext
 
         @kd.trace_as_fn()
         def g(x):
@@ -427,6 +430,7 @@ class FnToPyTest(absltest.TestCase):
     expected_code = _MODULE_DOCSTRING + textwrap.dedent("""
         from arolla import arolla
         from koladata import kd
+        from koladata import kd_ext
 
         @kd.trace_as_fn()
         def f(x):
@@ -479,6 +483,7 @@ class FnToPyTest(absltest.TestCase):
     expected_code = _MODULE_DOCSTRING + textwrap.dedent("""
         from arolla import arolla
         from koladata import kd
+        from koladata import kd_ext
 
         @kd.trace_as_fn()
         def helper(x):
@@ -508,6 +513,7 @@ class FnToPyTest(absltest.TestCase):
     expected_code = _MODULE_DOCSTRING + textwrap.dedent("""
         from arolla import arolla
         from koladata import kd
+        from koladata import kd_ext
 
         @kd.trace_as_fn()
         def my_f1(x):
@@ -521,6 +527,36 @@ class FnToPyTest(absltest.TestCase):
             return my_f1(x) + my_f2(x)""")
     code = ast.unparse(result)
     self.assertEqual(code, expected_code)
+
+  def test_fn_to_py_with_kd_ext_operator(self):
+    @kd.trace_as_fn()
+    def get_x(ds):
+      return kd_ext.contrib.get_attr_or_item(ds, 'x')  # pyrefly: ignore[missing-attribute]
+
+    def compute(ds):
+      return get_x(ds) + 1
+
+    fn = kd.fn(compute)
+    result = fn_to_py.fn_to_py(fn)
+
+    expected_code = _MODULE_DOCSTRING + textwrap.dedent("""
+        from arolla import arolla
+        from koladata import kd
+        from koladata import kd_ext
+
+        @kd.trace_as_fn()
+        def get_x(ds):
+            return kd_ext.contrib.get_attr_or_item(ds, 'x')
+
+        def top(ds):
+            return get_x(ds) + 1""")
+    code = ast.unparse(result)
+    self.assertEqual(code, expected_code)
+
+    namespace = {}
+    exec(code, namespace)  # pylint: disable=exec-used
+    ds = kd.slice([kd.obj(x=10), kd.dict({'x': 20})], schema=kd.OBJECT)
+    kd.testing.assert_equal(namespace['top'](ds), fn(ds))
 
 
 if __name__ == '__main__':
