@@ -22,6 +22,7 @@
 
 #include "absl/base/nullability.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/log/check.h"
 #include "absl/status/statusor.h"
 #include "arolla/qtype/simple_qtype.h"
 #include "arolla/util/fingerprint.h"
@@ -73,7 +74,7 @@ class Executor : public std::enable_shared_from_this<Executor> {
   //    of shutting down. This may happen immediately or in the future.
   template <typename Task>
   auto Schedule(Task&& task) noexcept
-      -> std::enable_if_t<std::is_constructible_v<TaskFn, Task&&>>;
+    requires(std::is_constructible_v<TaskFn, Task &&>);
 
   // Returns the string representation of the executor.
   virtual std::string Repr() const noexcept = 0;
@@ -172,23 +173,77 @@ class [[nodiscard]] CurrentExecutorScopeGuard final {
 // scheduling.
 template <typename Task>
 auto Executor::Schedule(Task&& task) noexcept
-    -> std::enable_if_t<std::is_constructible_v<TaskFn, Task&&>> {
-  return DoSchedule([executor = shared_from_this(),
-                     task = std::forward<Task>(task)]() mutable {
-    auto& data = CurrentExecutorScopeGuard::thread_local_data_;
-    const auto previous_data = data;
-    data = {.current_executor = executor.get(), .is_executor_task = true};
+  requires(std::is_constructible_v<TaskFn, Task &&>)
+{
+  using TaskType = std::decay_t<Task>;
+  // Technical note: `WrappedTask` is designed around three goals:
+  //  1) Avoid reserving extra space if the task has no state (using
+  //     [[no_unique_address]]).
+  //  2) After invocation, destroy the task object (and its captures) within
+  //     the same context.
+  //  3) Allow in-place storage of the task in `TaskFn` when possible.
+  struct WrappedTask {
+    struct State {
+      ExecutorPtr executor;
+      [[no_unique_address]] TaskType task;
+    };
+    union {
+      State state;
+    };
+
+    WrappedTask(ExecutorPtr absl_nonnull executor, Task&& task)
+        : state{.executor = std::move(executor),
+                .task = std::forward<Task>(task)} {}
+
+    WrappedTask(WrappedTask&& other) noexcept
+      requires(std::is_nothrow_move_constructible_v<TaskType>)
     {
-      ContextGuard context_guard;
-      if (executor->context_guard_initializer_) {
-        executor->context_guard_initializer_(context_guard);
+      if (other.state.executor != nullptr) [[likely]] {
+        std::construct_at(&state, std::move(other.state));
+        std::destroy_at(&other.state.task);
+      } else {
+        std::construct_at(&state.executor);
       }
-      std::move(task)();
-      // ContextGuard is destroyed before the previous CurrentExecutorScope is
-      // restored.
     }
-    data = previous_data;
-  });
+
+    WrappedTask(WrappedTask&&) noexcept = delete;
+    WrappedTask(const WrappedTask&) = delete;
+    WrappedTask& operator=(const WrappedTask&) = delete;
+
+    ~WrappedTask() noexcept {
+      if (state.executor != nullptr) [[unlikely]] {
+        std::destroy_at(&state.task);
+      }
+      std::destroy_at(&state.executor);
+    }
+
+    void operator()() && noexcept {
+      const auto local_executor = std::move(state.executor);
+      DCHECK(local_executor != nullptr)
+          << "expected an initialized WrappedTask";
+      auto& data = CurrentExecutorScopeGuard::thread_local_data_;
+      const auto previous_data = data;
+      data = {.current_executor = local_executor.get(),
+              .is_executor_task = true};
+      {
+        ContextGuard context_guard;
+        if (local_executor->context_guard_initializer_) {
+          local_executor->context_guard_initializer_(context_guard);
+        }
+        std::move(state.task)();
+        std::destroy_at(&state.task);
+        // ContextGuard is destroyed before the previous CurrentExecutorScope
+        // is restored.
+      }
+      data = previous_data;
+    }
+  };
+  static_assert(sizeof(WrappedTask) == sizeof(ExecutorPtr) ||
+                !std::is_empty_v<TaskType>);
+  static_assert(std::is_nothrow_move_constructible_v<WrappedTask> ==
+                std::is_nothrow_move_constructible_v<TaskType>);
+  return DoSchedule(TaskFn(std::in_place_type<WrappedTask>, shared_from_this(),
+                           std::forward<Task>(task)));
 }
 
 }  // namespace koladata::functor::parallel

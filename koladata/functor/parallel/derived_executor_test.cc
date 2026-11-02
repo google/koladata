@@ -22,6 +22,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/cleanup/cleanup.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "koladata/functor/parallel/context_guard.h"
@@ -37,9 +38,7 @@ class TestExecutor : public Executor {
  public:
   using Executor::Executor;
 
-  void DoSchedule(TaskFn task_fn) noexcept override {
-    std::move(task_fn)();
-  }
+  void DoSchedule(TaskFn task_fn) noexcept override { std::move(task_fn)(); }
 
   std::string Repr() const noexcept override { return "test_executor"; }
 };
@@ -66,19 +65,19 @@ TEST(DerivedExecutorTest, Repr) {
       std::make_shared<DerivedExecutor>(base_executor, nullptr);
   EXPECT_EQ(derived_executor->Repr(), "derived_executor[test_executor, 1]");
 
-  auto derived_executor_2 = std::make_shared<DerivedExecutor>(
-      derived_executor, nullptr);
+  auto derived_executor_2 =
+      std::make_shared<DerivedExecutor>(derived_executor, nullptr);
   EXPECT_EQ(derived_executor_2->Repr(), "derived_executor[test_executor, 2]");
 
-  auto derived_executor_3 = std::make_shared<DerivedExecutor>(
-      derived_executor_2, nullptr);
+  auto derived_executor_3 =
+      std::make_shared<DerivedExecutor>(derived_executor_2, nullptr);
   EXPECT_EQ(derived_executor_3->Repr(), "derived_executor[test_executor, 3]");
 }
 
 TEST(DerivedExecutorTest, ScheduleCallsBaseExecutor) {
   auto base_executor = std::make_shared<TestExecutor>();
   DerivedExecutorPtr derived_executor =
-     std::make_shared<DerivedExecutor>(base_executor, nullptr);
+      std::make_shared<DerivedExecutor>(base_executor, nullptr);
 
   bool task_executed = false;
   derived_executor->Schedule([&]() mutable { task_executed = true; });
@@ -122,6 +121,29 @@ TEST(DerivedExecutorTest, ExtraContextGuard) {
                        "leave_derived_scope", "leave_base_scope",
                        "enter_base_scope", "enter_derived_scope", "run_task_2",
                        "leave_derived_scope", "leave_base_scope"));
+}
+
+TEST(DerivedExecutorTest, CaptureDestroyedWithCurrentExecutor) {
+  auto base_executor = std::make_shared<TestExecutor>();
+  bool in_derived_scope = false;
+  auto derived_executor = std::make_shared<DerivedExecutor>(
+      base_executor, [&](ContextGuard& context_guard) {
+        context_guard.init<TestScopeGuard>([&] { in_derived_scope = true; },
+                                           [&] { in_derived_scope = false; });
+      });
+  Executor* executor_on_destruct = nullptr;
+  bool is_task_on_destruct = false;
+  bool in_derived_scope_on_destruct = false;
+  derived_executor->Schedule(
+      [guard = absl::Cleanup([&] {
+         executor_on_destruct = CurrentExecutorScopeGuard::current_executor();
+         is_task_on_destruct = IsExecutorTask();
+         in_derived_scope_on_destruct = in_derived_scope;
+       })] {});
+  EXPECT_EQ(executor_on_destruct, derived_executor.get());
+  EXPECT_TRUE(is_task_on_destruct);
+  EXPECT_TRUE(in_derived_scope_on_destruct);
+  EXPECT_FALSE(in_derived_scope);
 }
 
 }  // namespace

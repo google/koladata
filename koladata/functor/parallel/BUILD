@@ -48,6 +48,7 @@ cc_test(
     deps = [
         ":context_guard",
         ":executor",
+        "@com_google_absl//absl/cleanup",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
@@ -1202,6 +1203,7 @@ cc_test(
         ":context_guard",
         ":derived_executor",
         ":executor",
+        "@com_google_absl//absl/cleanup",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_googletest//:gtest_main",

@@ -21,6 +21,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/cleanup/cleanup.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
@@ -191,6 +192,75 @@ TEST(ExecutorTest, IsExecutorTask) {
   });
   ASSERT_FALSE(IsExecutorTask());
   EXPECT_TRUE(called);
+}
+
+TEST(ExecutorTest, CaptureDestroyedWithCurrentExecutor) {
+  ExecutorPtr executor1 = std::make_shared<TestExecutor>();
+  ExecutorPtr executor2 = std::make_shared<TestExecutor>();
+  Executor* outer_executor_on_destruct = nullptr;
+  bool outer_is_task_on_destruct = false;
+  Executor* inner_executor_on_destruct = nullptr;
+  bool inner_is_task_on_destruct = false;
+  executor1->Schedule([&, outer_guard = absl::Cleanup([&] {
+                            outer_executor_on_destruct =
+                                CurrentExecutorScopeGuard::current_executor();
+                            outer_is_task_on_destruct = IsExecutorTask();
+                          })] {
+    executor2->Schedule([inner_guard = absl::Cleanup([&] {
+                           inner_executor_on_destruct =
+                               CurrentExecutorScopeGuard::current_executor();
+                           inner_is_task_on_destruct = IsExecutorTask();
+                         })] {});
+  });
+  EXPECT_EQ(outer_executor_on_destruct, executor1.get());
+  EXPECT_TRUE(outer_is_task_on_destruct);
+  EXPECT_EQ(inner_executor_on_destruct, executor2.get());
+  EXPECT_TRUE(inner_is_task_on_destruct);
+}
+
+TEST(ExecutorTest, CaptureDestroyedWithActiveContextGuard) {
+  bool in_scope = false;
+  ExecutorPtr executor =
+      std::make_shared<TestExecutor>([&](ContextGuard& context_guard) {
+        context_guard.init<TestScopeGuard>([&] { in_scope = true; },
+                                           [&] { in_scope = false; });
+      });
+  bool in_scope_on_destruct = false;
+  executor->Schedule(
+      [guard = absl::Cleanup([&] { in_scope_on_destruct = in_scope; })] {});
+  EXPECT_TRUE(in_scope_on_destruct);
+  EXPECT_FALSE(in_scope);
+}
+
+TEST(ExecutorTest, DiscardedTaskDestroysCapture) {
+  class DiscardingExecutor : public Executor {
+   public:
+    void DoSchedule(TaskFn /*task_fn*/) noexcept final {}
+    std::string Repr() const noexcept final { return "discarding_executor"; }
+  };
+  ExecutorPtr executor = std::make_shared<DiscardingExecutor>();
+  bool destroyed = false;
+  executor->Schedule([guard = absl::Cleanup([&] { destroyed = true; })] {});
+  EXPECT_TRUE(destroyed);
+}
+
+TEST(ExecutorTest, ManipulateTaskFnAfterInvocation) {
+  class ManipulatingExecutor : public Executor {
+   public:
+    void DoSchedule(TaskFn task_fn) noexcept final {
+      TaskFn task_fn1 = std::move(task_fn);
+      std::move(task_fn1)();
+      TaskFn task_fn2 = std::move(task_fn1);  // NOLINT
+      task_fn1 = std::move(task_fn2);
+      task_fn1 = nullptr;
+    }
+    std::string Repr() const noexcept final { return "manipulating_executor"; }
+  };
+  ExecutorPtr executor = std::make_shared<ManipulatingExecutor>();
+  executor->Schedule([] {});
+  bool destroyed = false;
+  executor->Schedule([guard = absl::Cleanup([&] { destroyed = true; })] {});
+  EXPECT_TRUE(destroyed);
 }
 
 }  // namespace
