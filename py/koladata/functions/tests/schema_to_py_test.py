@@ -41,6 +41,7 @@ class ComplexClass:
   z: Another | None
   a: Entity | None
 
+
 MAX_DEPTH = 5
 
 
@@ -62,6 +63,7 @@ class SchemaToPyTest(parameterized.TestCase):
       return
 
     self.assertEqual(tpe1.__name__, tpe2.__name__)
+    self.assertEqual(tpe1.__module__, '_schema_to_py_')
     fields1 = {f.name: f for f in dataclasses.fields(tpe1)}
     fields2 = {f.name: f for f in dataclasses.fields(tpe2)}
     if len(fields1) != len(fields2):
@@ -316,7 +318,6 @@ class SchemaToPyTest(parameterized.TestCase):
             ('child_list', list[Any | None] | None),
             ('child_dict', dict[str, float] | None),
         ],
-        module='koladata.functions.schema',
     )
     dataclasses.fields(expected_type)[0].type = expected_type | None
     dataclasses.fields(expected_type)[1].type = expected_type | None

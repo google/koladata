@@ -222,6 +222,7 @@ def _internal_schema_to_py(
             (name, Any, dataclasses.field(default=None))
             for name in attrs.dir(schema)
         ],
+        module='_schema_to_py_',
     )
     res = dc_type | None
     visited[fp] = res
