@@ -42,7 +42,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/abstract_visitor.h"
-#include "koladata/internal/op_utils/traverser.h"
+#include "koladata/internal/op_utils/vectorized_traverser.h"
 #include "koladata/internal/schema_attrs.h"
 
 namespace koladata::internal {
@@ -66,14 +66,6 @@ class AutoValuesVisitor : public AbstractVisitor {
   explicit AutoValuesVisitor(DataBagImplPtr new_databag)
       : new_databag_(std::move(new_databag)),
         process_auto_reference_(false) {}
-
-  // Do nothing on previsit.
-  absl::StatusOr<bool> Previsit(
-      const DataItem& from_item, const DataItem& from_schema,
-      const std::optional<AbstractVisitor::TransitionKey>& transition_key,
-      const DataItem& item, const DataItem& schema) override {
-    return true;
-  }
 
   // Do nothing for lists. Note that lists might get overwritten in the
   // AUTO_REFERENCE attributes.
@@ -554,7 +546,7 @@ absl::Status AutoIdsUpdateOp::operator()(
     DataBagImpl::FallbackSpan fallbacks) const {
   auto visitor =
       std::make_shared<AutoValuesVisitor>(DataBagImplPtr::NewRef(new_databag_));
-  Traverser<AutoValuesVisitor> traverser(databag, fallbacks, visitor);
+  VectorizedTraverser traverser(databag, fallbacks, visitor);
   RETURN_IF_ERROR(traverser.TraverseSlice(ds, schema));
   return visitor->SetIds();
 }
@@ -573,11 +565,10 @@ absl::Status AutoReferenceUpdateOp::operator()(
     DataBagImpl::FallbackSpan input_fallbacks) const {
   auto visitor =
       std::make_shared<AutoValuesVisitor>(DataBagImplPtr::NewRef(new_databag_));
-  Traverser<AutoValuesVisitor> input_traverser(input_databag, input_fallbacks,
-                                               visitor);
+  VectorizedTraverser input_traverser(input_databag, input_fallbacks, visitor);
   RETURN_IF_ERROR(input_traverser.TraverseSlice(input_ds, input_schema));
 
-  Traverser<AutoValuesVisitor> traverser(databag, fallbacks, visitor);
+  VectorizedTraverser traverser(databag, fallbacks, visitor);
   visitor->EnableAutoReferenceProcessing();
   RETURN_IF_ERROR(traverser.TraverseSlice(ds, schema));
   return visitor->SetReferences(databag, fallbacks);
@@ -619,7 +610,7 @@ absl::Status AutoIdCleanupUpdateOp::operator()(
     DataBagImpl::FallbackSpan fallbacks) const {
   auto visitor = std::make_shared<AutoValuesVisitor>(
       DataBagImplPtr::NewRef(new_databag_));
-  Traverser<AutoValuesVisitor> traverser(databag, fallbacks, visitor);
+  VectorizedTraverser traverser(databag, fallbacks, visitor);
   RETURN_IF_ERROR(traverser.TraverseSlice(ds, schema));
   return visitor->CleanUpAutoIdsInDataAndSchema(databag, fallbacks);
 }

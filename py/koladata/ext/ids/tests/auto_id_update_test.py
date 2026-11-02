@@ -171,8 +171,8 @@ class IdsAutoIdUpdateTest(parameterized.TestCase):
     )
     with self.assertRaisesRegex(
         ValueError,
-        'kd_ext.ids.auto_id_update: object Entity:.* has AUTO_ID attribute'
-        " child_id with name right already assigned to value 'left_1'",
+        r'kd_ext\.ids\.auto_id_update: multiple schemas found for object'
+        ' Entity:.*',
     ):
       _ = parent.enriched(kd_ext.ids.auto_id_update(parent))  # pyrefly: ignore[missing-attribute]
 
