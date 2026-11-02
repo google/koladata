@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <numeric>
 #include <optional>
 #include <string>
 #include <utility>
@@ -28,6 +29,7 @@
 #include "absl/base/nullability.h"
 #include "absl/base/optimization.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "arolla/util/status_macros_backport.h"
@@ -47,11 +49,14 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/trampoline_executor.h"
 #include "koladata/internal/schema_attrs.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/object_factories.h"
 #include "koladata/shape_utils.h"
 #include "koladata/uuid_utils.h"
+#include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/boxing.h"
 #include "py/koladata/base/py_conversions/dataclasses_util.h"
@@ -150,6 +155,99 @@ static bool DictHasOnlyStringKeys(PyObject* py_dict) {
   }
   return true;
 }
+
+// Python values of the same kind that are converted together in bulk.
+struct BulkGroup {
+  // Positions of the values in the converted list.
+  std::vector<size_t> indices;
+  // The values (borrowed references).
+  std::vector<PyObject*> py_objects;
+  // The converted values, aligned with `indices`.
+  std::optional<DataSlice> result;
+
+  void Add(size_t index, PyObject* py_obj) {
+    indices.push_back(index);
+    py_objects.push_back(py_obj);
+  }
+};
+
+// An attribute of the objects that are created together in bulk.
+struct BulkObjectAttr {
+  std::string name;
+  // Positions (in `BulkObjects::indices`) of the objects that have the
+  // attribute, in strictly increasing order.
+  std::vector<size_t> object_positions;
+  // The attribute values (borrowed references), aligned with
+  // `object_positions`.
+  std::vector<PyObject*> py_values;
+  // The converted attribute values, aligned with `object_positions`.
+  std::optional<DataSlice> values;
+};
+
+// Objects (from dicts / dataclasses / SimpleNamespaces) that are created
+// together in bulk.
+struct BulkObjects {
+  // Positions of the objects in the converted list.
+  std::vector<size_t> indices;
+  // Union of the attributes of all objects.
+  std::vector<BulkObjectAttr> attrs;
+  absl::flat_hash_map<std::string, size_t> attr_index_by_name;
+
+  void AddAttr(size_t object_pos, absl::string_view name, PyObject* py_value) {
+    auto [it, inserted] = attr_index_by_name.try_emplace(name, attrs.size());
+    if (inserted) {
+      attrs.push_back({.name = std::string(name)});
+    }
+    BulkObjectAttr& attr = attrs[it->second];
+    if (!attr.object_positions.empty() &&
+        attr.object_positions.back() == object_pos) {
+      // A dict can have distinct keys that map to the same attribute name
+      // (e.g. a str subclass or a non-ASCII STRING DataItem); the last value
+      // wins, matching ConvertDictsAsObj.
+      attr.py_values.back() = py_value;
+      return;
+    }
+    // Objects are processed in order, keeping `object_positions` strictly
+    // increasing.
+    DCHECK(attr.object_positions.empty() ||
+           attr.object_positions.back() < object_pos);
+    attr.object_positions.push_back(object_pos);
+    attr.py_values.push_back(py_value);
+  }
+
+  absl::Status AddDict(size_t index, PyObject* py_dict) {
+    Py_ssize_t pos = 0;
+    PyObject* py_key = nullptr;
+    PyObject* py_value = nullptr;
+    while (PyDict_Next(py_dict, &pos, &py_key, &py_value)) {
+      ASSIGN_OR_RETURN(absl::string_view key, PyDictKeyAsStringView(py_key));
+      AddAttr(indices.size(), key, py_value);
+    }
+    indices.push_back(index);
+    return absl::OkStatus();
+  }
+
+  void AddObject(size_t index,
+                 const DataClassesUtil::AttrResult& attr_names_and_values) {
+    for (size_t i = 0; i < attr_names_and_values.attr_names.size(); ++i) {
+      AddAttr(indices.size(), attr_names_and_values.attr_names[i],
+              attr_names_and_values.values[i]);
+    }
+    indices.push_back(index);
+  }
+};
+
+// Python values of a list, grouped by kind for the conversion in bulk.
+struct BulkGroups {
+  BulkGroup primitives;
+  BulkGroup lists;
+  BulkGroup dicts;
+  // One group per message type, because FromProtoObjects requires messages of
+  // the same type. Keys are owned by the Python objects in the groups (and are
+  // not dereferenced after `AddToBulkGroups`).
+  absl::flat_hash_map<PyTypeObject*, BulkGroup> protos;
+  BulkObjects objects;
+};
 
 // Helper class for converting Python objects to DataSlices.
 class FromPyConverter {
@@ -341,8 +439,217 @@ class FromPyConverter {
                              std::move(schema));
   }
 
-  // Converts a List of Python objects to DataItems and creates a DataSlice.
-  // This is used for List/Dict/Object attributes when their schema is Object.
+  // Converts the elements of `py_objects` that can be converted in bulk with
+  // OBJECT schema, and inserts them into `bldr` (in an enqueued task, so `bldr`
+  // must outlive it). The elements are grouped by kind (primitives, lists,
+  // dicts, objects and protos of each type), and each group is converted
+  // together. Compared to converting the elements one by one, the lists /
+  // dicts / objects of a group are allocated together, which is faster and
+  // results in a more compact DataBag.
+  //
+  // The result is equivalent to converting the elements one by one (e.g.
+  // objects only get the attributes they have).
+  //
+  // Returns the indices of the elements that were not converted in bulk and
+  // have to be converted one by one (see AddToBulkGroups).
+  absl::StatusOr<std::vector<size_t>> ConvertObjectsInBulk(
+      absl::Span<PyObject* const> py_objects, int cur_depth,
+      internal::TrampolineExecutor& executor, internal::SliceBuilder& bldr) {
+    // Heap-allocated so that `result` and `values` references passed to
+    // `Convert*` (and captured by enqueued tasks) remain valid after `groups`
+    // is moved into the final task.
+    auto groups = std::make_unique<BulkGroups>();
+    std::vector<size_t> not_converted_indices;
+    for (size_t i = 0; i < py_objects.size(); ++i) {
+      if (Py_IsNone(py_objects[i])) {
+        continue;
+      }
+      ASSIGN_OR_RETURN(bool added, AddToBulkGroups(i, py_objects[i], *groups));
+      if (!added) {
+        not_converted_indices.push_back(i);
+      }
+    }
+    RETURN_IF_ERROR(ConvertBulkGroups(*groups, cur_depth, executor));
+    executor.Enqueue([this, &bldr,
+                      groups = std::move(groups)]() -> absl::Status {
+      for (const BulkGroup* group :
+           {&groups->primitives, &groups->lists, &groups->dicts}) {
+        if (group->result.has_value()) {
+          RETURN_IF_ERROR(
+              InsertConverted(group->indices, *group->result, bldr));
+        }
+      }
+      for (const auto& [_, group] : groups->protos) {
+        DCHECK(group.result.has_value());
+        RETURN_IF_ERROR(InsertConverted(group.indices, *group.result, bldr));
+      }
+      if (groups->objects.indices.empty()) {
+        return absl::OkStatus();
+      }
+      ASSIGN_OR_RETURN(DataSlice objects, CreateBulkObjects(groups->objects));
+      return InsertConverted(groups->objects.indices, std::move(objects), bldr);
+    });
+    return not_converted_indices;
+  }
+
+  // Adds `py_obj` at position `index` to the matching group of `groups`.
+  //
+  // Returns false if `py_obj` has to be converted one by one instead: DataItems
+  // (that may need adoption and schema embedding), unsupported values (to
+  // report errors consistently), or objects with multiple references and
+  // cycles.
+  absl::StatusOr<bool> AddToBulkGroups(size_t index, PyObject* py_obj,
+                                       BulkGroups& groups) {
+    if (arolla::python::IsPyQValueInstance(py_obj)) {
+      return false;
+    }
+    if (IsPyScalarOrQValueObject(py_obj)) {
+      groups.primitives.Add(index, py_obj);
+      return true;
+    }
+    // Fall back to 1-by-1 DFS on repeated containers (after converting the
+    // first occurrence in bulk) so branching cycles (e.g. `d = {}; d['a'] =
+    // [d, d]`) hit `kMaxConversionDepth` in linear rather than exponential
+    // time.
+    if (!bulk_converted_containers_.insert(reinterpret_cast<uintptr_t>(py_obj))
+             .second) {
+      return false;
+    }
+    if (PyList_Check(py_obj) || PyTuple_Check(py_obj)) {
+      groups.lists.Add(index, py_obj);
+      return true;
+    }
+    if (PyDict_CheckExact(py_obj)) {
+      if (dict_as_obj_ && DictHasOnlyStringKeys(py_obj)) {
+        RETURN_IF_ERROR(groups.objects.AddDict(index, py_obj));
+      } else {
+        groups.dicts.Add(index, py_obj);
+      }
+      return true;
+    }
+    ASSIGN_OR_RETURN(bool is_proto, IsPyProtoMessage(py_obj));
+    if (is_proto) {
+      groups.protos[Py_TYPE(py_obj)].Add(index, py_obj);
+      return true;
+    }
+    ASSIGN_OR_RETURN(
+        std::optional<DataClassesUtil::AttrResult> attr_names_and_values,
+        dataclasses_util_.GetAttrNamesAndValues(py_obj));
+    if (!attr_names_and_values.has_value()) {
+      return false;
+    }
+    groups.objects.AddObject(index, *attr_names_and_values);
+    return true;
+  }
+
+  // Enqueues the conversion of each group of `groups` (and of each attribute
+  // of `groups.objects`) to an OBJECT DataSlice, populating `result` / `values`
+  // in `groups`.
+  absl::Status ConvertBulkGroups(BulkGroups& groups, int cur_depth,
+                                 internal::TrampolineExecutor& executor) {
+    auto shape = [](const auto& py_objects) {
+      return DataSlice::JaggedShape::FlatFromSize(py_objects.size());
+    };
+    const std::optional<DataSlice>& schema = GetObjectSchemaSlice();
+    if (!groups.primitives.indices.empty()) {
+      RETURN_IF_ERROR(ConvertImpl(groups.primitives.py_objects,
+                                  shape(groups.primitives.py_objects), schema,
+                                  /*itemid=*/std::nullopt, cur_depth, executor,
+                                  groups.primitives.result,
+                                  /*computing_object=*/true));
+    }
+    if (!groups.lists.indices.empty()) {
+      RETURN_IF_ERROR(ConvertListsOrTuples(
+          groups.lists.py_objects, shape(groups.lists.py_objects), schema,
+          /*itemid=*/std::nullopt, cur_depth, executor, groups.lists.result));
+    }
+    if (!groups.dicts.indices.empty()) {
+      RETURN_IF_ERROR(ConvertDicts(
+          groups.dicts.py_objects, shape(groups.dicts.py_objects), schema,
+          /*itemid=*/std::nullopt, cur_depth, executor, groups.dicts.result));
+    }
+    for (auto& [_, group] : groups.protos) {
+      // Enqueue via `ConvertImplBreakRecursion` rather than calling
+      // `ConvertProto` directly because `FromProtoObjects` releases the GIL,
+      // while other groups (and `py_objects` at root) still hold borrowed
+      // `PyObject*` references.
+      RETURN_IF_ERROR(ConvertImplBreakRecursion(
+          std::move(group.py_objects), shape(group.indices), schema,
+          /*itemid=*/std::nullopt, cur_depth, executor, group.result,
+          /*computing_object=*/true));
+    }
+    for (BulkObjectAttr& attr : groups.objects.attrs) {
+      RETURN_IF_ERROR(ConvertImplBreakRecursion(
+          std::move(attr.py_values), shape(attr.object_positions), schema,
+          /*itemid=*/std::nullopt, cur_depth, executor, attr.values));
+    }
+    return absl::OkStatus();
+  }
+
+  // Creates the objects with their converted attributes. The attributes that
+  // all objects have are set on creation, and the others are set on the
+  // subsets of objects that have them.
+  absl::StatusOr<DataSlice> CreateBulkObjects(const BulkObjects& bulk_objects) {
+    const size_t n_objects = bulk_objects.indices.size();
+    std::vector<absl::string_view> common_attr_names;
+    std::vector<DataSlice> common_attr_values;
+    for (const BulkObjectAttr& attr : bulk_objects.attrs) {
+      // Populated by tasks enqueued in `ConvertBulkGroups`, which execute
+      // before `CreateBulkObjects` is called.
+      DCHECK(attr.values.has_value());
+      if (attr.object_positions.size() == n_objects) {
+        common_attr_names.push_back(attr.name);
+        common_attr_values.push_back(*attr.values);
+      }
+    }
+    ASSIGN_OR_RETURN(
+        DataSlice objects,
+        ObjectCreator::Shaped(GetBag(),
+                              DataSlice::JaggedShape::FlatFromSize(n_objects),
+                              common_attr_names, common_attr_values));
+    const auto& object_ids =
+        objects.slice().values<internal::ObjectId>().values;
+    for (const BulkObjectAttr& attr : bulk_objects.attrs) {
+      const size_t subset_size = attr.object_positions.size();
+      if (subset_size == n_objects) {
+        continue;
+      }
+      arolla::DenseArrayBuilder<internal::ObjectId> subset_bldr(subset_size);
+      for (size_t i = 0; i < subset_size; ++i) {
+        subset_bldr.Set(i, object_ids[attr.object_positions[i]]);
+      }
+      ASSIGN_OR_RETURN(
+          DataSlice subset,
+          DataSlice::Create(internal::DataSliceImpl::CreateObjectsDataSlice(
+                                std::move(subset_bldr).Build(),
+                                objects.slice().allocation_ids()),
+                            DataSlice::JaggedShape::FlatFromSize(subset_size),
+                            DataItem(schema::kObject), GetBag()));
+      RETURN_IF_ERROR(subset.SetAttr(attr.name, *attr.values));
+    }
+    return objects;
+  }
+
+  // Inserts the converted values `objects` into `bldr` at positions `indices`.
+  absl::Status InsertConverted(absl::Span<const size_t> indices,
+                               DataSlice objects,
+                               internal::SliceBuilder& bldr) {
+    if (objects.GetSchemaImpl().is_struct_schema()) {
+      // `ConvertListsOrTuples` and `ConvertDicts` produce slices with a list /
+      // dict struct schema rather than OBJECT, so we embed their schema into
+      // `GetBag()` to convert them to OBJECT.
+      ASSIGN_OR_RETURN(objects,
+                       ObjectCreator::ConvertWithoutAdopt(GetBag(), objects));
+    }
+    const internal::DataSliceImpl& impl = objects.slice();
+    for (size_t i = 0; i < indices.size(); ++i) {
+      bldr.InsertIfNotSetAndUpdateAllocIds(indices[i], impl[i]);
+    }
+    return absl::OkStatus();
+  }
+
+  // Converts `py_objects` to an OBJECT DataSlice, converting elements in bulk
+  // by kind when possible and remaining elements one by one.
   absl::Status ComputeObjectsSlice(const std::vector<PyObject*>& py_objects,
                                    DataSlice::JaggedShape cur_shape,
                                    const std::optional<DataSlice>& itemid,
@@ -370,7 +677,19 @@ class FromPyConverter {
       return absl::OkStatus();
     };
 
-    for (size_t i = 0; i < size; ++i) {
+    // Without itemid, as many elements as possible are converted in bulk.
+    std::vector<size_t> not_converted_indices;
+    // NOMUTANTS -- `size == 1` is a performance optimization.
+    if (itemid.has_value() || size == 1) {
+      not_converted_indices.resize(size);
+      std::iota(not_converted_indices.begin(), not_converted_indices.end(),
+                size_t{0});
+    } else {
+      ASSIGN_OR_RETURN(
+          not_converted_indices,
+          ConvertObjectsInBulk(py_objects, cur_depth, executor, *bldr));
+    }
+    for (size_t i : not_converted_indices) {
       std::optional<DataSlice> child_itemid_ds_item;
       if (itemid.has_value()) {
         DataItem itemid_item =
@@ -381,7 +700,7 @@ class FromPyConverter {
                               DataItem(schema::kItemId)));
       }
 
-      auto ds = std::make_unique<std::optional<DataSlice>>();
+      auto converted_item = std::make_unique<std::optional<DataSlice>>();
 
       // For performance reasons, we do not call `ConvertImplBreakRecursion`
       // here, but rather call `ConvertImpl` directly to reduce over-queuing.
@@ -390,18 +709,19 @@ class FromPyConverter {
       RETURN_IF_ERROR(
           ConvertImpl({py_objects[i]}, DataSlice::JaggedShape::Empty(),
                       GetObjectSchemaSlice(), std::move(child_itemid_ds_item),
-                      cur_depth, executor, *ds,
+                      cur_depth, executor, *converted_item,
                       /*computing_object=*/true));
       // This is an optimization, if no queuing happened in `ConvertImpl`, we
       // can process the element immediately. This happens in case of
       // primitives, when adding another element to the queue has a significant
       // overhead.
-      if (ds->has_value()) {
-        RETURN_IF_ERROR(process_element_fn(i, **ds));
+      if (converted_item->has_value()) {
+        RETURN_IF_ERROR(process_element_fn(i, **converted_item));
       } else {
         executor.Enqueue(
-            [process_element_fn, i, ds = std::move(ds)]() -> absl::Status {
-              RETURN_IF_ERROR(process_element_fn(i, **ds));
+            [process_element_fn, i,
+             converted_item = std::move(converted_item)]() -> absl::Status {
+              RETURN_IF_ERROR(process_element_fn(i, **converted_item));
               return absl::OkStatus();
             });
       }
@@ -468,8 +788,10 @@ class FromPyConverter {
 
   // Recursively converts `py_objects` to a DataSlice.
   // When there is a struct schema, we do BFS traversal, i.e. we process the
-  // whole list of objects at a certain depth together. Otherwise with OBJECT
-  // schema, we do DFS traversal.
+  // whole list of objects at a certain depth together. With OBJECT schema,
+  // elements at a given depth are grouped by kind and converted in bulk when
+  // possible, falling back to 1-by-1 DFS when `itemid` is specified, for
+  // DataItems, or for repeated containers.
   //
   // `cur_shape` is used to support `from_dim` argument: if it is specified
   // (non-empty), it will be used as the shape of the resulting DataSlice.
@@ -480,13 +802,11 @@ class FromPyConverter {
   // If there will be new lists/dicts/objects created, a new DataBag will be
   // created and added to the adoption queue. Also if there will be DataItems in
   // `py_objects`, they will also be added to `adoption_queue_`.
-  // `computing_object` is used to indicate that the current control flow
-  // originates from `ComputeObjectsSlice` and that each item is being processed
-  // 1-by-1. A "recursive" `ComputeObjectsSlice` should NOT be invoked. It can
-  // still happen deeper, when processing lists, dicts, etc.
-  // `is_root` is used to indicate that the current control flow originates from
-  // the root of the recursion and that the `itemid` argument should be used as
-  // is.
+  // `computing_object` indicates that the current call originates from
+  // `ComputeObjectsSlice` (for a homogeneous bulk group or a single fallback
+  // item), so `ComputeObjectsSlice` must not be invoked again at the same
+  // level. It can still be invoked deeper when converting child lists, dicts,
+  // object attributes, etc.
   absl::Status ConvertImpl(const std::vector<PyObject*>& py_objects,
                            DataSlice::JaggedShape cur_shape,
                            const std::optional<DataSlice>& schema,
@@ -504,8 +824,6 @@ class FromPyConverter {
     }
 
     if (IsObjectSchema(schema) && !computing_object) {
-      // Processing elements one by one and creating a slice of them with
-      // kObject schema.
       return ComputeObjectsSlice(py_objects, std::move(cur_shape), itemid,
                                  cur_depth, executor, result);
     }
@@ -1218,6 +1536,12 @@ class FromPyConverter {
   }
 
   DataBagPtr db_;
+  // Addresses of Python containers converted by ConvertObjectsInBulk (stored
+  // as `uintptr_t` since ownership is not held and they are never
+  // dereferenced). If a container is destroyed mid-conversion (e.g. via
+  // concurrent mutation during `YieldPyGIL`) and its address is reused, a
+  // false-positive hit only causes an equivalent 1-by-1 fallback.
+  absl::flat_hash_set<uintptr_t> bulk_converted_containers_;
   AdoptionQueue& adoption_queue_;
   DataClassesUtil dataclasses_util_;
   bool dict_as_obj_;

@@ -39,6 +39,7 @@ from koladata.types import schema_constants
 
 kde = kde_operators.kde
 kd = kde_operators.kd
+kd_internal = kde_operators.kd_internal
 ds = data_slice.DataSlice.from_vals
 
 
@@ -1107,6 +1108,150 @@ assigned schema: INT32"""),
     testing.assert_equal(
         second_obj.c.no_bag(), ds(b'xyz', schema=schema_constants.OBJECT)
     )
+
+  @parameterized.named_parameters(
+      ('dict_as_obj', True),
+      ('dict_as_dict', False),
+  )
+  def test_object_schema_bulk(self, dict_as_obj):
+    @dataclasses.dataclass
+    class A:
+      x: int
+
+    entity = fns.new(e=1)
+    py_obj = [
+        {'a': 1, 'b': None},
+        {'a': [1, {'d': 2}]},
+        {},
+        None,
+        2,
+        'abc',
+        [A(x=3), types.SimpleNamespace(x=4, y=None), A(x=5)],
+        {1: 'x', 'k': {'z': 5}},
+        test_pb2.MessageA(some_text='t1'),
+        test_pb2.MessageB(text='u1'),
+        test_pb2.MessageA(some_text='t2'),
+        test_pb2.MessageB(text='u2'),
+        test_pb2.MessageA(some_text='t3'),
+        ds(6),
+        entity,
+        {'f': entity},
+    ]
+    res = from_py(py_obj, from_dim=1, dict_as_obj=dict_as_obj)
+    # Equivalent to converting the elements one by one.
+    expected = ds(
+        [from_py(x, dict_as_obj=dict_as_obj) for x in py_obj],
+        schema_constants.OBJECT,
+    )
+    testing.assert_equivalent(res, expected)
+
+    # Entities in a DataItem don't change their itemid.
+    testing.assert_equal(
+        res.S[14].get_itemid().no_bag(), entity.get_itemid().no_bag()
+    )
+
+    # Groups of > 2 items (the dicts/objects starting at S[0] and the 3 MessageA
+    # protos starting at S[8]) are each allocated together in a single
+    # TypedDenseSource, while smaller groups use SparseSource[small_allocs].
+    dict_prefix = 'Entity' if dict_as_obj else 'Dict'
+    self.assertCountEqual(
+        kd_internal.get_attr_memory_stats(res, '__schema__').container.to_py(),
+        [
+            'SparseSource[small_allocs]',
+            (
+                'TypedDenseSource[OBJECT_ID,'
+                f' alloc_id={dict_prefix}:{res.S[0].no_bag()}]'
+            ),
+            f'TypedDenseSource[OBJECT_ID, alloc_id=Entity:{res.S[8].no_bag()}]',
+        ],
+    )
+    # One-by-one conversion puts every item into its own small allocation.
+    self.assertEqual(
+        set(
+            kd_internal.get_attr_memory_stats(
+                expected, '__schema__'
+            ).container.to_py()
+        ),
+        {'SparseSource[small_allocs]'},
+    )
+    # Nested list items (the 3 Python objects in S[6]) are also allocated
+    # together in bulk.
+    self.assertEqual(
+        kd_internal.get_attr_memory_stats(
+            res.S[6][:], '__schema__'
+        ).container.to_py(),
+        [
+            'TypedDenseSource[OBJECT_ID,'
+            f' alloc_id=Entity:{res.S[6][0].no_bag()}]'
+        ],
+    )
+
+  def test_object_schema_bulk_2d(self):
+    py_obj = [[{'a': 1}, [2]], [{'b': 3}]]
+    res = from_py(py_obj, from_dim=2, dict_as_obj=True)
+    expected = ds(
+        [[from_py(x, dict_as_obj=True) for x in row] for row in py_obj],
+        schema_constants.OBJECT,
+    )
+    testing.assert_equivalent(res, expected)
+
+  @parameterized.named_parameters(
+      ('fresh', [{'a': i, 'b': [{'c': i}]} for i in range(100)]),
+      (
+          'one_duplicate',
+          [{'a': 0, 'b': [{'c': 0}]}] * 2
+          + [{'a': i, 'b': [{'c': i}]} for i in range(1, 100)],
+      ),
+      ('protos', [test_pb2.MessageA(some_text=f't{i}') for i in range(100)]),
+  )
+  def test_object_schema_bulk_is_compact(self, py_obj):
+    res = from_py(py_obj, from_dim=1, dict_as_obj=True)
+    one_by_one = ds(
+        [from_py(x, dict_as_obj=True) for x in py_obj], schema_constants.OBJECT
+    )
+    testing.assert_equivalent(res, one_by_one)
+    # One by one, each object / list has its own allocation, which takes much
+    # more space than the attribute values themselves.
+    self.assertLess(
+        res.get_bag().get_approx_byte_size(),
+        one_by_one.get_bag().get_approx_byte_size() / 2,
+    )
+
+  def test_object_schema_bulk_shared_references(self):
+    x = {'a': 1}
+    py_obj = [x, x, {'a': x}]
+    res = from_py(py_obj, from_dim=1, dict_as_obj=True)
+    expected = ds(
+        [from_py(item, dict_as_obj=True) for item in py_obj],
+        schema_constants.OBJECT,
+    )
+    testing.assert_equivalent(res, expected)
+    self.assertNotEqual(
+        res.S[0].get_itemid().no_bag(), res.S[1].get_itemid().no_bag()
+    )
+
+  def test_object_schema_bulk_cycle(self):
+    d = {}
+    d['a'] = [d, d]
+    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
+      from_py([{'a': 1}, d], from_dim=1, dict_as_obj=True)
+
+  def test_object_schema_bulk_duplicate_attr_keys(self):
+    class Key(str):
+      __hash__ = object.__hash__
+      __eq__ = object.__eq__
+
+    for py_obj in [
+        [{Key('a'): 1, Key('a'): 2}, {'b': 3}],
+        [{Key('a'): 1, Key('a'): 2}, {'b': 3}, {'c': 4}],
+        [{'é': 1, ds('é'): 2}, {'b': 3}],
+    ]:
+      res = from_py(py_obj, from_dim=1, dict_as_obj=True)
+      expected = ds(
+          [from_py(x, dict_as_obj=True) for x in py_obj],
+          schema_constants.OBJECT,
+      )
+      testing.assert_equivalent(res, expected)
 
   @parameterized.named_parameters(
       ('dict', {'schema': 1}),
@@ -2393,14 +2538,15 @@ assigned schema: ENTITY(a=FLOAT32)"""),
     ):
       _ = from_py([Output('foo'), 'str_output'], schema=None)
 
-  def test_non_dataclasses_fails_gracefully(self):
+  @parameterized.parameters(None, schema_constants.OBJECT)
+  def test_non_dataclasses_fails_gracefully(self, schema):
     class Output:
       pass
 
     with self.assertRaisesRegex(
         ValueError, 'object with unsupported type: Output'
     ):
-      _ = from_py([Output()], schema=None)
+      _ = from_py([Output(), Output()], schema=schema)
 
   def test_recursive_error_with_schema(self):
     py_l = [1, 2, 3]
@@ -2522,6 +2668,23 @@ assigned schema: ENTITY(a=FLOAT32)"""),
     t.start()
     try:
       _ = from_py(lists)  # no crash
+    finally:
+      t.join()
+
+  def test_from_py_concurrent_proto_and_dict_clear(self):
+    def mutator(shared_dict):
+      time.sleep(0.001)
+      shared_dict.clear()
+      gc.collect()
+
+    shared_dict = {f'k{i}': f'val_{i}' * 10 for i in range(100)}
+    items = [test_pb2.MessageA(some_text=f't{i}') for i in range(5_000)] + [
+        shared_dict
+    ]
+    t = threading.Thread(target=mutator, args=(shared_dict,))
+    t.start()
+    try:
+      _ = from_py(items, from_dim=1, dict_as_obj=True)  # no crash
     finally:
       t.join()
 
