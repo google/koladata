@@ -1138,6 +1138,21 @@ cc_test(
 )
 
 cc_test(
+    name = "auto_values_update_benchmarks",
+    srcs = ["auto_values_update_benchmarks.cc"],
+    deps = [
+        ":auto_values_update",
+        ":deep_op_benchmarks_util",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "@com_google_arolla//arolla/util/testing",
+        "@com_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest",
+    ],
+)
+
+cc_test(
     name = "extract_benchmarks",
     srcs = ["extract_benchmarks.cc"],
     deps = [
