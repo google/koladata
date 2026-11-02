@@ -2360,13 +2360,13 @@ assigned schema: ENTITY(a=FLOAT32)"""),
     with self.assertRaisesRegex(
         ValueError, 'ITEMID schema requires DataSlice to hold object ids'
     ):
-      _ = from_py([1, 2], itemid=ds(42))
+      from_py([1, 2], itemid=ds(42))
     with self.assertRaisesRegex(
         ValueError,
-        'ItemId for DataSlice size=1 does not match the input list size=2 when'
-        ' from_dim=1',
+        r'the shape of `itemid` JaggedShape\(1\) is different from the shape of'
+        r' the resulting DataSlice: JaggedShape\(2\)',
     ):
-      _ = from_py(
+      from_py(
           [[1, 2], [3]],
           itemid=kde.uuid_for_list(a=ds(['1'])).eval(),
           from_dim=1,
@@ -2374,17 +2374,45 @@ assigned schema: ENTITY(a=FLOAT32)"""),
 
     with self.assertRaisesRegex(
         ValueError,
-        'ItemId for DataSlice must be a DataSlice of non-zero rank',
+        r'the shape of `itemid` JaggedShape\(\) is different from the shape of'
+        r' the resulting DataSlice: JaggedShape\(2\)',
     ):
-      _ = from_py(
+      from_py(
           [[1, 2], [3]],
           itemid=kde.uuid_for_list(a=ds('1')).eval(),
           from_dim=1,
       )
     with self.assertRaisesRegex(
+        ValueError,
+        r'the shape of `itemid` JaggedShape\(3\) is different from the shape of'
+        r' the resulting DataSlice: JaggedShape\(2, \[2, 1\]\)',
+    ):
+      from_py(
+          [[[1, 2], [3]], [[4]]],
+          itemid=kde.uuid_for_list(a=ds(['1', '2', '3'])).eval(),
+          from_dim=2,
+      )
+    for bad_itemid in [
+        ds([], schema_constants.ITEMID),
+        kde.uuid_for_list(a=ds(['1'])).eval(),
+        kde.uuid_for_list(a=ds(['1', '2'])).eval(),
+    ]:
+      with self.assertRaisesRegex(
+          ValueError,
+          r'the shape of `itemid` JaggedShape\(.*\) is different from the shape'
+          r' of the resulting DataSlice: JaggedShape\(\)',
+      ):
+        from_py([1, 2], itemid=bad_itemid)
+      with self.assertRaisesRegex(
+          ValueError,
+          r'the shape of `itemid` JaggedShape\(.*\) is different from the shape'
+          r' of the resulting DataSlice: JaggedShape\(\)',
+      ):
+        from_py([1, 2], schema=schema_constants.OBJECT, itemid=bad_itemid)
+    with self.assertRaisesRegex(
         ValueError, 'itemid argument to list creation, requires List ItemIds'
     ):
-      _ = from_py(
+      from_py(
           [[1, 2], [3]],
           itemid=kde.uuid_for_dict(a=ds('1')).eval(),
       )
@@ -2392,7 +2420,7 @@ assigned schema: ENTITY(a=FLOAT32)"""),
     with self.assertRaisesRegex(
         ValueError, 'itemid argument to dict creation, requires Dict ItemIds'
     ):
-      _ = from_py(
+      from_py(
           {'a': 1, 'b': 2},
           itemid=kde.uuid(a=ds('1')).eval(),
       )

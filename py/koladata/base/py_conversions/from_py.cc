@@ -40,6 +40,7 @@
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/buffer.h"
+#include "arolla/util/repr.h"
 #include "arolla/util/unit.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
@@ -267,20 +268,12 @@ class FromPyConverter {
                        FlattenPyList(py_obj, from_dim));
       py_objects = std::move(py_objs);
       cur_shape = std::move(shape);
-
-      if (itemid.has_value()) {
-        if (itemid->is_item()) {
-          return absl::InvalidArgumentError(
-              "ItemId for DataSlice must be a DataSlice of non-zero rank if "
-              "from_dim > 0");
-        }
-        if (itemid->size() != py_objects.size()) {
-          return absl::InvalidArgumentError(
-              absl::StrFormat("ItemId for DataSlice size=%d does not match the "
-                              "input list size=%d when from_dim=%d",
-                              itemid->size(), py_objects.size(), from_dim));
-        }
-      }
+    }
+    if (itemid.has_value() && !itemid->GetShape().IsEquivalentTo(cur_shape)) {
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "the shape of `itemid` %s is different from the shape of the "
+          "resulting DataSlice: %s",
+          arolla::Repr(itemid->GetShape()), arolla::Repr(cur_shape)));
     }
     std::optional<DataSlice> result;
     RETURN_IF_ERROR(internal::TrampolineExecutor::Run([&](auto& executor) {
@@ -657,12 +650,9 @@ class FromPyConverter {
                                    internal::TrampolineExecutor& executor,
                                    std::optional<DataSlice>& result) {
     const size_t size = py_objects.size();
-
-    if (itemid.has_value() && itemid->size() < size) {
-      return absl::InvalidArgumentError(absl::StrFormat(
-          "ItemId size=%d is smaller than the input list size=%d",
-          itemid->size(), size));
-    }
+    // Validated in `Convert` at root and preserved by `MakeChildrenItemUuids`
+    // in recursive calls.
+    DCHECK(!itemid.has_value() || itemid->size() == size);
 
     auto bldr = std::make_unique<internal::SliceBuilder>(size);
     auto process_element_fn = [this, bldr = bldr.get()](
