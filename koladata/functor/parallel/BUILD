@@ -348,9 +348,11 @@ cc_library(
     deps = [
         ":executor",
         ":stream",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/synchronization",
         "@com_google_arolla//arolla/util",
     ],
 )
@@ -361,11 +363,14 @@ cc_test(
     deps = [
         ":basic_routine",
         ":eager_executor",
+        ":executor",
         ":get_default_executor",
         ":make_executor",
         ":stream",
+        "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_arolla//arolla/qtype",

@@ -47,6 +47,7 @@ namespace koladata::functor::parallel {
 // Threading:
 // * `Start` and `Resume` are always invoked on the executor. Their calls are
 //   serialized, meaning one won't begin until the previous call has returned.
+// * The destructor is always invoked on the executor.
 // * `Interrupted` and `OnCancel` are invoked on unspecified threads.
 //
 class BasicRoutineHooks {
