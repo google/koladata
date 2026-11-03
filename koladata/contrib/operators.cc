@@ -14,6 +14,7 @@
 //
 #include "arolla/qexpr/operators.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -21,6 +22,7 @@
 #include "absl/status/status.h"
 #include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
 #include "absl/types/span.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/eval_context.h"
@@ -66,10 +68,21 @@ class StreamBatchedCascadeOp final : public arolla::QExprOperator {
          input_stream_slot = input_slots[1].UnsafeToSlot<StreamPtr>(),
          step_fn_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
          yields_param_name_slot = input_slots[3].UnsafeToSlot<arolla::Text>(),
-         initial_yields_slot = input_slots[4], state_slot = input_slots[5],
+         initial_yields_slot = input_slots[4],
+         max_active_cascades_slot = input_slots[5].UnsafeToSlot<DataSlice>(),
+         state_slot = input_slots[6],
          output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
             arolla::EvaluationContext* /*ctx*/,
             arolla::FramePtr frame) -> absl::Status {
+          ASSIGN_OR_RETURN(
+              int64_t max_active_cascades,
+              ops::GetIntegerArgument(frame.Get(max_active_cascades_slot),
+                                      "max_active_cascades"));
+          if (max_active_cascades < 0) {
+            return absl::InvalidArgumentError(absl::StrFormat(
+                "`max_active_cascades` must be non-negative, got %d",
+                max_active_cascades));
+          }
           auto step_fn = [step_fn_ds = frame.Get(step_fn_slot)](
                              absl::Span<const arolla::TypedRef> args,
                              absl::Span<const std::string> kwnames)
@@ -86,7 +99,8 @@ class StreamBatchedCascadeOp final : public arolla::QExprOperator {
                   frame.Get(executor_slot), frame.Get(input_stream_slot),
                   std::move(step_fn), frame.Get(yields_param_name_slot).view(),
                   arolla::TypedRef::FromSlot(initial_yields_slot, frame),
-                  arolla::TypedRef::FromSlot(state_slot, frame)));
+                  arolla::TypedRef::FromSlot(state_slot, frame),
+                  max_active_cascades));
           frame.Set(output_slot, std::move(stream));
           return absl::OkStatus();
         });
@@ -99,6 +113,7 @@ class StreamBatchedCascadeOp final : public arolla::QExprOperator {
 //     step_fn: DATA_SLICE,
 //     yields_param_name: TEXT,
 //     initial_yields: STREAM[U],
+//     max_active_cascades: DATA_SLICE,
 //     initial_state: NAMEDTUPLE,
 //     NON_DETERMINISTIC_TOKEN,
 // ) -> STREAM[STREAM[U]]
@@ -109,8 +124,8 @@ class StreamBatchedCascadeOperatorFamily final : public arolla::OperatorFamily {
     if (!IsStreamQType(output_type)) {
       return absl::InvalidArgumentError("output type must be a stream");
     }
-    if (input_types.size() != 7) {
-      return absl::InvalidArgumentError("requires exactly 7 arguments");
+    if (input_types.size() != 8) {
+      return absl::InvalidArgumentError("requires exactly 8 arguments");
     }
     if (input_types[0] != arolla::GetQType<ExecutorPtr>()) {
       return absl::InvalidArgumentError("1st argument must be an executor");
@@ -128,10 +143,13 @@ class StreamBatchedCascadeOperatorFamily final : public arolla::OperatorFamily {
       return absl::InvalidArgumentError(
           "5th argument must be the same as the value type of the output");
     }
-    if (!arolla::IsNamedTupleQType(input_types[5])) {
-      return absl::InvalidArgumentError("6th argument must be a namedtuple");
+    if (input_types[5] != arolla::GetQType<DataSlice>()) {
+      return absl::InvalidArgumentError("6th argument must be a data slice");
     }
-    RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[6]));
+    if (!arolla::IsNamedTupleQType(input_types[6])) {
+      return absl::InvalidArgumentError("7th argument must be a namedtuple");
+    }
+    RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[7]));
     return std::make_shared<StreamBatchedCascadeOp>(input_types, output_type);
   }
 };
@@ -157,6 +175,7 @@ AROLLA_INITIALIZER(
               arguments: EXECUTOR
               arguments: ORIGINAL_ARGUMENTS
               functor_argument_indices: 1
+              keep_literal_argument_indices: 3
             }
           )pb");
         });

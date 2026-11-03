@@ -54,6 +54,7 @@ using ::koladata::functor::parallel::StreamPtr;
 using ::koladata::functor::parallel::StreamReaderPtr;
 using ::koladata::functor::parallel::StreamWriterPtr;
 using ::testing::ElementsAre;
+using ::testing::IsEmpty;
 using ::testing::Pointee;
 
 // The initial value of the `yields` variable, which is the first item of
@@ -455,6 +456,123 @@ TEST(StreamBatchedCascadeTest, SeveralReadySources) {
   std::move(*input_writer).Close();
   std::move(*b_writer).Close();
   std::move(*c_writer).Close();
+  EXPECT_THAT(ReadAllInts(stream), IsOkAndHolds(ElementsAre(kInitialYields)));
+}
+
+TEST(StreamBatchedCascadeTest, MaxActiveCascades) {
+  std::vector<std::vector<int>> batches;
+  std::vector<StreamWriterPtr> cascade_writers;
+  auto step_fn = [&](absl::Span<const arolla::TypedRef> args,
+                     absl::Span<const std::string> /*kwnames*/)
+      -> absl::StatusOr<arolla::TypedValue> {
+    ASSIGN_OR_RETURN(std::vector<int> batch,
+                     ReadAllInts(args[0].UnsafeAs<StreamPtr>()));
+    batches.push_back(std::move(batch));
+    auto [cascades, writer] = MakeStream(arolla::GetQType<int>());
+    cascade_writers.push_back(std::move(writer));
+    return arolla::MakeNamedTuple({"cascades"},
+                                  {MakeStreamQValueRef(cascades)});
+  };
+  auto [input_stream, input_writer] = MakeStream(arolla::GetQType<int>());
+  ASSERT_OK_AND_ASSIGN(
+      StreamPtr stream,
+      StreamBatchedCascade(GetEagerExecutor(), input_stream, step_fn, "yields",
+                           arolla::TypedRef::FromValue(kInitialYields),
+                           EmptyState().AsRef(), /*max_active_cascades=*/2));
+  input_writer->Write(arolla::TypedRef::FromValue(1));
+  EXPECT_THAT(batches, ElementsAre(ElementsAre(1)));
+  ASSERT_EQ(cascade_writers.size(), 1);
+
+  // Now 2 active cascades (`input_stream` + 1 cascade stream) are being read at
+  // the same time, reaching `max_active_cascades` (2). Available items are
+  // accumulated into the next batch without calling `step_fn`.
+  input_writer->Write(arolla::TypedRef::FromValue(100));
+  cascade_writers[0]->Write(arolla::TypedRef::FromValue(200));
+  EXPECT_EQ(batches.size(), 1);
+
+  // Closing one stream means that cascade is fully read, reducing the number
+  // of active cascades to 1 and allowing the accumulated batch to be passed to
+  // `step_fn`.
+  std::move(*input_writer).Close();
+  ASSERT_EQ(batches.size(), 2);
+  EXPECT_THAT(batches.back(), ElementsAre(100, 200));
+
+  for (StreamWriterPtr& writer : cascade_writers) {
+    std::move(*writer).Close();
+  }
+  EXPECT_THAT(ReadAllInts(stream), IsOkAndHolds(ElementsAre(kInitialYields)));
+}
+
+TEST(StreamBatchedCascadeTest, MaxActiveCascadesOne) {
+  std::vector<std::vector<int>> batches;
+  std::vector<StreamWriterPtr> cascade_writers;
+  auto step_fn = [&](absl::Span<const arolla::TypedRef> args,
+                     absl::Span<const std::string> /*kwnames*/)
+      -> absl::StatusOr<arolla::TypedValue> {
+    ASSIGN_OR_RETURN(std::vector<int> batch,
+                     ReadAllInts(args[0].UnsafeAs<StreamPtr>()));
+    batches.push_back(std::move(batch));
+    auto [cascades, writer] = MakeStream(arolla::GetQType<int>());
+    cascade_writers.push_back(std::move(writer));
+    return arolla::MakeNamedTuple({"cascades"},
+                                  {MakeStreamQValueRef(cascades)});
+  };
+  auto [input_stream, input_writer] = MakeStream(arolla::GetQType<int>());
+  ASSERT_OK_AND_ASSIGN(
+      StreamPtr stream,
+      StreamBatchedCascade(GetEagerExecutor(), input_stream, step_fn, "yields",
+                           arolla::TypedRef::FromValue(kInitialYields),
+                           EmptyState().AsRef(), /*max_active_cascades=*/1));
+  // With `max_active_cascades=1`, the first batch starts only after
+  // `input_stream` closes.
+  input_writer->Write(arolla::TypedRef::FromValue(1));
+  input_writer->Write(arolla::TypedRef::FromValue(2));
+  EXPECT_THAT(batches, IsEmpty());
+
+  std::move(*input_writer).Close();
+  EXPECT_THAT(batches, ElementsAre(ElementsAre(1, 2)));
+  ASSERT_EQ(cascade_writers.size(), 1);
+
+  cascade_writers[0]->Write(arolla::TypedRef::FromValue(10));
+  cascade_writers[0]->Write(arolla::TypedRef::FromValue(20));
+  EXPECT_EQ(batches.size(), 1);
+
+  std::move(*cascade_writers[0]).Close();
+  EXPECT_THAT(batches, ElementsAre(ElementsAre(1, 2), ElementsAre(10, 20)));
+  ASSERT_EQ(cascade_writers.size(), 2);
+
+  std::move(*cascade_writers[1]).Close();
+  EXPECT_THAT(ReadAllInts(stream), IsOkAndHolds(ElementsAre(kInitialYields)));
+}
+
+TEST(StreamBatchedCascadeTest, MaxActiveCascadesUnlimited) {
+  std::vector<std::vector<int>> batches;
+  std::vector<StreamWriterPtr> cascade_writers;
+  auto step_fn = [&](absl::Span<const arolla::TypedRef> args,
+                     absl::Span<const std::string> /*kwnames*/)
+      -> absl::StatusOr<arolla::TypedValue> {
+    ASSIGN_OR_RETURN(std::vector<int> batch,
+                     ReadAllInts(args[0].UnsafeAs<StreamPtr>()));
+    batches.push_back(std::move(batch));
+    auto [cascades, writer] = MakeStream(arolla::GetQType<int>());
+    cascade_writers.push_back(std::move(writer));
+    return arolla::MakeNamedTuple({"cascades"},
+                                  {MakeStreamQValueRef(cascades)});
+  };
+  auto [input_stream, input_writer] = MakeStream(arolla::GetQType<int>());
+  ASSERT_OK_AND_ASSIGN(
+      StreamPtr stream,
+      StreamBatchedCascade(GetEagerExecutor(), input_stream, step_fn, "yields",
+                           arolla::TypedRef::FromValue(kInitialYields),
+                           EmptyState().AsRef(), /*max_active_cascades=*/0));
+  for (int i = 1; i <= 20; ++i) {
+    input_writer->Write(arolla::TypedRef::FromValue(i));
+  }
+  EXPECT_EQ(batches.size(), 20);
+  std::move(*input_writer).Close();
+  for (StreamWriterPtr& writer : cascade_writers) {
+    std::move(*writer).Close();
+  }
   EXPECT_THAT(ReadAllInts(stream), IsOkAndHolds(ElementsAre(kInitialYields)));
 }
 

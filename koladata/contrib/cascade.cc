@@ -15,7 +15,7 @@
 #include "koladata/contrib/cascade.h"
 
 #include <cstddef>
-#include <list>
+#include <limits>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -24,7 +24,6 @@
 
 #include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
-#include "absl/cleanup/cleanup.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "arolla/util/status_macros_backport.h"
@@ -55,169 +54,122 @@ using ::koladata::functor::parallel::MakeStreamQValue;
 using ::koladata::functor::parallel::MakeStreamQValueRef;
 using ::koladata::functor::parallel::StartBasicRoutine;
 using ::koladata::functor::parallel::StreamPtr;
-using ::koladata::functor::parallel::StreamReader;
 using ::koladata::functor::parallel::StreamReaderPtr;
 using ::koladata::functor::parallel::StreamWriterPtr;
 using ::koladata::functor::parallel::stream_loop_internal::Vars;
 
 constexpr absl::string_view kCascades = "cascades";
 
-// Interleaves the items from a dynamic set of streams.
-//
-// TODO: Try using `koladata::functor::parallel::StreamInterleave`
-// here, to simplify the implementation.
+// Interleaves the items from a dynamic set of streams into batches.
 class InterleaveMixer : public std::enable_shared_from_this<InterleaveMixer> {
-  struct PrivateConstructorTag {};
-
  public:
-  // Factory function.
-  static std::shared_ptr<InterleaveMixer> absl_nonnull Make() {
-    return std::make_shared<InterleaveMixer>(PrivateConstructorTag());
-  }
+  struct NextBatchResult {
+    StreamPtr absl_nullable batch;
+    StreamReaderPtr absl_nullable ready_event;
+  };
 
-  // Private constructor.
-  explicit InterleaveMixer(PrivateConstructorTag) {
-    auto [ready_event_stream, ready_event_writer] =
-        MakeStream(arolla::GetNothingQType(), /*initial_capacity=*/0);
-    ready_event_stream_ = std::move(ready_event_stream);
-    ready_event_writer_ = std::move(ready_event_writer);
-  }
+  explicit InterleaveMixer(size_t max_active_cascades)
+      : max_active_cascades_(max_active_cascades == 0
+                                 ? std::numeric_limits<size_t>::max()
+                                 : max_active_cascades) {}
 
-  // Returns the next item from the input streams. Returns an empty result if
-  // no reader is ready, absl::OkStatus() if there are no more input streams
-  // left, or an error if a reader fails (the error is returned by all
-  // subsequent calls).
-  //
-  // NOTE: The returned item stays valid only until the next call. This method
-  // is not thread-safe.
-  StreamReader::TryReadResult TryRead() {
-    if (active_reader_ == nullptr) [[unlikely]] {
-      absl::MutexLock lock(mutex_);
-      if (!ready_readers_.empty()) {
-        active_reader_ = ready_readers_.front().get();
-      } else if (!waiting_readers_.empty()) {
-        return {};
-      } else {
-        return {absl::OkStatus()};
-      }
-    }
-
-    for (;;) {
-      DCHECK(active_reader_ != nullptr);
-
-      auto try_read_result = active_reader_->TryRead();
-      if (try_read_result.item() != nullptr) {
-        return try_read_result;
-      }
-
-      if (auto* status = try_read_result.close_status()) {
-        if (!status->ok()) {
-          return try_read_result;
-        }
-        // `active_reader_` is fully exhausted, remove it from the list, and
-        // consider the next ready reader.
-        absl::MutexLock lock(mutex_);
-        ready_readers_.pop_front();
-        if (!ready_readers_.empty()) {
-          active_reader_ = ready_readers_.front().get();
-          continue;
-        } else if (!waiting_readers_.empty()) {
-          ResetReadyEvent();
-          active_reader_ = nullptr;
-          return {};
-        } else {
-          active_reader_ = nullptr;
-          return {absl::OkStatus()};
-        }
-      }
-
-      // The active reader has no new items.
-      DCHECK(try_read_result.empty());
-      ReaderList::iterator waiting_it;
-      const auto guard = absl::Cleanup([&] { SubscribeForReady(waiting_it); });
-      absl::MutexLock lock(mutex_);
-      waiting_it = ready_readers_.begin();
-      waiting_readers_.splice(waiting_readers_.end(), ready_readers_,
-                              waiting_it);
-      if (ready_readers_.empty()) {
-        ResetReadyEvent();
-        active_reader_ = nullptr;
-        return {};
-      } else {
-        active_reader_ = ready_readers_.front().get();
-      }
-    }
-  }
-
-  // Returns a reader that becomes ready (i.e. gets closed) once one of the
-  // waiting readers becomes ready (has a new item or gets closed). Intended to
-  // be used after `TryRead()` returns an empty result.
-  StreamReaderPtr absl_nonnull MakeReadyEvent() {
+  // Returns:
+  //  * `{batch, nullptr}` if a batch of items is ready to be scheduled;
+  //  * `{nullptr, ready_event}` if cascades are still being read, where
+  //    `ready_event` becomes ready (i.e. gets closed) once a batch is ready to
+  //    be scheduled or all cascades are fully read;
+  //  * `{nullptr, nullptr}` if all cascades are fully read;
+  //  * an error if any cascade stream fails.
+  absl::StatusOr<NextBatchResult> NextBatch() ABSL_LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock lock(mutex_);
-    return ready_event_stream_->MakeReader();
+    if (!error_.ok()) {
+      return error_;
+    }
+    if (batch_writer_ != nullptr && active_cascades_ < max_active_cascades_) {
+      std::move(*batch_writer_).Close();
+      batch_writer_ = nullptr;
+      return NextBatchResult{.batch = std::move(batch_)};
+    }
+    if (active_cascades_ == 0) {
+      return NextBatchResult{};
+    }
+    DCHECK(ready_event_writer_ == nullptr);
+    StreamPtr ready_event_stream;
+    std::tie(ready_event_stream, ready_event_writer_) =
+        MakeStream(arolla::GetNothingQType(), /*initial_capacity=*/0);
+    return NextBatchResult{.ready_event = ready_event_stream->MakeReader()};
   }
 
   // Adds an input stream reader.
-  void AddStreamReader(StreamReaderPtr absl_nonnull reader) {
-    ReaderList::iterator waiting_it;
-    const auto guard = absl::Cleanup([&] { SubscribeForReady(waiting_it); });
-    {
-      absl::MutexLock lock(mutex_);
-      if (ready_readers_.empty() && waiting_readers_.empty()) {
-        // Previously, there was no event to wait for, but now there is one.
-        ResetReadyEvent();
-      }
-      waiting_it =
-          waiting_readers_.insert(waiting_readers_.end(), std::move(reader));
-    }
+  void AddReader(StreamReaderPtr absl_nonnull reader)
+      ABSL_LOCKS_EXCLUDED(mutex_) {
+    ProcessInput(std::move(reader), /*add_reader=*/true);
   }
 
  private:
-  using ReaderList = std::list<StreamReaderPtr>;
-
-  void ResetReadyEvent() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
-    if (ready_event_writer_ == nullptr) {
-      std::tie(ready_event_stream_, ready_event_writer_) =
-          MakeStream(arolla::GetNothingQType(), /*initial_capacity=*/0);
+  // Returns a writer that should be released to set the ready event.
+  [[nodiscard]] StreamWriterPtr absl_nullable AcquireNotifierIfReady()
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
+    if (
+        // an error occurred
+        !error_.ok() ||
+        // all cascades are fully read
+        active_cascades_ == 0 ||
+        // a non-empty batch is ready
+        (batch_writer_ != nullptr && active_cascades_ < max_active_cascades_)) {
+      return std::move(ready_event_writer_);
     }
+    return nullptr;
   }
 
-  void SubscribeForReady(ReaderList::iterator waiting_it)
+  void ProcessInput(StreamReaderPtr absl_nonnull reader, bool add_reader)
       ABSL_LOCKS_EXCLUDED(mutex_) {
-    (**waiting_it).SubscribeOnce([weak_self = weak_from_this(), waiting_it] {
-      if (auto self = weak_self.lock()) {
-        StreamWriterPtr wake_writer;
-        // NOTE: `cleanup` is declared before `lock`, so that the event gets
-        // closed without holding the lock; closing the event may
-        // synchronously resume the consumer.
-        auto cleanup = absl::Cleanup([&] {
-          if (wake_writer != nullptr) {
-            wake_writer->TryClose(absl::OkStatus());
+    StreamWriterPtr event_notifier;  // released outside of the lock
+    {
+      absl::MutexLock lock(mutex_);
+      if (!error_.ok()) {
+        return;
+      }
+      if (add_reader) {
+        ++active_cascades_;
+      }
+      auto try_read_result = reader->TryRead();
+      if (auto* item = try_read_result.item(); item != nullptr) {
+        if (batch_writer_ == nullptr) {
+          std::tie(batch_, batch_writer_) = MakeStream(item->GetType());
+          DCHECK(batch_writer_ != nullptr);
+        }
+        do {
+          batch_writer_->Write(*item);
+          try_read_result = reader->TryRead();
+        } while ((item = try_read_result.item()) != nullptr);
+      }
+      if (auto* status = try_read_result.close_status()) {
+        --active_cascades_;
+        if (!status->ok()) {
+          error_ = std::move(*status);
+        }
+        event_notifier = AcquireNotifierIfReady();
+        return;
+      }
+      event_notifier = AcquireNotifierIfReady();
+    }
+    auto* reader_ptr = reader.get();
+    reader_ptr->SubscribeOnce(
+        [weak_self = weak_from_this(), reader = std::move(reader)]() mutable {
+          if (auto self = weak_self.lock()) {
+            self->ProcessInput(std::move(reader), /*add_reader=*/false);
           }
         });
-        absl::MutexLock lock(self->mutex_);
-        self->ready_readers_.splice(self->ready_readers_.end(),
-                                    self->waiting_readers_, waiting_it);
-        wake_writer = std::move(self->ready_event_writer_);
-      }
-    });
   }
 
+  const size_t max_active_cascades_;
   absl::Mutex mutex_;
-  ReaderList ready_readers_ ABSL_GUARDED_BY(mutex_);
-  ReaderList waiting_readers_ ABSL_GUARDED_BY(mutex_);
-
-  StreamPtr absl_nonnull ready_event_stream_ ABSL_GUARDED_BY(mutex_);
+  size_t active_cascades_ ABSL_GUARDED_BY(mutex_) = 0;
+  absl::Status error_ ABSL_GUARDED_BY(mutex_);
+  StreamPtr absl_nullable batch_ ABSL_GUARDED_BY(mutex_);
+  StreamWriterPtr absl_nullable batch_writer_ ABSL_GUARDED_BY(mutex_);
   StreamWriterPtr absl_nullable ready_event_writer_ ABSL_GUARDED_BY(mutex_);
-
-  // If non-null, points to `ready_readers_.front()`.
-  //
-  // This field does not require synchronization because:
-  //  * it is only accessed in `TryRead()`, which disallows concurrency;
-  //  * only `TryRead()` removes items from `ready_readers_`;
-  //  * while other threads can concurrently append items to `ready_readers_`,
-  //    `std::list` preserves the order of the front items.
-  StreamReader* absl_nullable active_reader_ = nullptr;
 };
 
 class StreamBatchedCascadeHooks final : public BasicRoutineHooks {
@@ -225,16 +177,17 @@ class StreamBatchedCascadeHooks final : public BasicRoutineHooks {
   StreamBatchedCascadeHooks(StreamReaderPtr absl_nonnull input_reader,
                             StreamWriterPtr absl_nonnull writer,
                             StreamCascadeFunctor absl_nonnull step_functor,
-                            Vars vars)
+                            Vars vars, size_t max_active_cascades)
       : writer_(std::move(writer)),
         step_functor_(std::move(step_functor)),
         vars_(std::move(vars)),
         initial_yields_(vars_.values().rbegin()[1]),
-        initial_cascades_(vars_.values().rbegin()[0]) {
+        initial_cascades_(vars_.values().rbegin()[0]),
+        mixer_(std::make_shared<InterleaveMixer>(max_active_cascades)) {
     DCHECK_GE(vars_.kwnames().size(), size_t{2});
     DCHECK_EQ(vars_.values().size(), vars_.kwnames().size() + 1);
     writer_->Write(initial_yields_);
-    mixer_->AddStreamReader(std::move(input_reader));
+    mixer_->AddReader(std::move(input_reader));
   }
 
   bool Interrupted() const final { return writer_->Orphaned(); }
@@ -247,8 +200,6 @@ class StreamBatchedCascadeHooks final : public BasicRoutineHooks {
 
   StreamReaderPtr absl_nullable Resume(  // clang-format hint
       StreamReaderPtr absl_nonnull /*reader*/) final {
-    // NOTE: The reader comes from `InterleaveMixer::MakeReadyEvent()`, and it
-    // only indicates that some sources have become ready.
     return Run();
   }
 
@@ -262,35 +213,20 @@ class StreamBatchedCascadeHooks final : public BasicRoutineHooks {
     return [this](absl::Status&& status) { return OnError(std::move(status)); };
   }
 
-  // Takes all the items that are ready and passes them to the step functor at
-  // once, as a (closed) stream.
+  // Takes batches of ready items from the mixer and passes them to the step
+  // functor.
   StreamReaderPtr absl_nullable Run() {
-    StreamPtr batch;
-    StreamWriterPtr batch_writer;
     while (!Interrupted()) {
-      auto try_read_result = mixer_->TryRead();
-      if (auto* item = try_read_result.item()) {
-        // The `item` stays valid until the next `TryRead()` call, so we copy
-        // it to the batch right away.
-        if (batch_writer == nullptr) {
-          std::tie(batch, batch_writer) = MakeStream(item->GetType());
-        }
-        batch_writer->Write(*item);
+      ASSIGN_OR_RETURN((auto [batch, ready_event]), mixer_->NextBatch(),
+                       OnError(std::move(_)));
+      if (batch != nullptr) {
+        RETURN_IF_ERROR(CallStepFunctor(std::move(batch))).With(OnError());
         continue;
       }
-      if (auto* status = try_read_result.close_status()) {
-        if (!status->ok() || batch_writer == nullptr) {
-          writer_->TryClose(std::move(*status));
-          return nullptr;  // done
-        }
+      if (ready_event == nullptr) {
+        writer_->TryClose(absl::OkStatus());
       }
-      if (batch_writer == nullptr) {
-        return mixer_->MakeReadyEvent();  // nothing to read yet
-      }
-      std::move(*batch_writer).Close();
-      batch_writer = nullptr;
-      DCHECK(batch != nullptr);
-      RETURN_IF_ERROR(CallStepFunctor(std::move(batch))).With(OnError());
+      return std::move(ready_event);
     }
     return nullptr;
   }
@@ -325,7 +261,7 @@ class StreamBatchedCascadeHooks final : public BasicRoutineHooks {
     // Add the cascades to the input streams.
     arolla::TypedRef& cascades = vars_.mutable_values().rbegin()[0];
     if (cascades.GetRawPointer() != initial_cascades_.GetRawPointer()) {
-      mixer_->AddStreamReader(cascades.UnsafeAs<StreamPtr>()->MakeReader());
+      mixer_->AddReader(cascades.UnsafeAs<StreamPtr>()->MakeReader());
       cascades = initial_cascades_;
     }
     return absl::OkStatus();
@@ -336,8 +272,7 @@ class StreamBatchedCascadeHooks final : public BasicRoutineHooks {
   Vars vars_;
   const arolla::TypedRef initial_yields_;
   const arolla::TypedRef initial_cascades_;
-  const std::shared_ptr<InterleaveMixer> absl_nonnull mixer_ =
-      InterleaveMixer::Make();
+  const std::shared_ptr<InterleaveMixer> absl_nonnull mixer_;
 };
 
 }  // namespace
@@ -347,7 +282,7 @@ absl::StatusOr<StreamPtr absl_nonnull> StreamBatchedCascade(
     const StreamPtr absl_nonnull& input_stream,
     StreamCascadeFunctor absl_nonnull step_functor,
     absl::string_view yields_param_name, arolla::TypedRef initial_yields,
-    arolla::TypedRef initial_state) {
+    arolla::TypedRef initial_state, size_t max_active_cascades) {
   DCHECK(step_functor != nullptr);
   if (yields_param_name == kCascades) {
     return absl::InvalidArgumentError(absl::StrFormat(
@@ -392,7 +327,8 @@ absl::StatusOr<StreamPtr absl_nonnull> StreamBatchedCascade(
       std::make_unique<StreamBatchedCascadeHooks>(
           input_stream->MakeReader(), std::move(writer),
           std::move(step_functor),
-          Vars(std::move(initial_var_values), std::move(var_names))));
+          Vars(std::move(initial_var_values), std::move(var_names)),
+          max_active_cascades));
   return std::move(result);
 }
 

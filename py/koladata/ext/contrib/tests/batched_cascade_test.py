@@ -133,6 +133,44 @@ class BatchedCascadeTest(absltest.TestCase):
           yields=kd.iterables.make(),
       )
 
+  def test_invalid_max_active_cascades(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('`max_active_cascades` must be non-negative, got -1'),
+    ):
+      _ = kd_ext.contrib.batched_cascade(
+          kd.iterables.make(3, 2),
+          yield_with_countdown,
+          yields=kd.iterables.make(),
+          max_active_cascades=-1,
+      )
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'argument `max_active_cascades` must be an item holding INT64, got'
+            ' an item of STRING'
+        ),
+    ):
+      _ = kd_ext.contrib.batched_cascade(
+          kd.iterables.make(3, 2),
+          yield_with_countdown,
+          yields=kd.iterables.make(),
+          max_active_cascades='abc',
+      )
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'argument `max_active_cascades` must be an item holding INT64, got'
+            ' a slice of rank 1 > 0'
+        ),
+    ):
+      _ = kd_ext.contrib.batched_cascade(
+          kd.iterables.make(3, 2),
+          yield_with_countdown,
+          yields=kd.iterables.make(),
+          max_active_cascades=kd.slice([1, 2]),
+      )
+
   def test_transform(self):
     fn = kd.fn(
         lambda vals: kd_ext.contrib.batched_cascade(
@@ -266,6 +304,58 @@ class BatchedCascadeTest(absltest.TestCase):
         )
     ]
     self.assertEqual(max(totals), 9)
+
+  def test_parallel_max_active_cascades(self):
+    # Batch 1 ([1, 2]) starts reading C1: 1 produces [10], while 2 waits so C1
+    # is not fully read yet. Batch 2 ([10]) starts reading C2 while C1 is still
+    # being read (reaching max_active_cascades=2), accumulating [100, 200] into
+    # the next batch until C2 is fully read. Batch 3 ([100, 200]) starts
+    # reading C3 while C1 is still being read, accumulating [1000] and [2000]
+    # into the next batch until C3 is fully read; Batch 4 then allows C1 to
+    # finish.
+    item_100_done = threading.Event()
+    allow_c1_done = threading.Event()
+
+    @kd.py_fn
+    def next_items(n):
+      n = n.to_py()
+      if n == 1:
+        return kd.slice([10])
+      if n == 2:
+        if not allow_c1_done.wait(timeout=10):
+          raise TimeoutError('final batch was not processed')
+        return kd.slice([], schema=kd.INT32)
+      if n == 10:
+        return kd.slice([100, 200])
+      if n == 100:
+        item_100_done.set()
+        return kd.slice([1000])
+      if n == 200:
+        if not item_100_done.wait(timeout=10):
+          raise TimeoutError('item 100 was not processed')
+        return kd.slice([2000])
+      if n == 1000:
+        allow_c1_done.set()
+      return kd.slice([], schema=kd.INT32)
+
+    def cascade_next(n):
+      return kd.iterables.from_1d_slice(next_items(n))
+
+    fn = kd.fn(
+        lambda vals: kd_ext.contrib.batched_cascade(
+            vals,
+            lambda batch: kd.namedtuple(
+                yields=kd.iterables.make(batch_sum(batch)),
+                cascades=kd.functor.flat_map_interleaved(batch, cascade_next),
+            ),
+            yields=kd.iterables.make(),
+            max_active_cascades=2,
+        )
+    )
+    res = kd.parallel.yield_multithreaded(
+        fn, vals=kd.iterables.make(1, 2), max_threads=4, timeout=10
+    )
+    self.assertListEqual(list(res), [3, 10, 300, 3000])
 
 
 if __name__ == '__main__':

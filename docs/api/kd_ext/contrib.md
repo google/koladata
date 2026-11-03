@@ -13,7 +13,7 @@
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Computes average rank natively in koladata.</code></pre>
 
-### `kd_ext.contrib.batched_cascade(cascade, step_fn, /, *, yields, **initial_state)` {#kd_ext.contrib.batched_cascade}
+### `kd_ext.contrib.batched_cascade(cascade, step_fn, /, *, yields, max_active_cascades=0, **initial_state)` {#kd_ext.contrib.batched_cascade}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Processes batches of items with `step_fn`, which can feed back new items.
 
@@ -57,6 +57,14 @@ Args:
     state and optional `yields` and `cascades`.
   yields: The initial value of `yields`; usually an empty iterable, e.g.
     `kd.iterables.make()`.
+  max_active_cascades: (Has effect only after the parallel transformation.)
+    The maximum number of active cascades at a time, where a cascade (the
+    initial `cascade` or any `cascades` returned by `step_fn`) is active until
+    all of its items have been read into a batch (even if the corresponding
+    `yields` or other state variables are still computing). When this limit is
+    reached, available items are accumulated into the next batch without
+    calling `step_fn` until an active cascade finishes. Must be a non-negative
+    literal integer; `0` means unlimited.
   **initial_state: The initial values of the state variables.
 
 Returns:

@@ -15,6 +15,7 @@
 #ifndef KOLADATA_CONTRIB_CASCADE_H_
 #define KOLADATA_CONTRIB_CASCADE_H_
 
+#include <cstddef>
 #include <string>
 
 #include "absl/base/nullability.h"
@@ -52,16 +53,24 @@ using StreamCascadeFunctor =
 //
 // The items of the input stream and of the cascade streams are interleaved:
 // the items of each stream are processed in their order, but the order between
-// different streams is unspecified. The resulting stream starts with
-// `initial_yields`, followed by the yields of the calls in the order of the
-// calls, and it is closed when the input stream and all cascade streams are
-// exhausted.
+// different streams is unspecified.
+//
+// The resulting stream starts with `initial_yields`, followed by the yields of
+// the calls in the order of the calls, and it is closed when the input stream
+// and all cascade streams are exhausted.
+//
+// `max_active_cascades` limits the number of active cascades (the input stream
+// plus `cascades` streams returned by `step_functor`) being read at the same
+// time; when this limit is reached, available items are accumulated into
+// the next batch without calling `step_functor` until at least one of
+// the active cascades is fully read; `max_active_cascades == 0` means
+// unlimited.
 absl::StatusOr<functor::parallel::StreamPtr absl_nonnull> StreamBatchedCascade(
     functor::parallel::ExecutorPtr absl_nonnull executor,
     const functor::parallel::StreamPtr absl_nonnull& input_stream,
     StreamCascadeFunctor absl_nonnull step_functor,
     absl::string_view yields_param_name, arolla::TypedRef initial_yields,
-    arolla::TypedRef initial_state);
+    arolla::TypedRef initial_state, size_t max_active_cascades = 0);
 
 }  // namespace koladata::contrib
 

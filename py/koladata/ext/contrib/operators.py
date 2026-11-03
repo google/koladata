@@ -131,15 +131,21 @@ _PARALLEL_BATCHED_CASCADE_STEP_FN_ADAPTER = (
     deterministic=False,
 )
 def _stream_batched_cascade(
-    executor, stream, step_fn, yields_param_name, initial_yields, initial_state
+    executor,
+    stream,
+    step_fn,
+    yields_param_name,
+    initial_yields,
+    max_active_cascades,
+    initial_state,
 ):
   """(internal) Writes the initial yields and the yields of all steps.
 
   The backend for kd_ext.contrib.batched_cascade; see StreamBatchedCascade() in
   //koladata/contrib/cascade.h.
   """
-  del executor, stream, step_fn  # Unused.
-  del yields_param_name, initial_yields, initial_state  # Unused.
+  del executor, stream, step_fn, yields_param_name  # Unused.
+  del initial_yields, max_active_cascades, initial_state  # Unused.
   raise NotImplementedError('implemented in the backend')
 
 
@@ -150,9 +156,12 @@ def _stream_batched_cascade(
         kd.optools.constraints.expect_iterable(P.cascade),
         kd.optools.constraints.expect_data_slice(P.step_fn),
         kd.optools.constraints.expect_iterable(P.yields),
+        kd.optools.constraints.expect_data_slice(P.max_active_cascades),
     ],
 )
-def batched_cascade(cascade, step_fn, /, *, yields, **initial_state):
+def batched_cascade(
+    cascade, step_fn, /, *, yields, max_active_cascades=0, **initial_state
+):
   """Processes batches of items with `step_fn`, which can feed back new items.
 
   `step_fn(batch, **state)` is called sequentially on batches of items,
@@ -195,6 +204,14 @@ def batched_cascade(cascade, step_fn, /, *, yields, **initial_state):
       state and optional `yields` and `cascades`.
     yields: The initial value of `yields`; usually an empty iterable, e.g.
       `kd.iterables.make()`.
+    max_active_cascades: (Has effect only after the parallel transformation.)
+      The maximum number of active cascades at a time, where a cascade (the
+      initial `cascade` or any `cascades` returned by `step_fn`) is active until
+      all of its items have been read into a batch (even if the corresponding
+      `yields` or other state variables are still computing). When this limit is
+      reached, available items are accumulated into the next batch without
+      calling `step_fn` until an active cascade finishes. Must be a non-negative
+      literal integer; `0` means unlimited.
     **initial_state: The initial values of the state variables.
 
   Returns:
@@ -214,15 +231,14 @@ def batched_cascade(cascade, step_fn, /, *, yields, **initial_state):
   return kd.streams.unsafe_blocking_wait(
       future_iterable_from_stream(
           kd.streams.chain_from_stream(
-              arolla.abc.bind_op(
-                  _stream_batched_cascade,
+              _stream_batched_cascade(
                   kd.streams.get_eager_executor(),
                   kd.streams.from_iterable(cascade),
                   _BATCHED_CASCADE_STEP_FN_ADAPTER,
                   arolla.text('yields'),
                   kd.streams.from_iterable(yields),
+                  max_active_cascades,
                   M.namedtuple.union(initial_state, hidden_state),
-                  kd.eager.optools.unified_non_deterministic_arg(),
               )
           )
       )
@@ -238,10 +254,16 @@ def batched_cascade(cascade, step_fn, /, *, yields, **initial_state):
     qtype_constraints=[
         kd.optools.constraints.expect_executor(P.executor),
         kd.optools.constraints.expect_data_slice(P.transformed_step_fn),
+        kd.optools.constraints.expect_data_slice(P.max_active_cascades),
     ],
 )
 def _parallel_batched_cascade(
-    executor, stream, transformed_step_fn, yields, initial_state
+    executor,
+    stream,
+    transformed_step_fn,
+    yields,
+    max_active_cascades,
+    initial_state,
 ):
   """(internal) The parallel version of kd_ext.contrib.batched_cascade."""
   hidden_state = M.namedtuple.make(
@@ -253,15 +275,14 @@ def _parallel_batched_cascade(
       ),
   )
   return kd.streams.chain_from_stream(
-      arolla.abc.bind_op(
-          _stream_batched_cascade,
+      _stream_batched_cascade(
           executor,
           stream,
           _PARALLEL_BATCHED_CASCADE_STEP_FN_ADAPTER,
           arolla.text('yields'),
           yields,
+          max_active_cascades,
           M.namedtuple.union(initial_state, hidden_state),
-          kd.eager.optools.unified_non_deterministic_arg(),
       )
   )
 
