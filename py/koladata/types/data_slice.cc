@@ -68,6 +68,7 @@
 #include "py/arolla/abc/py_expr.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
+#include "py/arolla/py_utils/py_hash.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/boxing.h"
 #include "py/koladata/base/py_args.h"
@@ -1357,34 +1358,12 @@ PyObject* PyDataSlice_richcompare_not_implemented(PyObject* self,
   return nullptr;
 }
 
-#if PY_VERSION_HEX >= 0x030E0000
-#define _Py_HashBytes Py_HashBuffer
-#else
-extern "C" Py_hash_t _Py_HashBytes(const void* src, Py_ssize_t len);
-#endif
-
-extern "C" Py_hash_t _Py_HashDouble(PyObject* self, double value);
-
 Py_hash_t PyDataSlice_hash(PyObject* self) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   if (!ds.is_item()) {
     return PyObject_HashNotImplemented(self);
   }
-  const auto hash_int64 = [](int64_t value) {
-    static_assert(sizeof(long long) >= sizeof(int64_t));  // NOLINT
-    auto py_obj = PyObjectPtr::Own(PyLong_FromLongLong(value));
-    return PyObject_Hash(py_obj.get());
-  };
-  const auto hash_double = [&](double value) {
-    return _Py_HashDouble(self, value);
-  };
-  const auto hash_bytes = [](absl::string_view value) {
-    return _Py_HashBytes(value.data(), value.size());
-  };
-  const auto hash_str = [](absl::string_view value) {
-    return PyHash_GetFuncDef()->hash(value.data(), value.size());
-  };
   return ds.item().VisitValue([&](auto&& value) -> Py_hash_t {
     using T = std::decay_t<decltype(value)>;
     if constexpr (std::is_same_v<T, MissingValue>) {
@@ -1392,17 +1371,17 @@ Py_hash_t PyDataSlice_hash(PyObject* self) {
     } else if constexpr (std::is_same_v<T, bool>) {
       return value ? 1 : 0;
     } else if constexpr (std::is_same_v<T, int32_t>) {
-      return hash_int64(value);
+      return arolla::python::PyHashInt64(value);
     } else if constexpr (std::is_same_v<T, int64_t>) {
-      return hash_int64(value);
+      return arolla::python::PyHashInt64(value);
     } else if constexpr (std::is_same_v<T, float>) {
-      return hash_double(value);
+      return arolla::python::PyHashDouble(value);
     } else if constexpr (std::is_same_v<T, double>) {
-      return hash_double(value);
+      return arolla::python::PyHashDouble(value);
     } else if constexpr (std::is_same_v<T, arolla::Bytes>) {
-      return hash_bytes(value);
+      return arolla::python::PyHashBytes(value);
     } else if constexpr (std::is_same_v<T, arolla::Text>) {
-      return hash_str(value);
+      return arolla::python::PyHashUtf8(value);
     } else {
       // NOTE: -1 is reserved for an error, so we map it to -2.
       Py_hash_t hash_val = absl::HashOf(value);
@@ -1430,7 +1409,6 @@ PyTypeObject* InitPyDataSliceType() {
       {Py_tp_setattro, (void*)PyDataSlice_setattro},
       {Py_tp_methods, kPyDataSlice_methods},
       {Py_tp_getset, kPyDataSlice_getset},
-      {Py_tp_hash, (void*)PyObject_HashNotImplemented},
       {Py_tp_richcompare, (void*)PyDataSlice_richcompare_not_implemented},
       {Py_tp_hash, (void*)PyDataSlice_hash},
       {Py_tp_str, (void*)PyDataSlice_str},

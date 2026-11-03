@@ -352,6 +352,11 @@ class DataItemTest(parameterized.TestCase):
         # INT64
         *(user_facing_kd.int64(i) for i in range(-10, 10)),
         *(user_facing_kd.obj(user_facing_kd.int64(i)) for i in range(-10, 10)),
+        user_facing_kd.int64((1 << 61) - 1),
+        user_facing_kd.int64(-((1 << 61) - 1)),
+        user_facing_kd.int64(-(1 << 61)),
+        user_facing_kd.int64((1 << 63) - 1),
+        user_facing_kd.int64(-(1 << 63)),
         user_facing_kd.int64(None),
         user_facing_kd.obj(user_facing_kd.int64(None)),
         # FLOAT32
@@ -387,6 +392,16 @@ class DataItemTest(parameterized.TestCase):
         user_facing_kd.obj(user_facing_kd.str('')),
         user_facing_kd.str('foo'),
         user_facing_kd.obj(user_facing_kd.str('foo')),
+        # UCS-1 (Latin-1: 0x80..0xFF)
+        *(user_facing_kd.str('é' * n) for n in range(1, 18)),
+        *(user_facing_kd.str(f'café_{n}_\x80\xff') for n in range(10)),
+        # UCS-2 (BMP: 0x100..0xFFFF)
+        *(user_facing_kd.str('ї' * n) for n in range(1, 10)),
+        *(user_facing_kd.str('你好' * n) for n in range(1, 10)),
+        *(user_facing_kd.str(f'ascii_é_привет_你好_{n}') for n in range(10)),
+        # UCS-4 (Astral: >= 0x10000)
+        *(user_facing_kd.str('🎉' * n) for n in range(1, 6)),
+        *(user_facing_kd.str(f'a_é_ї_你好_🎉_{n}') for n in range(10)),
         user_facing_kd.str(None),
         user_facing_kd.obj(user_facing_kd.str(None)),
         # SCHEMA
@@ -404,7 +419,31 @@ class DataItemTest(parameterized.TestCase):
         user_facing_kd.uuobj(foo=1),
         user_facing_kd.uuobj(foo=1),
     ]
-    values = kd_values + [0.5, *(range(-10, 10)), True, b'foo', 'foo', None]
+    str_values = [
+        '',
+        'foo',
+        *('é' * n for n in range(1, 18)),
+        *(f'café_{n}_\x80\xff' for n in range(10)),
+        *('ї' * n for n in range(1, 10)),
+        *('你好' * n for n in range(1, 10)),
+        *(f'ascii_é_привет_你好_{n}' for n in range(10)),
+        *('🎉' * n for n in range(1, 6)),
+        *(f'a_é_ї_你好_🎉_{n}' for n in range(10)),
+    ]
+    values = kd_values + [
+        0.5,
+        *(range(-10, 10)),
+        (1 << 61) - 1,
+        -((1 << 61) - 1),
+        -(1 << 61),
+        (1 << 63) - 1,
+        -(1 << 63),
+        True,
+        b'',
+        b'foo',
+        *str_values,
+        None,
+    ]
     for kd_value in kd_values:
       kd_hash = hash(kd_value)  # No error.
       for other_value in values:
