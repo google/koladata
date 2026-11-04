@@ -21,6 +21,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
@@ -42,8 +43,10 @@
 namespace koladata::internal {
 namespace {
 
+using ::absl_testing::StatusIs;
 using ::arolla::CreateDenseArray;
 using ::koladata::internal::testing::DataBagEqual;
+using ::testing::HasSubstr;
 
 using testing::deep_op_utils::DeepOpTest;
 using testing::deep_op_utils::test_param_values;
@@ -755,6 +758,7 @@ TEST_P(DeepCloneTest, NoFollowSchema) {
   auto s3 = AllocateSchema();
   auto s4 = AllocateSchema();
   auto s5 = AllocateSchema();
+  auto s6 = AllocateSchema();
   auto nofollow_s1 =
       DataItem(CreateNoFollowWithMainObject(s1.value<ObjectId>()));
   auto nofollow_s4 =
@@ -772,12 +776,13 @@ TEST_P(DeepCloneTest, NoFollowSchema) {
       {a6, {{"z", a6}}},
   };
   TriplesT schema_triples = {
-      {s0, {{"x", nofollow_s1}, {"y", s3}, {"z", s4}}},
+      {s0, {{"x", nofollow_s1}, {"y", s3}, {"z", s6}}},
       {s1, {{"a", s2}, {"b", DataItem(schema::kInt32)}}},
       {s2, {{"c", DataItem(schema::kInt32)}}},
       {s3, {{"x", DataItem(schema::kObject)}, {"y", nofollow_slist}}},
       {s4, {{"z", s5}}},
       {s5, {{"x", DataItem(schema::kInt32)}}},
+      {s6, {{"z", s6}}},
       {slist, {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}},
   };
   SetDataTriples(*db, data_triples);
@@ -801,17 +806,88 @@ TEST_P(DeepCloneTest, NoFollowSchema) {
       {result_a0, {{"x", result_a1}, {"y", result_a3}, {"z", result_a6}}},
       {result_a3, {{"x", result_a4}, {"y", result_l0}}},
       {result_a4, {{schema::kSchemaAttr, nofollow_s4}}},
-      {result_a6, {{"z", result_a6}, {"x", DataItem()}}},
+      {result_a6, {{"z", result_a6}}},
   };
   TriplesT expected_schema_triples = {
-      {s0, {{"x", nofollow_s1}, {"y", s3}, {"z", s4}}},
+      {s0, {{"x", nofollow_s1}, {"y", s3}, {"z", s6}}},
       {s3, {{"x", DataItem(schema::kObject)}, {"y", nofollow_slist}}},
-      {s4, {{"z", s5}}},
-      {s5, {{"x", DataItem(schema::kInt32)}}},
+      {s6, {{"z", s6}}},
   };
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetDataTriples(*expected_db, expected_data_triples);
   SetSchemaTriples(*expected_db, expected_schema_triples);
+  EXPECT_THAT(result_db, DataBagEqual(expected_db));
+}
+
+TEST_P(DeepCloneTest, ObjectReachedWithDifferentSchemas) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(2);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto s0 = AllocateSchema();
+  auto s1 = AllocateSchema();
+  auto s2 = AllocateSchema();
+  TriplesT data_triples = {{a0, {{"x", a1}, {"y", a1}}}};
+  TriplesT schema_triples = {{s0, {{"x", s1}, {"y", s2}}}};
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto ds = DataSliceImpl::Create(/*size=*/1, a0);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  EXPECT_THAT(DeepCloneOp(result_db.get())(ds, s0, *GetMainDb(db),
+                                           {GetFallbackDb(db).get()}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("multiple schemas found for object")));
+}
+
+TEST_P(DeepCloneTest, ObjectReachedAsObjectAndEntityWithSameSchema) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(3);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto a2 = obj_ids[2];
+  auto s0 = AllocateSchema();
+  auto s1 = AllocateSchema();
+  TriplesT data_triples = {
+      {a0, {{"obj1", a1}, {"ent1", a1}, {"ent2", a2}, {"obj2", a2}}},
+      {a1, {{schema::kSchemaAttr, s1}, {"v", DataItem(1)}}},
+      {a2, {{schema::kSchemaAttr, s1}, {"v", DataItem(2)}}},
+  };
+  TriplesT schema_triples = {
+      {s0,
+       {{"obj1", DataItem(schema::kObject)},
+        {"ent1", s1},
+        {"ent2", s1},
+        {"obj2", DataItem(schema::kObject)}}},
+      {s1, {{"v", DataItem(schema::kInt32)}}},
+  };
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto ds = DataSliceImpl::Create(/*size=*/1, a0);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN(auto result_slice,
+                       DeepCloneOp(result_db.get())(ds, s0, *GetMainDb(db),
+                                                    {GetFallbackDb(db).get()}));
+  auto result_a0 = result_slice[0];
+  ASSERT_OK_AND_ASSIGN(auto result_a1, result_db->GetAttr(result_a0, "obj1"));
+  ASSERT_OK_AND_ASSIGN(auto result_a2, result_db->GetAttr(result_a0, "obj2"));
+  TriplesT expected_data_triples = {
+      {result_a0,
+       {{"obj1", result_a1},
+        {"ent1", result_a1},
+        {"ent2", result_a2},
+        {"obj2", result_a2}}},
+      {result_a1, {{schema::kSchemaAttr, s1}, {"v", DataItem(1)}}},
+      {result_a2, {{schema::kSchemaAttr, s1}, {"v", DataItem(2)}}},
+  };
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  SetDataTriples(*expected_db, expected_data_triples);
+  SetSchemaTriples(*expected_db, schema_triples);
   EXPECT_THAT(result_db, DataBagEqual(expected_db));
 }
 
@@ -1083,6 +1159,52 @@ TEST_P(DeepCloneTest, SchemaMetadata_SchemaSlice) {
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
+TEST_P(DeepCloneTest, SchemaMetadata_SchemaSliceNotFirst) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto other_schema = DataItem(AllocateSchema());
+  auto schema = DataItem(AllocateSchema());
+  ASSERT_OK_AND_ASSIGN(auto metadata,
+                       CreateUuidWithMainObject(schema, schema::kMetadataSeed));
+  ASSERT_OK_AND_ASSIGN(
+      auto metadata_schema,
+      CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
+          metadata, schema::kImplicitSchemaSeed));
+  TriplesT schema_triples = {
+      {other_schema, {{"y", DataItem(schema::kInt32)}}},
+      {schema,
+       {{"x", DataItem(schema::kInt32)},
+        {schema::kSchemaMetadataAttr, metadata}}},
+      {metadata_schema, {{"name", DataItem(schema::kString)}}}};
+  TriplesT data_triples = {
+      {metadata,
+       {{schema::kSchemaAttr, metadata_schema},
+        {"name", DataItem(arolla::Text("object with metadata"))}}}};
+
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto ds =
+      DataSliceImpl::Create(CreateDenseArray<DataItem>({other_schema, schema}));
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN(
+      auto result_slice,
+      DeepCloneOp(result_db.get())(ds, DataItem(schema::kSchema),
+                                   *GetMainDb(db), {GetFallbackDb(db).get()}));
+  ASSERT_OK_AND_ASSIGN(
+      auto result_metadata,
+      result_db->GetSchemaAttr(result_slice[1], schema::kSchemaMetadataAttr));
+  ASSERT_OK_AND_ASSIGN(
+      auto expected_metadata,
+      CreateUuidWithMainObject(result_slice[1], schema::kMetadataSeed));
+  EXPECT_EQ(result_metadata, expected_metadata);
+  ASSERT_OK_AND_ASSIGN(auto result_metadata_name,
+                       result_db->GetAttr(result_metadata, "name"));
+  EXPECT_EQ(result_metadata_name,
+            DataItem(arolla::Text("object with metadata")));
 }
 
 TEST_P(DeepCloneTest, SparseSliceWithItemIds) {

@@ -40,7 +40,6 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/abstract_visitor.h"
 #include "koladata/internal/op_utils/extract.h"
-#include "koladata/internal/op_utils/traverser.h"
 #include "koladata/internal/op_utils/vectorized_traverser.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/slice_builder.h"
@@ -168,7 +167,20 @@ class DerivedIdVisitor : public AbstractVisitor {
   absl::flat_hash_map<AllocationId, AllocationId>& allocation_tracker_;
 };
 
-class DeepCloneVisitor : AbstractVisitor {
+// Returns the token of a traversed schema: the first object of its allocation.
+//
+// The token of a schema is used as `from_item` when its attributes are
+// previsited, in order to record the schemas with derived ids (list and dict
+// schemas) and the allocations of schemas with metadata. Using the first object
+// of the allocation (rather than `schema` itself) ensures that schemas from the
+// same big allocation (such as implicit schemas) share a single token and are
+// not split into 1-element slices by `PrevisitByToken`. List and dict schemas
+// are UUIDs that are alone in their allocations, so they are their own tokens.
+DataItem SchemaToken(ObjectId schema) {
+  return DataItem(AllocationId(schema).ObjectByOffset(0));
+}
+
+class DeepCloneVisitor : public AbstractVisitor {
  public:
   explicit DeepCloneVisitor(DataBagImplPtr new_databag, bool is_schema_slice,
                             const DataBagImpl& databag,
@@ -179,48 +191,56 @@ class DeepCloneVisitor : AbstractVisitor {
             databag, fallbacks,
             std::make_shared<DerivedIdVisitor>(allocation_tracker_)) {}
 
-  absl::StatusOr<bool> Previsit(
-      const DataItem& from_item, const DataItem& from_schema,
+  // The token of the parent is used only if the parent is a schema (to record
+  // the schemas with derived ids and the allocations of schemas with metadata).
+  // So schemas get the tokens of their allocations (see SchemaToken), and all
+  // other traversed items share the same token.
+  //
+  // TODO: Use vectorized processing in PrevisitSlice and
+  // PrevisitObjectSchemas instead of item-by-item loops.
+  absl::StatusOr<DataSliceImpl> PrevisitSlice(
+      const DataSliceImpl& ds, const DataItem& schema,
       const std::optional<AbstractVisitor::TransitionKey>& transition_key,
-      const DataItem& item, const DataItem& schema) override {
+      const DataItem& parent_token) override {
     if (schema == schema::kSchema) {
-      if (is_schema_slice_ && from_schema == schema::kSchema &&
-          transition_key.has_value() &&
-          transition_key->type == TransitionType::kSchemaAttributeName) {
-        DCHECK(transition_key->value.holds_value<arolla::Text>());
-        absl::string_view attr_name =
-            transition_key->value.value<arolla::Text>().view();
-        if (attr_name == schema::kListItemsSchemaAttr ||
-            attr_name == schema::kDictKeysSchemaAttr) {
-          schemas_with_derived_ids_.push_back(from_item);
+      return PrevisitSchemaSlice(ds, transition_key, parent_token);
+    }
+    if (schema == schema::kObject && transition_key.has_value() &&
+        transition_key->type == TransitionType::kSchemaAttributeName) {
+      // The items in `ds` are schema_metadata for `parent_token`.
+      for (int64_t i = 0; i < ds.size(); ++i) {
+        if (ds.present(i)) {
+          RETURN_IF_ERROR(PrevisitSchemaMetadata(parent_token, ds[i]));
         }
       }
-      return PrevisitSchema(item);
+      return SameTokenForAllObjects(ds);
     }
-
-    if (schema == schema::kObject && from_schema == schema::kSchema) {
-      // The `item` is schema_metadata for `from_item`.
-      RETURN_IF_ERROR(PrevisitSchemaMetadata(from_item, item));
-      return true;
+    if (schema.holds_value<ObjectId>() || schema == schema::kObject) {
+      for (int64_t i = 0; i < ds.size(); ++i) {
+        if (ds.present(i)) {
+          RETURN_IF_ERROR(PrevisitObject(ds[i]));
+        }
+      }
+      return SameTokenForAllObjects(ds);
     }
-    if (schema.holds_value<ObjectId>()) {
-      // Entity schema.
-      if (schema.is_implicit_schema()) {
-        // The item was already previsited with `schema::kObject`, thus we only
-        // need to "clone" the implicit schema.
-        RETURN_IF_ERROR(PrevisitItemWithImplicitSchema(item, schema));
-        return true;
-      }
-      RETURN_IF_ERROR(PrevisitObject(item));
-      return true;
-    } else if (schema.holds_value<schema::DType>()) {
-      if (schema == schema::kObject) {
-        RETURN_IF_ERROR(PrevisitObject(item));
-        return true;
-      }
-      return true;
+    if (schema.holds_value<schema::DType>()) {
+      return SameTokenForAllObjects(ds);
     }
     return absl::InternalError("unsupported schema type");
+  }
+
+  absl::StatusOr<DataSliceImpl> PrevisitObjectSchemas(
+      const DataSliceImpl& objects, const DataSliceImpl& schemas,
+      const DataItem& token) override {
+    for (int64_t i = 0; i < objects.size(); ++i) {
+      if (schemas[i].is_implicit_schema()) {
+        // The object was already previsited with `schema::kObject`, thus we
+        // only need to "clone" the implicit schema.
+        RETURN_IF_ERROR(
+            PrevisitItemWithImplicitSchema(objects[i], schemas[i]));
+      }
+    }
+    return AbstractVisitor::PrevisitObjectSchemas(objects, schemas, token);
   }
 
   // Reassigns metadata ids for all allocations that have metadata.
@@ -323,6 +343,9 @@ class DeepCloneVisitor : AbstractVisitor {
     return GetValueImpl(item, schema);
   }
 
+  // TODO: Override vectorized VisitEntities, VisitObjects,
+  // VisitLists, VisitDicts, and VisitSchemas instead of item-by-item VisitList,
+  // VisitDict, VisitObject, and VisitSchema.
   absl::Status VisitList(const DataItem& list, const DataItem& schema,
                          bool is_object_schema,
                          const DataSliceImpl& items) override {
@@ -511,6 +534,37 @@ class DeepCloneVisitor : AbstractVisitor {
     }
   }
 
+  // Previsits `schemas` with PrevisitSchema. Returns the tokens of their
+  // allocations for the schemas that should be traversed further.
+  absl::StatusOr<DataSliceImpl> PrevisitSchemaSlice(
+      const DataSliceImpl& schemas,
+      const std::optional<AbstractVisitor::TransitionKey>& transition_key,
+      const DataItem& parent_token) {
+    if (is_schema_slice_ && transition_key.has_value() &&
+        transition_key->type == TransitionType::kSchemaAttributeName) {
+      DCHECK(transition_key->value.holds_value<arolla::Text>());
+      absl::string_view attr_name =
+          transition_key->value.value<arolla::Text>().view();
+      if (attr_name == schema::kListItemsSchemaAttr ||
+          attr_name == schema::kDictKeysSchemaAttr) {
+        schemas_with_derived_ids_.push_back(parent_token);
+      }
+    }
+    SliceBuilder tokens(schemas.size());
+    for (int64_t i = 0; i < schemas.size(); ++i) {
+      if (!schemas.present(i)) {
+        continue;
+      }
+      DataItem schema = schemas[i];
+      ASSIGN_OR_RETURN(bool should_traverse, PrevisitSchema(schema));
+      if (should_traverse && schema.holds_value<ObjectId>()) {
+        tokens.InsertIfNotSetAndUpdateAllocIds(
+            i, SchemaToken(schema.value<ObjectId>()));
+      }
+    }
+    return std::move(tokens).Build();
+  }
+
   absl::Status CloneAsExplicitSchema(const DataItem& schema) {
     const auto allocation_id = AllocationId(schema.value<ObjectId>());
     auto [alloc_it, inserted] =
@@ -566,8 +620,10 @@ absl::StatusOr<DataSliceImpl> DeepCloneOp::operator()(
   auto visitor = std::make_shared<DeepCloneVisitor>(
       DataBagImplPtr::NewRef(new_databag_),
       /*is_schema_slice=*/schema == schema::kSchema, databag, fallbacks);
-  auto traverse_op = Traverser<DeepCloneVisitor>(databag, fallbacks, visitor);
+  auto traverse_op = VectorizedTraverser(databag, fallbacks, visitor);
   RETURN_IF_ERROR(traverse_op.TraverseSlice(ds, schema));
+  // TODO: Vectorize GetValues instead of calling GetValue
+  // item-by-item.
   SliceBuilder result_items(ds.size());
   for (size_t i = 0; i < ds.size(); ++i) {
     ASSIGN_OR_RETURN(auto value,

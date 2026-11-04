@@ -683,7 +683,6 @@ cc_library(
     deps = [
         ":abstract_visitor",
         ":extract",
-        ":traverser",
         ":vectorized_traverser",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
@@ -774,6 +773,7 @@ cc_test(
         "//koladata/internal:uuid_schemas",
         "//koladata/internal/testing:deep_op_utils",
         "//koladata/internal/testing:matchers",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
