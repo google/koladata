@@ -12,11 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import math
-import random
 import re
-import threading
-import time
 
 from absl.testing import absltest
 from arolla import arolla
@@ -26,10 +22,10 @@ from koladata.expr import view
 from koladata.functor import boxing as _
 from koladata.functor.parallel import clib as stream_clib
 from koladata.operators import kde_operators
+from koladata.operators.tests.util import stream_test_utils
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import mask_constants
-from koladata.types import py_boxing
 from koladata.types import qtypes
 
 ds = data_slice.DataSlice.from_vals
@@ -37,37 +33,8 @@ kde = kde_operators.kde
 py_fn = user_facing_kd.py_fn
 I = input_container.InputContainer('I')
 kde_internal = kde_operators.internal
-
-
-def stream_make(*args, **kwargs):
-  return arolla.abc.aux_eval_op(
-      'koda_internal.parallel.stream_make', *args, **kwargs
-  )
-
-
-def delayed_stream_make(*items, value_type_as=None, delay_per_item=0.005):
-  items = list(map(py_boxing.as_qvalue, items))
-  if items:
-    value_qtype = items[0].qtype
-  elif value_type_as is not None:
-    value_qtype = value_type_as.qtype
-  else:
-    value_qtype = qtypes.DATA_SLICE
-  result, writer = stream_clib.Stream.new(value_qtype)
-
-  def delay_fn():
-    try:
-      for item in items:
-        # randomize using the exponential distribution
-        time.sleep(-math.log(1.0 - random.random()) * delay_per_item)
-        writer.write(item)
-      time.sleep(-math.log(1.0 - random.random()) * delay_per_item)
-      writer.close()
-    except Exception as e:  # pylint: disable=broad-exception-caught
-      writer.close(e)
-
-  threading.Thread(target=delay_fn, daemon=True).start()
-  return result
+stream_make = kde_operators.kd_internal.parallel.stream_make
+delayed_stream_make = stream_test_utils.delayed_stream_make
 
 
 class KodaInternalParalleStreamForTest(absltest.TestCase):
@@ -112,7 +79,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
         lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
-        condition_fn=py_fn(condition_fn, return_type_as=condition_fn(ds(0))),
+        condition_fn=py_fn(condition_fn, return_type_as=stream_make()),
         returns=1,
     )
     [returns] = product.eval(

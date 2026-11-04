@@ -12,11 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import math
-import random
 import re
-import threading
-import time
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -32,7 +28,6 @@ from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import mask_constants
-from koladata.types import py_boxing
 from koladata.types import qtypes
 
 
@@ -43,31 +38,7 @@ kdf = functions.functor
 expr_fn = kdf.expr_fn
 py_fn = user_facing_kd.py_fn
 kde_internal = kde_operators.internal
-
-
-def delayed_stream_make(*items, value_type_as=None, delay_per_item=0.005):
-  items = list(map(py_boxing.as_qvalue, items))
-  if items:
-    value_qtype = items[0].qtype
-  elif value_type_as is not None:
-    value_qtype = value_type_as.qtype
-  else:
-    value_qtype = qtypes.DATA_SLICE
-  result, writer = stream_clib.Stream.new(value_qtype)
-
-  def delay_fn():
-    try:
-      for item in items:
-        # randomize using the exponential distribution
-        time.sleep(-math.log(1.0 - random.random()) * delay_per_item)
-        writer.write(item)
-      time.sleep(-math.log(1.0 - random.random()) * delay_per_item)
-      writer.close()
-    except Exception as e:  # pylint: disable=broad-exception-caught
-      writer.close(e)
-
-  threading.Thread(target=delay_fn, daemon=True).start()
-  return result
+stream_make = kde_operators.kd_internal.parallel.stream_make
 
 
 class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
@@ -85,9 +56,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
             returns=1,
         )
     )
-    [returns] = factorial(n=5, return_type_as=delayed_stream_make()).read_all(
-        timeout=1
-    )
+    [returns] = factorial(n=5, return_type_as=stream_make()).read_all(timeout=1)
     testing.assert_equal(returns, ds(120))
 
   def test_while_returns_databag(self):
@@ -108,7 +77,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
     )
     x = user_facing_kd.new()
     [returns] = factorial(
-        n=5, x=x, return_type_as=delayed_stream_make(user_facing_kd.bag())
+        n=5, x=x, return_type_as=stream_make(user_facing_kd.bag())
     ).read_all(timeout=1)
     self.assertEqual(x.updated(returns).result.to_py(), 120)
 
@@ -145,9 +114,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
       )
 
     factorial = kdf.fn(_factorial)
-    [returns] = factorial(n=5, return_type_as=delayed_stream_make()).read_all(
-        timeout=1
-    )
+    [returns] = factorial(n=5, return_type_as=stream_make()).read_all(timeout=1)
     self.assertEqual(returns.to_py(), 120)
 
   def test_while_yields(self):
@@ -166,9 +133,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
         )
     )
     self.assertEqual(
-        factorial(n=5, return_type_as=delayed_stream_make()).read_all(
-            timeout=1
-        ),
+        factorial(n=5, return_type_as=stream_make()).read_all(timeout=1),
         [5, 20, 60, 120, 120],
     )
 
@@ -187,9 +152,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
         )
     )
     self.assertEqual(
-        factorial(n=5, return_type_as=delayed_stream_make()).read_all(
-            timeout=1
-        ),
+        factorial(n=5, return_type_as=stream_make()).read_all(timeout=1),
         [5],
     )
 
@@ -223,7 +186,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
     for step_bag in factorial(
         n=5,
         x=x,
-        return_type_as=delayed_stream_make(user_facing_kd.bag()),
+        return_type_as=stream_make(user_facing_kd.bag()),
     ).read_all(timeout=1):
       step_x = x.updated(step_bag)
       steps.append([step_x.n.to_py(), step_x.result.to_py()])
@@ -257,9 +220,9 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
     self.assertCountEqual(
         [
             x.to_py()
-            for x in factorial(
-                n=5, return_type_as=delayed_stream_make()
-            ).read_all(timeout=1)
+            for x in factorial(n=5, return_type_as=stream_make()).read_all(
+                timeout=1
+            )
         ],
         [5, 20, 60, 120, 120],
     )
@@ -279,9 +242,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
         )
     )
     self.assertEqual(
-        factorial(n=5, return_type_as=delayed_stream_make()).read_all(
-            timeout=1
-        ),
+        factorial(n=5, return_type_as=stream_make()).read_all(timeout=1),
         [5, 7],
     )
 
@@ -395,7 +356,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
           lambda **unused_kwargs: user_facing_kd.present,
           lambda **unused_kwargs: user_facing_kd.namedtuple(),
           returns=1,
-          yields=delayed_stream_make(),
+          yields=stream_make(),
       )
 
   def test_return_outside_yield_inside_body(self):

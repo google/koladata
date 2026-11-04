@@ -119,3 +119,14 @@ py_library(
         "@com_google_arolla//py/arolla",
     ],
 )
+
+py_library(
+    name = "stream_test_utils",
+    srcs = ["stream_test_utils.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/functor/parallel:clib",
+        "//py/koladata/types:py_boxing",
+        "//py/koladata/types:qtypes",
+    ],
+)

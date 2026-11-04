@@ -12,11 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import math
-import random
 import re
-import threading
-import time
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -28,6 +24,7 @@ from koladata.functor import functor_factories
 from koladata.functor.parallel import clib as stream_clib
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators.tests.util import stream_test_utils
 from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import qtypes
@@ -45,39 +42,10 @@ kde_internal = kde_operators.internal
 py_fn = functor_factories.py_fn
 expr_fn = functor_factories.expr_fn
 
-default_executor = expr_eval.eval(kde_internal.parallel.get_default_executor())
-eager_executor = expr_eval.eval(kde_internal.parallel.get_eager_executor())
-
-
-def stream_make(*args, **kwargs):
-  return arolla.abc.aux_eval_op(
-      'koda_internal.parallel.stream_make', *args, **kwargs
-  )
-
-
-def delayed_stream_make(*items, value_type_as=None, delay_per_item=0.005):
-  items = list(map(py_boxing.as_qvalue, items))
-  if items:
-    value_qtype = items[0].qtype
-  elif value_type_as is not None:
-    value_qtype = value_type_as.qtype
-  else:
-    value_qtype = qtypes.DATA_SLICE
-  result, writer = stream_clib.Stream.new(value_qtype)
-
-  def delay_fn():
-    try:
-      for item in items:
-        # randomize using the exponential distribution
-        time.sleep(-math.log(1.0 - random.random()) * delay_per_item)
-        writer.write(item)
-      time.sleep(-math.log(1.0 - random.random()) * delay_per_item)
-      writer.close()
-    except Exception as e:  # pylint: disable=broad-exception-caught
-      writer.close(e)
-
-  threading.Thread(target=delay_fn, daemon=True).start()
-  return result
+default_executor = kde_operators.kd_internal.parallel.get_default_executor()
+eager_executor = kde_operators.kd_internal.parallel.get_eager_executor()
+stream_make = kde_operators.kd_internal.parallel.stream_make
+delayed_stream_make = stream_test_utils.delayed_stream_make
 
 
 # An adapter for testing an internal operator.
@@ -127,7 +95,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
     res = expr_eval.eval(
         _stream_while_returns(
             default_executor,
-            py_fn(condition_fn, return_type_as=condition_fn(n=ds(0))),
+            py_fn(condition_fn, return_type_as=stream_make()),
             body_fn,
             returns=100,
             n=1,
