@@ -41,6 +41,7 @@
 #include "koladata/internal/op_utils/abstract_visitor.h"
 #include "koladata/internal/op_utils/extract.h"
 #include "koladata/internal/op_utils/traverser.h"
+#include "koladata/internal/op_utils/vectorized_traverser.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/uuid_object.h"
@@ -50,24 +51,24 @@ namespace koladata::internal {
 
 namespace {
 
-// Visitor used in a secondary Traverser to resolve derived list and dict schema
-// ObjectIds in topological post-order.
+// Visitor used in a secondary VectorizedTraverser to resolve derived list and
+// dict schema ObjectIds in topological post-order.
 class DerivedIdVisitor : public AbstractVisitor {
  public:
   explicit DerivedIdVisitor(
       absl::flat_hash_map<AllocationId, AllocationId>& allocation_tracker)
       : allocation_tracker_(allocation_tracker) {}
 
-  absl::StatusOr<bool> Previsit(
-      const DataItem& from_item, const DataItem& from_schema,
+  absl::StatusOr<DataSliceImpl> PrevisitSlice(
+      const DataSliceImpl& ds, const DataItem& schema,
       const std::optional<AbstractVisitor::TransitionKey>& transition_key,
-      const DataItem& item, const DataItem& schema) override {
+      const DataItem& parent_token) override {
     if (schema != schema::kSchema) {
-      return false;
+      return DataSliceImpl::CreateEmptyAndUnknownType(ds.size());
     }
     if (transition_key.has_value() &&
         transition_key->type == TransitionType::kSliceItem) {
-      return true;
+      return SameTokenForAllObjects(ds);
     }
     if (transition_key.has_value() &&
         transition_key->type == TransitionType::kSchemaAttributeName) {
@@ -75,10 +76,10 @@ class DerivedIdVisitor : public AbstractVisitor {
       absl::string_view attr_name =
           transition_key->value.value<arolla::Text>().view();
       if (schema::IsContainerSchemaAttr(attr_name)) {
-        return true;
+        return SameTokenForAllObjects(ds);
       }
     }
-    return false;
+    return DataSliceImpl::CreateEmptyAndUnknownType(ds.size());
   }
 
   absl::StatusOr<DataItem> GetValue(const DataItem& item,
@@ -550,7 +551,7 @@ class DeepCloneVisitor : AbstractVisitor {
   DataBagImplPtr new_databag_;
   bool is_schema_slice_;
   absl::flat_hash_map<AllocationId, AllocationId> allocation_tracker_;
-  Traverser<DerivedIdVisitor> derived_id_traverser_;
+  VectorizedTraverser derived_id_traverser_;
   absl::flat_hash_set<AllocationId> allocations_with_metadata_;
   std::vector<ObjectId> explicit_schemas_;
   std::vector<DataItem> schemas_with_derived_ids_;

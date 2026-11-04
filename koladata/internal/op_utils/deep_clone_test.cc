@@ -1438,5 +1438,48 @@ TEST_P(DeepCloneTest, ListSchemaSlice_SharedSubSchema) {
   EXPECT_EQ(result_list_a, expected_list);
 }
 
+TEST_P(DeepCloneTest, ListAndDictSchemaSlice_EntityItems) {
+  // [LIST[EntitySchemaA], DICT[INT64, EntitySchemaB]] — both UUIDs should be
+  // re-derived from the cloned entity schemas.
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto entity_schema_a = AllocateSchema();
+  auto entity_schema_b = AllocateSchema();
+  auto key_schema = DataItem(schema::kInt64);
+  auto list_schema = CreateListSchemaId(entity_schema_a);
+  auto dict_schema = CreateDictSchemaId(key_schema, entity_schema_b);
+
+  TriplesT schema_triples = {
+      {list_schema, {{schema::kListItemsSchemaAttr, entity_schema_a}}},
+      {dict_schema,
+       {{schema::kDictKeysSchemaAttr, key_schema},
+        {schema::kDictValuesSchemaAttr, entity_schema_b}}},
+      {entity_schema_a, {{"x", DataItem(schema::kInt32)}}},
+      {entity_schema_b, {{"y", DataItem(schema::kInt32)}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto ds = DataSliceImpl::Create(
+      CreateDenseArray<DataItem>({list_schema, dict_schema}));
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN(
+      auto result_slice,
+      DeepCloneOp(result_db.get())(ds, DataItem(schema::kSchema),
+                                   *GetMainDb(db), {GetFallbackDb(db).get()}));
+
+  ASSERT_OK_AND_ASSIGN(
+      auto result_entity_schema_a,
+      result_db->GetSchemaAttr(result_slice[0], schema::kListItemsSchemaAttr));
+  EXPECT_NE(result_entity_schema_a, entity_schema_a);
+  EXPECT_EQ(result_slice[0], CreateListSchemaId(result_entity_schema_a));
+
+  ASSERT_OK_AND_ASSIGN(
+      auto result_entity_schema_b,
+      result_db->GetSchemaAttr(result_slice[1], schema::kDictValuesSchemaAttr));
+  EXPECT_NE(result_entity_schema_b, entity_schema_b);
+  EXPECT_EQ(result_slice[1],
+            CreateDictSchemaId(key_schema, result_entity_schema_b));
+}
+
 }  // namespace
 }  // namespace koladata::internal

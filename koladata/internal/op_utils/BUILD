@@ -684,6 +684,7 @@ cc_library(
         ":abstract_visitor",
         ":extract",
         ":traverser",
+        ":vectorized_traverser",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
