@@ -1545,6 +1545,16 @@ class ToPyTest(parameterized.TestCase):
     ):
       _ = fns.new(a=schema).to_py()
 
+  def test_same_object_different_schemas(self):
+    x = fns.new(a=1)
+    s2 = kde.schema.new_schema(a=schema_constants.INT32).eval()
+    root = fns.new(x1=x, x2=kd.schema.unsafe_with_schema(x, s2))
+    with self.assertRaisesRegex(
+        ValueError,
+        'multiple schemas found for object',
+    ):
+      _ = py_conversions.to_py(root)
+
   def test_missing_import(self):
     x = fns.obj(x=1)
     del sys.modules['koladata.base.py_conversions.dataclasses_util']

@@ -37,7 +37,7 @@ cc_library(
         "//koladata/internal:object_id",
         "//koladata/internal:schema_attrs",
         "//koladata/internal/op_utils:abstract_visitor",
-        "//koladata/internal/op_utils:traverser",
+        "//koladata/internal/op_utils:vectorized_traverser",
         "//py/koladata/base:py_args",
         "//py/koladata/base:to_py_object",
         "//py/koladata/base:wrap_utils",

@@ -49,7 +49,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/abstract_visitor.h"
-#include "koladata/internal/op_utils/traverser.h"
+#include "koladata/internal/op_utils/vectorized_traverser.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/schema_utils.h"
 #include "py/arolla/py_utils/py_utils.h"
@@ -87,7 +87,7 @@ std::string PyObjectTypeName(PyObject* py_obj) {
 // Python object. After traversing, one can call
 // `PyObjectFromDataSlice(ds, visitor->GetItemToPyConverter())`
 // to get the Python object corresponding to the root DataItem.
-class ToPyVisitor : internal::AbstractVisitor {
+class ToPyVisitor : public internal::AbstractVisitor {
  public:
   ToPyVisitor(bool obj_as_dict, bool include_missing_attrs,
               const absl::flat_hash_set<ObjectId>& objects_not_to_convert,
@@ -113,6 +113,16 @@ class ToPyVisitor : internal::AbstractVisitor {
     // Visitor has to implement this method, but we don't need it, so leave it
     // as a no-op.
     return item;
+  }
+
+  absl::StatusOr<DataSliceImpl> GetValues(const DataSliceImpl& items,
+                                          const DataItem& schema) final {
+    return items;
+  }
+
+  absl::StatusOr<DataSliceImpl> GetValues(const DataSliceImpl& items,
+                                          const DataSliceImpl& schemas) final {
+    return items;
   }
 
   // Result of FindAndStoreClass.
@@ -214,145 +224,40 @@ class ToPyVisitor : internal::AbstractVisitor {
                : FindAndStoreClassResult::kStoredClass;
   }
 
-  // Pre-visiting Entities in order to decide whether we need to create a
-  // `dataclass` or keep it as an Entity. The same for `dict` and `list`.
-  // Traverser's visits are post-order, so there can be an issue that in case
-  // of self references it first encounters an entity with no attributes and
-  // then encounters it again with some attributes (cycle in
-  // Koda structure). See `test_self_reference_...`.
-  //
-  // During pre-visits, these dataclasses are created and during visits, we
-  // have a cache hit and just populate the attributes. Alternatively, when
-  // populating object attributes in `VisitObject`, `VisitDict` and
-  // `VisitList`, we could check that it is an entity and if so, query its
-  // attributes.
-  //
-  // Returns false if the item should not be converted. Visit* methods will
-  // not be called for this item. And the item would not be traversed further.
-  absl::StatusOr<bool> Previsit(
-      const DataItem& from_item, const DataItem& from_schema,
-      const std::optional<TransitionKey>& transition_key, const DataItem& item,
-      const DataItem& schema) final {
+  // All the traversed items share the same token, which is passed to
+  // PrevisitItem of their children as `from_item`. It is only used to look up
+  // the class of the parent, which is the same for items previsited together.
+  absl::StatusOr<DataSliceImpl> PrevisitSlice(
+      const DataSliceImpl& ds, const DataItem& schema,
+      const std::optional<TransitionKey>& transition_key,
+      const DataItem& parent_token) final {
     arolla::python::YieldPyGIL();
-    if (from_schema == schema::kSchema && schema == schema::kObject) {
-      // The `item` is schema_metadata for `from_item`.
-      return false;
+    if (transition_key.has_value() &&
+        transition_key->type == TransitionType::kSchemaAttributeName &&
+        schema == schema::kObject) {
+      // The `ds` is schema_metadata for `parent_token`.
+      return DataSliceImpl::CreateEmptyAndUnknownType(ds.size());
     }
-    if (!item.holds_value<ObjectId>()) {
-      return true;
-    }
-
     if (output_class_descriptor_.has_value() && schema.is_itemid_schema()) {
       return absl::InvalidArgumentError(
           "itemid is not supported together with output_class");
     }
+    return internal::SameTokenForObjectsIf(
+        ds, [&](int64_t, const DataItem& item) {
+          return PrevisitItem(parent_token, transition_key, item, schema);
+        });
+  }
 
-    ASSIGN_OR_RETURN(auto result,
-                     FindAndStoreClass(from_item, transition_key, item));
-    switch (result) {
-      case FindAndStoreClassResult::kIgnored:
-        return false;
-      case FindAndStoreClassResult::kStoredClass:
-        return true;
-      case FindAndStoreClassResult::kUnspecifiedClass:
-        break;
-    }
-
-    const ObjectId& object_id = item.value<ObjectId>();
-
-    if (schema.holds_value<ObjectId>()) {
-      auto schema_object_id = schema.value<ObjectId>();
-      auto [it, was_inserted] =
-          item_schemas_.try_emplace(object_id, schema_object_id);
-      if (!was_inserted && it->second != schema_object_id) {
-        return absl::InternalError(
-            absl::StrFormat("cannot convert object %v, that is reached with "
-                            "different schemas: %v and %v",
-                            object_id, it->second, schema_object_id));
-      }
-    }
-    if (converted_object_cache_.contains(object_id)) {
-      return !ShouldNotBeConverted(item);
-    }
-
-    if (ShouldNotBeConverted(item)) {
-      ASSIGN_OR_RETURN(DataSlice ds, DataSlice::Create(item, schema, db_));
-      ASSIGN_OR_RETURN(converted_object_cache_[object_id],
-                       WrapDataSliceWithErrorCheck(std::move(ds)));
-      // This ItemId will not be further traversed.
-      return false;
-    }
-    if (schema.is_itemid_schema()) {
-      ASSIGN_OR_RETURN(converted_object_cache_[object_id],
-                       PyObjectFromDataItem(item, schema, db_));
-      return true;
-    }
-
-    if (!obj_as_dict_ && item.is_entity() && schema.is_struct_schema()) {
-      ASSIGN_OR_RETURN(DataSliceImpl attr_names,
-                       db_->GetImpl().GetSchemaAttrs(schema, fallback_span_));
-      if (attr_names.size() == 0) {
-        PyObjectPtr result = PyObjectPtr::Own(PyDict_New());
-        if (result == nullptr) {
-          return arolla::python::StatusWithRawPyErr(
-              absl::StatusCode::kInternal, "could not create a new dict");
-        }
-        converted_object_cache_[object_id] = std::move(result);
-        return true;
-      }
-      std::vector<absl::string_view> attr_names_vec;
-      attr_names_vec.reserve(attr_names.size());
-      if (attr_names.dtype() != arolla::GetQType<arolla::Text>()) {
-        return absl::InternalError("dtype of attribute names must be STRING");
-      }
-      if (attr_names.present_count() != attr_names.size()) {
-        return absl::InternalError("attributes must be non-empty");
-      }
-      std::string schema_name = "Obj";
-
-      attr_names.values<arolla::Text>().ForEachPresent(
-          [&](int64_t id, absl::string_view attr) {
-            if (attr == schema::kSchemaNameAttr) {
-              absl::StatusOr<internal::DataItem> assigned_name =
-                  db_->GetImpl().GetSchemaAttr(schema, schema::kSchemaNameAttr,
-                                               {});
-              if (assigned_name.ok() && assigned_name->has_value() &&
-                  assigned_name->holds_value<arolla::Text>()) {
-                schema_name =
-                    std::string(assigned_name->value<arolla::Text>().view());
-              }
-            } else if (!schema::IsSchemaAnnotationAttr(attr)) {
-              // TODO: Add tests for metadata support.
-              attr_names_vec.push_back(attr);
-            }
-          });
-
-      // Do not store the class in the cache, just create an instance.
-      ASSIGN_OR_RETURN(
-          converted_object_cache_[object_id],
-          dataclasses_util_.MakeDataClassInstance(schema_name, attr_names_vec));
-      return true;
-    }
-    if (item.is_dict() || (obj_as_dict_ && item.is_entity())) {
-      PyObjectPtr result = PyObjectPtr::Own(PyDict_New());
-      if (result == nullptr) {
-        return arolla::python::StatusWithRawPyErr(
-            absl::StatusCode::kInternal, "could not create a new dict");
-      }
-      converted_object_cache_[object_id] = std::move(result);
-      return true;
-    }
-    if (item.is_list()) {
-      PyObjectPtr result = PyObjectPtr::Own(PyList_New(0));
-      if (result == nullptr) {
-        return arolla::python::StatusWithRawPyErr(
-            absl::StatusCode::kInternal, "could not create a new list");
-      }
-      converted_object_cache_[object_id] = std::move(result);
-      return true;
-    }
-
-    return true;
+  absl::StatusOr<DataSliceImpl> PrevisitObjectSchemas(
+      const DataSliceImpl& objects, const DataSliceImpl& schemas,
+      const DataItem& token) final {
+    arolla::python::YieldPyGIL();
+    const std::optional<TransitionKey> transition_key =
+        TransitionKey{.type = TransitionType::kObjectSchema};
+    return internal::SameTokenForObjectsIf(
+        objects, [&](int64_t i, const DataItem& object) {
+          return PrevisitItem(token, transition_key, object, schemas[i]);
+        });
   }
 
   absl::Status AddItemsToPyList(const DataItem& list, PyObjectPtr py_list,
@@ -709,6 +614,125 @@ class ToPyVisitor : internal::AbstractVisitor {
   }
 
  private:
+  // Pre-visiting Entities in order to decide whether we need to create a
+  // `dataclass` or keep it as an Entity. The same for `dict` and `list`.
+  // Traverser's visits are post-order, so there can be an issue that in case
+  // of self references it first encounters an entity with no attributes and
+  // then encounters it again with some attributes (cycle in
+  // Koda structure). See `test_self_reference_...`.
+  //
+  // During pre-visits, these dataclasses are created and during visits, we
+  // have a cache hit and just populate the attributes. Alternatively, when
+  // populating object attributes in `VisitObject`, `VisitDict` and
+  // `VisitList`, we could check that it is an entity and if so, query its
+  // attributes.
+  //
+  // Returns false if the item should not be converted. Visit* methods will
+  // not be called for this item. And the item would not be traversed further.
+  absl::StatusOr<bool> PrevisitItem(
+      const DataItem& from_item,
+      const std::optional<TransitionKey>& transition_key, const DataItem& item,
+      const DataItem& schema) {
+    if (!item.holds_value<ObjectId>()) {
+      return true;
+    }
+
+    ASSIGN_OR_RETURN(auto result,
+                     FindAndStoreClass(from_item, transition_key, item));
+    switch (result) {
+      case FindAndStoreClassResult::kIgnored:
+        return false;
+      case FindAndStoreClassResult::kStoredClass:
+        return true;
+      case FindAndStoreClassResult::kUnspecifiedClass:
+        break;
+    }
+
+    const ObjectId& object_id = item.value<ObjectId>();
+    if (converted_object_cache_.contains(object_id)) {
+      return !ShouldNotBeConverted(item);
+    }
+
+    if (ShouldNotBeConverted(item)) {
+      ASSIGN_OR_RETURN(DataSlice ds, DataSlice::Create(item, schema, db_));
+      ASSIGN_OR_RETURN(converted_object_cache_[object_id],
+                       WrapDataSliceWithErrorCheck(std::move(ds)));
+      // This ItemId will not be further traversed.
+      return false;
+    }
+    if (schema.is_itemid_schema()) {
+      ASSIGN_OR_RETURN(converted_object_cache_[object_id],
+                       PyObjectFromDataItem(item, schema, db_));
+      return true;
+    }
+
+    if (!obj_as_dict_ && item.is_entity() && schema.is_struct_schema()) {
+      ASSIGN_OR_RETURN(DataSliceImpl attr_names,
+                       db_->GetImpl().GetSchemaAttrs(schema, fallback_span_));
+      if (attr_names.size() == 0) {
+        PyObjectPtr result = PyObjectPtr::Own(PyDict_New());
+        if (result == nullptr) {
+          return arolla::python::StatusWithRawPyErr(
+              absl::StatusCode::kInternal, "could not create a new dict");
+        }
+        converted_object_cache_[object_id] = std::move(result);
+        return true;
+      }
+      std::vector<absl::string_view> attr_names_vec;
+      attr_names_vec.reserve(attr_names.size());
+      if (attr_names.dtype() != arolla::GetQType<arolla::Text>()) {
+        return absl::InternalError("dtype of attribute names must be STRING");
+      }
+      if (attr_names.present_count() != attr_names.size()) {
+        return absl::InternalError("attributes must be non-empty");
+      }
+      std::string schema_name = "Obj";
+
+      attr_names.values<arolla::Text>().ForEachPresent(
+          [&](int64_t id, absl::string_view attr) {
+            if (attr == schema::kSchemaNameAttr) {
+              absl::StatusOr<internal::DataItem> assigned_name =
+                  db_->GetImpl().GetSchemaAttr(schema, schema::kSchemaNameAttr,
+                                               {});
+              if (assigned_name.ok() && assigned_name->has_value() &&
+                  assigned_name->holds_value<arolla::Text>()) {
+                schema_name =
+                    std::string(assigned_name->value<arolla::Text>().view());
+              }
+            } else if (!schema::IsSchemaAnnotationAttr(attr)) {
+              // TODO: Add tests for metadata support.
+              attr_names_vec.push_back(attr);
+            }
+          });
+
+      // Do not store the class in the cache, just create an instance.
+      ASSIGN_OR_RETURN(
+          converted_object_cache_[object_id],
+          dataclasses_util_.MakeDataClassInstance(schema_name, attr_names_vec));
+      return true;
+    }
+    if (item.is_dict() || (obj_as_dict_ && item.is_entity())) {
+      PyObjectPtr result = PyObjectPtr::Own(PyDict_New());
+      if (result == nullptr) {
+        return arolla::python::StatusWithRawPyErr(
+            absl::StatusCode::kInternal, "could not create a new dict");
+      }
+      converted_object_cache_[object_id] = std::move(result);
+      return true;
+    }
+    if (item.is_list()) {
+      PyObjectPtr result = PyObjectPtr::Own(PyList_New(0));
+      if (result == nullptr) {
+        return arolla::python::StatusWithRawPyErr(
+            absl::StatusCode::kInternal, "could not create a new list");
+      }
+      converted_object_cache_[object_id] = std::move(result);
+      return true;
+    }
+
+    return true;
+  }
+
   // Returns a converted Python object for the given `item`.
   // Returns an error if the `item` does not hold ObjectId.
   // If the object is not found in the converted object cache, an error is
@@ -852,8 +876,6 @@ class ToPyVisitor : internal::AbstractVisitor {
                       std::optional<DataClassesUtil::FieldTypeDescriptor>>
       classes_by_path_;
 
-  absl::flat_hash_map<ObjectId, ObjectId> item_schemas_;
-
   bool obj_as_dict_ = false;
   bool include_missing_attrs_ = false;
   // Ids of leaf DataItems, which will remain as DataItems and not be
@@ -903,8 +925,8 @@ PyObject* absl_nullable ToPyImplInternal(
       obj_as_dict, include_missing_attrs, leaf_ids, bag, fallback_span,
       std::move(output_class_descriptor));
   // We use extracted DataBag for traversal.
-  internal::Traverser<ToPyVisitor> traverse_op(bag->GetImpl(), fallback_span,
-                                               visitor);
+  internal::VectorizedTraverser traverse_op(bag->GetImpl(), fallback_span,
+                                            visitor);
 
   RETURN_IF_ERROR(ds.VisitImpl([&]<class T>(const T& impl) -> absl::Status {
     if constexpr (std::is_same_v<T, DataItem>) {
