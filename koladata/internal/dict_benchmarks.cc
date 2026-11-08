@@ -39,12 +39,12 @@ void BM_SizeNoFallbacksWithParent(benchmark::State& state) {
   int64_t key_count = state.range(0);
   std::shared_ptr<DictVector> base_dict_vector =
       std::make_shared<DictVector>(1, /*update_size=*/1);
-  auto& base_dict = (*base_dict_vector)[0];
+  auto& base_dict = base_dict_vector->GetMutable(0);
   for (int64_t i = 0; i < key_count; i += 2) {
     base_dict.Set(i, DataItem(i));
   }
   DictVector dict_vector(base_dict_vector, /*update_size=*/1);
-  auto& dict = dict_vector[0];
+  auto& dict = dict_vector.GetMutable(0);
   for (int64_t i = 1; i < key_count; i += 2) {
     dict.Set(i, DataItem(i));
   }
@@ -90,12 +90,12 @@ void BM_GetKeysDerived(benchmark::State& state) {
   int64_t key_count = state.range(0);
   std::shared_ptr<DictVector> base_dict_vector =
       std::make_shared<DictVector>(1, /*update_size=*/1);
-  auto& base_dict = (*base_dict_vector)[0];
+  auto& base_dict = base_dict_vector->GetMutable(0);
   for (int64_t i = 0; i < key_count; i += 2) {
     base_dict.Set(i, DataItem(i));
   }
   DictVector dict_vector(base_dict_vector, /*update_size=*/1);
-  auto& dict = dict_vector[0];
+  auto& dict = dict_vector.GetMutable(0);
   for (int64_t i = 1; i < key_count; i += 2) {
     dict.Set(i, DataItem(i));
   }
@@ -112,12 +112,12 @@ void BM_GetKeysDerivedTopEmpty(benchmark::State& state) {
   int64_t key_count = state.range(0);
   std::shared_ptr<DictVector> base_dict_vector =
       std::make_shared<DictVector>(1, /*update_size=*/1);
-  auto& base_dict = (*base_dict_vector)[0];
+  auto& base_dict = base_dict_vector->GetMutable(0);
   for (int64_t i = 0; i < key_count; ++i) {
     base_dict.Set(i, DataItem(i));
   }
   DictVector dict_vector(base_dict_vector, /*update_size=*/1);
-  auto& dict = dict_vector[0];
+  auto& dict = dict_vector.GetMutable(0);
 
   for (auto _ : state) {
     benchmark::DoNotOptimize(dict);

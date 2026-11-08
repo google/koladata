@@ -59,12 +59,14 @@ void AssertKVsAreAligned(const Dict& dict) {
 TEST(DictTest, Dict) {
   std::shared_ptr<DictVector> dicts =
       std::make_shared<DictVector>(3, /*update_size=*/3);
-  (*dicts)[0].Set(DataItem(1), DataItem(7.f));
-  EXPECT_EQ((*dicts)[0].GetOrAssign(1, DataItem(9)), DataItem(7.f));
-  EXPECT_EQ((*dicts)[0].GetOrAssign(DataItem(1), DataItem(9)), DataItem(7.f));
-  (*dicts)[0].Set(arolla::Bytes("aaa"), DataItem(arolla::Bytes("bbb")));
-  (*dicts)[0].Set(DataItem(1), DataItem(6.f));
-  EXPECT_EQ((*dicts)[0].GetOrAssign(1, DataItem(9)), DataItem(6.f));
+  dicts->GetMutable(0).Set(DataItem(1), DataItem(7.f));
+  EXPECT_EQ(dicts->GetMutable(0).GetOrAssign(1, DataItem(9)), DataItem(7.f));
+  EXPECT_EQ(dicts->GetMutable(0).GetOrAssign(DataItem(1), DataItem(9)),
+            DataItem(7.f));
+  dicts->GetMutable(0).Set(arolla::Bytes("aaa"),
+                           DataItem(arolla::Bytes("bbb")));
+  dicts->GetMutable(0).Set(DataItem(1), DataItem(6.f));
+  EXPECT_EQ(dicts->GetMutable(0).GetOrAssign(1, DataItem(9)), DataItem(6.f));
 
   const DictVector& const_dicts = *dicts;
   ASSERT_NE(const_dicts.Get(0), nullptr);
@@ -77,50 +79,64 @@ TEST(DictTest, Dict) {
   ASSERT_EQ(const_dicts.Get(2), nullptr);
 
   DictVector derived_dicts(dicts, /*update_size=*/3);
-  derived_dicts[0].Set(arolla::Bytes("aaa"), DataItem(9));
-  derived_dicts[0].Set(arolla::Bytes("2"), DataItem(10));
+  derived_dicts.GetMutable(0).Set(arolla::Bytes("aaa"), DataItem(9));
+  derived_dicts.GetMutable(0).Set(arolla::Bytes("2"), DataItem(10));
 
   EXPECT_THAT(
-      derived_dicts[0].GetKeys(),
+      derived_dicts.GetOrEmpty(0).GetKeys(),
       UnorderedElementsAre(1, arolla::Bytes("2"), arolla::Bytes("aaa")));
-  EXPECT_THAT(derived_dicts[0].GetValues(),
+  EXPECT_THAT(derived_dicts.GetOrEmpty(0).GetValues(),
               UnorderedElementsAre(DataItem(6.f), DataItem(10), DataItem(9)));
-  AssertKVsAreAligned(derived_dicts[0]);
-  EXPECT_THAT(derived_dicts[1].GetKeys(), UnorderedElementsAre());
-  EXPECT_THAT(derived_dicts[1].GetValues(), UnorderedElementsAre());
-  AssertKVsAreAligned(derived_dicts[1]);
-  EXPECT_THAT(derived_dicts[2].GetKeys(), UnorderedElementsAre());
-  EXPECT_THAT(derived_dicts[2].GetValues(), UnorderedElementsAre());
-  AssertKVsAreAligned(derived_dicts[2]);
+  AssertKVsAreAligned(derived_dicts.GetOrEmpty(0));
+  EXPECT_THAT(derived_dicts.GetOrEmpty(1).GetKeys(), UnorderedElementsAre());
+  EXPECT_THAT(derived_dicts.GetOrEmpty(1).GetValues(), UnorderedElementsAre());
+  AssertKVsAreAligned(derived_dicts.GetOrEmpty(1));
+  EXPECT_THAT(derived_dicts.GetOrEmpty(2).GetKeys(), UnorderedElementsAre());
+  EXPECT_THAT(derived_dicts.GetOrEmpty(2).GetValues(), UnorderedElementsAre());
+  AssertKVsAreAligned(derived_dicts.GetOrEmpty(2));
 
-  EXPECT_THAT(derived_dicts[0].Get(DataItem(1)), Optional(RefWrap(6.f)));
-  EXPECT_EQ(derived_dicts[0].GetOrAssign(DataItem(1), DataItem(7.f)), 6.f);
-  EXPECT_THAT(derived_dicts[0].Get(1), Optional(RefWrap(6.f)));
-  EXPECT_THAT(derived_dicts[0].Get(arolla::Bytes("aaa")), Optional(RefWrap(9)));
-  EXPECT_EQ(derived_dicts[0].GetOrAssign(arolla::Bytes("aaa"), DataItem(1)), 9);
-  EXPECT_THAT(derived_dicts[0].Get(arolla::Bytes("aaa")), Optional(RefWrap(9)));
-  EXPECT_THAT(derived_dicts[0].Get(arolla::Bytes("2")), Optional(RefWrap(10)));
-  EXPECT_EQ(derived_dicts[0].GetOrAssign(arolla::Bytes("2"), DataItem(13)), 10);
+  EXPECT_THAT(derived_dicts.GetOrEmpty(0).Get(DataItem(1)),
+              Optional(RefWrap(6.f)));
+  EXPECT_EQ(derived_dicts.GetMutable(0).GetOrAssign(DataItem(1), DataItem(7.f)),
+            6.f);
+  EXPECT_THAT(derived_dicts.GetOrEmpty(0).Get(1), Optional(RefWrap(6.f)));
+  EXPECT_THAT(derived_dicts.GetOrEmpty(0).Get(arolla::Bytes("aaa")),
+              Optional(RefWrap(9)));
+  EXPECT_EQ(derived_dicts.GetMutable(0).GetOrAssign(arolla::Bytes("aaa"),
+                                                    DataItem(1)),
+            9);
+  EXPECT_THAT(derived_dicts.GetOrEmpty(0).Get(arolla::Bytes("aaa")),
+              Optional(RefWrap(9)));
+  EXPECT_THAT(derived_dicts.GetOrEmpty(0).Get(arolla::Bytes("2")),
+              Optional(RefWrap(10)));
+  EXPECT_EQ(
+      derived_dicts.GetMutable(0).GetOrAssign(arolla::Bytes("2"), DataItem(13)),
+      10);
 
-  EXPECT_THAT(derived_dicts[1].Get(DataItem(1)), Eq(std::nullopt));
-  EXPECT_EQ(derived_dicts[1].GetOrAssign(DataItem(1), DataItem(57)),
+  EXPECT_THAT(derived_dicts.GetOrEmpty(1).Get(DataItem(1)), Eq(std::nullopt));
+  EXPECT_EQ(derived_dicts.GetMutable(1).GetOrAssign(DataItem(1), DataItem(57)),
             DataItem(57));
-  EXPECT_EQ(derived_dicts[1].GetOrAssign(DataItem(53), DataItem(37.f)), 37.f);
-  derived_dicts[1].Set(DataItem(53), DataItem());
-  EXPECT_EQ(derived_dicts[1].GetOrAssign(DataItem(53), DataItem(39.f)),
-            DataItem());
-  EXPECT_THAT(derived_dicts[1].Get(DataItem()), Eq(std::nullopt));
-  EXPECT_THAT(derived_dicts[1].Get(MissingValue{}), Eq(std::nullopt));
+  EXPECT_EQ(
+      derived_dicts.GetMutable(1).GetOrAssign(DataItem(53), DataItem(37.f)),
+      37.f);
+  derived_dicts.GetMutable(1).Set(DataItem(53), DataItem());
+  EXPECT_EQ(
+      derived_dicts.GetMutable(1).GetOrAssign(DataItem(53), DataItem(39.f)),
+      DataItem());
+  EXPECT_THAT(derived_dicts.GetOrEmpty(1).Get(DataItem()), Eq(std::nullopt));
+  EXPECT_THAT(derived_dicts.GetOrEmpty(1).Get(MissingValue{}),
+              Eq(std::nullopt));
 
-  derived_dicts[0].Clear();
+  derived_dicts.GetMutable(0).Clear();
   EXPECT_THAT(
-      derived_dicts[0].GetKeys(),
+      derived_dicts.GetOrEmpty(0).GetKeys(),
       UnorderedElementsAre(1, arolla::Bytes("aaa"), arolla::Bytes("2")));
-  EXPECT_THAT(derived_dicts[0].GetValues(),
+  EXPECT_THAT(derived_dicts.GetOrEmpty(0).GetValues(),
               UnorderedElementsAre(DataItem(), DataItem(), DataItem()));
-  AssertKVsAreAligned(derived_dicts[0]);
-  EXPECT_THAT(derived_dicts[0].Get(DataItem(1)), Optional(RefWrap(DataItem())));
-  EXPECT_THAT(derived_dicts[0].Get(DataItem(1.f)), Eq(std::nullopt));
+  AssertKVsAreAligned(derived_dicts.GetOrEmpty(0));
+  EXPECT_THAT(derived_dicts.GetOrEmpty(0).Get(DataItem(1)),
+              Optional(RefWrap(DataItem())));
+  EXPECT_THAT(derived_dicts.GetOrEmpty(0).Get(DataItem(1.f)), Eq(std::nullopt));
 
   EXPECT_THAT(const_dicts.Get(0)->GetKeys(),
               UnorderedElementsAre(1, arolla::Bytes("aaa")));
@@ -136,15 +152,16 @@ TEST(DictTest, Dict) {
   EXPECT_THAT(const_dicts.Get(0)->Get(BytesItemView{"aaa"}),
               Optional(RefWrap(BytesItemView{"bbb"})));
 
-  EXPECT_EQ((*dicts)[0].GetOrAssign(DataItem(13), DataItem(7.f)), 7.f);
-  (*dicts)[0].Set(DataItem(13), DataItem());
-  EXPECT_EQ((*dicts)[0].GetOrAssign(DataItem(13), DataItem(9.f)), DataItem());
+  EXPECT_EQ(dicts->GetMutable(0).GetOrAssign(DataItem(13), DataItem(7.f)), 7.f);
+  dicts->GetMutable(0).Set(DataItem(13), DataItem());
+  EXPECT_EQ(dicts->GetMutable(0).GetOrAssign(DataItem(13), DataItem(9.f)),
+            DataItem());
 }
 
 TEST(DictTest, OverrideWithEmptyNoParent) {
   std::shared_ptr<DictVector> dicts =
       std::make_shared<DictVector>(1, /*update_size=*/1);
-  auto& dict = (*dicts)[0];
+  auto& dict = dicts->GetMutable(0);
   dict.Set(DataItem(1), DataItem(5.f));
   dict.Set(DataItem(1), DataItem());
   EXPECT_THAT(dict.Get(1), Optional(RefWrap(DataItem())));
@@ -153,12 +170,12 @@ TEST(DictTest, OverrideWithEmptyNoParent) {
 TEST(DictTest, OverrideWithEmptyWithParent) {
   std::shared_ptr<DictVector> dicts =
       std::make_shared<DictVector>(1, /*update_size=*/1);
-  auto& parent_dict = (*dicts)[0];
+  auto& parent_dict = dicts->GetMutable(0);
   parent_dict.Set(DataItem(1), DataItem(5.f));
   parent_dict.Set(DataItem(2), DataItem(7.f));
 
   DictVector derived_dicts(dicts, /*update_size=*/1);
-  auto& derived_dict = derived_dicts[0];
+  auto& derived_dict = derived_dicts.GetMutable(0);
   derived_dict.Set(1, DataItem());
   EXPECT_THAT(derived_dict.Get(1), Optional(RefWrap(DataItem())));
   EXPECT_THAT(derived_dict.Get(2), Optional(RefWrap(7.f)));
@@ -170,7 +187,7 @@ TEST(DictTest, OverrideWithEmptyWithParent) {
 TEST(DictTest, GetOrAssignWithEmptyNoParent) {
   std::shared_ptr<DictVector> dicts =
       std::make_shared<DictVector>(1, /*update_size=*/1);
-  auto& dict = (*dicts)[0];
+  auto& dict = dicts->GetMutable(0);
   EXPECT_EQ(dict.GetOrAssign(DataItem(1), DataItem()), DataItem());
   EXPECT_THAT(dict.GetKeys(), UnorderedElementsAre(1));
   EXPECT_EQ(dict.GetSizeNoFallbacks(), 1);
@@ -189,12 +206,12 @@ TEST(DictTest, GetOrAssignWithEmptyNoParent) {
 TEST(DictTest, GetOrAssignWithEmptyWithParent) {
   std::shared_ptr<DictVector> dicts =
       std::make_shared<DictVector>(1, /*update_size=*/1);
-  auto& parent_dict = (*dicts)[0];
+  auto& parent_dict = dicts->GetMutable(0);
   parent_dict.Set(DataItem(1), DataItem(5.f));
   parent_dict.Set(DataItem(2), DataItem(7.f));
 
   DictVector derived_dicts(dicts, /*update_size=*/1);
-  auto& derived_dict = derived_dicts[0];
+  auto& derived_dict = derived_dicts.GetMutable(0);
   EXPECT_THAT(derived_dict.GetKeys(),
               UnorderedElementsAre(DataItem(1), DataItem(2)));
   EXPECT_EQ(derived_dict.GetSizeNoFallbacks(), 2);
@@ -224,13 +241,13 @@ TEST(DictTest, GetOrAssignWithEmptyWithParent) {
 TEST(DictTest, DerivedDictExtra) {
   std::shared_ptr<DictVector> dicts =
       std::make_shared<DictVector>(1, /*update_size=*/1);
-  auto& dict = (*dicts)[0];
+  auto& dict = dicts->GetMutable(0);
   dict.Set(arolla::Text("a"), DataItem(7.f));
   dict.Set(1, DataItem(8));
 
   std::shared_ptr<DictVector> derived_dicts =
       std::make_shared<DictVector>(std::move(dicts), /*update_size=*/1);
-  auto& derived_dict = (*derived_dicts)[0];
+  auto& derived_dict = derived_dicts->GetMutable(0);
   derived_dict.Set(1, DataItem(9));
   derived_dict.Set(2, DataItem(10));
 
@@ -246,7 +263,7 @@ TEST(DictTest, DerivedDictExtra) {
 
   std::shared_ptr<DictVector> derived_dicts2 =
       std::make_shared<DictVector>(std::move(derived_dicts), /*update_size=*/1);
-  auto& derived_dict2 = (*derived_dicts2)[0];
+  auto& derived_dict2 = derived_dicts2->GetMutable(0);
   derived_dict2.Set(0, DataItem(5));
   derived_dict2.Set(2, DataItem(7));
 
@@ -284,7 +301,7 @@ TEST(DictTest, DerivedDictSingle) {
   DictVector derived_dicts(4, parent_dict, /*update_size=*/4);
   parent_dict.reset();  // verify ownership
   {
-    auto& derived_dict = derived_dicts[0];
+    auto& derived_dict = derived_dicts.GetMutable(0);
     derived_dict.Set(1, DataItem(9));
     derived_dict.Set(2, DataItem(10));
 
@@ -296,7 +313,7 @@ TEST(DictTest, DerivedDictSingle) {
     EXPECT_THAT(derived_dict.Get(2), Optional(RefWrap(10)));
   }
   {
-    auto& derived_dict = derived_dicts[1];
+    const auto& derived_dict = derived_dicts.GetOrEmpty(1);
 
     EXPECT_THAT(derived_dict.GetKeys(),
                 UnorderedElementsAre(1, arolla::Text("a")));
@@ -309,18 +326,18 @@ TEST(DictTest, DerivedDictSingle) {
 TEST(DictTest, GetKeysAndValuesWithFallback) {
   std::shared_ptr<DictVector> dicts =
       std::make_shared<DictVector>(1, /*update_size=*/1);
-  auto& dict = (*dicts)[0];
+  auto& dict = dicts->GetMutable(0);
   dict.Set(arolla::Text("a"), DataItem(7.f));
   dict.Set(1, DataItem(8));
 
   DictVector derived_dicts(dicts, /*update_size=*/1);
-  auto& derived_dict = derived_dicts[0];
+  auto& derived_dict = derived_dicts.GetMutable(0);
   derived_dict.Set(1, DataItem(9));
   derived_dict.Set(2, DataItem(10));
 
   std::shared_ptr<DictVector> fb_dicts =
       std::make_shared<DictVector>(1, /*update_size=*/1);
-  auto& fb_dict = (*fb_dicts)[0];
+  auto& fb_dict = fb_dicts->GetMutable(0);
   fb_dict.Set(arolla::Text("b"), DataItem(7.f));
   fb_dict.Set(1, DataItem(2));
 
@@ -332,7 +349,7 @@ TEST(DictTest, GetKeysAndValuesWithFallback) {
   AssertKVsAreAligned(derived_dict);
 
   DictVector fb_derived_dicts(fb_dicts, /*update_size=*/1);
-  auto& fb_derived_dict = fb_derived_dicts[0];
+  auto& fb_derived_dict = fb_derived_dicts.GetMutable(0);
   fb_derived_dict.Set(3, DataItem(7));
   fb_derived_dict.Set(2, DataItem(0));
 
@@ -368,19 +385,19 @@ TEST(DictTest, GetKeysAndValuesWithFallback) {
 TEST(DictTest, GetKeysWithFallbackEmptyMain) {
   std::shared_ptr<DictVector> dicts =
       std::make_shared<DictVector>(1, /*update_size=*/1);
-  auto& dict = (*dicts)[0];
+  auto& dict = dicts->GetMutable(0);
   EXPECT_THAT(dict.GetKeys(), UnorderedElementsAre());
 
   std::shared_ptr<DictVector> fb_dicts =
       std::make_shared<DictVector>(1, /*update_size=*/1);
-  auto& fb_dict = (*fb_dicts)[0];
+  auto& fb_dict = fb_dicts->GetMutable(0);
   fb_dict.Set(1, DataItem(2));
 
   EXPECT_THAT(dict.GetKeys({&fb_dict}), UnorderedElementsAre(1));
 
   std::shared_ptr<DictVector> fb2_dicts =
       std::make_shared<DictVector>(1, /*update_size=*/1);
-  auto& fb2_dict = (*fb2_dicts)[0];
+  auto& fb2_dict = fb2_dicts->GetMutable(0);
 
   EXPECT_THAT(dict.GetKeys({&fb2_dict}), UnorderedElementsAre());
   EXPECT_THAT(dict.GetKeys({&fb2_dict, &fb_dict}), UnorderedElementsAre(1));
@@ -456,12 +473,12 @@ TEST(DictTest, GetKeysWithUpdatesFromParent) {
     SCOPED_TRACE("parent is direct parent");
     std::shared_ptr<DictVector> dicts =
         std::make_shared<DictVector>(1, /*update_size=*/1);
-    auto& parent_dict = (*dicts)[0];
+    auto& parent_dict = dicts->GetMutable(0);
     parent_dict.Set(DataItem(1), DataItem(10));
     parent_dict.Set(DataItem(2), DataItem(20));
 
     DictVector derived_dicts(dicts, /*update_size=*/1);
-    auto& derived_dict = derived_dicts[0];
+    auto& derived_dict = derived_dicts.GetMutable(0);
     derived_dict.Set(DataItem(2), DataItem(22));  // update
     derived_dict.Set(DataItem(3), DataItem(30));  // new
 
@@ -473,11 +490,11 @@ TEST(DictTest, GetKeysWithUpdatesFromParent) {
     SCOPED_TRACE("parent is completely irrelevant");
     std::shared_ptr<DictVector> dicts =
         std::make_shared<DictVector>(1, /*update_size=*/1);
-    auto& parent_dict = (*dicts)[0];
+    auto& parent_dict = dicts->GetMutable(0);
     parent_dict.Set(DataItem(1), DataItem(10));
 
     DictVector derived_dicts(dicts, /*update_size=*/1);
-    auto& derived_dict = derived_dicts[0];
+    auto& derived_dict = derived_dicts.GetMutable(0);
     derived_dict.Set(DataItem(2), DataItem(20));
 
     Dict irrelevant_dict;
@@ -493,16 +510,16 @@ TEST(DictTest, GetKeysWithUpdatesFromParent) {
     SCOPED_TRACE("parent is indirect ancestor of the dict");
     std::shared_ptr<DictVector> dicts =
         std::make_shared<DictVector>(1, /*update_size=*/1);
-    auto& grand_parent = (*dicts)[0];
+    auto& grand_parent = dicts->GetMutable(0);
     grand_parent.Set(DataItem(1), DataItem(10));
 
     std::shared_ptr<DictVector> dicts2 =
         std::make_shared<DictVector>(dicts, /*update_size=*/1);
-    auto& parent_dict = (*dicts2)[0];
+    auto& parent_dict = dicts2->GetMutable(0);
     parent_dict.Set(DataItem(2), DataItem(20));
 
     DictVector derived_dicts(dicts2, /*update_size=*/1);
-    auto& derived_dict = derived_dicts[0];
+    auto& derived_dict = derived_dicts.GetMutable(0);
     derived_dict.Set(DataItem(3), DataItem(30));
 
     EXPECT_THAT(derived_dict.GetModifiedKeys(&grand_parent),
@@ -980,6 +997,54 @@ TEST(DictTest, DictVectorForEachDict) {
         });
     EXPECT_THAT(status, StatusIs(absl::StatusCode::kInternal, "stop"));
     EXPECT_EQ(count, 1);
+  }
+}
+
+TEST(DictTest, DictVectorGetOrEmpty) {
+  EXPECT_EQ(Dict::Empty().GetSizeNoFallbacks(), 0);
+  EXPECT_THAT(Dict::Empty().GetKeys(), UnorderedElementsAre());
+  EXPECT_THAT(Dict::Empty().Get(1), Eq(std::nullopt));
+
+  {
+    SCOPED_TRACE("array mode");
+    DictVector vec(3, /*update_size=*/3);
+    EXPECT_FALSE(DictVectorTestFriend::is_map_mode(vec));
+    vec.GetMutable(0).Set(1, DataItem(10));
+
+    EXPECT_EQ(&vec.GetOrEmpty(0), vec.Get(0));
+    EXPECT_THAT(vec.GetOrEmpty(0).Get(1), Optional(RefWrap(10)));
+    EXPECT_EQ(&vec.GetOrEmpty(1), &Dict::Empty());
+    EXPECT_EQ(&vec.GetOrEmpty(2), &Dict::Empty());
+  }
+
+  {
+    SCOPED_TRACE("sparse map mode and derived map mode");
+    auto parent = std::make_shared<DictVector>(10, /*update_size=*/1);
+    parent->GetMutable(2).Set(1, DataItem(20));
+    ASSERT_TRUE(DictVectorTestFriend::is_map_mode(*parent));
+
+    MemoryStatsEntry initial_stats;
+    parent->AppendMemoryStats(initial_stats);
+
+    const DictVector& const_parent = *parent;
+    for (size_t i = 0; i < const_parent.size(); ++i) {
+      if (i == 2) {
+        EXPECT_EQ(&const_parent.GetOrEmpty(i), const_parent.Get(i));
+        EXPECT_THAT(const_parent.GetOrEmpty(i).Get(1), Optional(RefWrap(20)));
+      } else {
+        EXPECT_EQ(&const_parent.GetOrEmpty(i), &Dict::Empty());
+      }
+    }
+    EXPECT_TRUE(DictVectorTestFriend::is_map_mode(const_parent));
+    MemoryStatsEntry after_stats;
+    const_parent.AppendMemoryStats(after_stats);
+    EXPECT_EQ(after_stats.shallow_size, initial_stats.shallow_size);
+
+    DictVector derived(parent, /*update_size=*/1);
+    ASSERT_TRUE(DictVectorTestFriend::is_map_mode(derived));
+    EXPECT_EQ(&derived.GetOrEmpty(2), parent->Get(2));
+    EXPECT_EQ(&derived.GetOrEmpty(5), &Dict::Empty());
+    EXPECT_TRUE(DictVectorTestFriend::is_map_mode(derived));
   }
 }
 

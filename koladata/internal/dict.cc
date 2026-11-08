@@ -185,6 +185,11 @@ void Dict::AppendMemoryStats(MemoryStatsEntry& stats) const {
   }
 }
 
+const Dict& Dict::Empty() {
+  static const absl::NoDestructor<Dict> kEmptyDict;
+  return *kEmptyDict;
+}
+
 const absl::NoDestructor<DataItem> Dict::empty_item_;
 
 void DictVector::Map::ConvertToArray(Array& array, const DictVector* parent,

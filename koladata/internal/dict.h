@@ -46,6 +46,8 @@ namespace koladata::internal {
 // Dictionary DataItem -> DataItem with a link to parent.
 class Dict {
  public:
+  static const Dict& Empty();
+
   void Clear() {
     std::vector<DataItem> keys = GetKeys({});
     data_.clear();
@@ -295,17 +297,18 @@ class DictVector {
     return GetFromMap(index);
   }
 
+  // Returns the dictionary at `index`, or `Dict::Empty()` if unset.
+  const Dict& GetOrEmpty(size_t index) const {
+    const Dict* dict = Get(index);
+    return dict != nullptr ? *dict : Dict::Empty();
+  }
+
   Dict& GetMutable(size_t index) {
     DCHECK_LT(index, size());
     if (std::holds_alternative<Array>(data_)) {
       return GetMutableFromArray(index);
     }
     return GetMutableFromMap(index);
-  }
-
-  Dict& operator[](int64_t index) {
-    DCHECK_GE(index, 0);
-    return GetMutable(static_cast<size_t>(index));
   }
 
   // Note: it doesn't include parent's size.

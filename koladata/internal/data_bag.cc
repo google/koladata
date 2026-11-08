@@ -2304,8 +2304,8 @@ DictVector& DataBagImpl::GetOrCreateMutableDicts(AllocationId alloc_id,
 }
 
 inline Dict& DataBagImpl::GetOrCreateMutableDict(ObjectId object_id) {
-  return GetOrCreateMutableDicts(AllocationId(object_id),
-                                 /*update_size=*/1)[object_id.Offset()];
+  return GetOrCreateMutableDicts(AllocationId(object_id), /*update_size=*/1)
+      .GetMutable(object_id.Offset());
 }
 
 namespace {
@@ -2318,13 +2318,6 @@ struct SchemasAllocCheckFn {
   bool operator()(AllocationId alloc_id) { return alloc_id.IsSchemasAlloc(); }
 };
 
-// Returns reference to empty dict that is returned in case dict is not
-// found.
-const Dict& GetEmptyDict() {
-  static const absl::NoDestructor<Dict> result;
-  return *result;
-}
-
 }  // namespace
 
 template <class AllocCheckFn>
@@ -2332,18 +2325,19 @@ class DataBagImpl::ReadOnlyDictGetter {
  public:
   explicit ReadOnlyDictGetter(const DataBagImpl* bag) : bag_(bag) {}
 
-  // Returns reference to dict if found, otherwise returns GetEmptyDict.
+  // Returns reference to dict if found, otherwise returns Dict::Empty().
   const Dict& operator()(ObjectId dict_id) {
     AllocationId alloc_id(dict_id);
     if (alloc_id != current_alloc_) {
       if (ABSL_PREDICT_FALSE(!alloc_check_(alloc_id))) {
         status_ = absl::FailedPreconditionError("dicts expected");
-        return GetEmptyDict();
+        return Dict::Empty();
       }
       dicts_vec_ = bag_->GetConstDictsOrNull(alloc_id);
       current_alloc_ = alloc_id;
     }
-    return dicts_vec_ ? (**dicts_vec_)[dict_id.Offset()] : GetEmptyDict();
+    return dicts_vec_ ? (*dicts_vec_)->GetOrEmpty(dict_id.Offset())
+                      : Dict::Empty();
   }
 
   const absl::Status& status() { return status_; }
@@ -2431,7 +2425,7 @@ DataBagImpl::GetDictKeysOrValues(const DataSliceImpl& dicts,
           fallback_dicts.clear();
           for (auto& fallback_getter : dict_fallback_getters) {
             if (auto* fb_dict = &fallback_getter(dict_id);
-                fb_dict != &GetEmptyDict()) {
+                fb_dict != &Dict::Empty()) {
               fallback_dicts.push_back(fb_dict);
             }
           }
@@ -2501,7 +2495,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetDictSize(
       fallback_dicts.clear();
       for (auto& fallback_getter : dict_fallback_getters) {
         if (auto* fb_dict = &fallback_getter(dict_id);
-            fb_dict != &GetEmptyDict()) {
+            fb_dict != &Dict::Empty()) {
           fallback_dicts.push_back(fb_dict);
         }
       }
@@ -2753,7 +2747,7 @@ std::vector<DataItem> DataBagImpl::GetDictKeysOrValuesAsVector(
     return {};
   }
 
-  const Dict& dict = (**main_dicts)[dict_id.Offset()];
+  const Dict& dict = (*main_dicts)->GetOrEmpty(dict_id.Offset());
   if (fallbacks.empty()) {
     if constexpr (kReturnValues) {
       return dict.GetValues();
@@ -2773,7 +2767,10 @@ std::vector<DataItem> DataBagImpl::GetDictKeysOrValuesAsVector(
     const std::shared_ptr<DictVector>* fb_dicts =
         fallback->GetConstDictsOrNull(alloc_id);
     if (fb_dicts != nullptr) {
-      fallback_dicts.push_back(&(**fb_dicts)[dict_id.Offset()]);
+      if (const Dict* fb_dict = (*fb_dicts)->Get(dict_id.Offset());
+          fb_dict != nullptr) {
+        fallback_dicts.push_back(fb_dict);
+      }
     }
   }
   if constexpr (kReturnValues) {
@@ -2826,7 +2823,8 @@ absl::StatusOr<DataItem> DataBagImpl::GetDictSize(
   if (fallbacks.empty()) {
     const std::shared_ptr<DictVector>* dicts =
         GetConstDictsOrNull(AllocationId(dict_id));
-    size = dicts ? (**dicts)[dict_id.Offset()].GetSizeNoFallbacks() : 0;
+    size =
+        dicts ? (*dicts)->GetOrEmpty(dict_id.Offset()).GetSizeNoFallbacks() : 0;
   } else {
     size =
         GetDictKeysOrValuesAsVector</*kReturnValues=*/false>(dict_id, fallbacks)
@@ -2840,7 +2838,7 @@ ABSL_ATTRIBUTE_ALWAYS_INLINE std::optional<DataItem>
 DataBagImpl::GetFromDictObject(ObjectId dict_id, const Key& key) const {
   AllocationId alloc_id(dict_id);
   if (const auto* dicts = GetConstDictsOrNull(alloc_id); dicts != nullptr) {
-    if (auto res_opt = (**dicts)[dict_id.Offset()].Get(key);
+    if (auto res_opt = (*dicts)->GetOrEmpty(dict_id.Offset()).Get(key);
         res_opt.has_value()) {
       return res_opt->get();
     }
@@ -2860,7 +2858,7 @@ DataBagImpl::GetFromDictObjectWithFallbacks(ObjectId dict_id, const Key& key,
   int64_t offset = dict_id.Offset();
   if (const auto* dicts = GetConstDictsOrNull(alloc_id, alloc_hash);
       dicts != nullptr) {
-    auto res = (**dicts)[offset].Get(key);
+    auto res = (*dicts)->GetOrEmpty(offset).Get(key);
     if (res.has_value() || fallbacks.empty()) {
       return res->get();
     }
@@ -2868,7 +2866,7 @@ DataBagImpl::GetFromDictObjectWithFallbacks(ObjectId dict_id, const Key& key,
   for (const DataBagImpl* fallback : fallbacks) {
     if (const auto* dicts = fallback->GetConstDictsOrNull(alloc_id, alloc_hash);
         dicts != nullptr) {
-      auto res = (**dicts)[offset].Get(key);
+      auto res = (*dicts)->GetOrEmpty(offset).Get(key);
       if (res.has_value()) {
         return res->get();
       }
@@ -3189,9 +3187,9 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataItem& schema_item,
   }
   ASSIGN_OR_RETURN(ObjectId schema_id, ItemToSchemaObjectId(schema_item));
   if (!schema_id.IsSmallAlloc()) {
-    auto& dict =
-        GetOrCreateMutableDicts(AllocationId(schema_id), /*update_size=*/1,
-                                /*size=*/1)[0];
+    auto& dict = GetOrCreateMutableDicts(AllocationId(schema_id),
+                                         /*update_size=*/1, /*size=*/1)
+                     .GetMutable(0);
     RETURN_IF_ERROR(SetAttr(schema_item, attr, value));
     dict.Set(DataItem::View<arolla::Text>(attr), DataItem(arolla::kPresent));
   } else {
@@ -3237,7 +3235,8 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
       status = InvalidLhsSetSchemaAttrError(schema_slice);
     } else {
       Dict& schema_dict =
-          GetOrCreateMutableDicts(alloc_id, /*update_size=*/1, /*size=*/1)[0];
+          GetOrCreateMutableDicts(alloc_id, /*update_size=*/1, /*size=*/1)
+              .GetMutable(0);
       schema_dict.Set(DataItem::View<arolla::Text>(attr),
                       DataItem(arolla::kPresent));
     }
@@ -3294,7 +3293,8 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
       status = InvalidLhsSetSchemaAttrError(schema_slice);
     } else {
       Dict& schema_dict =
-          GetOrCreateMutableDicts(alloc_id, /*update_size=*/1, /*size=*/1)[0];
+          GetOrCreateMutableDicts(alloc_id, /*update_size=*/1, /*size=*/1)
+              .GetMutable(0);
       schema_dict.Set(DataItem::View<arolla::Text>(attr),
                       DataItem(arolla::kPresent));
     }
@@ -3449,7 +3449,8 @@ absl::Status DataBagImpl::SetSchemaFieldsForEntireAllocation(
         items);
   }
   Dict& schema_dict = GetOrCreateMutableDicts(schema_alloc_id,
-                                              /*update_size=*/1, /*size=*/1)[0];
+                                              /*update_size=*/1, /*size=*/1)
+                          .GetMutable(0);
   for (size_t i = 0; i < attr_names.size(); ++i) {
     schema_dict.Set(DataItem::View<arolla::Text>(attr_names[i]),
                     DataItem(arolla::kPresent));
@@ -3981,7 +3982,7 @@ absl::Status DataBagImpl::AddDictsOverwritingUpdate(const DataBagImpl& other,
               if (modified_keys.empty()) {
                 return absl::OkStatus();
               }
-              auto& this_dict = (*this_dicts)[i];
+              auto& this_dict = this_dicts->GetMutable(i);
               for (const DataItem& key : modified_keys) {
                 this_dict.Set(key, *other_dict.Get(key));
               }
@@ -4258,17 +4259,20 @@ absl::StatusOr<DataBagStatistics> DataBagImpl::GetStatistics() const {
     if (const std::shared_ptr<DictVector>* dict_vector =
             DataBagImpl::GetConstDictsOrNull(alloc);
         dict_vector != nullptr) {
-      for (size_t i = 0; i < (**dict_vector).size(); ++i) {
-        if (size_t dict_size = (**dict_vector)[i].GetSizeNoFallbacks()) {
-          if (is_dict) {
-            stats.total_items_in_dicts += dict_size;
-            ++stats.total_non_empty_dicts;
-          } else {
-            stats.total_explicit_schema_attrs += dict_size;
-            ++stats.total_explicit_schemas;
-          }
-        }
-      }
+      (*dict_vector)
+          ->ForEachDict([&](size_t /*i*/, const Dict& d) -> absl::Status {
+            if (size_t dict_size = d.GetSizeNoFallbacks()) {
+              if (is_dict) {
+                stats.total_items_in_dicts += dict_size;
+                ++stats.total_non_empty_dicts;
+              } else {
+                stats.total_explicit_schema_attrs += dict_size;
+                ++stats.total_explicit_schemas;
+              }
+            }
+            return absl::OkStatus();
+          })
+          .IgnoreError();
     }
   }
 
@@ -4356,8 +4360,8 @@ absl::StatusOr<DataBagContent> DataBagImpl::ExtractContent(
             DataBagImpl::GetConstDictsOrNull(alloc);
         dict_vector != nullptr) {
       for (size_t i = 0; i < (**dict_vector).size(); ++i) {
-        AddDictToContent(alloc.ObjectByOffset(i), (**dict_vector)[i],
-                         content.dicts);
+        AddDictToContent(alloc.ObjectByOffset(i),
+                         (*dict_vector)->GetOrEmpty(i), content.dicts);
       }
     }
   }

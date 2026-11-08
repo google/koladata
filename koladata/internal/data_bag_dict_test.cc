@@ -437,6 +437,66 @@ TEST(DataBagTest, DictFallbacksSingleItemWithRemovedValues) {
               IsOkAndHolds(Pair(ElementsAre(DataItem(), DataItem()), _)));
 }
 
+TEST(DataBagTest, ConstReadsDoNotMutateSparseDictVector) {
+  constexpr int64_t kNumDicts = 100;
+  AllocationId alloc = AllocateDicts(kNumDicts);
+  DataSliceImpl dicts = DataSliceImpl::ObjectsFromAllocation(alloc, kNumDicts);
+  DataSliceImpl keys_1 =
+      DataSliceImpl::Create(arolla::CreateConstDenseArray<int>(kNumDicts, 1));
+  DataSliceImpl keys_2 =
+      DataSliceImpl::Create(arolla::CreateConstDenseArray<int>(kNumDicts, 2));
+
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(db->SetInDict(dicts[0], DataItem(1), DataItem(10)));
+
+  auto fb_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(fb_db->SetInDict(dicts[kNumDicts - 1], DataItem(2), DataItem(20)));
+
+  const int64_t initial_db_bytes = db->GetApproxTotalByteSize();
+  const int64_t initial_fb_bytes = fb_db->GetApproxTotalByteSize();
+
+  const DataBagImpl& const_db = *db;
+  const DataBagImpl& const_fb = *fb_db;
+
+  // DataItem lookups on untouched and populated offsets (with & without fb).
+  EXPECT_THAT(const_db.GetFromDict(dicts[50], DataItem(1)),
+              IsOkAndHolds(DataItem()));
+  EXPECT_THAT(const_db.GetFromDict(dicts[50], DataItem(2), {&const_fb}),
+              IsOkAndHolds(DataItem()));
+  EXPECT_THAT(
+      const_db.GetFromDict(dicts[kNumDicts - 1], DataItem(2), {&const_fb}),
+      IsOkAndHolds(DataItem(20)));
+  EXPECT_THAT(const_db.GetDictSize(dicts[50]),
+              IsOkAndHolds(DataItem(int64_t{0})));
+  EXPECT_THAT(const_db.GetDictSize(dicts[50], {&const_fb}),
+              IsOkAndHolds(DataItem(int64_t{0})));
+  EXPECT_OK(const_db.GetDictKeys(dicts[50]));
+  EXPECT_OK(const_db.GetDictKeys(dicts[50], {&const_fb}));
+  EXPECT_OK(const_db.GetDictValues(dicts[50]));
+  EXPECT_OK(const_db.GetDictValues(dicts[50], {&const_fb}));
+  EXPECT_EQ(const_db.GetApproxTotalByteSize(), initial_db_bytes);
+  EXPECT_EQ(const_fb.GetApproxTotalByteSize(), initial_fb_bytes);
+
+  // Full-slice lookups across all 100 dicts (would convert Map -> Array if
+  // mutating).
+  EXPECT_OK(const_db.GetFromDict(dicts, keys_1));
+  EXPECT_OK(const_db.GetFromDict(dicts, keys_2, {&const_fb}));
+  EXPECT_OK(const_db.GetDictSize(dicts));
+  EXPECT_OK(const_db.GetDictSize(dicts, {&const_fb}));
+  AssertKVsAreAligned(const_db, dicts);
+  AssertKVsAreAligned(const_db, dicts, {&const_fb});
+  EXPECT_EQ(const_db.GetApproxTotalByteSize(), initial_db_bytes);
+  EXPECT_EQ(const_fb.GetApproxTotalByteSize(), initial_fb_bytes);
+
+  // Bag-wide inspection APIs.
+  ASSERT_OK_AND_ASSIGN(DataBagStatistics stats, const_db.GetStatistics());
+  EXPECT_EQ(stats.total_non_empty_dicts, 1);
+  EXPECT_EQ(stats.total_items_in_dicts, 1);
+  EXPECT_OK(const_db.ExtractContent());
+  EXPECT_EQ(const_db.GetApproxTotalByteSize(), initial_db_bytes);
+  EXPECT_EQ(const_fb.GetApproxTotalByteSize(), initial_fb_bytes);
+}
+
 TEST(DataBagTest, DictFallbacksSingleItemManyKeysWithRemovedValues) {
   auto dict = DataItem(AllocateSingleDict());
 
