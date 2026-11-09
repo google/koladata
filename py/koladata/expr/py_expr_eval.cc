@@ -171,9 +171,8 @@ PyObject* absl_nullable PyEvalOp(PyObject* /*self*/, PyObject** py_args,
   ASSIGN_OR_RETURN(auto signature, op->GetSignature(), SetPyErrFromStatus(_));
   std::vector<QValueOrExpr> bound_args;
   AuxBindingPolicyPtr policy_implementation;
-  if (!AuxBindArguments(*signature, py_args + 1,
-                        (nargs - 1) | PY_VECTORCALL_ARGUMENTS_OFFSET,
-                        py_kwnames, &bound_args, &policy_implementation)) {
+  if (!AuxBindArguments(*signature, py_args + 1, nargs - 1, py_kwnames,
+                        &bound_args, &policy_implementation)) {
     return nullptr;
   }
 
@@ -248,9 +247,8 @@ PyObject* absl_nullable PyEvalOrBindOp(PyObject* /*self*/, PyObject** py_args,
   ASSIGN_OR_RETURN(auto signature, op->GetSignature(), SetPyErrFromStatus(_));
   std::vector<QValueOrExpr> bound_args;
   AuxBindingPolicyPtr policy_implementation;
-  if (!AuxBindArguments(*signature, py_args + 1,
-                        (nargs - 1) | PY_VECTORCALL_ARGUMENTS_OFFSET,
-                        py_kwnames, &bound_args, &policy_implementation)) {
+  if (!AuxBindArguments(*signature, py_args + 1, nargs - 1, py_kwnames,
+                        &bound_args, &policy_implementation)) {
     return nullptr;
   }
 
