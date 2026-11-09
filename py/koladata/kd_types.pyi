@@ -14,6 +14,7 @@
 
 from typing import Any
 
+from arolla import arolla as _arolla
 from koladata.functor.parallel import clib as _functor_parallel_clib
 from koladata.types import data_slice as _data_slice
 from koladata.types import iterable_qvalue as _iterable_qvalue
@@ -27,7 +28,7 @@ DataSlice = _data_slice.DataSlice
 DataItem = DataSlice
 DictItem = DataSlice
 Executor = _functor_parallel_clib.Executor
-Expr: Any
+Expr = _arolla.Expr
 Iterable = _iterable_qvalue.Iterable
 JaggedShape = _jagged_shape.JaggedShape
 ListItem = DataSlice

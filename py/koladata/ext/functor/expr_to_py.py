@@ -318,7 +318,7 @@ def _unwrap_assertion(node: kd.types.Expr) -> kd.types.Expr:
 
 def _is_unspecified_literal(node: kd.types.Expr) -> bool:
   """Returns True if the node is a literal arolla.unspecified()."""
-  return kd.expr.is_literal(node) and node.qvalue.qtype == arolla.UNSPECIFIED
+  return node.qvalue is not None and node.qvalue.qtype == arolla.UNSPECIFIED
 
 
 def _compute_effective_schema_for_slice_op(
@@ -620,6 +620,7 @@ class _Expr2PyAst:
   def _convert_literal(self, node: kd.types.Expr) -> ast.expr:
     """Converts a Koda literal expression into a Python AST."""
     try:
+      assert node.qvalue is not None
       return qvalue_to_py(node.qvalue)
     except ValueError as e:
       e.add_note(f'[{self._name}] unsupported literal')
@@ -802,7 +803,9 @@ class _Expr2PyAst:
     # Keyword arguments that are not literals.
     assert node.op == arolla.M.namedtuple.make, node.op.display_name
     assert node.node_deps[0].qtype == arolla.TEXT
-    keys = node.node_deps[0].qvalue.py_value().split(',')
+    qvalue: Any = node.node_deps[0].qvalue
+    assert qvalue is not None
+    keys = qvalue.py_value().split(',')
     return [
         ast.keyword(arg=key.strip(), value=self._convert_node(value))
         for key, value in zip(keys, node.node_deps[1:])
@@ -811,7 +814,7 @@ class _Expr2PyAst:
   def _assemble_python_operator(
       self,
       op: arolla.abc.Operator,
-      node_deps: list[kd.types.Expr],
+      node_deps: collections.abc.Sequence[kd.types.Expr],
   ) -> ast.expr:
     """Returns an AST Call for a Koda operator and its dependencies.
 
@@ -852,7 +855,7 @@ class _Expr2PyAst:
   def _assemble_unified_operator(
       self,
       op: arolla.abc.Operator,
-      node_deps: list[kd.types.Expr],
+      node_deps: collections.abc.Sequence[kd.types.Expr],
   ) -> ast.expr:
     """Returns an AST Call for operators with koladata_unified_aux_policy.
 
@@ -896,7 +899,7 @@ class _Expr2PyAst:
   def _assemble_classic_operator(
       self,
       op: arolla.abc.Operator,
-      node_deps: list[kd.types.Expr],
+      node_deps: collections.abc.Sequence[kd.types.Expr],
   ) -> ast.expr:
     """Returns an AST Call for operators with koladata_classic_aux_policy.
 
@@ -953,6 +956,7 @@ class _Expr2PyAst:
         raise ValueError(f'[{self._name}] only functor variables can be called')
       fn_ast = self._convert_variable(fn_node)
       # Only DataSlice is supported for return_type_as argument.
+      assert node.node_deps[2].qvalue is not None
       assert node.node_deps[2].qvalue.qtype == kd.qtypes.DATA_SLICE
       # Skip fn (dep[0]) and return_type_as (dep[2]); pass args and kwargs.
       args = self._convert_unified_varargs(node.node_deps[1])

@@ -782,7 +782,7 @@ Args:
 Returns:
   A DataItem representing the functor.</code></pre>
 
-### `kd.functor.visit_functors(functor: DataItem, callback_fn: Callable[[DataItem, dict[str, Any]], Any]) -> DataItem` {#kd.functor.visit_functors}
+### `kd.functor.visit_functors(functor: DataItem, callback_fn: Callable[[DataItem, dict[str, Any]], Any]) -> Any` {#kd.functor.visit_functors}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Recursively visits functors in the functor graph, bottom-up.
 

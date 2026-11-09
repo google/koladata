@@ -67,7 +67,7 @@ class _FunctorVisitor:
 def visit_functors(
     functor: data_item.DataItem,
     callback_fn: Callable[[data_item.DataItem, dict[str, Any]], Any],
-) -> data_item.DataItem:
+) -> Any:
   """Recursively visits functors in the functor graph, bottom-up.
 
   Traverses the graph of nested functors.  For each functor, `callback_fn`

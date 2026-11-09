@@ -121,7 +121,7 @@ class FuncRec:
   """
 
   name: str | None
-  code: kd.types.Expr
+  code: kd.types.DataSlice
   signature: inspect.Signature
   docstring: str | None
 
