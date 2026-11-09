@@ -114,13 +114,6 @@ absl::StatusOr<DataSliceImpl> AbstractVisitor::GetValues(
   });
 }
 
-absl::StatusOr<bool> AbstractVisitor::Previsit(
-    const DataItem& from_item, const DataItem& from_schema,
-    const std::optional<TransitionKey>& transition_key, const DataItem& item,
-    const DataItem& schema) {
-  return true;
-}
-
 absl::StatusOr<DataSliceImpl> AbstractVisitor::PrevisitSlice(
     const DataSliceImpl& ds, const DataItem& schema,
     const std::optional<TransitionKey>& transition_key,

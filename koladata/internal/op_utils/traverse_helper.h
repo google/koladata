@@ -35,7 +35,6 @@
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/text.h"
-#include "arolla/util/view_types.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -431,36 +430,6 @@ class TraverseHelper {
     return absl::InternalError("unsupported schema type");
   }
 
-  // Calls the given function for each directly reachable object.
-  // fn should be a callable taking three arguments: const DataItem& to_item,
-  // const DataItem& to_schema, const TransitionKey& transition_key.
-  // fn would be also called on ItemId attributes and dtype schema attributes.
-  template <typename Fn>
-  absl::Status ForEachObject(const DataItem& item, const DataItem& schema,
-                             const TransitionsSet& transitions_set, Fn&& fn) {
-    static_assert(std::is_same_v<decltype(fn(arolla::view_type_t<DataItem>{},
-                                             arolla::view_type_t<DataItem>(),
-                                             std::declval<TransitionKey>())),
-                                 void>,
-                  "Callback shouldn't return value");
-    if (schema == schema::kObject) {
-      ASSIGN_OR_RETURN(DataItem object_schema, GetObjectSchema(item));
-      if (object_schema.holds_value<ObjectId>()) {
-        fn(item, object_schema,
-           TransitionKey{.type = TransitionType::kObjectSchema});
-      }
-    } else if (transitions_set.is_list()) {
-      ForEachListItemObject(transitions_set, fn);
-    } else if (transitions_set.is_dict()) {
-      ForEachDictElementObject(transitions_set, fn);
-    } else if (schema == schema::kSchema && transitions_set.has_attrs()) {
-      return ForEachSchemaAttributeObject(item, transitions_set, fn);
-    } else if (transitions_set.has_attrs()) {
-      return ForEachAttributeObject(item, schema, transitions_set, fn);
-    }
-    return absl::OkStatus();
-  }
-
   // Returns transition for the given key.
   absl::StatusOr<Transition> TransitionByKey(
       const DataItem& item, const DataItem& schema,
@@ -539,99 +508,6 @@ class TraverseHelper {
   }
 
  private:
-  template <typename Fn>
-  void ForEachListItemObject(const TransitionsSet& transitions_set, Fn&& fn) {
-    const DataSliceImpl& list_items = transitions_set.list_items();
-    auto item_schema = transitions_set.list_item_schema();
-    if (item_schema.is_primitive_schema()) {
-      return;
-    }
-    for (int64_t i = 0; i < list_items.size(); ++i) {
-      const DataItem& item = list_items[i];
-      if (item.holds_value<ObjectId>()) {
-        fn(item, item_schema,
-           TransitionKey{.type = TransitionType::kListItem, .index = i});
-      }
-    }
-  }
-
-  template <typename Fn>
-  void ForEachDictElementObject(const TransitionsSet& transitions_set,
-                                Fn&& fn) {
-    if (!transitions_set.dict_keys_schema().is_primitive_schema()) {
-      const DataSliceImpl& dict_keys = transitions_set.dict_keys();
-      for (int64_t i = 0; i < dict_keys.size(); ++i) {
-        const DataItem& key = dict_keys[i];
-        if (key.holds_value<ObjectId>()) {
-          fn(key, transitions_set.dict_keys_schema(),
-             TransitionKey{.type = TransitionType::kDictKey,
-                           .index = i,
-                           .value = key});
-        }
-      }
-    }
-    if (!transitions_set.dict_values_schema().is_primitive_schema()) {
-      const DataSliceImpl& dict_values = transitions_set.dict_values();
-      const DataSliceImpl& dict_keys = transitions_set.dict_keys();
-      DCHECK_EQ(dict_keys.size(), dict_values.size());
-      for (int64_t i = 0; i < dict_values.size(); ++i) {
-        const DataItem value = dict_values[i];
-        const DataItem& key = dict_keys[i];
-        if (value.holds_value<ObjectId>()) {
-          fn(value, transitions_set.dict_values_schema(),
-             TransitionKey{.type = TransitionType::kDictValue,
-                           .index = i,
-                           .value = key});
-        }
-      }
-    }
-  }
-
-  template <typename Fn>
-  absl::Status ForEachSchemaAttributeObject(
-      const DataItem& item, const TransitionsSet& transitions_set, Fn&& fn) {
-    absl::Status status = absl::OkStatus();
-    transitions_set.attr_names().ForEach(
-        [&](int64_t i, bool presence, std::string_view attr_name) {
-          DCHECK(presence);
-          auto transition_or = SchemaAttributeTransition(item, attr_name);
-          if (!transition_or.ok()) {
-            status = transition_or.status();
-            return;
-          }
-          if (transition_or->item.holds_value<ObjectId>() ||
-              transition_or->item.holds_value<schema::DType>()) {
-            fn(transition_or->item, transition_or->schema,
-               TransitionKey{.type = TransitionType::kSchemaAttributeName,
-                             .value = DataItem(arolla::Text(attr_name))});
-          }
-        });
-    return status;
-  }
-
-  template <typename Fn>
-  absl::Status ForEachAttributeObject(const DataItem& item,
-                                      const DataItem& schema,
-                                      const TransitionsSet& transitions_set,
-                                      Fn&& fn) {
-    absl::Status status = absl::OkStatus();
-    transitions_set.attr_names().ForEach(
-        [&](int64_t i, bool presence, std::string_view attr_name) {
-          DCHECK(presence);
-          auto transition_or = AttributeTransition(item, schema, attr_name);
-          if (!transition_or.ok()) {
-            status = transition_or.status();
-            return;
-          }
-          if (transition_or->item.holds_value<ObjectId>()) {
-            fn(transition_or->item, transition_or->schema,
-               TransitionKey{.type = TransitionType::kAttributeName,
-                             .value = DataItem(arolla::Text(attr_name))});
-          }
-        });
-    return status;
-  }
-
   absl::StatusOr<TransitionsSet> ListTransitions(const DataItem& item,
                                                  DataItem list_item_schema) {
     ASSIGN_OR_RETURN(

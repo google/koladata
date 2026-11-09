@@ -36,7 +36,6 @@
 namespace koladata::internal {
 namespace {
 
-using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::arolla::CreateDenseArray;
 using ::testing::ElementsAre;
@@ -177,15 +176,6 @@ TEST(SameTokenForObjectsIfTest, PropagatesErrors) {
                   }),
               StatusIs(absl::StatusCode::kInvalidArgument, "fail"));
   EXPECT_THAT(calls, ElementsAre(0, 1));
-}
-
-TEST(AbstractVisitorTest, DefaultPrevisit) {
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(2);
-  NoOpVisitor visitor;
-  EXPECT_THAT(visitor.Previsit(obj_ids[0], DataItem(schema::kObject),
-                               /*transition_key=*/std::nullopt, obj_ids[1],
-                               DataItem(schema::kObject)),
-              IsOkAndHolds(true));
 }
 
 TEST(AbstractVisitorTest, DefaultPrevisitSlice) {

@@ -42,8 +42,6 @@ using TransitionCallback = absl::FunctionRef<absl::Status(const Transition&)>;
 // transition key and schema are passed to `callback` together as a single
 // `Transition`. Transitions with primitive schemas are skipped, since
 // primitives have no outgoing edges.
-//
-// This is a vectorized counterpart of `TraverseHelper::ForEachObject`.
 class VectorizedTraverseHelper {
  public:
   VectorizedTraverseHelper(const DataBagImpl& databag,

@@ -38,10 +38,7 @@ namespace koladata::internal {
 namespace {
 
 using ::arolla::CreateDenseArray;
-using ::testing::AllOf;
-using ::testing::AnyOf;
 using ::testing::ElementsAre;
-using ::testing::Field;
 using ::testing::IsEmpty;
 using ::testing::UnorderedElementsAre;
 
@@ -644,114 +641,6 @@ TEST_P(TraverseHelperTest, TransitionKeyToAccessString) {
   EXPECT_EQ(TraverseHelper::TransitionKeyToAccessString(
                 {.type = TransitionType::kSliceItem, .index = -1}),
             "");
-}
-
-TEST_P(TraverseHelperTest, ForEachObject_Object) {
-  auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = AllocateEmptyObjects(4);
-  auto a0 = obj_ids[0];
-  auto a1 = obj_ids[1];
-  auto a2 = obj_ids[2];
-  auto int_dtype = DataItem(schema::kInt32);
-  auto schema = AllocateSchema();
-
-  TriplesT schema_triples = {
-      {schema, {{"x", schema}, {"y", schema}, {"z", int_dtype}}}};
-  TriplesT data_triples = {{a0, {{"x", a1}, {"y", a2}, {"z", DataItem(1)}}}};
-  SetSchemaTriples(*db, schema_triples);
-  SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
-  SetDataTriples(*db, GenDataTriplesForTest());
-
-  DataBagImplPtr main_db = GetMainDb(db);
-  auto fallback_db = GetFallbackDb(db);
-  auto fallbacks = std::vector<const DataBagImpl*>({fallback_db.get()});
-  auto traverse_helper = TraverseHelper(*main_db, fallbacks);
-  ASSERT_OK_AND_ASSIGN(auto transition_set,
-                       traverse_helper.GetTransitions(a0, schema));
-
-  std::vector<DataItem> result_items;
-  std::vector<DataItem> result_schemas;
-  std::vector<TraverseHelper::TransitionKey> result_keys;
-  EXPECT_OK(traverse_helper.ForEachObject(
-      a0, schema, transition_set,
-      [&](const DataItem& item, const DataItem& schema,
-          const TraverseHelper::TransitionKey& transition_key) {
-        result_items.push_back(item);
-        result_schemas.push_back(schema);
-        result_keys.push_back(transition_key);
-      }));
-  EXPECT_THAT(result_items, UnorderedElementsAre(a1, a2));
-  EXPECT_THAT(
-      result_keys,
-      UnorderedElementsAre(
-          TraverseHelper::TransitionKey{
-              .type = TraverseHelper::TransitionType::kAttributeName,
-              .value = DataItem(arolla::Text("x"))},
-          TraverseHelper::TransitionKey{
-              .type = TraverseHelper::TransitionType::kAttributeName,
-              .value = DataItem(arolla::Text("y"))}));
-  EXPECT_THAT(result_schemas, ElementsAre(schema, schema));
-}
-
-TEST_P(TraverseHelperTest, ForEachObject_Dict) {
-  auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = AllocateEmptyObjects(2);
-  auto a1 = obj_ids[0];
-  auto a2 = obj_ids[1];
-  auto dict_ids = AllocateEmptyDicts(1);
-  auto d0 = dict_ids[0];
-  auto obj_schema = AllocateSchema();
-
-  auto dict_schema = AllocateSchema();
-  TriplesT dict_schema_triples = {
-      {dict_schema,
-       {{schema::kDictKeysSchemaAttr, DataItem(schema::kObject)},
-        {schema::kDictValuesSchemaAttr, obj_schema}}}};
-
-  auto dicts_expanded =
-      DataSliceImpl::Create(CreateDenseArray<DataItem>({d0, d0}));
-  auto keys = DataSliceImpl::Create(
-      CreateDenseArray<DataItem>({DataItem(arolla::Text("x")), DataItem(123)}));
-  auto values = DataSliceImpl::Create(CreateDenseArray<DataItem>({a1, a2}));
-  ASSERT_OK(db->SetInDict(dicts_expanded, keys, values));
-
-  SetSchemaTriples(*db, dict_schema_triples);
-
-  DataBagImplPtr main_db = GetMainDb(db);
-  auto fallback_db = GetFallbackDb(db);
-  auto fallbacks = std::vector<const DataBagImpl*>({fallback_db.get()});
-  auto traverse_helper = TraverseHelper(*main_db, fallbacks);
-  ASSERT_OK_AND_ASSIGN(auto transition_set,
-                       traverse_helper.GetTransitions(d0, dict_schema));
-
-  std::vector<DataItem> result_items;
-  std::vector<DataItem> result_schemas;
-  std::vector<TraverseHelper::TransitionKey> result_keys;
-  EXPECT_OK(traverse_helper.ForEachObject(
-      d0, dict_schema, transition_set,
-      [&](const DataItem& item, const DataItem& schema,
-          const TraverseHelper::TransitionKey& transition_key) {
-        result_items.push_back(item);
-        result_schemas.push_back(schema);
-        result_keys.push_back(transition_key);
-      }));
-  EXPECT_THAT(result_items, UnorderedElementsAre(a1, a2));
-  EXPECT_EQ(result_keys.size(), 2);
-  EXPECT_THAT(
-      result_keys,
-      UnorderedElementsAre(
-          AllOf(Field(&TraverseHelper::TransitionKey::type,
-                      TraverseHelper::TransitionType::kDictValue),
-                Field(&TraverseHelper::TransitionKey::index, AnyOf(0, 1)),
-                Field(&TraverseHelper::TransitionKey::value,
-                      DataItem(arolla::Text("x")))),
-          AllOf(Field(&TraverseHelper::TransitionKey::type,
-                      TraverseHelper::TransitionType::kDictValue),
-                Field(&TraverseHelper::TransitionKey::index, AnyOf(0, 1)),
-                Field(&TraverseHelper::TransitionKey::value,
-                      DataItem(123)))));
-  EXPECT_THAT(result_schemas, ElementsAre(obj_schema, obj_schema));
 }
 
 }  // namespace
