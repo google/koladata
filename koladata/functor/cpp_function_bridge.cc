@@ -15,7 +15,6 @@
 #include "koladata/functor/cpp_function_bridge.h"
 
 #include <functional>
-#include <memory>
 #include <optional>
 #include <source_location>  // NOLINT(build/c++20): needed for OSS logging.
 #include <string>
@@ -30,6 +29,7 @@
 #include "absl/types/span.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_node.h"
+#include "arolla/expr/expr_operator.h"
 #include "arolla/expr/expr_operator_signature.h"
 #include "arolla/expr/operators/std_function_operator.h"
 #include "arolla/expr/quote.h"
@@ -56,9 +56,9 @@ absl::StatusOr<koladata::DataSlice> CreateFunctorFromStdFunction(
     const arolla::expr::ExprOperatorSignature& signature,
     arolla::expr_operators::StdFunctionOperator::OutputQTypeFn output_qtype_fn,
     std::source_location loc) {
-  auto arolla_op =
-      std::make_shared<arolla::expr_operators::StdFunctionOperator>(
-          name, signature, "", std::move(output_qtype_fn), std::move(fn));
+  auto arolla_op = arolla::expr::MakeExprOperator<
+      arolla::expr_operators::StdFunctionOperator>(
+      name, signature, "", std::move(output_qtype_fn), std::move(fn));
 
   ASSIGN_OR_RETURN(expr::InputContainer input_container,
                    expr::InputContainer::Create("I"));

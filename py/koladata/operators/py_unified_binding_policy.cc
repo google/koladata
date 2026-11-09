@@ -456,7 +456,7 @@ std::optional<QValueOrExpr> AsQValueOrExprVarArgs(
     }
   }
   static const absl::NoDestructor make_tuple_op(
-      std::make_shared<RegisteredOperator>("core.make_tuple"));
+      RegisteredOperator::Make("core.make_tuple"));
   ASSIGN_OR_RETURN(auto result,
                    MakeOpNode(*make_tuple_op, std::move(node_deps)),
                    (SetPyErrFromStatus(_), std::nullopt));
@@ -526,7 +526,7 @@ std::optional<QValueOrExpr> AsQValueOrExprVarKwargs(
   }
   node_deps[0] = arolla::expr::Literal(Text(std::move(field_names)));
   static const absl::NoDestructor namedtuple_op(
-      std::make_shared<RegisteredOperator>("namedtuple.make"));
+      RegisteredOperator::Make("namedtuple.make"));
   ASSIGN_OR_RETURN(auto result,
                    MakeOpNode(*namedtuple_op, std::move(node_deps)),
                    (SetPyErrFromStatus(_), std::nullopt));

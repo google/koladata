@@ -111,7 +111,7 @@ class EvalCompiler {
     for (size_t i = 0; i < inputs.size(); ++i) {
       input_types[i] = inputs[i].GetType();
     }
-    auto expr_op = std::make_shared<arolla::expr::RegisteredOperator>(op_name);
+    auto expr_op = arolla::expr::RegisteredOperator::Make(op_name);
     ASSIGN_OR_RETURN(
         fn, Compiler()
                 // Most of the operators are compiled into rather small

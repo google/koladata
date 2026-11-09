@@ -54,7 +54,7 @@ TEST_F(TransformConfigRegistryTest, ReusesConfigUntilExtended) {
       GetDefaultParallelTransformConfig(/*allow_runtime_transforms=*/true),
       IsOkAndHolds(runtime_config));
 
-  auto op = std::make_shared<DummyOp>(
+  auto op = DummyOp::Make(
       "test.reuse_op", arolla::expr::ExprOperatorSignature::MakeVariadicArgs());
   ASSERT_THAT(arolla::expr::RegisterOperator("test.reuse_op", op), IsOk());
   ASSERT_THAT(
@@ -70,7 +70,7 @@ TEST_F(TransformConfigRegistryTest, ReusesConfigUntilExtended) {
 }
 
 TEST_F(TransformConfigRegistryTest, ResetDropsExtensions) {
-  auto op = std::make_shared<DummyOp>(
+  auto op = DummyOp::Make(
       "test.reset_op", arolla::expr::ExprOperatorSignature::MakeVariadicArgs());
   ASSERT_THAT(arolla::expr::RegisterOperator("test.reset_op", op), IsOk());
   constexpr absl::string_view kExtension =
@@ -87,9 +87,9 @@ TEST_F(TransformConfigRegistryTest, ResetDropsExtensions) {
 }
 
 TEST_F(TransformConfigRegistryTest, ExtendAndGet) {
-  auto from_op = std::make_shared<DummyOp>(
+  auto from_op = DummyOp::Make(
       "test.from_op", arolla::expr::ExprOperatorSignature::MakeVariadicArgs());
-  auto to_op = std::make_shared<DummyOp>(
+  auto to_op = DummyOp::Make(
       "test.to_op", arolla::expr::ExprOperatorSignature::MakeVariadicArgs());
 
   // Register them so LookupOperator can find them.

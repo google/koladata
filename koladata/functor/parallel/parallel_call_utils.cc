@@ -14,7 +14,6 @@
 //
 #include "koladata/functor/parallel/parallel_call_utils.h"
 
-#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -43,7 +42,7 @@ absl::StatusOr<arolla::TypedValue> FutureFromParallel(const ExecutorPtr
                                                       absl_nonnull& executor,
                                                       arolla::TypedRef value) {
   static const absl::NoDestructor<arolla::expr::ExprOperatorPtr> kOp(
-      std::make_shared<arolla::expr::RegisteredOperator>(
+      arolla::expr::RegisteredOperator::Make(
           "koda_internal.parallel.future_from_parallel"));
   return koladata::expr::EvalOpWithCompilationCache(
       *kOp, {arolla::TypedRef::FromValue(executor), value});
@@ -53,7 +52,7 @@ absl::StatusOr<arolla::TypedValue> FutureFromParallel(const ExecutorPtr
 
 absl::StatusOr<arolla::TypedValue> AsParallel(arolla::TypedRef value) {
   static const absl::NoDestructor<arolla::expr::ExprOperatorPtr> kOp(
-      std::make_shared<arolla::expr::RegisteredOperator>(
+      arolla::expr::RegisteredOperator::Make(
           "koda_internal.parallel.as_parallel"));
   return koladata::expr::EvalOpWithCompilationCache(*kOp, {value});
 }

@@ -15,7 +15,6 @@
 #ifndef KOLADATA_EXPR_EXPR_OPERATORS_H_
 #define KOLADATA_EXPR_EXPR_OPERATORS_H_
 
-#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -62,7 +61,7 @@ class LiteralOperator final
  public:
   explicit LiteralOperator(PrivateConstructorTag, arolla::TypedValue value);
 
-  static absl::StatusOr<std::shared_ptr<LiteralOperator>> Make(
+  static absl::StatusOr<arolla::expr::ExprOperatorPtr> Make(
       arolla::TypedValue value);
 
   absl::StatusOr<arolla::expr::ExprAttributes> InferAttributes(

@@ -15,7 +15,6 @@
 #include "koladata/expr/expr_operators.h"
 
 #include <cstdint>
-#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -170,11 +169,11 @@ bool ParseInput(const arolla::expr::ExprNodePtr& node,
   return true;
 }
 
-absl::StatusOr<std::shared_ptr<LiteralOperator>> LiteralOperator::Make(
+absl::StatusOr<arolla::expr::ExprOperatorPtr> LiteralOperator::Make(
     arolla::TypedValue value) {
   RETURN_IF_ERROR(CheckFrozen(value.AsRef()));
-  return std::make_shared<LiteralOperator>(PrivateConstructorTag{},
-                                           std::move(value));
+  return arolla::expr::MakeExprOperator<LiteralOperator>(
+      PrivateConstructorTag{}, std::move(value));
 }
 
 LiteralOperator::LiteralOperator(PrivateConstructorTag,
@@ -230,7 +229,7 @@ NonDeterministicOperator::InferAttributes(
 }
 
 arolla::expr::ExprOperatorPtr MakeToArollaInt64Operator() {
-  return std::make_shared<ToArollaValueOperator>(
+  return arolla::expr::MakeExprOperator<ToArollaValueOperator>(
       "koda_internal.to_arolla_int64",
       "Returns `x` converted into an arolla int64 value.\n"
       "\n"
@@ -246,7 +245,7 @@ arolla::expr::ExprOperatorPtr MakeToArollaInt64Operator() {
 }
 
 arolla::expr::ExprOperatorPtr MakeToArollaTextOperator() {
-  return std::make_shared<ToArollaValueOperator>(
+  return arolla::expr::MakeExprOperator<ToArollaValueOperator>(
       "koda_internal.to_arolla_text",
       "Returns `x` converted into an arolla text value.\n"
       "\n"
@@ -263,7 +262,7 @@ arolla::expr::ExprOperatorPtr MakeToArollaTextOperator() {
 
 arolla::expr::ExprOperatorPtr MakeNameAnnotationOperator() {
   // Use aux-policy with arolla boxing rules for the second parameter.
-  return std::make_shared<arolla::expr::NameAnnotation>(
+  return arolla::expr::MakeExprOperator<arolla::expr::NameAnnotation>(
       "koladata_unified_aux_policy:_p:_arolla_as_qvalue_or_expr;01");
 }
 

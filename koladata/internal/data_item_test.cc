@@ -70,9 +70,8 @@ TEST(DataItemTest, Mask) {
 }
 
 TEST(DataItemTest, ExprQuote) {
-  arolla::expr::ExprOperatorPtr op =
-      std::make_shared<arolla::expr::testing::DummyOp>(
-          "op", arolla::expr::ExprOperatorSignature::MakeVariadicArgs());
+  arolla::expr::ExprOperatorPtr op = arolla::expr::testing::DummyOp::Make(
+      "op", arolla::expr::ExprOperatorSignature::MakeVariadicArgs());
   ASSERT_OK_AND_ASSIGN(auto expr,
                        arolla::expr::CallOp(op, {arolla::expr::Leaf("x")}));
   DataItem item = DataItem(arolla::expr::ExprQuote(expr));

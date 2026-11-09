@@ -15,7 +15,6 @@
 #include "koladata/expr/expr_operators.h"
 
 #include <cstdint>
-#include <memory>
 #include <optional>
 #include <vector>
 
@@ -27,6 +26,7 @@
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_attributes.h"
 #include "arolla/expr/expr_node.h"
+#include "arolla/expr/expr_operator.h"
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/bytes.h"
@@ -137,8 +137,7 @@ TEST(InputContainerTest, Container) {
 }
 
 TEST(InputContainerTest, InputContainer_ParseBrokenInput) {
-  auto input_op =
-      std::make_shared<arolla::expr::RegisteredOperator>("koda_internal.input");
+  auto input_op = arolla::expr::RegisteredOperator::Make("koda_internal.input");
   {
     auto lit = arolla::expr::Literal(arolla::Bytes("x"));
     auto expr = arolla::expr::ExprNode::UnsafeMakeOperatorNode(
@@ -150,7 +149,8 @@ TEST(InputContainerTest, InputContainer_ParseBrokenInput) {
   {
     auto leaf = arolla::expr::Leaf("x");
     auto expr = arolla::expr::ExprNode::UnsafeMakeOperatorNode(
-        input_op, std::vector{leaf, leaf}, arolla::expr::ExprAttributes());
+        arolla::expr::ExprOperatorPtr(input_op), std::vector{leaf, leaf},
+        arolla::expr::ExprAttributes());
     absl::string_view container_name;
     absl::string_view input_key;
     EXPECT_FALSE(ParseInput(expr, container_name, input_key));

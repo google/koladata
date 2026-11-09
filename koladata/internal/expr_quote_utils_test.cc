@@ -14,8 +14,6 @@
 //
 #include "koladata/internal/expr_quote_utils.h"
 
-#include <memory>
-
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "arolla/expr/expr.h"
@@ -50,9 +48,8 @@ TEST(ExprQuoteUtils, StableFingerprint_MissingExpr_Error) {
 }
 
 TEST(ExprQuoteUtils, StableFingerprint_SerializationFailed_Error) {
-  arolla::expr::ExprOperatorPtr op =
-      std::make_shared<arolla::expr::testing::DummyOp>(
-          "op", arolla::expr::ExprOperatorSignature::MakeVariadicArgs());
+  arolla::expr::ExprOperatorPtr op = arolla::expr::testing::DummyOp::Make(
+      "op", arolla::expr::ExprOperatorSignature::MakeVariadicArgs());
   ASSERT_OK_AND_ASSIGN(auto expr,
                        arolla::expr::CallOp(op, {arolla::expr::Leaf("x")}));
   // Missing codec for DummyOp.
@@ -61,9 +58,8 @@ TEST(ExprQuoteUtils, StableFingerprint_SerializationFailed_Error) {
 }
 
 TEST(ExprQuoteUtils, ExprQuoteDebugString) {
-  arolla::expr::ExprOperatorPtr op =
-      std::make_shared<arolla::expr::testing::DummyOp>(
-          "op", arolla::expr::ExprOperatorSignature::MakeVariadicArgs());
+  arolla::expr::ExprOperatorPtr op = arolla::expr::testing::DummyOp::Make(
+      "op", arolla::expr::ExprOperatorSignature::MakeVariadicArgs());
   ASSERT_OK_AND_ASSIGN(auto expr_1,
                        arolla::expr::CallOp(op, {arolla::expr::Leaf("x")}));
   ASSERT_OK_AND_ASSIGN(auto expr_2,

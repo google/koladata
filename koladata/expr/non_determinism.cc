@@ -15,7 +15,6 @@
 #include "koladata/expr/non_determinism.h"
 
 #include <cstdint>
-#include <memory>
 
 #include "absl/base/no_destructor.h"
 #include "absl/status/statusor.h"
@@ -33,7 +32,7 @@ using ::arolla::expr::RegisteredOperator;
 
 absl::StatusOr<arolla::expr::ExprNodePtr> GenNonDeterministicToken() {
   static const absl::NoDestructor op(
-      std::make_shared<RegisteredOperator>("koda_internal.non_deterministic"));
+      RegisteredOperator::Make("koda_internal.non_deterministic"));
   static const absl::NoDestructor leaf(Leaf(kNonDeterministicTokenLeafKey));
   return MakeOpNode(
       *op,

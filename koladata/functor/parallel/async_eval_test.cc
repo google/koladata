@@ -68,6 +68,7 @@ using ::arolla::expr::ExprOperatorPtr;
 using ::arolla::expr::ExprOperatorSignature;
 using ::arolla::expr::Literal;
 using ::arolla::expr::LookupOperator;
+using ::arolla::expr::MakeExprOperator;
 using ::arolla::expr::MakeLambdaOperator;
 using ::arolla::expr::Placeholder;
 using ::arolla::expr_operators::StdFunctionOperator;
@@ -270,7 +271,7 @@ TEST(AsyncEvalTest, Multithreaded) {
     // on the streams themselves to communicate between parts of
     // the computation. This use of barriers is for testing purposes
     // only.
-    auto wait_for_barrier_op = std::make_shared<StdFunctionOperator>(
+    auto wait_for_barrier_op = MakeExprOperator<StdFunctionOperator>(
         "internal", x_signature, "", get_data_slice_output_type,
         [barrier, &counter](absl::Span<const TypedRef> inputs) {
           if (barrier->Block()) delete barrier;
@@ -324,7 +325,7 @@ TEST(AsyncEvalTest, CancellationContextPropagation) {
     return GetQType<int>();
   };
   bool should_fail = false;
-  auto async_op = std::make_shared<StdFunctionOperator>(
+  auto async_op = MakeExprOperator<StdFunctionOperator>(
       "internal", ExprOperatorSignature{{"x"}}, "", get_int_output_type,
       [&should_fail](absl::Span<const TypedRef> inputs) {
         auto cancellation_context = arolla::CurrentCancellationContext();
