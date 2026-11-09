@@ -141,7 +141,7 @@ void ReportUnprocessedKeywordArguments(const PyVarKwarg& py_var_kwargs);
 // `false` and sets the corresponding Python exception.
 bool UnifiedBindArguments(const ExprOperatorSignature& signature,
                           absl::string_view binding_options, PyObject** py_args,
-                          Py_ssize_t nargsf, PyObject* py_tuple_kwnames,
+                          size_t nargsf, PyObject* py_tuple_kwnames,
                           std::vector<PyObject*>& result_py_bound_args,
                           absl::Span<PyObject*>& result_py_var_args,
                           PyVarKwarg& result_py_var_kwargs) {
@@ -702,8 +702,8 @@ class UnifiedBindingPolicy : public AuxBindingPolicy {
 
   // (See the base class.)
   bool BindArguments(
-      const ExprOperatorSignature& signature, PyObject** py_args,
-      Py_ssize_t nargsf, PyObject* py_tuple_kwnames,
+      const ExprOperatorSignature& signature, PyObject** py_args, size_t nargsf,
+      PyObject* py_tuple_kwnames,
       std::vector<QValueOrExpr>* absl_nonnull result) const final {
     DCheckPyGIL();
     absl::string_view binding_options;

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import types
+
 from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import input_container
@@ -220,6 +222,19 @@ class EvalOpTest(absltest.TestCase):
     x = arolla.int32(1)
     with self.assertRaisesWithLiteralMatch(ValueError, '[CANCELLED]'):
       eval_op(op, x)
+
+  def test_eval_op_does_not_mutate_unpacked_tuple(self):
+    op = arolla.LambdaOperator('|adhoc_aux_policy', ds(42))
+    packed = (op,)
+
+    def bind_arguments(_):
+      self.assertIs(packed[0], op)
+      return ()
+
+    arolla.abc.register_adhoc_aux_binding_policy(
+        op, types.MethodType(bind_arguments, object())
+    )
+    _ = eval_op(*packed)
 
 
 if __name__ == '__main__':
