@@ -46,7 +46,7 @@ namespace koladata::internal {
 // Dictionary DataItem -> DataItem with a link to parent.
 class Dict {
  public:
-  static const Dict& Empty();
+  static const Dict& Empty() { return *empty_dict_; }
 
   void Clear() {
     std::vector<DataItem> keys = GetKeys({});
@@ -193,6 +193,7 @@ class Dict {
   const Dict* parent_ = nullptr;
 
   static const absl::NoDestructor<DataItem> empty_item_;
+  static const absl::NoDestructor<Dict> empty_dict_;
 };
 
 // Vector of dictionaries. Can be created from shared_ptr to another DictVector
@@ -297,10 +298,15 @@ class DictVector {
     return GetFromMap(index);
   }
 
-  // Returns the dictionary at `index`, or `Dict::Empty()` if unset.
+  // Returns the dictionary at `index`, or an empty dictionary if unset.
   const Dict& GetOrEmpty(size_t index) const {
-    const Dict* dict = Get(index);
-    return dict != nullptr ? *dict : Dict::Empty();
+    DCHECK_LT(index, size());
+    if (std::holds_alternative<Array>(data_)) {
+      // Unset array slots are already empty Dicts; return directly to avoid
+      // emptiness branches and Dict::Empty() calls on the hot path.
+      return std::get<Array>(data_)[index];
+    }
+    return GetOrEmptyFromMap(index);
   }
 
   Dict& GetMutable(size_t index) {
@@ -314,20 +320,23 @@ class DictVector {
   // Note: it doesn't include parent's size.
   void AppendMemoryStats(MemoryStatsEntry& stats) const;
 
+  // Returns true if this DictVector and all of its ancestors store dicts in
+  // sparse Map mode without a shared single parent dict.
+  bool IsSparse() const {
+    for (const DictVector* dv = this; dv != nullptr; dv = dv->parent_.get()) {
+      if (std::holds_alternative<Array>(dv->data_) ||
+          dv->single_parent_dict_ptr_ != nullptr) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   // Calls `callback(size_t index, const Dict& d)` for each present dictionary.
   // Iteration stops on the first error and returns that status.
   template <typename Callback>
   absl::Status ForEachDict(Callback&& callback) const {
-    bool dense_iteration = false;
-    for (const DictVector* dv = this; dv != nullptr; dv = dv->parent_.get()) {
-      if (std::holds_alternative<Array>(dv->data_) ||
-          dv->single_parent_dict_ptr_ != nullptr) {
-        dense_iteration = true;
-        break;
-      }
-    }
-
-    if (dense_iteration) {
+    if (!IsSparse()) {
       for (size_t i = 0; i < size_; ++i) {
         const Dict* dict = Get(i);
         if (dict != nullptr) {
@@ -365,6 +374,7 @@ class DictVector {
  private:
   const Dict* GetParentDict(size_t index) const;
   const Dict* absl_nullable GetFromMap(size_t index) const;
+  const Dict& GetOrEmptyFromMap(size_t index) const;
   Dict& GetMutableFromArray(size_t index);
   Dict& GetMutableFromMap(size_t index);
 

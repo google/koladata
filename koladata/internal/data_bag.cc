@@ -2327,28 +2327,45 @@ class DataBagImpl::ReadOnlyDictGetter {
 
   // Returns reference to dict if found, otherwise returns Dict::Empty().
   const Dict& operator()(ObjectId dict_id) {
-    AllocationId alloc_id(dict_id);
-    if (alloc_id != current_alloc_) {
-      if (ABSL_PREDICT_FALSE(!alloc_check_(alloc_id))) {
-        status_ = absl::FailedPreconditionError("dicts expected");
-        return Dict::Empty();
-      }
-      dicts_vec_ = bag_->GetConstDictsOrNull(alloc_id);
-      current_alloc_ = alloc_id;
+    if (const DictVector* dicts_vec = GetDictsVec(AllocationId(dict_id));
+        dicts_vec != nullptr) {
+      return dicts_vec->GetOrEmpty(dict_id.Offset());
     }
-    return dicts_vec_ ? (*dicts_vec_)->GetOrEmpty(dict_id.Offset())
-                      : Dict::Empty();
+    return Dict::Empty();
+  }
+
+  // Returns pointer to dict if found and non-empty, otherwise returns nullptr.
+  // Used for fallbacks because GetOrEmpty returns in-array empty Dicts.
+  const Dict* absl_nullable GetOrNull(ObjectId dict_id) {
+    if (const DictVector* dicts_vec = GetDictsVec(AllocationId(dict_id));
+        dicts_vec != nullptr) {
+      return dicts_vec->Get(dict_id.Offset());
+    }
+    return nullptr;
   }
 
   const absl::Status& status() { return status_; }
 
  private:
+  // Caches the DictVector pointer for the current allocation across lookups.
+  const DictVector* absl_nullable GetDictsVec(AllocationId alloc_id) {
+    if (alloc_id != current_alloc_) {
+      if (ABSL_PREDICT_FALSE(!alloc_check_(alloc_id))) {
+        status_ = absl::FailedPreconditionError("dicts expected");
+        return nullptr;
+      }
+      const auto* dicts = bag_->GetConstDictsOrNull(alloc_id);
+      dicts_vec_ = dicts != nullptr ? dicts->get() : nullptr;
+      current_alloc_ = alloc_id;
+    }
+    return dicts_vec_;
+  }
+
   const DataBagImpl* bag_ = nullptr;
   AllocCheckFn alloc_check_;
   absl::Status status_ = absl::OkStatus();
   std::optional<AllocationId> current_alloc_;
-  const std::shared_ptr<DictVector>* dicts_vec_ = nullptr;
-  static const Dict empty_dict_;
+  const DictVector* dicts_vec_ = nullptr;
 };
 
 template <class AllocCheckFn>
@@ -2424,8 +2441,8 @@ DataBagImpl::GetDictKeysOrValues(const DataSliceImpl& dicts,
         if (!fallbacks.empty()) {
           fallback_dicts.clear();
           for (auto& fallback_getter : dict_fallback_getters) {
-            if (auto* fb_dict = &fallback_getter(dict_id);
-                fb_dict != &Dict::Empty()) {
+            if (const Dict* fb_dict = fallback_getter.GetOrNull(dict_id);
+                fb_dict != nullptr) {
               fallback_dicts.push_back(fb_dict);
             }
           }
@@ -2494,8 +2511,8 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetDictSize(
     sizes = arolla::CreateDenseOp([&](ObjectId dict_id) -> int64_t {
       fallback_dicts.clear();
       for (auto& fallback_getter : dict_fallback_getters) {
-        if (auto* fb_dict = &fallback_getter(dict_id);
-            fb_dict != &Dict::Empty()) {
+        if (const Dict* fb_dict = fallback_getter.GetOrNull(dict_id);
+            fb_dict != nullptr) {
           fallback_dicts.push_back(fb_dict);
         }
       }
@@ -2834,45 +2851,42 @@ absl::StatusOr<DataItem> DataBagImpl::GetDictSize(
 }
 
 template <typename Key>
-ABSL_ATTRIBUTE_ALWAYS_INLINE std::optional<DataItem>
+ABSL_ATTRIBUTE_ALWAYS_INLINE const DataItem* absl_nullable
 DataBagImpl::GetFromDictObject(ObjectId dict_id, const Key& key) const {
   AllocationId alloc_id(dict_id);
   if (const auto* dicts = GetConstDictsOrNull(alloc_id); dicts != nullptr) {
-    if (auto res_opt = (*dicts)->GetOrEmpty(dict_id.Offset()).Get(key);
-        res_opt.has_value()) {
-      return res_opt->get();
+    if (auto res = (*dicts)->GetOrEmpty(dict_id.Offset()).Get(key);
+        res.has_value()) {
+      return &res->get();
     }
   }
-  return std::nullopt;
+  return nullptr;
 }
 
 template <typename Key>
-ABSL_ATTRIBUTE_ALWAYS_INLINE std::optional<DataItem>
+ABSL_ATTRIBUTE_ALWAYS_INLINE const DataItem* absl_nullable
 DataBagImpl::GetFromDictObjectWithFallbacks(ObjectId dict_id, const Key& key,
                                             FallbackSpan fallbacks) const {
+  // Check fallbacks.empty() before the lookup to avoid spilling fallback state
+  // to the stack on the common no-fallback path.
   if (ABSL_PREDICT_TRUE(fallbacks.empty())) {
     return GetFromDictObject(dict_id, key);
+  }
+  if (const DataItem* res = GetFromDictObject(dict_id, key); res != nullptr) {
+    return res;
   }
   AllocationId alloc_id(dict_id);
   size_t alloc_hash = absl::HashOf(alloc_id);
   int64_t offset = dict_id.Offset();
-  if (const auto* dicts = GetConstDictsOrNull(alloc_id, alloc_hash);
-      dicts != nullptr) {
-    auto res = (*dicts)->GetOrEmpty(offset).Get(key);
-    if (res.has_value() || fallbacks.empty()) {
-      return res->get();
-    }
-  }
   for (const DataBagImpl* fallback : fallbacks) {
     if (const auto* dicts = fallback->GetConstDictsOrNull(alloc_id, alloc_hash);
         dicts != nullptr) {
-      auto res = (*dicts)->GetOrEmpty(offset).Get(key);
-      if (res.has_value()) {
-        return res->get();
+      if (auto res = (*dicts)->GetOrEmpty(offset).Get(key); res.has_value()) {
+        return &res->get();
       }
     }
   }
-  return std::nullopt;
+  return nullptr;
 }
 
 absl::StatusOr<DataItem> DataBagImpl::GetFromDict(
@@ -2881,8 +2895,12 @@ absl::StatusOr<DataItem> DataBagImpl::GetFromDict(
     return DataItem();
   }
   ASSIGN_OR_RETURN(ObjectId dict_id, ItemToDictObjectId(dict));
-  return GetFromDictObjectWithFallbacks(dict_id, key, fallbacks)
-      .value_or(DataItem());
+  if (const DataItem* res =
+          GetFromDictObjectWithFallbacks(dict_id, key, fallbacks);
+      res != nullptr) {
+    return *res;
+  }
+  return DataItem();
 }
 
 absl::Status DataBagImpl::SetInDict(const DataItem& dict, const DataItem& key,
@@ -3033,8 +3051,12 @@ DataBagImpl::GetSchemaAttrAllowMissingWithRemoved(
   }
   ASSIGN_OR_RETURN(ObjectId schema_id, ItemToSchemaObjectId(schema_item));
   if (schema_id.IsSmallAlloc()) {
-    return GetFromDictObjectWithFallbacks(
-        schema_id, DataItem::View<arolla::Text>(attr), fallbacks);
+    if (const DataItem* res = GetFromDictObjectWithFallbacks(
+            schema_id, DataItem::View<arolla::Text>(attr), fallbacks);
+        res != nullptr) {
+      return *res;
+    }
+    return std::nullopt;
   }
   return GetAttrWithRemoved(schema_id, attr, fallbacks);
 }
@@ -4359,9 +4381,23 @@ absl::StatusOr<DataBagContent> DataBagImpl::ExtractContent(
     if (const std::shared_ptr<DictVector>* dict_vector =
             DataBagImpl::GetConstDictsOrNull(alloc);
         dict_vector != nullptr) {
-      for (size_t i = 0; i < (**dict_vector).size(); ++i) {
-        AddDictToContent(alloc.ObjectByOffset(i),
-                         (*dict_vector)->GetOrEmpty(i), content.dicts);
+      size_t start_idx = content.dicts.size();
+      // Visit only populated dicts to avoid O(capacity) lookups in sparse Map
+      // mode.
+      (*dict_vector)
+          ->ForEachDict([&](size_t i, const Dict& dict) -> absl::Status {
+            AddDictToContent(alloc.ObjectByOffset(i), dict, content.dicts);
+            return absl::OkStatus();
+          })
+          .IgnoreError();
+      if ((*dict_vector)->IsSparse()) {
+        // Sparse Map iteration follows flat_hash_map order; sort by dict_id to
+        // match the deterministic offset order of dense iteration.
+        std::sort(content.dicts.begin() + start_idx, content.dicts.end(),
+                  [](const DataBagContent::DictContent& lhs,
+                     const DataBagContent::DictContent& rhs) {
+                    return lhs.dict_id < rhs.dict_id;
+                  });
       }
     }
   }

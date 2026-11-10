@@ -1013,8 +1013,10 @@ TEST(DictTest, DictVectorGetOrEmpty) {
 
     EXPECT_EQ(&vec.GetOrEmpty(0), vec.Get(0));
     EXPECT_THAT(vec.GetOrEmpty(0).Get(1), Optional(RefWrap(10)));
-    EXPECT_EQ(&vec.GetOrEmpty(1), &Dict::Empty());
-    EXPECT_EQ(&vec.GetOrEmpty(2), &Dict::Empty());
+    EXPECT_EQ(vec.GetOrEmpty(1).GetSizeNoFallbacks(), 0);
+    EXPECT_EQ(vec.GetOrEmpty(2).GetSizeNoFallbacks(), 0);
+    EXPECT_EQ(vec.Get(1), nullptr);
+    EXPECT_EQ(vec.Get(2), nullptr);
   }
 
   {
@@ -1045,6 +1047,22 @@ TEST(DictTest, DictVectorGetOrEmpty) {
     EXPECT_EQ(&derived.GetOrEmpty(2), parent->Get(2));
     EXPECT_EQ(&derived.GetOrEmpty(5), &Dict::Empty());
     EXPECT_TRUE(DictVectorTestFriend::is_map_mode(derived));
+
+    // Subsequent parent mutation on slot 5 is still visible through derived
+    // because derived.GetOrEmpty(5) did not materialize an entry in derived.
+    parent->GetMutable(5).Set(9, DataItem(90));
+    EXPECT_THAT(derived.GetOrEmpty(5).Get(9), Optional(RefWrap(90)));
+  }
+
+  {
+    SCOPED_TRACE("single parent dict map mode");
+    auto single_parent = std::make_shared<Dict>();
+    single_parent->Set(DataItem(1), DataItem(100));
+    DictVector vec(10, single_parent, /*update_size=*/1);
+    ASSERT_TRUE(DictVectorTestFriend::is_map_mode(vec));
+
+    EXPECT_THAT(vec.GetOrEmpty(7).Get(DataItem(1)), Optional(RefWrap(100)));
+    EXPECT_EQ(&vec.GetOrEmpty(7), single_parent.get());
   }
 }
 

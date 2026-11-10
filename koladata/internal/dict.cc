@@ -185,12 +185,8 @@ void Dict::AppendMemoryStats(MemoryStatsEntry& stats) const {
   }
 }
 
-const Dict& Dict::Empty() {
-  static const absl::NoDestructor<Dict> kEmptyDict;
-  return *kEmptyDict;
-}
-
 const absl::NoDestructor<DataItem> Dict::empty_item_;
+const absl::NoDestructor<Dict> Dict::empty_dict_;
 
 void DictVector::Map::ConvertToArray(Array& array, const DictVector* parent,
                                      const Dict* single_parent_dict) && {
@@ -232,6 +228,13 @@ const Dict* absl_nullable DictVector::GetFromMap(size_t index) const {
     return &it->second;
   }
   return GetParentDict(index);
+}
+
+const Dict& DictVector::GetOrEmptyFromMap(size_t index) const {
+  if (const Dict* dict = GetFromMap(index); dict != nullptr) {
+    return *dict;
+  }
+  return Dict::Empty();
 }
 
 Dict& DictVector::GetMutableFromArray(size_t index) {

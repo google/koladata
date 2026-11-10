@@ -522,5 +522,40 @@ TEST(DataBagTest, DictFallbacksSingleItemManyKeysWithRemovedValues) {
       IsOkAndHolds(Pair(UnorderedElementsAre(DataItem(), DataItem(7)), _)));
 }
 
+TEST(DataBagTest,
+     GetStatisticsAndExtractContentDoNotInvalidateForkParentPointers) {
+  AllocationId alloc = AllocateDicts(16);
+  DataItem dict_0(alloc.ObjectByOffset(0));
+  DataItem dict_10(alloc.ObjectByOffset(10));
+
+  auto base_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(base_db->SetInDict(dict_10, DataItem(2), DataItem(20)));
+  ASSERT_OK(base_db->SetInDict(dict_0, DataItem(1), DataItem(10)));
+
+  auto fork_a = base_db->PartiallyPersistentFork();
+  auto fork_b = base_db->PartiallyPersistentFork();
+  // fork_b's DictVector holds a raw parent_ pointer into base_db's Map-mode
+  // DictVector.
+  ASSERT_OK(fork_b->SetInDict(dict_0, DataItem(3), DataItem(30)));
+
+  const int64_t base_bytes_before = base_db->GetApproxTotalByteSize();
+
+  ASSERT_OK_AND_ASSIGN(auto stats, fork_a->GetStatistics());
+  EXPECT_EQ(stats.total_non_empty_dicts, 2);
+  EXPECT_EQ(stats.total_items_in_dicts, 2);
+
+  ASSERT_OK_AND_ASSIGN(auto content,
+                       fork_a->ExtractContent(fork_a->CreateIndex()));
+  ASSERT_EQ(content.dicts.size(), 2);
+  EXPECT_EQ(content.dicts[0].dict_id, alloc.ObjectByOffset(0));
+  EXPECT_EQ(content.dicts[1].dict_id, alloc.ObjectByOffset(10));
+
+  EXPECT_EQ(base_db->GetApproxTotalByteSize(), base_bytes_before);
+  EXPECT_THAT(fork_b->GetFromDict(dict_0, DataItem(1)),
+              IsOkAndHolds(DataItem(10)));
+  EXPECT_THAT(fork_b->GetFromDict(dict_0, DataItem(3)),
+              IsOkAndHolds(DataItem(30)));
+}
+
 }  // namespace
 }  // namespace koladata::internal

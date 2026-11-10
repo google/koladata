@@ -28,6 +28,7 @@
 #include <vector>
 
 #include "absl/base/attributes.h"
+#include "absl/base/nullability.h"
 #include "absl/base/optimization.h"
 #include "absl/container/btree_map.h"
 #include "absl/container/flat_hash_map.h"
@@ -1054,14 +1055,14 @@ class DataBagImpl : public arolla::RefcountedBase {
 
   // Lower level utility to lookup in Dict by provided ObjectId.
   // This function bypass verification and support custom key.
-  // Nullopt result means that the dict doesn't have the requested key (i.e.
+  // Nullptr result means that the dict doesn't have the requested key (i.e.
   // that value vas never set). Empty DataItem means REMOVED value (i.e.
   // explicitly assigned to empty DataItem).
   template <typename Key>
-  std::optional<DataItem> GetFromDictObject(ObjectId dict_id,
-                                            const Key& key) const;
+  const DataItem* absl_nullable GetFromDictObject(ObjectId dict_id,
+                                                  const Key& key) const;
   template <typename Key>
-  std::optional<DataItem> GetFromDictObjectWithFallbacks(
+  const DataItem* absl_nullable GetFromDictObjectWithFallbacks(
       ObjectId dict_id, const Key& key, FallbackSpan fallbacks) const;
 
   // Create (if not yet created) and return DictVector for given `alloc_id`
