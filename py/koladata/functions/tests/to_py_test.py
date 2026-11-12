@@ -1400,12 +1400,16 @@ class ToPyTest(parameterized.TestCase):
 
   def test_empty_object(self):
     x = fns.obj()
-    self.assertEqual(py_conversions.to_py(x), {})
+    self.assertEqual(
+        py_conversions.to_py(x), dataclasses.make_dataclass('Obj', [])()
+    )
     self.assertEqual(py_conversions.to_py(x, obj_as_dict=True), {})
 
   def test_empty_entity(self):
     entity = fns.new()
-    self.assertEqual(py_conversions.to_py(entity), {})
+    self.assertEqual(
+        py_conversions.to_py(entity), dataclasses.make_dataclass('Obj', [])()
+    )
     self.assertEqual(py_conversions.to_py(entity, obj_as_dict=True), {})
 
   def test_obj_as_dict_with_output_class(self):

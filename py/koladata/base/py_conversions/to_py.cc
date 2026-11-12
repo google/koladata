@@ -38,7 +38,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/text.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -667,43 +666,25 @@ class ToPyVisitor : public internal::AbstractVisitor {
     }
 
     if (!obj_as_dict_ && item.is_entity() && schema.is_struct_schema()) {
-      ASSIGN_OR_RETURN(DataSliceImpl attr_names,
-                       db_->GetImpl().GetSchemaAttrs(schema, fallback_span_));
-      if (attr_names.size() == 0) {
-        PyObjectPtr result = PyObjectPtr::Own(PyDict_New());
-        if (result == nullptr) {
-          return arolla::python::StatusWithRawPyErr(
-              absl::StatusCode::kInternal, "could not create a new dict");
-        }
-        converted_object_cache_[object_id] = std::move(result);
-        return true;
-      }
+      ASSIGN_OR_RETURN(
+          std::vector<DataItem> attr_names,
+          db_->GetImpl().GetSchemaAttrsAsVector(schema, fallback_span_));
       std::vector<absl::string_view> attr_names_vec;
       attr_names_vec.reserve(attr_names.size());
-      if (attr_names.dtype() != arolla::GetQType<arolla::Text>()) {
-        return absl::InternalError("dtype of attribute names must be STRING");
+      for (const DataItem& attr_item : attr_names) {
+        absl::string_view attr = attr_item.value<arolla::Text>().view();
+        if (!schema::IsSchemaAnnotationAttr(attr)) {
+          // TODO: Add tests for metadata support.
+          attr_names_vec.push_back(attr);
+        }
       }
-      if (attr_names.present_count() != attr_names.size()) {
-        return absl::InternalError("attributes must be non-empty");
-      }
-      std::string schema_name = "Obj";
-
-      attr_names.values<arolla::Text>().ForEachPresent(
-          [&](int64_t id, absl::string_view attr) {
-            if (attr == schema::kSchemaNameAttr) {
-              absl::StatusOr<internal::DataItem> assigned_name =
-                  db_->GetImpl().GetSchemaAttr(schema, schema::kSchemaNameAttr,
-                                               {});
-              if (assigned_name.ok() && assigned_name->has_value() &&
-                  assigned_name->holds_value<arolla::Text>()) {
-                schema_name =
-                    std::string(assigned_name->value<arolla::Text>().view());
-              }
-            } else if (!schema::IsSchemaAnnotationAttr(attr)) {
-              // TODO: Add tests for metadata support.
-              attr_names_vec.push_back(attr);
-            }
-          });
+      ASSIGN_OR_RETURN(DataItem schema_name_attr,
+                       db_->GetImpl().GetSchemaAttrAllowMissing(
+                           schema, schema::kSchemaNameAttr, fallback_span_));
+      absl::string_view schema_name =
+          schema_name_attr.holds_value<arolla::Text>()
+              ? schema_name_attr.value<arolla::Text>().view()
+              : "Obj";
 
       // Do not store the class in the cache, just create an instance.
       ASSIGN_OR_RETURN(
