@@ -92,15 +92,17 @@ class ToPyVisitor : public internal::AbstractVisitor {
               const absl::flat_hash_set<ObjectId>& objects_not_to_convert,
               DataBagPtr db, internal::DataBagImpl::FallbackSpan fallback_span,
               std::optional<DataClassesUtil::FieldTypeDescriptor>
-                  output_class_descriptor)
+                  output_class_descriptor,
+              DataClassesUtil dataclasses_util)
       : obj_as_dict_(obj_as_dict),
         include_missing_attrs_(include_missing_attrs),
         objects_not_to_convert_(objects_not_to_convert),
+        dataclasses_util_(std::move(dataclasses_util)),
         db_(std::move(db)),
         fallback_span_(fallback_span),
         output_class_descriptor_(std::move(output_class_descriptor)) {}
 
-  ItemToPyConverter GetItemToPyConverter(const DataItem& schema) {
+  ItemToPyConverter GetItemToPyConverter() {
     return [&](const DataItem& item) -> absl::StatusOr<PyObjectPtr> {
       return GetConvertedPyObjectOrCreatePrimitive(item,
                                                    output_class_descriptor_);
@@ -157,21 +159,19 @@ class ToPyVisitor : public internal::AbstractVisitor {
                  : FindAndStoreClassResult::kStoredClass;
     }
 
-    std::string attr_name;
+    absl::string_view attr_name;
     if (transition_key->type == TransitionType::kAttributeName) {
       DCHECK(transition_key->value.holds_value<arolla::Text>());
-      attr_name =
-          std::string(transition_key->value.value<arolla::Text>().view());
+      attr_name = transition_key->value.value<arolla::Text>().view();
     } else if (transition_key->type == TransitionType::kListItem) {
-      attr_name = std::string(schema::kListItemsSchemaAttr);
+      attr_name = schema::kListItemsSchemaAttr;
     } else if (transition_key->type == TransitionType::kDictKey) {
-      attr_name = std::string(schema::kDictKeysSchemaAttr);
+      attr_name = schema::kDictKeysSchemaAttr;
     } else if (transition_key->type == TransitionType::kDictValue) {
       if (transition_key->value.holds_value<arolla::Text>()) {
-        attr_name =
-            std::string(transition_key->value.value<arolla::Text>().view());
+        attr_name = transition_key->value.value<arolla::Text>().view();
       } else {
-        attr_name = std::string(schema::kDictValuesSchemaAttr);
+        attr_name = schema::kDictValuesSchemaAttr;
       }
     } else {
       // Other transition types (e.g. kSchemaAttributeName, kObjectSchema,
@@ -188,7 +188,8 @@ class ToPyVisitor : public internal::AbstractVisitor {
     }
 
     ASSIGN_OR_RETURN(PyObject * parent_class, GetCachedClass(from_item));
-    std::pair<PyObject*, std::string> path_key(parent_class, attr_name);
+    std::pair<PyObject*, std::string> path_key(parent_class,
+                                               std::string(attr_name));
 
     std::optional<DataClassesUtil::FieldTypeDescriptor> field_type;
     auto class_cached_by_path_it = classes_by_path_.find(path_key);
@@ -264,7 +265,7 @@ class ToPyVisitor : public internal::AbstractVisitor {
     DCHECK(PyList_CheckExact(py_list.get()));
     ASSIGN_OR_RETURN(
         std::optional<DataClassesUtil::FieldTypeDescriptor> attr_class,
-        GetAttrClass(list, schema::kListItemsSchemaAttr));
+        GetCachedAttrClass(list, schema::kListItemsSchemaAttr));
     for (const DataItem& item : items) {
       ASSIGN_OR_RETURN(PyObjectPtr py_item,
                        GetConvertedPyObjectOrCreatePrimitive(item, attr_class));
@@ -317,7 +318,7 @@ class ToPyVisitor : public internal::AbstractVisitor {
 
     ASSIGN_OR_RETURN(
         std::optional<DataClassesUtil::FieldTypeDescriptor> attr_class,
-        GetAttrClass(list, schema::kListItemsSchemaAttr));
+        GetAttrClass(result_class, schema::kListItemsSchemaAttr));
     if (real_result_class.get() == (PyObject*)&PyTuple_Type) {
       result = PyObjectPtr::Own(PyTuple_New(items.size()));
     } else {
@@ -383,31 +384,23 @@ class ToPyVisitor : public internal::AbstractVisitor {
     }
     ObjectId dict_id = dict.value<ObjectId>();
 
-    // In case of output_class_descriptor_ is provided, these will fail
-    // if the class for this dict is not a dict. If it is a SimpleNamespace
-    // or a Dataclass, std::nullopt will be returned and not used.
-    ASSIGN_OR_RETURN(
-        std::optional<DataClassesUtil::FieldTypeDescriptor> dict_keys_class,
-        GetAttrClass(dict, schema::kDictKeysSchemaAttr));
-    ASSIGN_OR_RETURN(
-        std::optional<DataClassesUtil::FieldTypeDescriptor> dict_values_class,
-        GetAttrClass(dict, schema::kDictValuesSchemaAttr));
-
-    DCHECK_EQ(keys.size(), values.size());
-    DataItem dict_schema = schema;
-    if (is_object_schema) {
-      ASSIGN_OR_RETURN(dict_schema,
-                       db_->GetImpl().GetObjSchemaAttr(dict, fallback_span_));
-    }
-    ASSIGN_OR_RETURN(DataItem key_schema,
-                     db_->GetImpl().GetSchemaAttr(
-                         schema, schema::kDictKeysSchemaAttr, fallback_span_));
-
     PyObject* result_class = nullptr;
     if (output_class_descriptor_.has_value()) {
       ASSIGN_OR_RETURN(result_class,
                        GetCachedClass(dict, /*return_none_if_not_found=*/true));
     }
+
+    // In case of output_class_descriptor_ is provided, these will fail
+    // if the class for this dict is not a dict. If it is a SimpleNamespace
+    // or a Dataclass, std::nullopt will be returned and not used.
+    ASSIGN_OR_RETURN(
+        std::optional<DataClassesUtil::FieldTypeDescriptor> dict_keys_class,
+        GetAttrClass(result_class, schema::kDictKeysSchemaAttr));
+    ASSIGN_OR_RETURN(
+        std::optional<DataClassesUtil::FieldTypeDescriptor> dict_values_class,
+        GetAttrClass(result_class, schema::kDictValuesSchemaAttr));
+
+    DCHECK_EQ(keys.size(), values.size());
 
     ASSIGN_OR_RETURN(bool is_dict_target,
                      IsDictTargetForDictInput(result_class));
@@ -416,6 +409,12 @@ class ToPyVisitor : public internal::AbstractVisitor {
 
     // If the target is a dict, we set the items in the dict.
     if (is_dict_target) {
+      DataItem key_schema;
+      if (!output_class_descriptor_.has_value()) {
+        ASSIGN_OR_RETURN(key_schema, db_->GetImpl().GetSchemaAttr(
+                                         schema, schema::kDictKeysSchemaAttr,
+                                         fallback_span_));
+      }
       // If the dict was not created yet, we create it.
       if (result == nullptr) {
         if (result_class == nullptr || result_class == Py_None) {
@@ -505,13 +504,22 @@ class ToPyVisitor : public internal::AbstractVisitor {
   // If the object is a SimpleNamespace, returns nullopt to indicate that
   // all of its attributes are not typed.
   absl::StatusOr<std::optional<DataClassesUtil::FieldTypeDescriptor>>
-  GetAttrClass(const DataItem& object, absl::string_view attr_name) {
+  GetCachedAttrClass(const DataItem& object, absl::string_view attr_name) {
     if (!output_class_descriptor_.has_value()) {
       return std::nullopt;
     }
     ASSIGN_OR_RETURN(PyObject * result_class,
                      GetCachedClass(object, /*return_none_if_not_found=*/true));
-    DCHECK(result_class != nullptr);
+    return GetAttrClass(result_class, attr_name);
+  }
+
+  // Returns the class of the given attribute of the given Python class.
+  // If `result_class` is null, None, or SimpleNamespace, returns nullopt.
+  absl::StatusOr<std::optional<DataClassesUtil::FieldTypeDescriptor>>
+  GetAttrClass(PyObject* result_class, absl::string_view attr_name) {
+    if (result_class == nullptr || Py_IsNone(result_class)) {
+      return std::nullopt;
+    }
     ASSIGN_OR_RETURN(PyObjectPtr simple_namespace_class,
                      dataclasses_util_.GetSimpleNamespaceClass());
     if (result_class == simple_namespace_class.get()) {
@@ -574,7 +582,7 @@ class ToPyVisitor : public internal::AbstractVisitor {
 
       std::optional<DataClassesUtil::FieldTypeDescriptor> attr_class;
       if (!result_class_is_simple_namespace) {
-        ASSIGN_OR_RETURN(attr_class, GetAttrClass(object, attr_name));
+        ASSIGN_OR_RETURN(attr_class, GetAttrClass(result_class, attr_name));
         if (!attr_class.has_value()) {
           continue;  // no field with this name in the class
         }
@@ -904,7 +912,7 @@ PyObject* absl_nullable ToPyImplInternal(
   // We use original DataBag in ToPyVisitor.
   std::shared_ptr<ToPyVisitor> visitor = std::make_shared<ToPyVisitor>(
       obj_as_dict, include_missing_attrs, leaf_ids, bag, fallback_span,
-      std::move(output_class_descriptor));
+      std::move(output_class_descriptor), std::move(dataclasses_util));
   // We use extracted DataBag for traversal.
   internal::VectorizedTraverser traverse_op(bag->GetImpl(), fallback_span,
                                             visitor);
@@ -919,16 +927,14 @@ PyObject* absl_nullable ToPyImplInternal(
     return absl::OkStatus();
   })).With(arolla::python::SetPyErrFromStatus);
 
-  ASSIGN_OR_RETURN(
-      PyObjectPtr res,
-      PyObjectFromDataSlice(ds, visitor->GetItemToPyConverter(schema.item())),
-      arolla::python::SetPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(PyObjectPtr res,
+                   PyObjectFromDataSlice(ds, visitor->GetItemToPyConverter()),
+                   arolla::python::SetPyErrFromStatus(_));
   return res.release();
 }
 
-PyObject* absl_nullable ToPyImpl(const DataSlice& ds, DataBagPtr bag,
-                                 int max_depth, bool obj_as_dict,
-                                 bool include_missing_attrs,
+PyObject* absl_nullable ToPyImpl(const DataSlice& ds, int max_depth,
+                                 bool obj_as_dict, bool include_missing_attrs,
                                  PyObject* output_class) {
   // When `max_depth != -1`, we want objects/dicts/lists at `max_depth`
   // to be kept as DataItems and not converted to Python objects.
@@ -1036,8 +1042,8 @@ PyObject* absl_nullable PyDataSlice_to_py(PyObject* self,
     return nullptr;
   }
 
-  return ToPyImpl(ds, ds.GetBag(), max_depth, obj_as_dict,
-                  include_missing_attrs, output_class);
+  return ToPyImpl(ds, max_depth, obj_as_dict, include_missing_attrs,
+                  output_class);
 }
 
 }  // namespace koladata::python
