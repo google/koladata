@@ -386,6 +386,61 @@ class FnToPyTest(absltest.TestCase):
     # Succeeds if the code can be run.
     _ = compile(module, filename='<ast>', mode='exec')
 
+  def test_fn_to_py_nested_calls(self):
+    @kd.trace_as_fn()
+    def f(x):
+      return x**2
+
+    @kd.trace_as_fn()
+    def g(x):
+      return x * 2
+
+    def compute(x):
+      # The call of `g` is an argument of the call of `f`.
+      return f(g(x)) + 1
+
+    fn = kd.fn(compute)
+    expected_code = _MODULE_DOCSTRING + textwrap.dedent("""
+        from arolla import arolla
+        from koladata import kd
+        from koladata import kd_ext
+
+        @kd.trace_as_fn()
+        def g(x):
+            return x * 2
+
+        @kd.trace_as_fn()
+        def f(x):
+            return x ** 2
+
+        def top(x):
+            return f(g(x)) + 1""")
+    self.assertEqual(ast.unparse(fn_to_py.fn_to_py(fn)), expected_code)
+
+  def test_fn_to_py_nested_variable_calls(self):
+    # Sub-functors held by variables, called in a nested way.
+    feature = kd.functor.fn(kd.S.x)
+    curve = kd.fn(lambda x: x * 3)
+    fn = kd.functor.expr_fn(
+        kd.V.curve(kd.V.feature(kd.S)), curve=curve, feature=feature
+    )
+    expected_code = _MODULE_DOCSTRING + textwrap.dedent("""
+        from arolla import arolla
+        from koladata import kd
+        from koladata import kd_ext
+
+        @kd.trace_as_fn()
+        def curve(x):
+            return x * 3
+
+        @kd.trace_as_fn()
+        def feature(self, /):
+            return kd.get_attr(self, 'x', arolla.unspecified())
+
+        def top(self, /):
+            return curve(feature(self))""")
+    self.assertEqual(ast.unparse(fn_to_py.fn_to_py(fn)), expected_code)
+
   def test_fn_to_py_with_name_conflicts(self):
     g1 = kd.fn(lambda x: x + 1)
     g2 = kd.fn(lambda x: x + 2)
