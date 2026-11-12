@@ -268,7 +268,6 @@ cc_library(
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",
-        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
@@ -786,7 +785,6 @@ cc_library(
     hdrs = ["future.h"],
     deps = [
         ":stream",
-        "//koladata:lazy_uuid",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/functional:any_invocable",
@@ -805,9 +803,12 @@ cc_test(
     srcs = ["future_test.cc"],
     deps = [
         ":future",
+        ":make_executor",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/qtype/testing",
         "@com_google_arolla//arolla/util",

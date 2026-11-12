@@ -106,7 +106,7 @@ class StreamCallHooks final : public BasicRoutineHooks {
       if (IsStreamQType(arg.GetType())) {
         arg_reader = arg.UnsafeAs<StreamPtr>()->MakeReader();
       } else {
-        arg_reader = StreamReaderFromFuture(arg.UnsafeAs<FuturePtr>());
+        arg_reader = arg.UnsafeAs<FuturePtr>()->MakeReader();
       }
       ASSIGN_OR_RETURN(arg_reader, ProcessAwaitedArg(std::move(arg_reader)),
                        OnError(std::move(_)));

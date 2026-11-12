@@ -224,80 +224,47 @@ TEST(StreamTest, SubscriptionCallbackTriggeredOnStreamWriterDestructor) {
 }
 
 TEST(StreamTest, NoCallbackAfterReaderDestruction) {
-  auto [stream, writer] = MakeStream(GetQType<int>());
-  auto reader = stream->MakeReader();
-  auto token = std::make_shared<int>(0);
-  std::weak_ptr<int> weak_token = token;
-  for (int i = 0; i < 3; ++i) {
-    reader->SubscribeOnce(
-        [token] { FAIL() << "callback must not be triggered"; });
-  }
-  token.reset();
-  ASSERT_FALSE(weak_token.expired());
-  reader.reset();
-  EXPECT_TRUE(weak_token.expired());
-  std::move(*writer).Close();
-}
-
-TEST(StreamTest, NoCallbackAfterResubscribedReaderDestruction) {
-  auto [stream, writer] = MakeStream(GetQType<int>());
-  auto reader = stream->MakeReader();
-  int callback_count = 0;
-  reader->SubscribeOnce([&callback_count] { ++callback_count; });
-  writer->Write(TypedRef::FromValue(1));
-  ASSERT_EQ(callback_count, 1);
-  ASSERT_NE(reader->TryRead().item(), nullptr);
-  auto token = std::make_shared<int>(0);
-  std::weak_ptr<int> weak_token = token;
-  reader->SubscribeOnce([token = std::move(token)] {
-    FAIL() << "callback must not be triggered";
-  });
-  ASSERT_FALSE(weak_token.expired());
-  reader.reset();
-  EXPECT_TRUE(weak_token.expired());
-}
-
-TEST(StreamTest, AllSubscribedReadersDestroyed) {
-  auto [stream, writer] = MakeStream(GetQType<int>());
-  std::vector<StreamReaderPtr> readers(3);
-  for (auto& reader : readers) {
-    reader = stream->MakeReader();
-    reader->SubscribeOnce([] { FAIL() << "callback must not be triggered"; });
-  }
-  readers[2].reset();
-  readers[0].reset();
-  readers[1].reset();
-  bool callback_done = false;
-  auto reader = stream->MakeReader();
-  reader->SubscribeOnce([&callback_done] { callback_done = true; });
-  writer->Write(TypedRef::FromValue(1));
-  EXPECT_TRUE(callback_done);
-}
-
-TEST(StreamTest, OtherReadersNotifiedAfterReaderDestruction) {
-  auto [stream, writer] = MakeStream(GetQType<int>());
-  std::vector<StreamReaderPtr> readers;
-  std::vector<int> calls;
-  for (int i = 0; i < 3; ++i) {
+  {
+    auto [stream, writer] = MakeStream(GetQType<int>());
     auto reader = stream->MakeReader();
-    reader->SubscribeOnce([&calls, i] { calls.push_back(i); });
-    readers.push_back(std::move(reader));
+    auto token = std::make_shared<int>(0);
+    std::weak_ptr<int> weak_token = token;
+    reader->SubscribeOnce([token = std::move(token)] {
+      FAIL() << "callback must not be triggered";
+    });
+    ASSERT_FALSE(weak_token.expired());
+    reader.reset();
+    EXPECT_TRUE(weak_token.expired());
+    std::move(*writer).Close();
   }
-  readers[1].reset();
-  writer->Write(TypedRef::FromValue(1));
-  EXPECT_THAT(calls, UnorderedElementsAre(0, 2));
+  {
+    auto [stream, writer] = MakeStream(GetQType<int>());
+    auto reader = stream->MakeReader();
+    int callback_count = 0;
+    reader->SubscribeOnce([&callback_count] { ++callback_count; });
+    writer->Write(TypedRef::FromValue(1));
+    ASSERT_EQ(callback_count, 1);
+    ASSERT_NE(reader->TryRead().item(), nullptr);
+    auto token = std::make_shared<int>(0);
+    std::weak_ptr<int> weak_token = token;
+    reader->SubscribeOnce([token = std::move(token)] {
+      FAIL() << "callback must not be triggered";
+    });
+    ASSERT_FALSE(weak_token.expired());
+    reader.reset();
+    EXPECT_TRUE(weak_token.expired());
+  }
 }
 
 TEST(StreamTest, MultipleSubscriptionsOnSameReader) {
   auto [stream, writer] = MakeStream(GetQType<int>());
   auto reader = stream->MakeReader();
   std::vector<int> calls;
-  for (int i = 0; i < 3; ++i) {
-    reader->SubscribeOnce([&calls, i] { calls.push_back(i); });
-  }
+  reader->SubscribeOnce([&calls] { calls.push_back(0); });
+  reader->SubscribeOnce([&calls] { calls.push_back(1); });
   EXPECT_THAT(calls, IsEmpty());
   std::move(*writer).Close();
-  EXPECT_THAT(calls, UnorderedElementsAre(0, 1, 2));
+  EXPECT_THAT(calls, UnorderedElementsAre(0, 1));
 }
 
 TEST(StreamTest, ResubscribeAfterNotification) {

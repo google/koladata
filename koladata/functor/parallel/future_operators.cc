@@ -286,7 +286,7 @@ class StreamFromFutureOperator : public arolla::QExprOperator {
           if (future == nullptr) {
             return absl::InvalidArgumentError("future is null");
           }
-          frame.Set(output_slot, StreamFromFuture(future));
+          frame.Set(output_slot, future);
           return absl::OkStatus();
         });
   }

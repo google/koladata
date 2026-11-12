@@ -22,11 +22,11 @@
 
 #include "absl/base/attributes.h"
 #include "absl/base/nullability.h"
-#include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/util/fingerprint.h"
+#include "arolla/util/once_callbacks.h"
 #include "arolla/util/repr.h"
 #include "koladata/lazy_uuid.h"
 
@@ -152,7 +152,7 @@ class StreamReader {
   //
   // Note: If the reader/stream is destroyed after the subscription, there is no
   // guarantee whether the callback will be invoked.
-  virtual void SubscribeOnce(absl::AnyInvocable<void() &&>&& callback) = 0;
+  virtual void SubscribeOnce(arolla::OnceCallback absl_nonnull callback) = 0;
 
   // Not copyable or movable.
   StreamReader(const StreamReader&) = delete;

@@ -17,9 +17,9 @@
 #include <memory>
 #include <optional>
 #include <utility>
-#include <vector>
 
 #include "absl/base/nullability.h"
+#include "absl/base/thread_annotations.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
@@ -29,43 +29,42 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
+#include "arolla/util/once_callbacks.h"
 #include "arolla/util/repr.h"
 #include "koladata/functor/parallel/stream.h"
 
 namespace koladata::functor::parallel {
 
 void Future::AddConsumer(ConsumerFn&& consumer) {
-  std::optional<absl::StatusOr<arolla::TypedValue>> value;
   {
     absl::MutexLock l(lock_);
-    if (!value_) {
-      consumers_.push_back(std::move(consumer));
+    if (!value_.has_value()) {
+      callbacks_.Add([this, consumer = std::move(consumer)]() mutable {
+        std::move(consumer)(*value_);
+      });
       return;
     }
-    value = value_;
   }
   // Important to not call this while holding the lock.
-  std::move(consumer)(std::move(*value));
+  std::move(consumer)(*value_);
 }
 
 void Future::SetValue(absl::StatusOr<arolla::TypedValue> value) {
-  if (value.ok() && value->GetType() != value_qtype_) {
+  if (value.ok() && value->GetType() != value_qtype()) {
     LOG(FATAL) << "value type " << value->GetType()->name()
-               << " does not match future type " << value_qtype_->name();
+               << " does not match future type " << value_qtype()->name();
   }
-  std::vector<ConsumerFn> consumers;
+  arolla::OnceCallbacks callbacks;
   {
     absl::MutexLock l(lock_);
     if (value_) {
       LOG(FATAL) << "future already has a value";
     }
-    value_ = value;
-    consumers.swap(consumers_);
+    value_ = std::move(value);
+    swap(callbacks_, callbacks);
   }
-  for (auto& consumer : consumers) {
-    // Important to not call this while holding the lock.
-    std::move(consumer)(value);
-  }
+  // Important to not call this while holding the lock.
+  std::move(callbacks).Notify();
 }
 
 std::optional<absl::StatusOr<const arolla::TypedValue&>> Future::PeekValue() {
@@ -108,61 +107,62 @@ std::pair<FuturePtr, FutureWriter> MakeFuture(arolla::QTypePtr value_qtype) {
   return {std::move(future), std::move(future_writer)};
 }
 
-namespace {
-
 class FutureStreamReader final : public StreamReader {
  public:
   explicit FutureStreamReader(FuturePtr future) : future_(std::move(future)) {}
 
+  ~FutureStreamReader() final {
+    if (!token_) [[likely]] {
+      return;
+    }
+    arolla::OnceCallbacks callbacks;  // Destroyed outside of the lock.
+    {
+      absl::MutexLock l(future_->lock_);
+      if (!future_->value_.has_value()) {
+        callbacks = future_->callbacks_.Remove(std::move(token_));
+      }
+    }
+  }
+
   TryReadResult TryRead() final {
-    if (read_) {
-      return status_;
+    if (!read_) {
+      absl::MutexLock l(future_->lock_);
+      if (!future_->value_.has_value()) {
+        return TryReadResult{};  // Not ready yet.
+      }
+      token_ = {};
+      read_ = true;
+      if (future_->value_->status().ok()) {
+        // We return a reference to the value stored inside the future.
+        return (**future_->value_).AsRef();
+      }
+      status_ = future_->value_->status();
     }
-    std::optional<absl::StatusOr<const arolla::TypedValue&>> peek =
-        future_->PeekValue();
-    if (!peek.has_value()) {
-      return TryReadResult{};  // Not ready yet.
-    }
-    read_ = true;
-    if (!peek->ok()) {
-      status_ = std::move(*peek).status();
-      return status_;
-    }
-    // We return a reference to the value stored inside the future.
-    return (**peek).AsRef();
+    return status_;
   }
 
-  void SubscribeOnce(absl::AnyInvocable<void() &&>&& callback) final {
-    future_->AddConsumer(
-        [cb = std::move(callback)](auto) mutable { std::move(cb)(); });
+  void SubscribeOnce(arolla::OnceCallback absl_nonnull callback) final {
+    if (!read_) {
+      absl::MutexLock l(future_->lock_);
+      if (!future_->value_.has_value()) {
+        token_ =
+            future_->callbacks_.Add(std::move(callback), std::move(token_));
+        return;
+      }
+      token_ = {};
+    }
+    std::move(callback).Notify();
   }
 
  private:
-  FuturePtr future_;
-  bool read_ = false;
+  const FuturePtr future_;
+  arolla::OnceCallbacks::Token token_ ABSL_GUARDED_BY(future_->lock_);
   absl::Status status_ = absl::OkStatus();
+  bool read_ = false;
 };
 
-class FutureStream final : public Stream {
- public:
-  explicit FutureStream(FuturePtr future)
-      : Stream(future->value_qtype()), future_(std::move(future)) {}
-
-  StreamReaderPtr MakeReader() final { return StreamReaderFromFuture(future_); }
-
- private:
-  FuturePtr future_;
-};
-
-}  // namespace
-
-StreamPtr absl_nonnull StreamFromFuture(const FuturePtr absl_nonnull& future) {
-  return std::make_shared<FutureStream>(future);
-}
-
-StreamReaderPtr absl_nonnull StreamReaderFromFuture(  // clang-format hint
-    const FuturePtr absl_nonnull& future) {
-  return std::make_unique<FutureStreamReader>(future);
+StreamReaderPtr absl_nonnull Future::MakeReader() {
+  return std::make_unique<FutureStreamReader>(shared_from_this());
 }
 
 }  // namespace koladata::functor::parallel

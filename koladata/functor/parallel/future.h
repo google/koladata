@@ -18,7 +18,6 @@
 #include <memory>
 #include <optional>
 #include <utility>
-#include <vector>
 
 #include "absl/base/attributes.h"
 #include "absl/base/nullability.h"
@@ -29,9 +28,9 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
+#include "arolla/util/once_callbacks.h"
 #include "arolla/util/repr.h"
 #include "koladata/functor/parallel/stream.h"
-#include "koladata/lazy_uuid.h"
 
 namespace koladata::functor::parallel {
 
@@ -41,14 +40,16 @@ class FutureWriter;
 using FuturePtr = std::shared_ptr<Future>;
 
 // This class is a future in the cooperative execution environment. One can
-// register consumers to be notified when the value is ready.
+// register consumers to be notified when the value is ready, or read it as a
+// single-item stream.
 //
 // The value is either an arolla::TypedValue or an error
 // (represented as absl::StatusOr).
 //
 // This class is thread-safe. Once the value is set, it is immutable.
 // It must be created through MakeFuture.
-class Future {
+class Future final : public Stream,
+                     public std::enable_shared_from_this<Future> {
   struct PrivateConstructorTag {};
 
  public:
@@ -56,8 +57,8 @@ class Future {
       absl::AnyInvocable<void(absl::StatusOr<arolla::TypedValue>) &&>;
 
   // Creates a future with the given value qtype, without a value.
-  Future(PrivateConstructorTag, arolla::QTypePtr value_qtype)
-      : value_qtype_(value_qtype) {};
+  Future(PrivateConstructorTag, arolla::QTypePtr absl_nonnull value_qtype)
+      : Stream(value_qtype) {}
 
   // Adds a consumer to be notified when the value is ready. If the value is
   // already set, the consumer is called immediately.
@@ -75,11 +76,8 @@ class Future {
   // future is not ready yet. Real code should rely on AddConsumer instead.
   absl::StatusOr<arolla::TypedValue> GetValueForTesting();
 
-  // Returns the qtype of the value of the future.
-  arolla::QTypePtr value_qtype() const { return value_qtype_; }
-
-  // Returns a randomly generated unique identifier of the future.
-  arolla::Fingerprint uuid() const { return uuid_.get(); }
+  // Creates a new stream reader for the future.
+  StreamReaderPtr absl_nonnull MakeReader() final;
 
   // Not copyable or movable.
   Future(const Future&) = delete;
@@ -92,15 +90,18 @@ class Future {
   // at most once.
   void SetValue(absl::StatusOr<arolla::TypedValue> value);
 
-  LazyUuid uuid_;
-  arolla::QTypePtr value_qtype_;
   absl::Mutex lock_;
-  std::optional<absl::StatusOr<arolla::TypedValue>> value_
-      ABSL_GUARDED_BY(lock_) = std::nullopt;
+
+  // IMPORTANT: Once `value_` is set (under `lock_`), it is never modified.
+  // Checking whether it is set requires `lock_`; once set, reading `*value_` is
+  // thread-safe without holding `lock_`.
+  std::optional<absl::StatusOr<arolla::TypedValue>> value_;
+
   // This will be empty after the value is set.
-  std::vector<ConsumerFn> consumers_ ABSL_GUARDED_BY(lock_);
+  arolla::OnceCallbacks callbacks_ ABSL_GUARDED_BY(lock_);
 
   friend class FutureWriter;
+  friend class FutureStreamReader;
   friend std::pair<FuturePtr, FutureWriter> MakeFuture(
       arolla::QTypePtr value_qtype);
 };
@@ -140,13 +141,6 @@ class FutureWriter {
 
 // Creates a future and a writer for it.
 std::pair<FuturePtr, FutureWriter> MakeFuture(arolla::QTypePtr value_qtype);
-
-// Returns a stream reader from the given future.
-StreamReaderPtr absl_nonnull StreamReaderFromFuture(  // clang-format hint
-    const FuturePtr absl_nonnull& future);
-
-// Returns a stream from the given future.
-StreamPtr absl_nonnull StreamFromFuture(const FuturePtr absl_nonnull& future);
 
 }  // namespace koladata::functor::parallel
 
