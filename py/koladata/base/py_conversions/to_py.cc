@@ -65,6 +65,9 @@ using internal::DataItem;
 using internal::DataSliceImpl;
 using internal::ObjectId;
 
+constexpr absl::string_view kItemIdNotSupportedError =
+    "ITEMID schema is not supported in to_py conversion";
+
 absl::StatusOr<PyObjectPtr> WrapDataSliceWithErrorCheck(DataSlice&& ds) {
   PyObjectPtr result = PyObjectPtr::Own(WrapPyDataSlice(std::move(ds)));
   if (result == nullptr) {
@@ -237,10 +240,6 @@ class ToPyVisitor : public internal::AbstractVisitor {
         schema == schema::kObject) {
       // The `ds` is schema_metadata for `parent_token`.
       return DataSliceImpl::CreateEmptyAndUnknownType(ds.size());
-    }
-    if (output_class_descriptor_.has_value() && schema.is_itemid_schema()) {
-      return absl::InvalidArgumentError(
-          "itemid is not supported together with output_class");
     }
     return internal::SameTokenForObjectsIf(
         ds, [&](int64_t, const DataItem& item) {
@@ -646,20 +645,11 @@ class ToPyVisitor : public internal::AbstractVisitor {
 
     ASSIGN_OR_RETURN(auto result,
                      FindAndStoreClass(from_item, transition_key, item));
-    switch (result) {
-      case FindAndStoreClassResult::kIgnored:
-        return false;
-      case FindAndStoreClassResult::kStoredClass:
-        return true;
-      case FindAndStoreClassResult::kUnspecifiedClass:
-        break;
+    if (result == FindAndStoreClassResult::kIgnored) {
+      return false;
     }
 
     const ObjectId& object_id = item.value<ObjectId>();
-    if (converted_object_cache_.contains(object_id)) {
-      return !ShouldNotBeConverted(item);
-    }
-
     if (ShouldNotBeConverted(item)) {
       ASSIGN_OR_RETURN(DataSlice ds, DataSlice::Create(item, schema, db_));
       ASSIGN_OR_RETURN(converted_object_cache_[object_id],
@@ -668,8 +658,11 @@ class ToPyVisitor : public internal::AbstractVisitor {
       return false;
     }
     if (schema.is_itemid_schema()) {
-      ASSIGN_OR_RETURN(converted_object_cache_[object_id],
-                       PyObjectFromDataItem(item, schema, db_));
+      return absl::InvalidArgumentError(kItemIdNotSupportedError);
+    }
+
+    if (result == FindAndStoreClassResult::kStoredClass ||
+        converted_object_cache_.contains(object_id)) {
       return true;
     }
 
@@ -892,6 +885,11 @@ PyObject* absl_nullable ToPyImplInternal(
   }
   if (ds.IsEmpty() || bag == nullptr ||
       GetNarrowedSchema(ds).is_primitive_schema()) {
+    if (!ds.IsEmpty() && ds.GetSchemaImpl().is_itemid_schema()) {
+      arolla::python::SetPyErrFromStatus(
+          absl::InvalidArgumentError(kItemIdNotSupportedError));
+      return nullptr;
+    }
     ASSIGN_OR_RETURN(PyObjectPtr res,
                      PyObjectFromDataSlice(ds, /*optional_converter=*/nullptr,
                                            std::move(output_class_descriptor)),

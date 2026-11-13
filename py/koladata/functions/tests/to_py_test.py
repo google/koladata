@@ -1433,66 +1433,32 @@ class ToPyTest(parameterized.TestCase):
         'named_schema',
     )
 
-  def test_itemid_dataslice(self):
+  def test_itemid_not_supported(self):
     a = fns.new(x=1).get_itemid()
-    b = fns.new(x=2).get_itemid()
-    x = ds([a, b], schema_constants.ITEMID)
-    self.assertEqual(
-        py_conversions.to_py(x),
-        [
-            a,
-            b,
-        ],
-    )
+    for name, x in (
+        ('item', a),
+        ('no_bag', a.no_bag()),
+        ('slice', ds([a, a])),
+        ('list_item', fns.list([a], item_schema=schema_constants.ITEMID)),
+        ('dict_value', fns.dict({1: a}, value_schema=schema_constants.ITEMID)),
+        ('entity_attr', fns.new(x=a)),
+        ('object_attr', fns.obj(x=a)),
+    ):
+      with self.subTest(name):
+        with self.assertRaisesRegex(
+            ValueError, 'ITEMID schema is not supported in to_py conversion'
+        ):
+          _ = py_conversions.to_py(x)
 
-  def test_itemid_list(self):
-    with self.subTest('list_of_entities'):
-      a = fns.new(x=1).get_itemid()
-      b = fns.new(x=2).get_itemid()
-      x = fns.list([a, b], item_schema=schema_constants.ITEMID)
-      self.assertEqual(py_conversions.to_py(x), [a, b])
-
-    with self.subTest('list_of_objects'):
-      a = fns.obj(x=1).get_itemid()
-      b = fns.obj(x=2).get_itemid()
-      x = fns.list([a, b], item_schema=schema_constants.ITEMID)
-      self.assertEqual(py_conversions.to_py(x), [a, b])
-
-    with self.subTest('list_of_lists'):
-      a = fns.list([1, 2]).get_itemid()
-      b = fns.list([3, 4]).get_itemid()
-      x = fns.list([a, b], item_schema=schema_constants.ITEMID)
-      self.assertEqual(py_conversions.to_py(x), [a, b])
-
-    with self.subTest('list_of_dicts'):
-      a = fns.dict({'a': 1}).get_itemid()
-      b = fns.dict({'b': 2}).get_itemid()
-      x = fns.list([a, b], item_schema=schema_constants.ITEMID)
-      self.assertEqual(py_conversions.to_py(x), [a, b])
-
-  def test_schema_itemid(self):
-    a = kde.schema.new_schema(
-        value=schema_constants.OBJECT,
-        name=schema_constants.STRING,
-        score=schema_constants.FLOAT32,
-    ).get_itemid().eval()
-
-    self.assertEqual(a.to_py(), a)
-
-  def test_itemid_not_supported_with_output_class(self):
+  def test_itemid_with_output_class(self):
     a = fns.new(x=1).get_itemid()
-    b = fns.new(x=2).get_itemid()
-    x = fns.list([a, b], item_schema=schema_constants.ITEMID)
+    x = fns.new(y=1, ref=a)
     with self.assertRaisesRegex(
-        ValueError,
-        'itemid is not supported together with output_class',
+        ValueError, 'ITEMID schema is not supported in to_py conversion'
     ):
-      _ = py_conversions.to_py(a, output_class=str)
-    with self.assertRaisesRegex(
-        ValueError,
-        'itemid is not supported together with output_class',
-    ):
-      _ = py_conversions.to_py(x, output_class=list[int])
+      _ = py_conversions.to_py(x, output_class=_py_types.SimpleNamespace)
+    # The ITEMID attribute is filtered out by the output class.
+    self.assertEqual(py_conversions.to_py(x, output_class=A), A(y=1))
 
   def test_no_bag(self):
     x = fns.list([1, 2]).no_bag()
