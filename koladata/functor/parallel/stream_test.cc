@@ -32,6 +32,7 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/testing/matchers.h"
 #include "arolla/qtype/typed_ref.h"
+#include "arolla/qtype/typed_value.h"
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/get_default_executor.h"
 
@@ -578,6 +579,43 @@ TEST(StreamTest, PanicWhenCloseClosedStream) {
   auto [stream, writer] = MakeStream(GetQType<int>());
   std::move(*writer).Close();
   ASSERT_DEATH({ std::move(*writer).Close(); }, "closing a closed stream");
+}
+
+TEST(StreamTest, SingleItemStreamAndReader) {
+  auto stream = MakeSingleItemStream(arolla::TypedValue::FromValue(42));
+  ASSERT_NE(stream, nullptr);
+  EXPECT_EQ(stream->value_qtype(), GetQType<int>());
+  StreamReaderPtr readers[] = {
+      stream->MakeReader(),
+      stream->MakeReader(),
+      MakeSingleItemReader(arolla::TypedValue::FromValue(42)),
+  };
+  for (auto& reader : readers) {
+    bool callback_done = false;
+    reader->SubscribeOnce([&callback_done] { callback_done = true; });
+    EXPECT_TRUE(callback_done);
+    EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(42)));
+    EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
+  }
+}
+
+TEST(StreamTest, ErrorStreamAndReader) {
+  auto stream =
+      MakeErrorStream(GetQType<int>(), absl::InvalidArgumentError("Boom!"));
+  ASSERT_NE(stream, nullptr);
+  EXPECT_EQ(stream->value_qtype(), GetQType<int>());
+  StreamReaderPtr readers[] = {
+      stream->MakeReader(),
+      stream->MakeReader(),
+      MakeErrorReader(absl::InvalidArgumentError("Boom!")),
+  };
+  for (auto& reader : readers) {
+    bool callback_done = false;
+    reader->SubscribeOnce([&callback_done] { callback_done = true; });
+    EXPECT_TRUE(callback_done);
+    EXPECT_THAT(reader->TryRead().close_status(),
+                Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
+  }
 }
 
 }  // namespace

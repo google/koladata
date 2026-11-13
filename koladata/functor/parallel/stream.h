@@ -25,6 +25,7 @@
 #include "absl/status/status.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
+#include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/once_callbacks.h"
 #include "arolla/util/repr.h"
@@ -191,6 +192,22 @@ struct StreamReader::TryReadResult
 // exceeded.
 std::pair<StreamPtr absl_nonnull, StreamWriterPtr absl_nonnull> MakeStream(
     arolla::QTypePtr absl_nonnull value_qtype, size_t initial_capacity = 0);
+
+// Creates a closed stream containing a single value.
+StreamPtr absl_nonnull MakeSingleItemStream(arolla::TypedValue value);
+
+// Creates a reader for a closed stream containing a single value.
+StreamReaderPtr absl_nonnull MakeSingleItemReader(arolla::TypedValue value);
+
+// Creates a closed stream with the given value type and error status;
+// `status` must be non-OK.
+StreamPtr absl_nonnull MakeErrorStream(arolla::QTypePtr
+                                       absl_nonnull value_qtype,
+                                       absl::Status status);
+
+// Creates a reader for a closed stream with the given error status;
+// `status` must be non-OK.
+StreamReaderPtr absl_nonnull MakeErrorReader(absl::Status status);
 
 }  // namespace koladata::functor::parallel
 

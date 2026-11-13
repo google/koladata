@@ -36,6 +36,7 @@
 #include "absl/synchronization/mutex.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
+#include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/memory.h"
 #include "arolla/util/once_callbacks.h"
@@ -442,6 +443,72 @@ void StreamImpl::Reader::SubscribeOnce(  // clang-format hint
   std::move(callback).Notify();
 }
 
+class SingleItemReader final : public StreamReader {
+ public:
+  explicit SingleItemReader(arolla::TypedValue value)
+      : value_(std::move(value)) {}
+
+  TryReadResult TryRead() final {
+    if (!read_) {
+      read_ = true;
+      return value_.AsRef();
+    }
+    return absl::OkStatus();
+  }
+
+  void SubscribeOnce(arolla::OnceCallback absl_nonnull callback) final {
+    std::move(callback).Notify();
+  }
+
+ private:
+  const arolla::TypedValue value_;
+  bool read_ = false;
+};
+
+class SingleItemStream final : public Stream {
+ public:
+  explicit SingleItemStream(arolla::TypedValue value)
+      : Stream(value.GetType()), value_(std::move(value)) {}
+
+  StreamReaderPtr absl_nonnull MakeReader() final {
+    return std::make_unique<SingleItemReader>(value_);
+  }
+
+ private:
+  const arolla::TypedValue value_;
+};
+
+class ErrorReader final : public StreamReader {
+ public:
+  explicit ErrorReader(absl::Status status) : status_(std::move(status)) {
+    DCHECK(!status_.ok());
+  }
+
+  TryReadResult TryRead() final { return status_; }
+
+  void SubscribeOnce(arolla::OnceCallback absl_nonnull callback) final {
+    std::move(callback).Notify();
+  }
+
+ private:
+  const absl::Status status_;
+};
+
+class ErrorStream final : public Stream {
+ public:
+  ErrorStream(QTypePtr absl_nonnull value_qtype, absl::Status status)
+      : Stream(value_qtype), status_(std::move(status)) {
+    DCHECK(!status_.ok());
+  }
+
+  StreamReaderPtr absl_nonnull MakeReader() final {
+    return std::make_unique<ErrorReader>(status_);
+  }
+
+ private:
+  const absl::Status status_;
+};
+
 }  // namespace
 
 std::pair<StreamPtr absl_nonnull, StreamWriterPtr absl_nonnull> MakeStream(
@@ -452,6 +519,24 @@ std::pair<StreamPtr absl_nonnull, StreamWriterPtr absl_nonnull> MakeStream(
   result.second = std::make_unique<StreamImpl::Writer>(stream_impl);
   result.first = std::move(stream_impl);
   return result;
+}
+
+StreamPtr absl_nonnull MakeSingleItemStream(arolla::TypedValue value) {
+  return std::make_shared<SingleItemStream>(std::move(value));
+}
+
+StreamReaderPtr absl_nonnull MakeSingleItemReader(arolla::TypedValue value) {
+  return std::make_unique<SingleItemReader>(std::move(value));
+}
+
+StreamPtr absl_nonnull MakeErrorStream(arolla::QTypePtr
+                                       absl_nonnull value_qtype,
+                                       absl::Status status) {
+  return std::make_shared<ErrorStream>(value_qtype, std::move(status));
+}
+
+StreamReaderPtr absl_nonnull MakeErrorReader(absl::Status status) {
+  return std::make_unique<ErrorReader>(std::move(status));
 }
 
 }  // namespace koladata::functor::parallel

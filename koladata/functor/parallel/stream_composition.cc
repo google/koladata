@@ -24,6 +24,7 @@
 #include "absl/status/status.h"
 #include "absl/synchronization/mutex.h"
 #include "arolla/qtype/typed_ref.h"
+#include "arolla/qtype/typed_value.h"
 #include "koladata/functor/parallel/stream.h"
 
 namespace koladata::functor::parallel {
@@ -128,18 +129,13 @@ class StreamChain::Scheduler : public std::enable_shared_from_this<Scheduler> {
 
   void AddItem(arolla::TypedRef item) {
     DCHECK(item.GetType() == writer_->value_qtype());
-    auto [stream, writer] = MakeStream(writer_->value_qtype());
-    writer->Write(item);
-    std::move(*writer).Close();
-    AddInput(stream->MakeReader());
+    AddInput(MakeSingleItemReader(arolla::TypedValue(item)));
   }
 
   void AddError(absl::Status status) {
     DCHECK(!status.ok());
     if (!status.ok()) {
-      auto [stream, writer] = MakeStream(writer_->value_qtype());
-      std::move(*writer).Close(std::move(status));
-      AddInput(stream->MakeReader());
+      AddInput(MakeErrorReader(std::move(status)));
     }
   }
 
