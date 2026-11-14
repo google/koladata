@@ -140,6 +140,13 @@ class DataClassesUtil {
   std::deque<arolla::python::PyObjectPtr> owned_values_;
 };
 
+// Returns true if `descriptor` is present and specifies a concrete type
+// (`DataClassesUtil` represents `Any` and `Any | None` with `type = Py_None`).
+inline bool HasConcreteType(
+    const std::optional<DataClassesUtil::FieldTypeDescriptor>& descriptor) {
+  return descriptor.has_value() && !Py_IsNone(descriptor->type.get());
+}
+
 }  // namespace koladata::python
 
 #endif  // PY_KOLADATA_PY_CONVERSIONS_DATACLASSES_UTIL_H_

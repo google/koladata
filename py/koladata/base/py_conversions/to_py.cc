@@ -157,9 +157,9 @@ class ToPyVisitor : public internal::AbstractVisitor {
         transition_key->type == TransitionType::kSliceItem) {
       // Root case; take the output object as is.
       class_cache_by_object_id_[object_id] = *output_class_descriptor_;
-      return Py_IsNone(output_class_descriptor_->type.get())
-                 ? FindAndStoreClassResult::kUnspecifiedClass
-                 : FindAndStoreClassResult::kStoredClass;
+      return HasConcreteType(output_class_descriptor_)
+                 ? FindAndStoreClassResult::kStoredClass
+                 : FindAndStoreClassResult::kUnspecifiedClass;
     }
 
     absl::string_view attr_name;
@@ -183,9 +183,9 @@ class ToPyVisitor : public internal::AbstractVisitor {
       // previous previsit before transitioning to object schema), return it.
       auto it = class_cache_by_object_id_.find(object_id);
       if (it != class_cache_by_object_id_.end()) {
-        return Py_IsNone(it->second->type.get())
-                   ? FindAndStoreClassResult::kUnspecifiedClass
-                   : FindAndStoreClassResult::kStoredClass;
+        return HasConcreteType(it->second)
+                   ? FindAndStoreClassResult::kStoredClass
+                   : FindAndStoreClassResult::kUnspecifiedClass;
       }
       return FindAndStoreClassResult::kUnspecifiedClass;
     }
@@ -222,9 +222,9 @@ class ToPyVisitor : public internal::AbstractVisitor {
       }
     }
 
-    return Py_IsNone(field_type->type.get())
-               ? FindAndStoreClassResult::kUnspecifiedClass
-               : FindAndStoreClassResult::kStoredClass;
+    return HasConcreteType(field_type)
+               ? FindAndStoreClassResult::kStoredClass
+               : FindAndStoreClassResult::kUnspecifiedClass;
   }
 
   // All the traversed items share the same token, which is passed to
@@ -408,8 +408,9 @@ class ToPyVisitor : public internal::AbstractVisitor {
 
     // If the target is a dict, we set the items in the dict.
     if (is_dict_target) {
+      const bool has_key_class = HasConcreteType(dict_keys_class);
       DataItem key_schema;
-      if (!output_class_descriptor_.has_value()) {
+      if (!has_key_class) {
         ASSIGN_OR_RETURN(key_schema, db_->GetImpl().GetSchemaAttr(
                                          schema, schema::kDictKeysSchemaAttr,
                                          fallback_span_));
@@ -434,17 +435,16 @@ class ToPyVisitor : public internal::AbstractVisitor {
       for (size_t item_i = 0; item_i < keys.size(); ++item_i) {
         const DataItem key = keys[item_i];
         PyObjectPtr py_key;
-        if (output_class_descriptor_.has_value()) {
-          // If output_class_descriptor_ is provided, we convert the key to a
-          // Python object. TODO: we can reconsider this behavior
-          // and only support primitive keys.
+        if (has_key_class) {
+          // If a key class is specified, we convert the key to a Python object.
+          // TODO: we can reconsider this behavior and only support
+          // primitive keys.
           ASSIGN_OR_RETURN(py_key, GetConvertedPyObjectOrCreatePrimitive(
                                        key, dict_keys_class));
         } else {
-          // In the case when output_class_descriptor_ is not provided, If
-          // dict keys are objects, we keep them as data items (without data bag
-          // being assigned), because list/dict/dataclass object keys are
-          // not hashable in Python.
+          // When no key class is specified, if dict keys are objects, we keep
+          // them as DataItems (without a DataBag), because list/dict/dataclass
+          // object keys are not hashable in Python.
           ASSIGN_OR_RETURN(
               py_key, PyObjectFromDataItem(key, key_schema, /*db=*/nullptr));
         }

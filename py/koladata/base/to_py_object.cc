@@ -64,14 +64,9 @@ PyObject* SetErrorForOutputTypeAndReturnNull(absl::string_view value_type,
 bool CheckOutputType(const std::optional<DataClassesUtil::FieldTypeDescriptor>&
                          output_class_descriptor,
                      PyTypeObject* expected_type) {
-  if (!output_class_descriptor.has_value()) {
+  if (!HasConcreteType(output_class_descriptor)) {
     return true;
   }
-
-  if (Py_IsNone(output_class_descriptor->type.get())) {
-    return true;
-  }
-
   return ((PyTypeObject*)output_class_descriptor->type.get()) == expected_type;
 }
 
@@ -128,7 +123,7 @@ PyObject* PyObjectFromValue(
     arolla::Unit value,
     const std::optional<DataClassesUtil::FieldTypeDescriptor>&
         output_class_descriptor) {
-  if (output_class_descriptor.has_value()) {
+  if (HasConcreteType(output_class_descriptor)) {
     return SetErrorForOutputTypeAndReturnNull("unit", "None");
   }
   return WrapPyDataSlice(DataSlice::CreatePrimitive(value));
@@ -162,7 +157,7 @@ PyObject* PyObjectFromValue(
     const arolla::expr::ExprQuote& value,
     const std::optional<DataClassesUtil::FieldTypeDescriptor>&
         output_class_descriptor) {
-  if (output_class_descriptor.has_value()) {
+  if (HasConcreteType(output_class_descriptor)) {
     PyErr_SetString(PyExc_ValueError,
                     "cannot convert expr_quote when output class is specified");
     return nullptr;
@@ -176,7 +171,7 @@ PyObject* PyObjectFromValue(
     schema::DType value,
     const std::optional<DataClassesUtil::FieldTypeDescriptor>&
         output_class_descriptor) {
-  if (output_class_descriptor.has_value()) {
+  if (HasConcreteType(output_class_descriptor)) {
     return SetErrorForOutputTypeAndReturnNull("dtype", "None");
   }
   auto ds_or = DataSlice::Create(internal::DataItem(value),
@@ -226,7 +221,7 @@ absl::StatusOr<PyObjectPtr> PyObjectFromDataItem(
     using T = std::decay_t<decltype(value)>;
     PyObjectPtr res;
     if constexpr (std::is_same_v<T, internal::ObjectId>) {
-      if (output_class_descriptor.has_value()) {
+      if (HasConcreteType(output_class_descriptor)) {
         return absl::InvalidArgumentError(
             "object_id is not supported with output_primitive_type");
       }

@@ -91,7 +91,7 @@ def to_py(
       objects.
     output_class: If not None, will be used recursively as the output type.
   """
-  if output_class is Any:
+  if output_class in (Any, Any | None):
     output_class = None
 
   return ds._to_py_impl(  # pylint: disable=protected-access

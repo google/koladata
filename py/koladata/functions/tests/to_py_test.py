@@ -22,12 +22,14 @@ from typing import Any, Optional
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from arolla import arolla
 from koladata.functions import functions as fns
 from koladata.functions import object_factories
 from koladata.functions import py_conversions
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
+from koladata.types import mask_constants
 from koladata.types import schema_constants
 
 
@@ -249,6 +251,82 @@ class ToPyTest(parameterized.TestCase):
     self.assertEqual(converted.items[0].c, 2)
     self.assertEqual(converted.items[1].c, 3)
     self.assertEqual(converted.mapping['k'].e, 4)
+
+  def test_output_class_any_field_dict_with_object_keys(self):
+    @dataclasses.dataclass
+    class ObjWithAnyDict:
+      untyped_dict: Any
+      any_key_dict: dict[Any, str]
+
+    k1 = fns.obj(a=1, b='x')
+    k2 = fns.new(a=2, b='y')
+    root = fns.new(
+        untyped_dict=fns.dict(k1, 'v1'),
+        any_key_dict=fns.dict(k2, 'v2'),
+    )
+
+    converted = py_conversions.to_py(root, output_class=ObjWithAnyDict)
+    self.assertEqual(converted.untyped_dict, {k1.no_bag(): 'v1'})
+    self.assertEqual(converted.any_key_dict, {k2.no_bag(): 'v2'})
+
+  def test_output_class_any_field_special_values(self):
+    @dataclasses.dataclass
+    class ObjWithAnySpecials:
+      mask_val: Any
+      dtype_val: Any
+      expr_val: Any
+
+    quote = arolla.quote(arolla.L.x)
+    root = fns.new(
+        mask_val=mask_constants.present,
+        dtype_val=schema_constants.INT32,
+        expr_val=ds(quote),
+    )
+
+    converted = py_conversions.to_py(root, output_class=ObjWithAnySpecials)
+    testing.assert_equal(converted.mask_val, mask_constants.present)
+    testing.assert_equal(converted.dtype_val, schema_constants.INT32)
+    testing.assert_equal(converted.expr_val, quote)
+
+  @parameterized.parameters(None, Any | None, Optional[Any])
+  def test_output_class_optional_any_at_root(self, cls):
+    quote = arolla.quote(arolla.L.x)
+    self.assertIsNone(py_conversions.to_py(fns.item(None), output_class=cls))
+    self.assertEqual(py_conversions.to_py(fns.obj(a=1), output_class=cls).a, 1)
+    testing.assert_equal(
+        py_conversions.to_py(mask_constants.present, output_class=cls),
+        mask_constants.present,
+    )
+    testing.assert_equal(
+        py_conversions.to_py(schema_constants.INT32, output_class=cls),
+        schema_constants.INT32,
+    )
+    testing.assert_equal(
+        py_conversions.to_py(ds(quote), output_class=cls), quote
+    )
+    itemid = fns.new(x=1).get_itemid()
+    with self.assertRaisesRegex(
+        ValueError, 'ITEMID schema is not supported in to_py conversion'
+    ):
+      _ = py_conversions.to_py(itemid, output_class=cls)
+    k = fns.obj(a=1)
+    self.assertEqual(
+        py_conversions.to_py(fns.dict(k, 'v'), output_class=cls),
+        {k.no_bag(): 'v'},
+    )
+    no_bag_obj = fns.obj(a=1).no_bag()
+    testing.assert_equal(
+        py_conversions.to_py(no_bag_obj, output_class=cls), no_bag_obj
+    )
+    nested = fns.obj(a=fns.obj(b=1))
+    self.assertIsInstance(
+        py_conversions.to_py(nested, max_depth=1, output_class=cls).a,
+        data_slice.DataSlice,
+    )
+    self.assertEqual(
+        py_conversions.to_py(nested, obj_as_dict=True, output_class=cls),
+        {'a': {'b': 1}},
+    )
 
   def test_output_class_empty_entity(self):
     @dataclasses.dataclass
