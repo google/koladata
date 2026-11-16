@@ -142,7 +142,7 @@ class ToPyVisitor : public internal::AbstractVisitor {
   };
 
   // Computes the target class for `item` that is reached from `from_item` by
-  // `transition_key`. The result is stored in `class_cache_by_object_id_` and
+  // `transition_key`. The result is stored in `converted_object_cache_` and
   // `classes_by_path_`.
   absl::StatusOr<FindAndStoreClassResult> FindAndStoreClass(
       const DataItem& from_item,
@@ -156,7 +156,8 @@ class ToPyVisitor : public internal::AbstractVisitor {
     if (!transition_key.has_value() ||
         transition_key->type == TransitionType::kSliceItem) {
       // Root case; take the output object as is.
-      class_cache_by_object_id_[object_id] = *output_class_descriptor_;
+      converted_object_cache_[object_id].target_class =
+          output_class_descriptor_->type;
       return HasConcreteType(output_class_descriptor_)
                  ? FindAndStoreClassResult::kStoredClass
                  : FindAndStoreClassResult::kUnspecifiedClass;
@@ -181,13 +182,9 @@ class ToPyVisitor : public internal::AbstractVisitor {
       // kSchema, etc.) do not correspond to attributes in Python dataclasses.
       // If the class for this object was already computed (e.g. during a
       // previous previsit before transitioning to object schema), return it.
-      auto it = class_cache_by_object_id_.find(object_id);
-      if (it != class_cache_by_object_id_.end()) {
-        return HasConcreteType(it->second)
-                   ? FindAndStoreClassResult::kStoredClass
-                   : FindAndStoreClassResult::kUnspecifiedClass;
-      }
-      return FindAndStoreClassResult::kUnspecifiedClass;
+      return HasConcreteType(LookupTargetClass(object_id))
+                 ? FindAndStoreClassResult::kStoredClass
+                 : FindAndStoreClassResult::kUnspecifiedClass;
     }
 
     ASSIGN_OR_RETURN(PyObject * parent_class, GetCachedClass(from_item));
@@ -210,16 +207,14 @@ class ToPyVisitor : public internal::AbstractVisitor {
       return FindAndStoreClassResult::kIgnored;
     }
 
-    auto [it, inserted] =
-        class_cache_by_object_id_.try_emplace(object_id, field_type);
-    if (!inserted) {
-      PyObject* cached_type = it->second->type.get();
-      PyObject* new_type = field_type->type.get();
-      if (cached_type != new_type) {
-        return absl::InternalError(absl::StrFormat(
-            "same object is reached with different classes: %s and %s",
-            PyObjectTypeName(cached_type), PyObjectTypeName(new_type)));
-      }
+    ConvertedObjectEntry& entry = converted_object_cache_[object_id];
+    if (entry.target_class == nullptr) {
+      entry.target_class = field_type->type;
+    } else if (entry.target_class.get() != field_type->type.get()) {
+      return absl::InternalError(absl::StrFormat(
+          "same object is reached with different classes: %s and %s",
+          PyObjectTypeName(entry.target_class.get()),
+          PyObjectTypeName(field_type->type.get())));
     }
 
     return HasConcreteType(field_type)
@@ -259,16 +254,16 @@ class ToPyVisitor : public internal::AbstractVisitor {
         });
   }
 
-  absl::Status AddItemsToPyList(const DataItem& list, PyObjectPtr py_list,
+  absl::Status AddItemsToPyList(const DataItem& list, PyObject* py_list,
                                 const DataSliceImpl& items) {
-    DCHECK(PyList_CheckExact(py_list.get()));
+    DCHECK(PyList_CheckExact(py_list));
     ASSIGN_OR_RETURN(
         std::optional<DataClassesUtil::FieldTypeDescriptor> attr_class,
         GetCachedAttrClass(list, schema::kListItemsSchemaAttr));
     for (const DataItem& item : items) {
       ASSIGN_OR_RETURN(PyObjectPtr py_item,
                        GetConvertedPyObjectOrCreatePrimitive(item, attr_class));
-      if (PyList_Append(py_list.get(), py_item.get()) < 0) {
+      if (PyList_Append(py_list, py_item.get()) < 0) {
         return arolla::python::StatusWithRawPyErr(
             absl::StatusCode::kInternal, "could not append an item to a list");
       }
@@ -297,16 +292,14 @@ class ToPyVisitor : public internal::AbstractVisitor {
     // This part can only happen if output_class_descriptor_ is not provided;
     // in that case tuples are not supported, only lists, and
     // they are created in Previsit.
-
-    // We need to be careful not to invalidate the result reference.
-    PyObjectPtr& result = converted_object_cache_[list_id];
-    if (result != nullptr) {
-      if (PyList_Size(result.get()) != 0) {
+    if (PyObject* py_list = LookupConvertedPyObject(list_id);
+        py_list != nullptr) {
+      if (PyList_Size(py_list) != 0) {
         // If the list was already populated, we don't need to do anything.
         // This can happen if the list is reached both as Object and as Entity.
         return absl::OkStatus();
       }
-      return AddItemsToPyList(list, result, items);
+      return AddItemsToPyList(list, py_list, items);
     }
 
     // Only list[T], tuple[T], or SimpleNamespace types are expected here.
@@ -318,6 +311,7 @@ class ToPyVisitor : public internal::AbstractVisitor {
     ASSIGN_OR_RETURN(
         std::optional<DataClassesUtil::FieldTypeDescriptor> attr_class,
         GetAttrClass(result_class, schema::kListItemsSchemaAttr));
+    PyObjectPtr result;
     if (real_result_class.get() == (PyObject*)&PyTuple_Type) {
       result = PyObjectPtr::Own(PyTuple_New(items.size()));
     } else {
@@ -336,6 +330,7 @@ class ToPyVisitor : public internal::AbstractVisitor {
           GetConvertedPyObjectOrCreatePrimitive(items[i], attr_class));
       span[i] = py_item.release();
     }
+    converted_object_cache_[list_id].obj = std::move(result);
     return absl::OkStatus();
   }
 
@@ -404,8 +399,6 @@ class ToPyVisitor : public internal::AbstractVisitor {
     ASSIGN_OR_RETURN(bool is_dict_target,
                      IsDictTargetForDictInput(result_class));
 
-    PyObjectPtr& result = converted_object_cache_[dict_id];
-
     // If the target is a dict, we set the items in the dict.
     if (is_dict_target) {
       const bool has_key_class = HasConcreteType(dict_keys_class);
@@ -415,7 +408,9 @@ class ToPyVisitor : public internal::AbstractVisitor {
                                          schema, schema::kDictKeysSchemaAttr,
                                          fallback_span_));
       }
-      // If the dict was not created yet, we create it.
+      // If the dict was not created yet, we create it. The reference stays
+      // valid, because no entries are added to `converted_object_cache_` below.
+      PyObjectPtr& result = converted_object_cache_[dict_id].obj;
       if (result == nullptr) {
         if (result_class == nullptr || result_class == Py_None) {
           result = PyObjectPtr::Own(PyDict_New());
@@ -480,7 +475,7 @@ class ToPyVisitor : public internal::AbstractVisitor {
 
   // Sets the attributes of the given Python object.
   absl::Status SetObjectAttributes(
-      PyObjectPtr object, absl::Span<const absl::string_view> attr_names,
+      PyObject* object, absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataItem> attr_values) {
     DCHECK_EQ(attr_names.size(), attr_values.size());
     for (size_t i = 0; i < attr_names.size(); ++i) {
@@ -489,8 +484,7 @@ class ToPyVisitor : public internal::AbstractVisitor {
                                                              std::nullopt));
       ASSIGN_OR_RETURN(PyObjectPtr attr_name_py,
                        dataclasses_util_.GetPyStr(attr_names[i]));
-      if (PyObject_SetAttr(object.get(), attr_name_py.get(), py_value.get()) <
-          0) {
+      if (PyObject_SetAttr(object, attr_name_py.get(), py_value.get()) < 0) {
         return arolla::python::StatusWithRawPyErr(
             absl::StatusCode::kInternal, "could not set object attrubute");
       }
@@ -557,9 +551,8 @@ class ToPyVisitor : public internal::AbstractVisitor {
     }
 
     ObjectId object_id = object.value<ObjectId>();
-    PyObjectPtr& result = converted_object_cache_[object_id];
-
-    if (result != nullptr) {
+    if (PyObject* result = LookupConvertedPyObject(object_id);
+        result != nullptr) {
       // Object was already converted, just set the attributes.
       return SetObjectAttributes(result, attr_names, attr_values);
     }
@@ -603,9 +596,11 @@ class ToPyVisitor : public internal::AbstractVisitor {
       attr_values_vec.push_back(std::move(py_value));
     }
 
-    ASSIGN_OR_RETURN(result, dataclasses_util_.CreateClassInstanceKwargs(
-                                 PyObjectPtr::NewRef(result_class),
-                                 attr_names_vec, attr_values_vec));
+    ASSIGN_OR_RETURN(PyObjectPtr py_obj,
+                     dataclasses_util_.CreateClassInstanceKwargs(
+                         PyObjectPtr::NewRef(result_class), attr_names_vec,
+                         attr_values_vec));
+    converted_object_cache_[object_id].obj = std::move(py_obj);
 
     return absl::OkStatus();
   }
@@ -650,10 +645,15 @@ class ToPyVisitor : public internal::AbstractVisitor {
     }
 
     const ObjectId& object_id = item.value<ObjectId>();
+    const bool has_converted_obj =
+        LookupConvertedPyObject(object_id) != nullptr;
     if (ShouldNotBeConverted(item)) {
-      ASSIGN_OR_RETURN(DataSlice ds, DataSlice::Create(item, schema, db_));
-      ASSIGN_OR_RETURN(converted_object_cache_[object_id],
-                       WrapDataSliceWithErrorCheck(std::move(ds)));
+      if (!has_converted_obj) {
+        ASSIGN_OR_RETURN(DataSlice ds, DataSlice::Create(item, schema, db_));
+        ASSIGN_OR_RETURN(PyObjectPtr py_obj,
+                         WrapDataSliceWithErrorCheck(std::move(ds)));
+        converted_object_cache_[object_id].obj = std::move(py_obj);
+      }
       // This ItemId will not be further traversed.
       return false;
     }
@@ -661,8 +661,7 @@ class ToPyVisitor : public internal::AbstractVisitor {
       return absl::InvalidArgumentError(kItemIdNotSupportedError);
     }
 
-    if (result == FindAndStoreClassResult::kStoredClass ||
-        converted_object_cache_.contains(object_id)) {
+    if (result == FindAndStoreClassResult::kStoredClass || has_converted_obj) {
       return true;
     }
 
@@ -689,8 +688,9 @@ class ToPyVisitor : public internal::AbstractVisitor {
 
       // Do not store the class in the cache, just create an instance.
       ASSIGN_OR_RETURN(
-          converted_object_cache_[object_id],
+          PyObjectPtr py_obj,
           dataclasses_util_.MakeDataClassInstance(schema_name, attr_names_vec));
+      converted_object_cache_[object_id].obj = std::move(py_obj);
       return true;
     }
     if (item.is_dict() || (obj_as_dict_ && item.is_entity())) {
@@ -699,7 +699,7 @@ class ToPyVisitor : public internal::AbstractVisitor {
         return arolla::python::StatusWithRawPyErr(
             absl::StatusCode::kInternal, "could not create a new dict");
       }
-      converted_object_cache_[object_id] = std::move(result);
+      converted_object_cache_[object_id].obj = std::move(result);
       return true;
     }
     if (item.is_list()) {
@@ -708,24 +708,33 @@ class ToPyVisitor : public internal::AbstractVisitor {
         return arolla::python::StatusWithRawPyErr(
             absl::StatusCode::kInternal, "could not create a new list");
       }
-      converted_object_cache_[object_id] = std::move(result);
+      converted_object_cache_[object_id].obj = std::move(result);
       return true;
     }
 
     return true;
   }
 
+  PyObject* absl_nullable LookupConvertedPyObject(
+      const ObjectId& object_id) const {
+    const auto it = converted_object_cache_.find(object_id);
+    return it != converted_object_cache_.end() ? it->second.obj.get() : nullptr;
+  }
+
+  PyObject* absl_nullable LookupTargetClass(const ObjectId& object_id) const {
+    const auto it = converted_object_cache_.find(object_id);
+    return it != converted_object_cache_.end() ? it->second.target_class.get()
+                                               : nullptr;
+  }
+
   // Returns a converted Python object for the given `item`.
   // Returns an error if the `item` does not hold ObjectId.
-  // If the object is not found in the converted object cache, an error is
-  // returned.
   // If the object is not found in the converted object cache, returns an error.
   absl::StatusOr<PyObjectPtr> GetConvertedPyObject(const DataItem& item) {
     DCHECK(item.holds_value<ObjectId>());
-    ObjectId object_id = item.value<ObjectId>();
-    const auto it = converted_object_cache_.find(object_id);
-    if (it != converted_object_cache_.end() && it->second != nullptr) {
-      return it->second;
+    if (PyObject* obj = LookupConvertedPyObject(item.value<ObjectId>());
+        obj != nullptr) {
+      return PyObjectPtr::NewRef(obj);
     }
     if (item.is_schema()) {
       return absl::InvalidArgumentError(
@@ -752,25 +761,20 @@ class ToPyVisitor : public internal::AbstractVisitor {
       return absl::InternalError(
           "GetCachedClass is called, but output_class is not provided");
     }
-    ObjectId object_id = item.value<ObjectId>();
-    auto it = class_cache_by_object_id_.find(object_id);
-    if (it == class_cache_by_object_id_.end()) {
-      if (item.is_schema()) {
-        return absl::InvalidArgumentError(
-            "schema is not supported in to_py conversion");
-      }
-      if (return_none_if_not_found) {
-        return Py_None;
-      }
-      return absl::InternalError(
-          "item holds an object id, but its class is not found in cache; "
-          "probably, it was not pre-visited");
+    if (PyObject* target_class = LookupTargetClass(item.value<ObjectId>());
+        target_class != nullptr) {
+      return target_class;
     }
-    if (!it->second.has_value()) {
+    if (item.is_schema()) {
+      return absl::InvalidArgumentError(
+          "schema is not supported in to_py conversion");
+    }
+    if (return_none_if_not_found) {
       return Py_None;
     }
-    DCHECK(it->second->type != nullptr);
-    return it->second->type.get();
+    return absl::InternalError(
+        "item holds an object id, but its class is not found in cache; "
+        "probably, it was not pre-visited");
   }
 
   // If the given `item` holds ObjectId, returns a cached Python object for
@@ -831,19 +835,25 @@ class ToPyVisitor : public internal::AbstractVisitor {
            objects_not_to_convert_.contains(item.value<ObjectId>());
   }
 
-  absl::flat_hash_map<ObjectId, arolla::python::PyObjectPtr>
-      converted_object_cache_;
-
-  // Cache for Python classes (e.g. dataclasses, SimpleNamespace).
-  // Please note that the cache is used only if `output_class` is provided.
-  // Otherwise `DataclassesUtil` is caching `dataclasses` on its own.
-  // This cache is filled during the pre-visit stage (instead of
-  // converted_object_cache_) and used during the visit stage to instantiate
-  // the class for objects/entities/lists. Please note that it also used to
-  // check if the same object is reached by different classes to fail early.
-  absl::flat_hash_map<ObjectId,
-                      std::optional<DataClassesUtil::FieldTypeDescriptor>>
-      class_cache_by_object_id_;
+  // Per-ObjectId state shared across the pre-visit and post-order visit phases.
+  //
+  // Note: `PrevisitItem` may run more than once for the same ObjectId (for
+  // example, via `PrevisitSlice` with `OBJECT` schema and then
+  // `PrevisitObjectSchemas` with its concrete schema) and may insert an entry
+  // with `target_class` set before `obj` is created. Cache-hit checks for
+  // whether the Python object has already been created must therefore test
+  // `entry.obj != nullptr` rather than key presence in
+  // `converted_object_cache_`.
+  struct ConvertedObjectEntry {
+    arolla::python::PyObjectPtr absl_nullable obj;
+    // Target Python class resolved from `output_class` during
+    // `FindAndStoreClass` (`Py_None` for `Any` or unannotated fields, or null
+    // when `output_class` is not in effect / not yet resolved). Used both to
+    // detect conflicting target classes when the same ObjectId is reached via
+    // multiple paths and to guide attribute/item conversion during `Visit*`.
+    arolla::python::PyObjectPtr absl_nullable target_class;
+  };
+  absl::flat_hash_map<ObjectId, ConvertedObjectEntry> converted_object_cache_;
 
   // Cache for Python classes that are accessed by path.
   // It is used to avoid looking up the same path multiple times for the same
