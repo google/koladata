@@ -551,6 +551,8 @@ def to_py(
   """
   if output_class in (Any, Any | None):
     output_class = None
+  if obj_as_dict and output_class is not None:
+    raise ValueError('obj_as_dict cannot be used with output_class')
   return ds._to_py_impl(  # pylint: disable=protected-access
       max_depth=max_depth,
       obj_as_dict=obj_as_dict,
@@ -579,11 +581,10 @@ def to_pytree(
     include_missing_attrs: whether to include attributes with None value in
       objects.
   """
-  return ds._to_py_impl(  # pylint: disable=protected-access
+  return ds.to_py(
       max_depth=max_depth,
       obj_as_dict=True,
       include_missing_attrs=include_missing_attrs,
-      output_class=None,
   )
 
 

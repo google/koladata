@@ -794,10 +794,6 @@ class ToPyVisitor : public internal::AbstractVisitor {
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataItem> attr_values) {
     ASSIGN_OR_RETURN(PyObjectPtr result, GetConvertedPyObject(object));
-    if (output_class_descriptor_.has_value()) {
-      return absl::InvalidArgumentError(
-          "obj_as_dict cannot be used with output_class");
-    }
 
     // Sort the attribute names to ensure that the order is deterministic.
     std::vector<absl::string_view> attr_names_vec(attr_names.begin(),
@@ -886,8 +882,7 @@ PyObject* absl_nullable ToPyImplInternal(
     PyObject* output_class) {
   DataClassesUtil dataclasses_util;
   std::optional<DataClassesUtil::FieldTypeDescriptor> output_class_descriptor;
-  const bool output_class_is_provided = output_class != Py_None;
-  if (output_class_is_provided) {
+  if (output_class != Py_None) {
     ASSIGN_OR_RETURN(
         output_class_descriptor,
         dataclasses_util.MaybeDecayOptional(PyObjectPtr::NewRef(output_class)),
@@ -905,11 +900,6 @@ PyObject* absl_nullable ToPyImplInternal(
                                            std::move(output_class_descriptor)),
                      arolla::python::SetPyErrFromStatus(_));
     return res.release();
-  }
-  if (obj_as_dict && output_class_is_provided) {
-    arolla::python::SetPyErrFromStatus(absl::InvalidArgumentError(
-        "obj_as_dict cannot be used with output_class"));
-    return nullptr;
   }
   const DataSlice& schema = ds.GetSchema();
   DCHECK(bag != nullptr);
