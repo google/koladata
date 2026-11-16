@@ -18,7 +18,7 @@ from __future__ import annotations  # this is needed for the purpose
 # of this test.
 import dataclasses
 import types as _py_types
-from typing import Optional
+from typing import Any, Optional
 from absl.testing import absltest
 from koladata.functions import functions as fns
 from koladata.functions import object_factories
@@ -30,6 +30,11 @@ kde = kde_operators.kde
 
 def mutable_obj():
   return object_factories.mutable_bag().obj()
+
+
+def _default_obj(**attrs):
+  """Returns an object equal to what `to_py` creates without output_class."""
+  return dataclasses.make_dataclass('Obj', [(k, Any) for k in attrs])(**attrs)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -118,12 +123,11 @@ class ToPyWithAnnotationsTest(absltest.TestCase):
       c: _py_types.SimpleNamespace
 
     root = fns.obj(a=1, b='x', c=fns.obj(d=2, e='y', f=fns.obj(g=3, h='z')))
+    # SimpleNamespace is not applied recursively.
     output_obj = Obj(
         a=1,
         b='x',
-        c=_py_types.SimpleNamespace(
-            d=2, e='y', f=_py_types.SimpleNamespace(g=3, h='z')
-        ),
+        c=_py_types.SimpleNamespace(d=2, e='y', f=_default_obj(g=3, h='z')),
     )
     converted = py_conversions.to_py(
         root, max_depth=5, output_class=output_obj.__class__
@@ -148,19 +152,17 @@ class ToPyWithAnnotationsTest(absltest.TestCase):
     obj.c.append(obj)
     obj.d['a'] = obj
 
+    # The root is converted to SimpleNamespace, but it is also reached as an
+    # untyped attribute of itself.
     with self.assertRaisesRegex(
-        ValueError,
-        'object depth exceeds the output_class depth, which is recursive '
-        'dataclass or SimpleNamespace.',
+        ValueError, 'same object is reached with different classes'
     ):
       _ = py_conversions.to_py(
           obj, max_depth=-1, output_class=_py_types.SimpleNamespace
       )
 
     with self.assertRaisesRegex(
-        ValueError,
-        'object depth exceeds the output_class depth, which is recursive '
-        'dataclass or SimpleNamespace.',
+        ValueError, 'same object is reached with different classes'
     ):
       _ = py_conversions.to_py(
           obj.b, max_depth=-1, output_class=_py_types.SimpleNamespace
@@ -184,9 +186,7 @@ class ToPyWithAnnotationsTest(absltest.TestCase):
     )
     self.assertEqual(
         res,
-        _py_types.SimpleNamespace(
-            a=_py_types.SimpleNamespace(b=_py_types.SimpleNamespace(c=1))
-        ),
+        _py_types.SimpleNamespace(a=_default_obj(b=_default_obj(c=1))),
     )
 
 

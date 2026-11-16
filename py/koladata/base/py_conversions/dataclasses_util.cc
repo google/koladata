@@ -46,8 +46,6 @@ constexpr const char* kFieldsNamesAndValuesFnName = "fields_names_and_values";
 constexpr const char* kGetClassFieldTypeFnName = "get_class_field_type";
 constexpr const char* kMaybeDecayOptionalFnName = "maybe_decay_optional";
 
-constexpr const char* kSimpleNamespaceClassName = "_simple_namespace_class";
-
 using ::arolla::python::PyObjectPtr;
 
 std::vector<absl::string_view> GetSortedAttrNames(
@@ -196,11 +194,6 @@ absl::StatusOr<PyObjectPtr> DataClassesUtil::CreateClassInstanceKwargs(
         "could not create a new instance of the class");
   }
   return py_instance;
-}
-
-absl::StatusOr<PyObjectPtr> DataClassesUtil::GetSimpleNamespaceClass() {
-  RETURN_IF_ERROR(InitFns());
-  return simple_namespace_class_;
 }
 
 absl::StatusOr<PyObjectPtr> DataClassesUtil::MakeDataClassInstance(
@@ -377,12 +370,6 @@ absl::Status DataClassesUtil::InitFns() {
     return arolla::python::StatusCausedByPyErr(
         absl::StatusCode::kInternal,
         absl::StrFormat("could not create a new dict for type hints cache"));
-  }
-
-  ASSIGN_OR_RETURN(simple_namespace_class_,
-                   InitFnFromModule(kSimpleNamespaceClassName));
-  if (simple_namespace_class_ == nullptr) {
-    return absl::InternalError("could not get simple namespace class");
   }
 
   fns_initialized_ = true;

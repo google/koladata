@@ -42,6 +42,11 @@ def mutable_obj():
   return object_factories.mutable_bag().obj()
 
 
+def _default_obj(**attrs):
+  """Returns an object equal to what `to_py` creates without output_class."""
+  return dataclasses.make_dataclass('Obj', [(k, Any) for k in attrs])(**attrs)
+
+
 @dataclasses.dataclass(frozen=True)
 class Obj1:
   a: int = 123
@@ -907,12 +912,11 @@ class ToPyTest(parameterized.TestCase):
       c: _py_types.SimpleNamespace
 
     root = fns.obj(a=1, b='x', c=fns.obj(d=2, e='y', f=fns.obj(g=3, h='z')))
+    # SimpleNamespace is not applied recursively.
     output_obj = Obj(
         a=1,
         b='x',
-        c=_py_types.SimpleNamespace(
-            d=2, e='y', f=_py_types.SimpleNamespace(g=3, h='z')
-        ),
+        c=_py_types.SimpleNamespace(d=2, e='y', f=_default_obj(g=3, h='z')),
     )
     converted = py_conversions.to_py(
         root, max_depth=5, output_class=output_obj.__class__
@@ -921,43 +925,44 @@ class ToPyTest(parameterized.TestCase):
 
   def test_output_class_simple_namespace_in_simple_namespace(self):
 
+    # SimpleNamespace is not applied recursively: nested structures are
+    # converted as if no output class is specified.
     root = fns.obj(a=1, b='x', c=fns.obj(d=2, e='y', f=fns.obj(g=3, h='z')))
     output_object = _py_types.SimpleNamespace(
         a=1,
         b='x',
-        c=_py_types.SimpleNamespace(
-            d=2, e='y', f=_py_types.SimpleNamespace(g=3, h='z')
-        ),
+        c=_default_obj(d=2, e='y', f=_default_obj(g=3, h='z')),
     )
     converted = py_conversions.to_py(
         root, max_depth=5, output_class=output_object.__class__
     )
     self.assertEqual(converted, output_object)
 
-  def test_output_class_simple_namespace_in_list(self):
-
+  def test_output_class_simple_namespace_with_list(self):
     root = fns.obj(l=fns.list([fns.obj(g=3, h='z')]))
-    output_class = _py_types.SimpleNamespace(
-        l=[_py_types.SimpleNamespace(g=3, h='z')]
-    )
     converted = py_conversions.to_py(
         root, max_depth=5, output_class=_py_types.SimpleNamespace
     )
-    self.assertIs(converted.__class__, _py_types.SimpleNamespace)
-    self.assertIs(converted.l[0].__class__, _py_types.SimpleNamespace)
-    self.assertEqual(converted, output_class)
+    self.assertEqual(
+        converted, _py_types.SimpleNamespace(l=[_default_obj(g=3, h='z')])
+    )
 
-  def test_output_class_simple_namespace_in_dict(self):
+  def test_output_class_simple_namespace_with_dict(self):
     root = fns.obj(d=fns.dict({'a': fns.obj(g=3, h='z')}))
-    output_class = _py_types.SimpleNamespace(
-        d=_py_types.SimpleNamespace(a=_py_types.SimpleNamespace(g=3, h='z'))
-    )
     converted = py_conversions.to_py(
         root, max_depth=5, output_class=_py_types.SimpleNamespace
     )
-    self.assertIs(converted.__class__, _py_types.SimpleNamespace)
-    self.assertIs(converted.d.a.__class__, _py_types.SimpleNamespace)
-    self.assertEqual(converted, output_class)
+    self.assertEqual(
+        converted,
+        _py_types.SimpleNamespace(d={'a': _default_obj(g=3, h='z')}),
+    )
+
+  def test_output_class_simple_namespace_for_dict(self):
+    root = fns.dict({'a': fns.dict({'b': 1})})
+    converted = py_conversions.to_py(
+        root, max_depth=5, output_class=_py_types.SimpleNamespace
+    )
+    self.assertEqual(converted, _py_types.SimpleNamespace(a={'b': 1}))
 
   def test_output_class_any_order_dependent(self):
     class_a = dataclasses.make_dataclass('A', [])

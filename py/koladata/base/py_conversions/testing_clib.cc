@@ -105,13 +105,6 @@ PYBIND11_MODULE(testing_clib, m) {
                      arolla::python::PyObjectPtr::NewRef(py_class.ptr()),
                      attr_names, attr_values_ptrs));
              return py::reinterpret_steal<py::object>(res.release());
-           })
-      .def("get_simple_namespace_class",
-           [](DataClassesUtil& self) -> py::object {
-             arolla::python::PyObjectPtr py_obj =
-                 arolla::python::pybind11_unstatus_or(
-                     self.GetSimpleNamespaceClass());
-             return py::reinterpret_steal<py::object>(py_obj.release());
            });
 }
 }  // namespace

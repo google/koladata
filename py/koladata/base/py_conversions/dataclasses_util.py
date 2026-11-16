@@ -144,10 +144,8 @@ def get_class_field_type(
     return (None, True)
 
   if py_obj is types.SimpleNamespace:
-    if for_primitive:
-      return (None, True)
-    else:
-      return (types.SimpleNamespace, True)
+    # Fields of SimpleNamespace are not typed.
+    return (None, True)
 
   if dataclasses.is_dataclass(py_obj):
 
@@ -219,6 +217,3 @@ def get_class_field_type(
       f'could not get type for attribute {attr_name}; only dataclasses or'
       f' SimpleNamespace are supported; got instead: {py_obj}'
   )
-
-
-_simple_namespace_class = types.SimpleNamespace

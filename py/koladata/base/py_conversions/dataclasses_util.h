@@ -72,9 +72,9 @@ class DataClassesUtil {
   // Returns the type of the given field in the class.
   // If the class is a dataclass, the type of the field is returned.
   // If the class field is not present, `std::nullopt` is returned.
-  // If the class field is a SimpleNamespace, the SimpleNamespace class is
-  // returned.
   // If the class field is typed as `Any` or unannotated, `type` is `Py_None`.
+  // If the class is SimpleNamespace, all fields are considered to be present
+  // and are not typed (`Py_None`).
   // Please note if the field is optional (e.g. `SomeType | None`), the
   // underlying type is returned.
   // - `list[SomeType]` and `attr_name==__items__` -> SomeType is returned.
@@ -83,10 +83,8 @@ class DataClassesUtil {
   //   - 'attr_name == '__values__' -> SecondType is returned.
   // In all other cases, an error is returned.
   // `for_primitive` indicates whether the caller's intention is to use it for a
-  // primitive type. This is added to support the SimpleNamespace case: its
-  // fields are not typed, so with `for_primitive=True` the type of the field is
-  // considered to be `Py_None` (so that any type can be assigned to it);
-  // otherwise it will be `SimpleNamespace`.
+  // primitive type: dataclass fields of other types (e.g. `int`) are then
+  // returned as is instead of raising an error.
   absl::StatusOr<std::optional<FieldTypeDescriptor>> GetClassFieldType(
       arolla::python::PyObjectPtr absl_nonnull py_class,
       absl::string_view attr_name, bool for_primitive = false);
@@ -102,9 +100,6 @@ class DataClassesUtil {
   // `is_optional=true`. Otherwise, returns the type and `is_optional=false`.
   absl::StatusOr<FieldTypeDescriptor> MaybeDecayOptional(
       arolla::python::PyObjectPtr absl_nonnull py_type);
-
-  // Returns a new reference to the SimpleNamespace class.
-  absl::StatusOr<arolla::python::PyObjectPtr> GetSimpleNamespaceClass();
 
   // Returns a python string with the given content.
   absl::StatusOr<arolla::python::PyObjectPtr> GetPyStr(absl::string_view str);
@@ -132,7 +127,6 @@ class DataClassesUtil {
   arolla::python::PyObjectPtr fn_get_class_field_type_;
   arolla::python::PyObjectPtr fn_maybe_decay_optional_;
 
-  arolla::python::PyObjectPtr simple_namespace_class_;
   bool fns_initialized_ = false;
 
   // DataClasses returns borrowed references to the client, so it needs to own

@@ -204,7 +204,7 @@ class DataclassesUtilTest(absltest.TestCase):
 
     self.assertEqual(
         util.get_class_field_type(_py_types.SimpleNamespace, 'any_attr', False),
-        (_py_types.SimpleNamespace, True),
+        (None, True),
     )
     self.assertEqual(
         util.get_class_field_type(Obj2, 'a', False),
@@ -319,11 +319,6 @@ class DataclassesUtilTest(absltest.TestCase):
     util = testing_clib.DataClassesUtil()
     obj = util.create_class_instance_kwargs(Obj1, ['a', 'b'], [123, 'abc'])
     self.assertEqual(obj, Obj1(a=123, b='abc'))
-
-  def test_get_simple_namespace_class(self):
-    util = testing_clib.DataClassesUtil()
-    simple_namespace_class = util.get_simple_namespace_class()
-    self.assertEqual(simple_namespace_class, _py_types.SimpleNamespace)
 
 
 if __name__ == '__main__':

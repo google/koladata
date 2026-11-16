@@ -278,8 +278,7 @@ class ToPyVisitor : public internal::AbstractVisitor {
       return absl::OkStatus();
     }
 
-    // Since everything inside SimpleNamespace is a SimpleNamespace, we need
-    // to apply the following logic:
+    // We apply the following logic:
     // 1. If the list was already created, we only need to add items to it.
     // 2. Otherwise, we get the class of the list (which can only be `tuple`
     // or `list`). If it is a simple namespace , set output_class to `list`.
@@ -494,8 +493,6 @@ class ToPyVisitor : public internal::AbstractVisitor {
 
   // Returns the class of the given attribute of the given object.
   // If the output_class_descriptor_ is not provided, returns nullopt.
-  // If the object is a SimpleNamespace, returns nullopt to indicate that
-  // all of its attributes are not typed.
   absl::StatusOr<std::optional<DataClassesUtil::FieldTypeDescriptor>>
   GetCachedAttrClass(const DataItem& object, absl::string_view attr_name) {
     if (!output_class_descriptor_.has_value()) {
@@ -507,15 +504,10 @@ class ToPyVisitor : public internal::AbstractVisitor {
   }
 
   // Returns the class of the given attribute of the given Python class.
-  // If `result_class` is null, None, or SimpleNamespace, returns nullopt.
+  // If `result_class` is null or None, returns nullopt.
   absl::StatusOr<std::optional<DataClassesUtil::FieldTypeDescriptor>>
   GetAttrClass(PyObject* result_class, absl::string_view attr_name) {
     if (result_class == nullptr || Py_IsNone(result_class)) {
-      return std::nullopt;
-    }
-    ASSIGN_OR_RETURN(PyObjectPtr simple_namespace_class,
-                     dataclasses_util_.GetSimpleNamespaceClass());
-    if (result_class == simple_namespace_class.get()) {
       return std::nullopt;
     }
 
@@ -559,10 +551,6 @@ class ToPyVisitor : public internal::AbstractVisitor {
     DCHECK(output_class_descriptor_.has_value());
     ASSIGN_OR_RETURN(PyObject * result_class, GetCachedClass(object));
     DCHECK(result_class != nullptr);
-    ASSIGN_OR_RETURN(PyObjectPtr simple_namespace_class,
-                     dataclasses_util_.GetSimpleNamespaceClass());
-    const bool result_class_is_simple_namespace =
-        simple_namespace_class.get() == result_class;
 
     std::vector<absl::string_view> attr_names_vec;
     attr_names_vec.reserve(attr_names.size());
@@ -572,21 +560,20 @@ class ToPyVisitor : public internal::AbstractVisitor {
       absl::string_view attr_name = attr_names[i];
       const DataItem& attr_value = attr_values[i];
 
-      std::optional<DataClassesUtil::FieldTypeDescriptor> attr_class;
-      if (!result_class_is_simple_namespace) {
-        ASSIGN_OR_RETURN(attr_class, GetAttrClass(result_class, attr_name));
-        if (!attr_class.has_value()) {
-          continue;  // no field with this name in the class
-        }
-        if (!attr_value.has_value()) {
-          if (!attr_class->is_optional) {
-            return absl::InvalidArgumentError(absl::StrFormat(
-                "field cannot have missing values: %s", attr_name));
-          } else {
-            attr_names_vec.emplace_back(attr_name);
-            attr_values_vec.emplace_back(PyObjectPtr::NewRef(Py_None));
-            continue;
-          }
+      ASSIGN_OR_RETURN(
+          std::optional<DataClassesUtil::FieldTypeDescriptor> attr_class,
+          GetAttrClass(result_class, attr_name));
+      if (!attr_class.has_value()) {
+        continue;  // no field with this name in the class
+      }
+      if (!attr_value.has_value()) {
+        if (!attr_class->is_optional) {
+          return absl::InvalidArgumentError(absl::StrFormat(
+              "field cannot have missing values: %s", attr_name));
+        } else {
+          attr_names_vec.emplace_back(attr_name);
+          attr_values_vec.emplace_back(PyObjectPtr::NewRef(Py_None));
+          continue;
         }
       }
       ASSIGN_OR_RETURN(PyObjectPtr py_value,
