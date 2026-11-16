@@ -77,10 +77,15 @@ class DataClassesUtil {
   // and are not typed (`Py_None`).
   // Please note if the field is optional (e.g. `SomeType | None`), the
   // underlying type is returned.
-  // - `list[SomeType]` and `attr_name==__items__` -> SomeType is returned.
-  // - `dict[OneType, SecondType]`:
-  //   - 'attr_name == '__keys__' -> OneType is returned.
-  //   - 'attr_name == '__values__' -> SecondType is returned.
+  //
+  // `attr_name` can also be one of the special names (the same as the names of
+  // the corresponding Koda schema attributes) that refer to the type parameters
+  // of a container class rather than to an attribute:
+  // - `__items__`: `T` for `list[T]` or `tuple[T, ...]`; an error if the class
+  //   is not a list class.
+  // - `__keys__`: `K` for `dict[K, V]`.
+  // - `__values__`: `V` for `dict[K, V]`. For a dict class, any name other than
+  //   `__items__` and `__keys__` is treated as `__values__`.
   // In all other cases, an error is returned.
   // `for_primitive` indicates whether the caller's intention is to use it for a
   // primitive type: dataclass fields of other types (e.g. `int`) are then

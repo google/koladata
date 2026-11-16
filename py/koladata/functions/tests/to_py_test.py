@@ -786,12 +786,6 @@ class ToPyTest(parameterized.TestCase):
     self.assertEqual(converted, [1, 2, 3])
     self.assertIs(converted.__class__, list)
 
-    converted = py_conversions.to_py(
-        root, output_class=_py_types.SimpleNamespace
-    )
-    self.assertEqual(converted, [1, 2, 3])
-    self.assertIs(converted.__class__, list)
-
     converted = py_conversions.to_py(root, output_class=tuple[int, ...])
     self.assertEqual(converted, (1, 2, 3))
     self.assertIs(converted.__class__, tuple)
@@ -810,6 +804,16 @@ class ToPyTest(parameterized.TestCase):
         'expected list class; got instead: dict.int. str.',
     ):
       _ = py_conversions.to_py(root, output_class=dict[int, str])
+
+    with self.assertRaisesRegex(
+        ValueError, 'expected list class; got instead: .*SimpleNamespace'
+    ):
+      _ = py_conversions.to_py(root, output_class=_py_types.SimpleNamespace)
+
+    with self.assertRaisesRegex(
+        ValueError, 'expected list class; got instead: .*Obj1'
+    ):
+      _ = py_conversions.to_py(root, output_class=Obj1)
 
   def test_output_class_dict_with_primitive(self):
     root = fns.dict({'a': 1, 'b': 2})

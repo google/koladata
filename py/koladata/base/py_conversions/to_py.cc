@@ -259,7 +259,7 @@ class ToPyVisitor : public internal::AbstractVisitor {
     DCHECK(PyList_CheckExact(py_list));
     ASSIGN_OR_RETURN(
         std::optional<DataClassesUtil::FieldTypeDescriptor> attr_class,
-        GetCachedAttrClass(list, schema::kListItemsSchemaAttr));
+        GetCachedChildClass(list, schema::kListItemsSchemaAttr));
     for (const DataItem& item : items) {
       ASSIGN_OR_RETURN(PyObjectPtr py_item,
                        GetConvertedPyObjectOrCreatePrimitive(item, attr_class));
@@ -281,7 +281,7 @@ class ToPyVisitor : public internal::AbstractVisitor {
     // We apply the following logic:
     // 1. If the list was already created, we only need to add items to it.
     // 2. Otherwise, we get the class of the list (which can only be `tuple`
-    // or `list`). If it is a simple namespace , set output_class to `list`.
+    // or `list`).
     // Now we create an instance of `output_class(items=...)`. We do it
     // because we cannot add elements to a tuple, so we cannot create it
     // during Previsit.
@@ -301,20 +301,18 @@ class ToPyVisitor : public internal::AbstractVisitor {
       return AddItemsToPyList(list, py_list, items);
     }
 
-    // Only list[T], tuple[T], or SimpleNamespace types are expected here.
-    // SimpleNamespace is treated as list.
+    // Only list[T] or tuple[T] types are expected here.
     ASSIGN_OR_RETURN(PyObject * result_class, GetCachedClass(list));
     ASSIGN_OR_RETURN(PyObjectPtr real_result_class,
                      DecayGenericAlias(result_class));
 
     ASSIGN_OR_RETURN(
         std::optional<DataClassesUtil::FieldTypeDescriptor> attr_class,
-        GetAttrClass(result_class, schema::kListItemsSchemaAttr));
+        GetChildClass(result_class, schema::kListItemsSchemaAttr));
     PyObjectPtr result;
     if (real_result_class.get() == (PyObject*)&PyTuple_Type) {
       result = PyObjectPtr::Own(PyTuple_New(items.size()));
     } else {
-      // The type can be either list or SimpleNamespace here.
       result = PyObjectPtr::Own(PyList_New(items.size()));
     }
     if (result == nullptr) {
@@ -388,10 +386,10 @@ class ToPyVisitor : public internal::AbstractVisitor {
     // or a Dataclass, std::nullopt will be returned and not used.
     ASSIGN_OR_RETURN(
         std::optional<DataClassesUtil::FieldTypeDescriptor> dict_keys_class,
-        GetAttrClass(result_class, schema::kDictKeysSchemaAttr));
+        GetChildClass(result_class, schema::kDictKeysSchemaAttr));
     ASSIGN_OR_RETURN(
         std::optional<DataClassesUtil::FieldTypeDescriptor> dict_values_class,
-        GetAttrClass(result_class, schema::kDictValuesSchemaAttr));
+        GetChildClass(result_class, schema::kDictValuesSchemaAttr));
 
     DCHECK_EQ(keys.size(), values.size());
 
@@ -491,40 +489,46 @@ class ToPyVisitor : public internal::AbstractVisitor {
     return absl::OkStatus();
   }
 
-  // Returns the class of the given attribute of the given object.
+  // Returns the class of the child `child_name` of the class stored for the
+  // given `item` (see `GetChildClass`).
   // If the output_class_descriptor_ is not provided, returns nullopt.
   absl::StatusOr<std::optional<DataClassesUtil::FieldTypeDescriptor>>
-  GetCachedAttrClass(const DataItem& object, absl::string_view attr_name) {
+  GetCachedChildClass(const DataItem& item, absl::string_view child_name) {
     if (!output_class_descriptor_.has_value()) {
       return std::nullopt;
     }
-    ASSIGN_OR_RETURN(PyObject * result_class,
-                     GetCachedClass(object, /*return_none_if_not_found=*/true));
-    return GetAttrClass(result_class, attr_name);
+    ASSIGN_OR_RETURN(PyObject * parent_class,
+                     GetCachedClass(item, /*return_none_if_not_found=*/true));
+    return GetChildClass(parent_class, child_name);
   }
 
-  // Returns the class of the given attribute of the given Python class.
-  // If `result_class` is null or None, returns nullopt.
+  // Returns the class of the child `child_name` of the Python class
+  // `parent_class`: of a field, or, for the special names
+  // `schema::kListItemsSchemaAttr`, `schema::kDictKeysSchemaAttr` and
+  // `schema::kDictValuesSchemaAttr`, of the items / keys / values of a list or
+  // dict class (see `DataClassesUtil::GetClassFieldType`).
+  // If `parent_class` is null or None, returns nullopt.
   absl::StatusOr<std::optional<DataClassesUtil::FieldTypeDescriptor>>
-  GetAttrClass(PyObject* result_class, absl::string_view attr_name) {
-    if (result_class == nullptr || Py_IsNone(result_class)) {
+  GetChildClass(PyObject* parent_class, absl::string_view child_name) {
+    if (parent_class == nullptr || Py_IsNone(parent_class)) {
       return std::nullopt;
     }
 
-    std::pair<PyObject*, std::string> key{result_class, std::string(attr_name)};
-    auto attr_class_it = classes_by_path_.find(key);
-    if (attr_class_it == classes_by_path_.end()) {
-      // If the attr would have been an object, it would have been already
+    std::pair<PyObject*, std::string> key{parent_class,
+                                          std::string(child_name)};
+    auto child_class_it = classes_by_path_.find(key);
+    if (child_class_it == classes_by_path_.end()) {
+      // If the child would have been an object, it would have been already
       // pre-visited and cached; at this point it can only be a primitive.
       ASSIGN_OR_RETURN(
-          std::optional<DataClassesUtil::FieldTypeDescriptor> attr_class,
-          dataclasses_util_.GetClassFieldType(PyObjectPtr::NewRef(result_class),
-                                              attr_name,
+          std::optional<DataClassesUtil::FieldTypeDescriptor> child_class,
+          dataclasses_util_.GetClassFieldType(PyObjectPtr::NewRef(parent_class),
+                                              child_name,
                                               /*for_primitive=*/true));
-      classes_by_path_[std::move(key)] = attr_class;
-      return attr_class;
+      classes_by_path_[std::move(key)] = child_class;
+      return child_class;
     }
-    return attr_class_it->second;
+    return child_class_it->second;
   }
 
   absl::Status VisitObject(const DataItem& object, const DataItem& schema,
@@ -562,7 +566,7 @@ class ToPyVisitor : public internal::AbstractVisitor {
 
       ASSIGN_OR_RETURN(
           std::optional<DataClassesUtil::FieldTypeDescriptor> attr_class,
-          GetAttrClass(result_class, attr_name));
+          GetChildClass(result_class, attr_name));
       if (!attr_class.has_value()) {
         continue;  // no field with this name in the class
       }

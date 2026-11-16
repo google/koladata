@@ -210,6 +210,16 @@ class DataclassesUtilTest(absltest.TestCase):
         util.get_class_field_type(Obj2, 'a', False),
         (_py_types.SimpleNamespace, False),
     )
+    with self.assertRaisesRegex(
+        ValueError, 'expected list class; got instead: .*SimpleNamespace'
+    ):
+      _ = util.get_class_field_type(
+          _py_types.SimpleNamespace, '__items__', False
+      )
+    with self.assertRaisesRegex(
+        ValueError, 'expected list class; got instead: .*Obj2'
+    ):
+      _ = util.get_class_field_type(Obj2, '__items__', False)
 
   def test_get_class_field_type_for_primitive(self):
     util = testing_clib.DataClassesUtil()

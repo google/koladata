@@ -124,9 +124,24 @@ def get_class_field_type(
 ) -> tuple[_Type | None, bool] | None:
   """Returns information about the type of the given field of py_obj.
 
+  Besides the name of a dataclass field, `attr_name` can be one of the special
+  names (the same as the names of the corresponding Koda schema attributes)
+  that refer to the type parameters of a container class rather than to an
+  attribute:
+    - `__items__`: the type of the items of a list class, e.g. `T` for `list[T]`
+      or `tuple[T, ...]`. Raises if `py_obj` is not a list class.
+    - `__keys__`: the type of the keys of a dict class, e.g. `K` for
+      `dict[K, V]`.
+    - `__values__`: the type of the values of a dict class, e.g. `V` for
+      `dict[K, V]`. For a dict class, any name other than `__items__` and
+      `__keys__` is treated as `__values__`, so that the key of a dict item can
+      be passed as `attr_name` (which gives the field type if `py_obj` is a
+      dataclass instead).
+
   Args:
     py_obj: The class to inspect.
-    attr_name: The name of the attribute to inspect.
+    attr_name: The name of the field to inspect, or one of the special names
+      described above.
     for_primitive: Whether the caller's intention is to use it for a primitive
       type.
     type_hints_cache: A cache of type hints for dataclasses.
@@ -142,6 +157,11 @@ def get_class_field_type(
   """
   if py_obj is None:
     return (None, True)
+
+  if attr_name == '__items__' and (
+      py_obj is types.SimpleNamespace or dataclasses.is_dataclass(py_obj)
+  ):
+    raise ValueError(f'expected list class; got instead: {py_obj}')
 
   if py_obj is types.SimpleNamespace:
     # Fields of SimpleNamespace are not typed.
