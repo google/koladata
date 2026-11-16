@@ -207,6 +207,190 @@ def to_py_100_of_100_deep_with_output_class(state):
 
 
 @google_benchmark.register
+def to_py_1k_single_int32_entity(state):
+  x = kd.new(int32_field=kd.slice(list(range(1000))))
+  while state:
+    _ = kd.to_py(x)
+
+
+@google_benchmark.register
+def to_py_1k_single_int32_obj(state):
+  x = kd.obj(int32_field=kd.slice(list(range(1000))))
+  while state:
+    _ = kd.to_py(x)
+
+
+@google_benchmark.register
+def to_py_100_of_100_single_int32_entity(state):
+  x = kd.new(
+      repeated_int32_field=kd.implode(
+          kd.slice([[i] * 100 for i in range(100)])
+      )
+  )
+  while state:
+    _ = kd.to_py(x)
+
+
+@google_benchmark.register
+def to_py_100_of_100_single_int32_obj(state):
+  x = kd.obj(
+      repeated_int32_field=kd.implode(
+          kd.slice([[i] * 100 for i in range(100)])
+      )
+  )
+  while state:
+    _ = kd.to_py(x)
+
+
+@google_benchmark.register
+def to_py_1k_entity_mixed_fields(state):
+  # Entities with explicit schemas allocated in a single big allocation per
+  # slice.
+  n = 1000
+  x = kd.new(
+      message_field=kd.new(int32_field=kd.slice(list(range(n)))),
+      int32_field=kd.slice(list(range(n))),
+      bytes_field=kd.slice([b'a'] * n),
+      repeated_message_field=kd.implode(
+          kd.new(int32_field=kd.slice([[1, 2]] * n))
+      ),
+      repeated_int32_field=kd.implode(kd.slice([[1, 2, 3]] * n)),
+      repeated_bytes_field=kd.implode(kd.slice([[b'a', b'b', b'c']] * n)),
+      map_int32_int32_field=kd.dict(
+          kd.slice([[1, 3]] * n), kd.slice([[2, 4]] * n)
+      ),
+      map_int32_message_field=kd.dict(
+          kd.slice([[1]] * n),
+          kd.new(int32_field=kd.slice([[1]] * n)),
+      ),
+  )
+  while state:
+    _ = kd.to_py(x, max_depth=-1)
+
+
+@google_benchmark.register
+def to_py_1k_obj_mixed_fields(state):
+  # Objects with implicit schemas allocated in a single big allocation per
+  # slice.
+  n = 1000
+  x = kd.obj(
+      message_field=kd.obj(int32_field=kd.slice(list(range(n)))),
+      int32_field=kd.slice(list(range(n))),
+      bytes_field=kd.slice([b'a'] * n),
+      repeated_message_field=kd.implode(
+          kd.obj(int32_field=kd.slice([[1, 2]] * n))
+      ),
+      repeated_int32_field=kd.implode(kd.slice([[1, 2, 3]] * n)),
+      repeated_bytes_field=kd.implode(kd.slice([[b'a', b'b', b'c']] * n)),
+      map_int32_int32_field=kd.dict(
+          kd.slice([[1, 3]] * n), kd.slice([[2, 4]] * n)
+      ),
+      map_int32_message_field=kd.dict(
+          kd.slice([[1]] * n),
+          kd.obj(int32_field=kd.slice([[1]] * n)),
+      ),
+  )
+  while state:
+    _ = kd.to_py(x, max_depth=-1)
+
+
+@google_benchmark.register
+def to_py_100_of_100_deep_entity(state):
+  # Entities with explicit schema; each level is a separate big allocation.
+  schema = kd.schema.new_schema(int32_field=kd.INT32)
+  schema = schema.with_attrs(message_field=schema)
+  bag = kd.mutable_bag()
+  x = bag.new(int32_field=kd.slice(list(range(100))), schema=schema)
+
+  x_leaf = x
+  for _ in range(100):
+    x_leaf.message_field = kd.new(
+        int32_field=kd.slice(list(range(100))), schema=schema
+    )
+    x_leaf = x_leaf.message_field
+
+  while state:
+    _ = kd.to_py(x, max_depth=-1)
+
+
+@google_benchmark.register
+def to_py_100_of_100_deep_obj(state):
+  # Objects with implicit schemas; each level is a separate big allocation.
+  bag = kd.mutable_bag()
+  x = bag.obj(int32_field=kd.slice(list(range(100))))
+
+  x_leaf = x
+  for _ in range(100):
+    x_leaf.message_field = kd.obj(int32_field=kd.slice(list(range(100))))
+    x_leaf = x_leaf.message_field
+
+  while state:
+    _ = kd.to_py(x, max_depth=-1)
+
+
+@google_benchmark.register
+def to_py_single_entity_mixed_fields(state):
+  x = kd.new(
+      message_field=kd.new(int32_field=0),
+      int32_field=1,
+      bytes_field=b'a',
+      repeated_message_field=kd.implode(kd.new(int32_field=kd.slice([1, 2]))),
+      repeated_int32_field=[1, 2, 3],
+      repeated_bytes_field=[b'a', b'b', b'c'],
+      map_int32_int32_field={1: 2, 3: 4},
+      map_int32_message_field={1: kd.new(int32_field=1)},
+  )
+  while state:
+    _ = kd.to_py(x, max_depth=-1)
+
+
+@google_benchmark.register
+def to_py_single_obj_mixed_fields(state):
+  x = kd.obj(
+      message_field=kd.obj(int32_field=0),
+      int32_field=1,
+      bytes_field=b'a',
+      repeated_message_field=kd.implode(kd.obj(int32_field=kd.slice([1, 2]))),
+      repeated_int32_field=[1, 2, 3],
+      repeated_bytes_field=[b'a', b'b', b'c'],
+      map_int32_int32_field={1: 2, 3: 4},
+      map_int32_message_field={1: kd.obj(int32_field=1)},
+  )
+  while state:
+    _ = kd.to_py(x, max_depth=-1)
+
+
+@google_benchmark.register
+def to_py_1_of_1000_deep(state):
+  schema = kd.schema.new_schema(int32_field=kd.INT32)
+  schema = schema.with_attrs(message_field=schema)
+  bag = kd.mutable_bag()
+  x = bag.new(int32_field=0, schema=schema)
+
+  x_leaf = x
+  for i in range(1000):
+    x_leaf.message_field = kd.new(int32_field=i, schema=schema)
+    x_leaf = x_leaf.message_field
+
+  while state:
+    _ = kd.to_py(x, max_depth=-1)
+
+
+@google_benchmark.register
+def to_py_1_of_1000_deep_obj(state):
+  bag = kd.mutable_bag()
+  x = bag.obj(int32_field=0)
+
+  x_leaf = x
+  for i in range(1000):
+    x_leaf.message_field = kd.obj(int32_field=i)
+    x_leaf = x_leaf.message_field
+
+  while state:
+    _ = kd.to_py(x, max_depth=-1)
+
+
+@google_benchmark.register
 def to_py_leaves_are_ignored(state):
   @dataclasses.dataclass
   class SmallObj:
