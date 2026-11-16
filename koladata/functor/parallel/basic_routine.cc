@@ -55,7 +55,7 @@ struct BasicRoutineState {
   ~BasicRoutineState() {
     cancellation_subscription = {};
     parked_reader.reset();
-    executor->Schedule([hooks = std::move(hooks)]() mutable { hooks.reset(); });
+    executor->Schedule([hooks = std::move(hooks)] {});
   }
 };
 
