@@ -267,6 +267,7 @@ TEST(FutureTest, MakeReaderConcurrentSubscriptions) {
     executor->Schedule([&] {
       go.WaitForNotification();
       std::move(writer).SetValue(arolla::TypedValue::FromValue(1));
+      EXPECT_THAT(stream_reader->TryRead().item(), Pointee(QValueWith<int>(1)));
       done.DecrementCount();
     });
     go.Notify();

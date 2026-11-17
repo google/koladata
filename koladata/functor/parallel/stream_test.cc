@@ -558,6 +558,40 @@ TEST(StreamTest, StressConcurrentRead) {
   }
 }
 
+TEST(StreamTest, StressConcurrentSubscribeOnce) {
+  constexpr int kItemCount = 1'000;
+  constexpr int kSubscriberThreads = 4;
+
+  const auto executor = GetDefaultExecutor();
+  auto [stream, writer] = MakeStream(GetQType<int>());
+  auto reader = stream->MakeReader();
+  auto* reader_ptr = reader.get();
+
+  auto consumer = std::make_shared<StresstestConsumer>(
+      executor, std::move(reader), kItemCount);
+  consumer->Start();
+
+  absl::Notification subscribers_done[kSubscriberThreads];
+  for (int t = 0; t < kSubscriberThreads; ++t) {
+    executor->Schedule([reader_ptr, &done = subscribers_done[t]] {
+      for (int i = 0; i < kItemCount; ++i) {
+        reader_ptr->SubscribeOnce([] {});
+      }
+      done.Notify();
+    });
+  }
+
+  for (int i = 0; i < kItemCount; ++i) {
+    writer->Write(TypedRef::FromValue(i));
+  }
+  std::move(*writer).Close();
+
+  consumer->Wait();
+  for (auto& done : subscribers_done) {
+    done.WaitForNotification();
+  }
+}
+
 TEST(StreamTest, PanicWhenWriteWrongType) {
   auto [stream, writer] = MakeStream(GetQType<int>());
   ASSERT_DEATH(

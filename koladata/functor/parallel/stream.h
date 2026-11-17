@@ -151,8 +151,10 @@ class StreamReader {
   // such that a subsequent TryRead() call is guaranteed to return a non-empty
   // result.
   //
-  // Note: If the reader/stream is destroyed after the subscription, there is no
-  // guarantee whether the callback will be invoked.
+  // Notes:
+  //  * If the reader/stream is destroyed after the subscription, there is no
+  //    guarantee whether the callback will be invoked.
+  //  * This method is thread-safe.
   virtual void SubscribeOnce(arolla::OnceCallback absl_nonnull callback) = 0;
 
   // Not copyable or movable.

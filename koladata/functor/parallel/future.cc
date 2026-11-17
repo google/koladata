@@ -142,7 +142,7 @@ class FutureStreamReader final : public StreamReader {
   }
 
   void SubscribeOnce(arolla::OnceCallback absl_nonnull callback) final {
-    if (!read_) {
+    {
       absl::MutexLock l(future_->lock_);
       if (!future_->value_.has_value()) {
         token_ =

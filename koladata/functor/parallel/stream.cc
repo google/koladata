@@ -157,15 +157,14 @@ class StreamImpl::Reader final : public StreamReader {
  private:
   TryReadResult TryReadSlow() ABSL_LOCKS_EXCLUDED(stream_->mutex_);
 
-  // Updates the internal state of the reader. Returns true if TryRead() would
-  // return a non-empty result (an item or the close status).
-  bool Update() ABSL_EXCLUSIVE_LOCKS_REQUIRED(stream_->mutex_);
+  // Returns true if TryRead() would return a non-empty result.
+  bool IsReady() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(stream_->mutex_);
 
   const std::shared_ptr<StreamImpl> absl_nonnull stream_;
 
   // The current chunk; or nullptr if the reader has read nothing yet.
   Chunk* absl_nullable chunk_ = nullptr;
-  size_t chunk_offset_ = 0;
+  std::atomic<size_t> chunk_offset_ = 0;
   size_t chunk_cached_size_ = 0;
   // Points to the current chunk within `stream_->other_chunks_`. Only valid if
   // the current chunk is neither nullptr nor the first chunk.
@@ -236,9 +235,8 @@ StreamImpl::StreamImpl(QTypePtr absl_nonnull value_qtype,
   if (initial_capacity > 0) {
     // The `initial_capacity` is expected to match the stream size (see
     // MakeStream()), so we initialize the chunk upfront.
-    last_chunk_ = &first_chunk_.emplace(value_qtype, initial_capacity,
-                                        /*lazy_init=*/false);
-    last_chunk_capacity_ = last_chunk_->capacity();
+    first_chunk_.emplace(value_qtype, initial_capacity,
+                         /*lazy_init=*/false);
   }
 }
 
@@ -259,8 +257,11 @@ StreamImpl::InternalWriteResult StreamImpl::InternalWrite(
       // Only the first chunk is initialized lazily; a stream that has
       // filled a chunk is likely to fill the next one too.
       if (last_chunk_ == nullptr) {
-        last_chunk_ = &first_chunk_.emplace(
-            value_qtype(), default_chunk_capacity_, /*lazy_init=*/true);
+        last_chunk_ =
+            first_chunk_.has_value()
+                ? &(*first_chunk_)
+                : &first_chunk_.emplace(value_qtype(), default_chunk_capacity_,
+                                        /*lazy_init=*/true);
       } else {
         last_chunk_ = &other_chunks_.emplace_back(
             value_qtype(), default_chunk_capacity_, /*lazy_init=*/false);
@@ -286,6 +287,10 @@ void StreamImpl::InternalClose(absl::Status&& status) {
     }
     status_.emplace(std::move(status));
     swap(callbacks_, callbacks);
+    if (last_chunk_ == nullptr) {
+      first_chunk_.reset();           // If the stream has no items, we don't
+      DCHECK(other_chunks_.empty());  // need to keep the first chunk reserved.
+    }
   }
   std::move(callbacks).Notify();
 }
@@ -376,64 +381,79 @@ StreamImpl::Reader::~Reader() {
   arolla::OnceCallbacks callbacks;  // Destroyed outside of the lock.
   {
     absl::MutexLock lock(stream_->mutex_);
-    if (!Update()) {
+    if (!IsReady()) {
       callbacks = stream_->callbacks_.Remove(std::move(subscription_token_));
     }
   }
 }
 
 StreamReader::TryReadResult StreamImpl::Reader::TryRead() {
-  if (chunk_offset_ < chunk_cached_size_) [[likely]] {
+  const size_t chunk_offset = chunk_offset_.load(std::memory_order_relaxed);
+  if (chunk_offset < chunk_cached_size_) [[likely]] {
     ABSL_ASSUME(chunk_ != nullptr);
-    return chunk_->GetRef(chunk_offset_++);
+    chunk_offset_.store(chunk_offset + 1, std::memory_order_relaxed);
+    return chunk_->GetRef(chunk_offset);
   }
   return TryReadSlow();
 }
 
 StreamReader::TryReadResult StreamImpl::Reader::TryReadSlow() {
   absl::MutexLock lock(stream_->mutex_);
-  if (!Update()) {
+  Chunk* const absl_nullable last_chunk = stream_->last_chunk_;
+  const size_t last_chunk_size = stream_->last_chunk_size_;
+  size_t chunk_offset = chunk_offset_.load(std::memory_order_relaxed);
+  if (chunk_ == last_chunk && chunk_offset == last_chunk_size) {
+    if (stream_->status_.has_value()) {
+      subscription_token_ = {};
+      return *stream_->status_;
+    }
     return {};
   }
-  subscription_token_ = {};
-  if (chunk_offset_ < chunk_cached_size_) {
-    ABSL_ASSUME(chunk_ != nullptr);
-    return chunk_->GetRef(chunk_offset_++);
+  DCHECK(stream_->first_chunk_.has_value());
+  Chunk* const absl_nonnull first_chunk = &(*stream_->first_chunk_);
+  if (chunk_ == nullptr) {  // First read.
+    const size_t chunk_cached_size =
+        (first_chunk == last_chunk ? last_chunk_size : first_chunk->capacity());
+    DCHECK_GT(chunk_cached_size, 0);
+    chunk_ = first_chunk;
+    chunk_offset_.store(1, std::memory_order_relaxed);
+    chunk_cached_size_ = chunk_cached_size;
+    subscription_token_ = {};
+    return first_chunk->GetRef(0);
   }
-  DCHECK(stream_->status_.has_value());
-  return *stream_->status_;
+  size_t chunk_cached_size =
+      (chunk_ == last_chunk ? last_chunk_size : chunk_->capacity());
+  if (chunk_offset < chunk_cached_size) {  // More items in the current chunk.
+    chunk_offset_.store(chunk_offset + 1, std::memory_order_relaxed);
+    chunk_cached_size_ = chunk_cached_size;
+    subscription_token_ = {};
+    return chunk_->GetRef(chunk_offset);
+  }
+  chunks_it_ =  // Move to the next chunk.
+      (chunk_ == first_chunk ? stream_->other_chunks_.begin() : ++chunks_it_);
+  auto* chunk = &(*chunks_it_);
+  chunk_cached_size =
+      (chunk == last_chunk ? last_chunk_size : chunk->capacity());
+  DCHECK_GT(chunk_cached_size, 0);
+  chunk_ = chunk;
+  chunk_offset_.store(1, std::memory_order_relaxed);
+  chunk_cached_size_ = chunk_cached_size;
+  subscription_token_ = {};
+  return chunk->GetRef(0);
 }
 
-bool StreamImpl::Reader::Update() {
-  Chunk* const absl_nullable last_chunk = stream_->last_chunk_;
-  if (chunk_ != last_chunk &&
-      (chunk_ == nullptr || chunk_offset_ == chunk_->capacity())) {
-    // NOTE: The next chunk exists, because the current one is not the last.
-    DCHECK(stream_->first_chunk_.has_value());
-    Chunk* const absl_nonnull first_chunk = &(*stream_->first_chunk_);
-    if (chunk_ == nullptr) {
-      chunk_ = first_chunk;
-    } else if (chunk_ == first_chunk) {
-      chunks_it_ = stream_->other_chunks_.begin();
-      chunk_ = &(*chunks_it_);
-    } else {
-      ++chunks_it_;
-      chunk_ = &(*chunks_it_);
-    }
-    chunk_offset_ = 0;
-  }
-  // NOTE: If the stream has no chunks, both `chunk_` and `last_chunk` are
-  // nullptr, and `last_chunk_size_` is 0.
-  chunk_cached_size_ =
-      (chunk_ == last_chunk ? stream_->last_chunk_size_ : chunk_->capacity());
-  return chunk_offset_ < chunk_cached_size_ || stream_->status_.has_value();
+bool StreamImpl::Reader::IsReady() const {
+  return chunk_ != stream_->last_chunk_ ||
+         chunk_offset_.load(std::memory_order_relaxed) <
+             stream_->last_chunk_size_ ||
+         stream_->status_.has_value();
 }
 
 void StreamImpl::Reader::SubscribeOnce(  // clang-format hint
     arolla::OnceCallback absl_nonnull callback) {
   {
     absl::MutexLock lock(stream_->mutex_);
-    if (!Update()) {
+    if (!IsReady()) {
       subscription_token_ = stream_->callbacks_.Add(
           std::move(callback), std::move(subscription_token_));
       return;
