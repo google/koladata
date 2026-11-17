@@ -211,6 +211,10 @@ StreamPtr absl_nonnull MakeErrorStream(arolla::QTypePtr
 // `status` must be non-OK.
 StreamReaderPtr absl_nonnull MakeErrorReader(absl::Status status);
 
+// Returns a CancelledError("orphaned") status indicating that a writer was
+// destroyed before closing the stream or setting the future value.
+const absl::Status& OrphanedError();
+
 }  // namespace koladata::functor::parallel
 
 namespace arolla {

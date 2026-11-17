@@ -228,18 +228,23 @@ class UnwrapFutureToStreamOperator : public arolla::QExprOperator {
                 "argument must be a future to a stream");
           }
           auto [result_stream, result_writer] =
-              MakeStream(inner_stream_qtype->value_qtype());
+              MakeProxyStream(inner_stream_qtype->value_qtype());
           future->AddConsumer(
               [result_writer = std::move(result_writer)](
                   absl::StatusOr<arolla::TypedValue> value) mutable {
                 if (!value.ok()) {
-                  std::move(*result_writer).Close(std::move(value).status());
+                  result_writer.TryAttach(MakeErrorStream(
+                      result_writer.value_qtype(), std::move(value).status()));
                   return;
                 }
-                // Using chain to copy one stream to another is an overkill,
-                // but works.
-                StreamChain chain(std::move(result_writer));
-                chain.Add(value->UnsafeAs<StreamPtr>());
+                const auto& inner_stream = value->UnsafeAs<StreamPtr>();
+                if (inner_stream == nullptr) {
+                  result_writer.TryAttach(MakeErrorStream(
+                      result_writer.value_qtype(),
+                      absl::InvalidArgumentError("inner stream is null")));
+                  return;
+                }
+                result_writer.TryAttach(inner_stream);
               });
           frame.Set(output_slot, std::move(result_stream));
           return absl::OkStatus();

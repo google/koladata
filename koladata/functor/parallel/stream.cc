@@ -363,9 +363,7 @@ StreamImpl::Writer::~Writer() {
     return;
   }
   if (auto stream = weak_stream_.lock()) {
-    static const absl::NoDestructor kOrphanedError(
-        absl::CancelledError("orphaned"));
-    stream->InternalClose(absl::Status(*kOrphanedError));
+    stream->InternalClose(absl::Status(OrphanedError()));
   }
 }
 
@@ -557,6 +555,12 @@ StreamPtr absl_nonnull MakeErrorStream(arolla::QTypePtr
 
 StreamReaderPtr absl_nonnull MakeErrorReader(absl::Status status) {
   return std::make_unique<ErrorReader>(std::move(status));
+}
+
+const absl::Status& OrphanedError() {
+  static const absl::NoDestructor<absl::Status> kOrphanedError(
+      absl::CancelledError("orphaned"));
+  return *kOrphanedError;
 }
 
 }  // namespace koladata::functor::parallel

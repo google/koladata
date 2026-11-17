@@ -14,6 +14,7 @@
 //
 #include "koladata/functor/parallel/stream_composition.h"
 
+#include <atomic>
 #include <memory>
 #include <queue>
 #include <utility>
@@ -21,10 +22,13 @@
 #include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/log/check.h"
+#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/synchronization/mutex.h"
+#include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/once_callbacks.h"
 #include "koladata/functor/parallel/stream.h"
 
 namespace koladata::functor::parallel {
@@ -262,6 +266,186 @@ void StreamChain::AddError(absl::Status status) {
   if (!status.ok() && scheduler_ != nullptr) {
     scheduler_->AddError(std::move(status));
   }
+}
+
+class ProxyStreamWriter::Impl final
+    : public std::enable_shared_from_this<ProxyStreamWriter::Impl>,
+      public Stream {
+ public:
+  explicit Impl(arolla::QTypePtr absl_nonnull value_qtype)
+      : Stream(value_qtype) {}
+
+  StreamReaderPtr absl_nonnull MakeReader() final ABSL_LOCKS_EXCLUDED(mutex_) {
+    StreamPtr attached_stream;
+    {
+      absl::MutexLock lock(mutex_);
+      attached_stream = stream_;
+    }
+    if (attached_stream != nullptr) {
+      return attached_stream->MakeReader();
+    }
+    return std::make_unique<Reader>(shared_from_this());
+  }
+
+  bool IsAttached() const { return attached_.test(std::memory_order_relaxed); }
+
+  void TryAttach(StreamPtr absl_nonnull stream) ABSL_LOCKS_EXCLUDED(mutex_) {
+    if (attached_.test_and_set(std::memory_order_relaxed)) {
+      return;
+    }
+    std::shared_ptr<StreamReader> subscription_reader;
+    {
+      absl::MutexLock lock(mutex_);
+      DCHECK(stream_ == nullptr);
+      stream_ = std::move(stream);
+      if (callbacks_.empty()) {
+        return;
+      }
+      subscription_reader = stream_->MakeReader();
+      subscription_reader_ = subscription_reader;
+    }
+    subscription_reader->SubscribeOnce([weak_self = weak_from_this()] {
+      auto self = weak_self.lock();
+      if (self == nullptr) {
+        return;
+      }
+      std::shared_ptr<StreamReader> subscription_reader;  // Destroyed and
+      arolla::OnceCallbacks callbacks;  // invoked outside of the lock.
+      {
+        absl::MutexLock lock(self->mutex_);
+        subscription_reader = std::move(self->subscription_reader_);
+        swap(self->callbacks_, callbacks);
+      }
+      std::move(callbacks).Notify();
+    });
+  }
+
+ private:
+  class Reader final : public StreamReader {
+   public:
+    explicit Reader(std::shared_ptr<Impl> absl_nonnull proxy_stream)
+        : proxy_stream_(std::move(proxy_stream)) {}
+
+    ~Reader() final {
+      // NOTE: `subscription_` can be safely read without acquiring
+      // `proxy_stream_->mutex_` since the destructor guarantees exclusive
+      // access.
+      if (!subscription_) [[likely]] {
+        return;
+      }
+      std::shared_ptr<StreamReader> subscription_reader;  // Destroyed outside
+      arolla::OnceCallbacks callbacks;                    // of the lock.
+      absl::MutexLock lock(proxy_stream_->mutex_);
+      if (!proxy_stream_->callbacks_.empty()) {
+        callbacks = proxy_stream_->callbacks_.Remove(std::move(subscription_));
+        if (proxy_stream_->callbacks_.empty()) {
+          subscription_reader = std::move(proxy_stream_->subscription_reader_);
+        }
+      }
+    }
+
+    TryReadResult TryRead() final {
+      if (auto* reader = underlying_reader_.load(std::memory_order_acquire);
+          reader != nullptr) [[likely]] {
+        return reader->TryRead();
+      } else if (auto* reader = ResolveOrSubscribe()) {
+        return reader->TryRead();
+      }
+      return {};
+    }
+
+    void SubscribeOnce(arolla::OnceCallback absl_nonnull callback) final {
+      if (auto* reader = underlying_reader_.load(std::memory_order_acquire);
+          reader != nullptr) [[likely]] {
+        reader->SubscribeOnce(std::move(callback));
+      } else if (auto* reader = ResolveOrSubscribe(&callback)) {
+        reader->SubscribeOnce(std::move(callback));
+      }
+    }
+
+   private:
+    StreamReader* absl_nullable ResolveOrSubscribe(
+        arolla::OnceCallback absl_nonnull* absl_nullable callback = nullptr) {
+      absl::MutexLock lock(proxy_stream_->mutex_);
+      if (underlying_reader_holder_ != nullptr) {
+        return underlying_reader_holder_.get();
+      }
+      if (proxy_stream_->stream_ == nullptr) {
+        if (callback != nullptr) {
+          subscription_ = proxy_stream_->callbacks_.Add(
+              std::move(*callback), std::move(subscription_));
+        }
+        return nullptr;
+      }
+      if (proxy_stream_->callbacks_.empty()) {
+        subscription_ = {};
+      }
+      underlying_reader_holder_ = proxy_stream_->stream_->MakeReader();
+      underlying_reader_.store(underlying_reader_holder_.get(),
+                               std::memory_order_release);
+      return underlying_reader_holder_.get();
+    }
+
+    const std::shared_ptr<Impl> absl_nonnull proxy_stream_;
+    std::atomic<StreamReader* absl_nullable> underlying_reader_ = nullptr;
+    StreamReaderPtr absl_nullable underlying_reader_holder_
+        ABSL_GUARDED_BY(proxy_stream_->mutex_);
+    arolla::OnceCallbacks::Token subscription_
+        ABSL_GUARDED_BY(proxy_stream_->mutex_);
+  };
+
+  std::atomic_flag attached_;
+  absl::Mutex mutex_;
+  StreamPtr absl_nullable stream_ ABSL_GUARDED_BY(mutex_);
+  std::shared_ptr<StreamReader> absl_nullable subscription_reader_
+      ABSL_GUARDED_BY(mutex_);
+  arolla::OnceCallbacks callbacks_ ABSL_GUARDED_BY(mutex_);
+};
+
+ProxyStreamWriter::ProxyStreamWriter(Impl& impl)
+    : value_qtype_(impl.value_qtype()), impl_(impl.weak_from_this()) {}
+
+ProxyStreamWriter::~ProxyStreamWriter() {
+  if (auto proxy_stream = impl_.lock();
+      proxy_stream != nullptr && !proxy_stream->IsAttached()) {
+    proxy_stream->TryAttach(
+        MakeErrorStream(proxy_stream->value_qtype(), OrphanedError()));
+  }
+}
+
+ProxyStreamWriter& ProxyStreamWriter::operator=(
+    ProxyStreamWriter&& other) noexcept {
+  if (this != &other) {
+    ProxyStreamWriter tmp(std::move(*this));
+    value_qtype_ = std::move(other.value_qtype_);
+    impl_ = std::move(other.impl_);
+  }
+  return *this;
+}
+
+bool ProxyStreamWriter::Orphaned() const {
+  auto proxy_stream = impl_.lock();
+  return proxy_stream == nullptr || proxy_stream->IsAttached();
+}
+
+void ProxyStreamWriter::TryAttach(StreamPtr absl_nonnull stream) {
+  if (stream == nullptr) [[unlikely]] {
+    LOG(FATAL) << "expected a non-null stream";
+  }
+  if (stream->value_qtype() != value_qtype_) [[unlikely]] {
+    LOG(FATAL) << "expected a stream with value_qtype " << value_qtype_->name()
+               << ", got " << stream->value_qtype()->name();
+  }
+  if (auto proxy_stream = impl_.lock()) {
+    proxy_stream->TryAttach(std::move(stream));
+  }
+}
+
+std::pair<StreamPtr absl_nonnull, ProxyStreamWriter> MakeProxyStream(
+    arolla::QTypePtr absl_nonnull value_qtype) {
+  auto stream = std::make_shared<ProxyStreamWriter::Impl>(value_qtype);
+  ProxyStreamWriter writer(*stream);
+  return {std::move(stream), std::move(writer)};
 }
 
 }  // namespace koladata::functor::parallel

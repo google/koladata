@@ -652,5 +652,10 @@ TEST(StreamTest, ErrorStreamAndReader) {
   }
 }
 
+TEST(StreamTest, OrphanedError) {
+  EXPECT_THAT(OrphanedError(),
+              StatusIs(absl::StatusCode::kCancelled, "orphaned"));
+}
+
 }  // namespace
 }  // namespace koladata::functor::parallel

@@ -96,7 +96,7 @@ void FutureWriter::SetValue(absl::StatusOr<arolla::TypedValue> value) && {
 
 FutureWriter::~FutureWriter() {
   if (future_ != nullptr) {
-    future_->SetValue(absl::CancelledError("orphaned"));
+    future_->SetValue(OrphanedError());
   }
 }
 

@@ -53,18 +53,16 @@ using Functor = absl::AnyInvocable<  // clang-format hint
 
 class StreamCallHooks final : public BasicRoutineHooks {
  public:
-  StreamCallHooks(StreamWriterPtr absl_nonnull writer,
-                  Functor /*nonnull*/ functor,
+  StreamCallHooks(ProxyStreamWriter writer, Functor /*nonnull*/ functor,
                   absl::Span<const arolla::TypedRef> args)
-      : return_value_type_(writer->value_qtype()),
+      : writer_(std::move(writer)),
         functor_(std::move(functor)),
         tuple_args_(arolla::MakeTuple(args)),
-        args_size_(args.size()),
-        composition_(std::move(writer)) {
+        args_size_(args.size()) {
     args_.reserve(args_size_);
   }
 
-  bool Interrupted() const final { return composition_.Orphaned(); }
+  bool Interrupted() const final { return writer_.Orphaned(); }
 
   void OnCancel(absl::Status&& status) final { OnError(std::move(status)); }
 
@@ -82,7 +80,8 @@ class StreamCallHooks final : public BasicRoutineHooks {
 
  private:
   std::nullptr_t OnError(absl::Status&& status) {
-    composition_.AddError(std::move(status));
+    writer_.TryAttach(
+        MakeErrorStream(writer_.value_qtype(), std::move(status)));
     return nullptr;
   }
 
@@ -119,18 +118,19 @@ class StreamCallHooks final : public BasicRoutineHooks {
     }
     ASSIGN_OR_RETURN(auto result, std::move(functor_)(args_),
                      OnError(std::move(_)));
-    if (result.GetType() == return_value_type_) {
-      composition_.AddItem(result.AsRef());
+    if (result.GetType() == writer_.value_qtype()) {
+      writer_.TryAttach(MakeSingleItemStream(std::move(result)));
       return nullptr;
     }
-    if (result.GetType() == GetStreamQType(return_value_type_)) {
-      composition_.Add(result.UnsafeAs<StreamPtr>());
+    if (result.GetType() == GetStreamQType(writer_.value_qtype())) {
+      writer_.TryAttach(result.UnsafeAs<StreamPtr>());
       return nullptr;
     }
-    return OnError(absl::InvalidArgumentError(absl::StrFormat(
-        "expected the functor to return %s or %s, got %s",
-        return_value_type_->name(), GetStreamQType(return_value_type_)->name(),
-        result.GetType()->name())));
+    return OnError(absl::InvalidArgumentError(
+        absl::StrFormat("expected the functor to return %s or %s, got %s",
+                        writer_.value_qtype()->name(),
+                        GetStreamQType(writer_.value_qtype())->name(),
+                        result.GetType()->name())));
   }
 
   // Handles a single "awaited" argument. The stream is expected to yield
@@ -168,13 +168,12 @@ class StreamCallHooks final : public BasicRoutineHooks {
     }
   }
 
-  const arolla::QTypePtr absl_nonnull return_value_type_;
+  ProxyStreamWriter writer_;
   Functor /*nonnull*/ functor_;
   const arolla::TypedValue tuple_args_;
   const size_t args_size_;
   size_t awaited_arg_index_;
   std::vector<arolla::TypedRef> args_;
-  StreamInterleave composition_;
 };
 
 }  // namespace
@@ -184,7 +183,7 @@ absl::StatusOr<StreamPtr absl_nonnull> StreamCall(
     arolla::QTypePtr absl_nonnull return_value_qtype,
     absl::Span<const arolla::TypedRef> args) {
   DCHECK(functor != nullptr);
-  auto [result, writer] = MakeStream(return_value_qtype, 1);
+  auto [result, writer] = MakeProxyStream(return_value_qtype);
   StartBasicRoutine(std::move(executor),
                     std::make_unique<StreamCallHooks>(
                         std::move(writer), std::move(functor), args));

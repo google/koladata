@@ -387,10 +387,12 @@ cc_library(
         ":stream",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/synchronization",
         "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
     ],
 )
 
@@ -402,6 +404,7 @@ cc_test(
         ":make_executor",
         ":stream",
         ":stream_composition",
+        "@com_google_absl//absl/cleanup",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",

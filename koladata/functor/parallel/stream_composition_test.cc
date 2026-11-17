@@ -23,6 +23,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/cleanup/cleanup.h"
 #include "absl/random/random.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
@@ -33,6 +34,7 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/testing/matchers.h"
 #include "arolla/qtype/typed_ref.h"
+#include "arolla/qtype/typed_value.h"
 #include "koladata/functor/parallel/get_default_executor.h"
 #include "koladata/functor/parallel/make_executor.h"
 #include "koladata/functor/parallel/stream.h"
@@ -501,6 +503,305 @@ TEST(StreamChainTest, DynamicAddInputs) {
   EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(0)));
   EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(1)));
   EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
+}
+
+TEST(ProxyStreamTest, Basic) {
+  auto [inner_stream, inner_writer] = MakeStream(GetQType<int>());
+  auto [proxy_stream, proxy_writer] = MakeProxyStream(GetQType<int>());
+  EXPECT_EQ(proxy_stream->value_qtype(), GetQType<int>());
+  EXPECT_EQ(proxy_writer.value_qtype(), GetQType<int>());
+  auto reader = proxy_stream->MakeReader();
+  EXPECT_TRUE(reader->TryRead().empty());
+
+  bool notified = false;
+  reader->SubscribeOnce([&notified] { notified = true; });
+  EXPECT_FALSE(notified);
+  proxy_writer.TryAttach(inner_stream);
+  EXPECT_FALSE(notified);
+  EXPECT_TRUE(reader->TryRead().empty());
+
+  inner_writer->Write(TypedRef::FromValue(10));
+  EXPECT_TRUE(notified);
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(10)));
+  EXPECT_TRUE(reader->TryRead().empty());
+
+  inner_writer->Write(TypedRef::FromValue(20));
+  std::move(*inner_writer).Close();
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(20)));
+  EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
+}
+
+TEST(ProxyStreamTest, NoItemCopy) {
+  auto [inner_stream, inner_writer] = MakeStream(GetQType<int>());
+  inner_writer->Write(TypedRef::FromValue(42));
+  std::move(*inner_writer).Close();
+
+  auto [proxy_stream, proxy_writer] = MakeProxyStream(GetQType<int>());
+  auto reader_before = proxy_stream->MakeReader();
+  proxy_writer.TryAttach(inner_stream);
+  auto reader_after = proxy_stream->MakeReader();
+
+  auto inner_reader = inner_stream->MakeReader();
+  auto inner_res = inner_reader->TryRead();
+  auto before_res = reader_before->TryRead();
+  auto after_res = reader_after->TryRead();
+  ASSERT_THAT(inner_res.item(), Pointee(QValueWith<int>(42)));
+  ASSERT_THAT(before_res.item(), Pointee(QValueWith<int>(42)));
+  ASSERT_THAT(after_res.item(), Pointee(QValueWith<int>(42)));
+  EXPECT_EQ(before_res.item()->GetRawPointer(),
+            inner_res.item()->GetRawPointer());
+  EXPECT_EQ(after_res.item()->GetRawPointer(),
+            inner_res.item()->GetRawPointer());
+  EXPECT_THAT(reader_before->TryRead().close_status(), Pointee(IsOk()));
+  EXPECT_THAT(reader_after->TryRead().close_status(), Pointee(IsOk()));
+}
+
+TEST(ProxyStreamTest, AttachError) {
+  auto [proxy_stream, proxy_writer] = MakeProxyStream(GetQType<int>());
+  auto reader1 = proxy_stream->MakeReader();
+  auto reader2 = proxy_stream->MakeReader();
+  bool notified1 = false;
+  reader1->SubscribeOnce([&notified1] { notified1 = true; });
+  EXPECT_FALSE(notified1);
+
+  proxy_writer.TryAttach(
+      MakeErrorStream(GetQType<int>(), absl::InvalidArgumentError("Boom!")));
+  EXPECT_TRUE(notified1);
+
+  bool notified2 = false;
+  reader2->SubscribeOnce([&notified2] { notified2 = true; });
+  EXPECT_TRUE(notified2);
+
+  auto reader3 = proxy_stream->MakeReader();
+  bool notified3 = false;
+  reader3->SubscribeOnce([&notified3] { notified3 = true; });
+  EXPECT_TRUE(notified3);
+
+  for (auto* r : {reader1.get(), reader2.get(), reader3.get()}) {
+    EXPECT_THAT(r->TryRead().close_status(),
+                Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
+  }
+}
+
+TEST(ProxyStreamTest, OrphanedReader) {
+  auto [proxy_stream1, proxy_writer1] = MakeProxyStream(GetQType<int>());
+  auto [proxy_stream2, proxy_writer2] = MakeProxyStream(GetQType<float>());
+  auto reader1 = proxy_stream1->MakeReader();
+  auto reader2 = proxy_stream2->MakeReader();
+  bool notified1 = false;
+  reader1->SubscribeOnce([&notified1] { notified1 = true; });
+
+  proxy_writer1 = std::move(proxy_writer2);
+  EXPECT_TRUE(notified1);
+  EXPECT_THAT(reader1->TryRead().close_status(),
+              Pointee(StatusIs(absl::StatusCode::kCancelled, "orphaned")));
+  EXPECT_TRUE(reader2->TryRead().empty());
+
+  auto [input_stream2, input_writer2] = MakeStream(GetQType<float>());
+  input_writer2->Write(TypedRef::FromValue(3.5f));
+  std::move(*input_writer2).Close();
+  proxy_writer1.TryAttach(std::move(input_stream2));
+  EXPECT_THAT(reader2->TryRead().item(), Pointee(QValueWith<float>(3.5f)));
+  EXPECT_THAT(reader2->TryRead().close_status(), Pointee(IsOk()));
+
+  auto [proxy_stream3, proxy_writer3] = MakeProxyStream(GetQType<int>());
+  auto reader3 = proxy_stream3->MakeReader();
+  {
+    auto tmp = std::move(proxy_writer3);
+    (void)tmp;
+  }
+  EXPECT_THAT(reader3->TryRead().close_status(),
+              Pointee(StatusIs(absl::StatusCode::kCancelled, "orphaned")));
+}
+
+TEST(ProxyStreamTest, OrphanedWriter) {
+  {
+    auto [proxy_stream, proxy_writer] = MakeProxyStream(GetQType<int>());
+    auto reader = proxy_stream->MakeReader();
+    EXPECT_FALSE(proxy_writer.Orphaned());
+    proxy_stream.reset();
+    EXPECT_FALSE(proxy_writer.Orphaned());
+    reader.reset();
+    EXPECT_TRUE(proxy_writer.Orphaned());
+    auto [input_stream, input_writer] = MakeStream(GetQType<int>());
+    proxy_writer.TryAttach(std::move(input_stream));
+    EXPECT_TRUE(input_writer->Orphaned());
+  }
+  {
+    auto [proxy_stream, proxy_writer] = MakeProxyStream(GetQType<int>());
+    EXPECT_FALSE(proxy_writer.Orphaned());
+    auto [input_stream, input_writer] = MakeStream(GetQType<int>());
+    proxy_writer.TryAttach(std::move(input_stream));
+    EXPECT_TRUE(proxy_writer.Orphaned());
+  }
+}
+
+TEST(ProxyStreamTest, NoCallbackAfterReaderDestruction) {
+  {
+    auto [proxy_stream, proxy_writer] = MakeProxyStream(GetQType<int>());
+    auto reader = proxy_stream->MakeReader();
+    auto token = std::make_shared<int>(0);
+    std::weak_ptr<int> weak_token = token;
+    reader->SubscribeOnce([token = std::move(token)] {
+      FAIL() << "callback must not be triggered";
+    });
+    ASSERT_FALSE(weak_token.expired());
+    reader.reset();
+    EXPECT_TRUE(weak_token.expired());
+    proxy_writer.TryAttach(
+        MakeErrorStream(GetQType<int>(), absl::InvalidArgumentError("Boom!")));
+  }
+  {
+    auto [proxy_stream, proxy_writer] = MakeProxyStream(GetQType<int>());
+    auto reader = proxy_stream->MakeReader();
+    proxy_stream.reset();
+    auto token = std::make_shared<int>(0);
+    std::weak_ptr<int> weak_token = token;
+    reader->SubscribeOnce([token = std::move(token)] {
+      FAIL() << "callback must not be triggered";
+    });
+
+    auto [input_stream, input_writer] = MakeStream(GetQType<int>());
+    proxy_writer.TryAttach(std::move(input_stream));
+    EXPECT_FALSE(input_writer->Orphaned());
+    ASSERT_FALSE(weak_token.expired());
+
+    reader.reset();
+    EXPECT_TRUE(weak_token.expired());
+    EXPECT_TRUE(input_writer->Orphaned());
+  }
+}
+
+TEST(ProxyStreamTest, DestroyReaderFromCallbackAndCallbackDestructor) {
+  {
+    // Destroying a subscribed reader from inside a notification callback must
+    // not deadlock on the proxy stream's mutex.
+    auto [inner_stream, inner_writer] = MakeStream(GetQType<int>());
+    auto [proxy_stream, proxy_writer] = MakeProxyStream(GetQType<int>());
+    auto reader_a = proxy_stream->MakeReader();
+    auto reader_b = proxy_stream->MakeReader();
+    reader_a->SubscribeOnce([] {});
+    reader_b->SubscribeOnce([&reader_a] { reader_a.reset(); });
+    proxy_writer.TryAttach(inner_stream);
+    inner_writer->Write(TypedRef::FromValue(1));
+    EXPECT_EQ(reader_a, nullptr);
+  }
+  {
+    // Destroying a subscribed reader from inside another callback's destructor
+    // during unsubscription must not deadlock on the proxy stream's mutex.
+    auto [proxy_stream, proxy_writer] = MakeProxyStream(GetQType<int>());
+    auto reader_a = proxy_stream->MakeReader();
+    auto reader_b = proxy_stream->MakeReader();
+    reader_a->SubscribeOnce([] {});
+    reader_b->SubscribeOnce(
+        [cleanup = absl::Cleanup([&reader_a] { reader_a.reset(); })] {});
+    reader_b.reset();
+    EXPECT_EQ(reader_a, nullptr);
+  }
+}
+
+TEST(ProxyStreamTest, ChainedProxyStreams) {
+  constexpr int kChainLength = 5;
+  auto [head_stream, current_writer] = MakeProxyStream(GetQType<int>());
+  auto reader = head_stream->MakeReader();
+  bool callback_done = false;
+  reader->SubscribeOnce([&callback_done] { callback_done = true; });
+
+  for (int i = 0; i < kChainLength; ++i) {
+    auto [next_stream, next_writer] = MakeProxyStream(GetQType<int>());
+    current_writer.TryAttach(std::move(next_stream));
+    current_writer = std::move(next_writer);
+  }
+  EXPECT_FALSE(callback_done);
+  EXPECT_TRUE(reader->TryRead().empty());
+
+  auto [input_stream, input_writer] = MakeStream(GetQType<int>());
+  current_writer.TryAttach(std::move(input_stream));
+  EXPECT_FALSE(callback_done);
+
+  input_writer->Write(TypedRef::FromValue(99));
+  std::move(*input_writer).Close();
+  EXPECT_TRUE(callback_done);
+
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(99)));
+  EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
+
+  auto reader2 = head_stream->MakeReader();
+  EXPECT_THAT(reader2->TryRead().item(), Pointee(QValueWith<int>(99)));
+  EXPECT_THAT(reader2->TryRead().close_status(), Pointee(IsOk()));
+}
+
+TEST(ProxyStreamTest, TryAttach) {
+  auto [proxy_stream, proxy_writer] = MakeProxyStream(GetQType<int>());
+  auto reader = proxy_stream->MakeReader();
+  EXPECT_FALSE(proxy_writer.Orphaned());
+  proxy_writer.TryAttach(
+      MakeSingleItemStream(arolla::TypedValue::FromValue(42)));
+  EXPECT_TRUE(proxy_writer.Orphaned());
+  // A second TryAttach is a no-op.
+  proxy_writer.TryAttach(
+      MakeErrorStream(GetQType<int>(), absl::InvalidArgumentError("ignored")));
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(42)));
+  EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
+}
+
+TEST(ProxyStreamTest, PanicOnInvalidAttach) {
+  {
+    auto [proxy_stream, proxy_writer] = MakeProxyStream(GetQType<int>());
+    ASSERT_DEATH(
+        { proxy_writer.TryAttach(StreamPtr(nullptr)); },
+        "expected a non-null stream");
+  }
+  {
+    auto [proxy_stream, proxy_writer] = MakeProxyStream(GetQType<int>());
+    auto [float_stream, float_writer] = MakeStream(GetQType<float>());
+    ASSERT_DEATH(
+        { proxy_writer.TryAttach(std::move(float_stream)); },
+        "expected a stream with value_qtype INT32, got FLOAT32");
+  }
+}
+
+TEST(ProxyStreamTest, MultithreadedStress) {
+  constexpr int kNumThreads = 8;
+  auto executor = GetDefaultExecutor();
+  for (int iter = 0; iter < 50; ++iter) {
+    SCOPED_TRACE(iter);
+    auto [proxy_stream, proxy_writer] = MakeProxyStream(GetQType<int>());
+    auto [input_stream, input_writer] = MakeStream(GetQType<int>());
+    auto shared_reader = proxy_stream->MakeReader();
+    absl::BlockingCounter done(kNumThreads + 2);
+
+    for (int t = 0; t < kNumThreads; ++t) {
+      executor->Schedule([&, t] {
+        (void)proxy_writer.Orphaned();
+        shared_reader->SubscribeOnce([] {});
+        auto reader = proxy_stream->MakeReader();
+        (void)reader->TryRead();
+        reader->SubscribeOnce([] {});
+        reader.reset();  // Destroy while potentially subscribed.
+        if (t % 2 == 0) {
+          proxy_writer.TryAttach(input_stream);
+        }
+        done.DecrementCount();
+      });
+    }
+
+    executor->Schedule([&] {
+      while (shared_reader->TryRead().close_status() == nullptr) {
+        shared_reader->SubscribeOnce([] {});
+      }
+      done.DecrementCount();
+    });
+
+    executor->Schedule([&, input_writer = std::move(input_writer)]() mutable {
+      proxy_writer.TryAttach(input_stream);
+      input_writer->Write(TypedRef::FromValue(42));
+      std::move(*input_writer).Close();
+      done.DecrementCount();
+    });
+
+    done.Wait();
+  }
 }
 
 }  // namespace

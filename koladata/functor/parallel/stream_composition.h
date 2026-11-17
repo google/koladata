@@ -16,9 +16,11 @@
 #define KOLADATA_FUNCTOR_PARALLEL_STREAM_COMPOSITION_H_
 
 #include <memory>
+#include <utility>
 
 #include "absl/base/nullability.h"
 #include "absl/status/status.h"
+#include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "koladata/functor/parallel/stream.h"
 
@@ -101,6 +103,47 @@ class StreamChain {
   // stream->callback->scheduler->stream will be broken.
   std::shared_ptr<Scheduler> scheduler_;
 };
+
+// Writer for a proxy stream (created via `MakeProxyStream()`), used to attach
+// it to at most one input stream. If destroyed before an input stream is
+// attached, the proxy stream is closed with `OrphanedError()`. This class is
+// thread-safe.
+class ProxyStreamWriter final {
+ public:
+  class Impl;
+
+  // Internal constructor; use MakeProxyStream() instead.
+  explicit ProxyStreamWriter(Impl& impl);
+
+  // Movable, but non-copyable.
+  ProxyStreamWriter(ProxyStreamWriter&&) noexcept = default;
+  ProxyStreamWriter& operator=(ProxyStreamWriter&& other) noexcept;
+
+  ~ProxyStreamWriter();
+
+  // Returns the value type of the stream.
+  arolla::QTypePtr absl_nonnull value_qtype() const { return value_qtype_; }
+
+  // Returns true if further manipulations on the resulting stream can no longer
+  // reach any reader.
+  bool Orphaned() const;
+
+  // Tries to attach the proxy stream to the given input stream. This method has
+  // no effect if the stream has already been attached or orphaned.
+  //
+  // Important: Attaching a stream with a different `value_qtype` results in
+  // undefined behaviour!
+  void TryAttach(StreamPtr absl_nonnull stream);
+
+ private:
+  arolla::QTypePtr absl_nonnull value_qtype_;
+  std::weak_ptr<Impl> impl_;
+};
+
+// Creates a proxy stream that can later be attached to an input stream using
+// the returned `ProxyStreamWriter`.
+std::pair<StreamPtr absl_nonnull, ProxyStreamWriter> MakeProxyStream(
+    arolla::QTypePtr absl_nonnull value_qtype);
 
 }  // namespace koladata::functor::parallel
 
