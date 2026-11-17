@@ -443,7 +443,7 @@ class ToPyVisitor : public internal::AbstractVisitor {
       }
       return absl::OkStatus();
     }
-    // The target is a dataclass or a SimpleNamespace, call VisitObject.
+    // The target is a dataclass or a SimpleNamespace, call VisitObjectImpl.
     DCHECK(output_class_descriptor_.has_value());
     for (size_t i = 0; i < keys.size(); ++i) {
       if (!keys[i].holds_value<arolla::Text>()) {
@@ -460,7 +460,8 @@ class ToPyVisitor : public internal::AbstractVisitor {
         attr_values[i] = values[i];
       }
     }
-    return VisitObject(dict, schema, is_object_schema, attr_names, attr_values);
+    return VisitObjectImpl(dict, schema, is_object_schema, attr_names,
+                           attr_values);
   }
 
   // Sets the attributes of the given Python object.
@@ -528,11 +529,29 @@ class ToPyVisitor : public internal::AbstractVisitor {
                            bool is_object_schema,
                            absl::Span<const absl::string_view> attr_names,
                            absl::Span<const DataItem> attr_values) final {
-    DCHECK_EQ(attr_names.size(), attr_values.size());
-
     if (ShouldNotBeConverted(object)) {
       return absl::OkStatus();
     }
+    if (!object.is_entity()) {
+      absl::string_view item_kind = object.is_list()     ? "a list"
+                                    : object.is_dict()   ? "a dict"
+                                    : object.is_schema() ? "a schema"
+                                                         : "an unexpected item";
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "the item %v is %s, but its schema %v is an entity schema; probably, "
+          "the DataBag does not contain the full schema",
+          object, item_kind, schema));
+    }
+    return VisitObjectImpl(object, schema, is_object_schema, attr_names,
+                           attr_values);
+  }
+
+  absl::Status VisitObjectImpl(const DataItem& object, const DataItem& schema,
+                               bool is_object_schema,
+                               absl::Span<const absl::string_view> attr_names,
+                               absl::Span<const DataItem> attr_values) {
+    DCHECK_EQ(attr_names.size(), attr_values.size());
+
     arolla::python::YieldPyGIL();
     if (obj_as_dict_) {
       return CreateDictFromObject(object, schema, is_object_schema, attr_names,

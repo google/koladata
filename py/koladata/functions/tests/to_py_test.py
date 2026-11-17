@@ -1651,6 +1651,38 @@ class ToPyTest(parameterized.TestCase):
     )
     self.assertEqual(py_conversions.to_py(entity, obj_as_dict=True), {})
 
+  def test_list_and_dict_without_container_schema_in_bag_fail(self):
+    # The bag has the items of the outer list, but it knows nothing about the
+    # inner list / dict: neither their content nor that their schemas are
+    # list / dict schemas.
+    for name, inner in (
+        ('a list', fns.list([1, 2, 3])),
+        ('a dict', fns.dict({'a': 1})),
+    ):
+      with self.subTest(name):
+        outer = fns.list([inner])
+        minimal_bag = (
+            outer[:]
+            .no_bag()
+            .implode(itemid=outer.get_itemid())
+            .extract_update()
+        )
+        x = outer.with_bag(minimal_bag)
+        expected_error = (
+            f'is {name}, but its schema .* is an entity schema; probably, '
+            'the DataBag does not contain the full schema'
+        )
+        with self.assertRaisesRegex(ValueError, expected_error):
+          _ = py_conversions.to_py(x)
+        with self.assertRaisesRegex(ValueError, expected_error):
+          _ = py_conversions.to_py(x, obj_as_dict=True)
+        with self.assertRaisesRegex(ValueError, expected_error):
+          _ = py_conversions.to_py(x, output_class=list[Any])
+        # With the full bag, they are converted as usual.
+        self.assertEqual(
+            py_conversions.to_py(outer), [py_conversions.to_py(inner)]
+        )
+
   def test_obj_as_dict_with_output_class(self):
     x = fns.list([1, 2])
     with self.assertRaisesRegex(

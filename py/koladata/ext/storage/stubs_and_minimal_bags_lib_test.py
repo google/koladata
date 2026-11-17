@@ -207,13 +207,16 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
     )
     self.assertEqual(nested_list.stub()[:].to_py(), [[1, 2, 3]])
     # In contrast to that, the minimal bag will not contain the items of the
-    # inner list:
+    # inner list. It does not even contain the schema of the inner list, which
+    # is kept separately:
     self.assertEqual(
         nested_list.with_bag(
             stubs_and_minimal_bags_lib.minimal_bag_associating_list_with_its_items(
                 nested_list
             )
-        )[:].to_py(),
+        )
+        .enriched(nested_list.get_schema().extract().get_bag())[:]
+        .to_py(),
         [[]],
     )
 

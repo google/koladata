@@ -2380,10 +2380,12 @@ class DataSliceManagerTest(parameterized.TestCase):
       # Start from a state where nothing is loaded in memory.
       global_cache_lib.get_global_cache().clear()
       manager = self.copy_manager(manager)
+      # Enrich with the full schema because get_data_slice_at without
+      # descendants does not load the dict schema's keys/values schemas.
       self.assertEqual(
-          manager.get_data_slice_at(parse_dsp('.query[:]')).to_pytree(
-              max_depth=-1
-          ),
+          manager.get_data_slice_at(parse_dsp('.query[:]'))
+          .enriched(manager.get_schema().get_bag())
+          .to_pytree(max_depth=-1),
           [{}, None, {}, None, {}],
       )
 
