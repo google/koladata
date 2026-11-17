@@ -18,6 +18,7 @@ import importlib
 import math
 import sys
 import types as _py_types
+import typing
 from typing import Any, Optional
 
 from absl.testing import absltest
@@ -576,8 +577,7 @@ class ToPyTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        'could not get type for attribute __keys__; only dataclasses or'
-        r" SimpleNamespace are supported; got instead: <class 'int'>",
+        'value is a dict, but requested output class is int',
     ):
       _ = py_conversions.to_py(root, output_class=int)
 
@@ -795,25 +795,168 @@ class ToPyTest(parameterized.TestCase):
     ):
       _ = py_conversions.to_py(root, output_class=list[str])
     with self.assertRaisesRegex(
-        ValueError, 'only dataclasses or SimpleNamespace are supported'
+        ValueError, 'value is a list, but requested output class is int'
     ):
       _ = py_conversions.to_py(root, output_class=int)
 
     with self.assertRaisesRegex(
         ValueError,
-        'expected list class; got instead: dict.int. str.',
+        r'value is a list, but requested output class is dict\[int, str\]',
     ):
       _ = py_conversions.to_py(root, output_class=dict[int, str])
 
     with self.assertRaisesRegex(
-        ValueError, 'expected list class; got instead: .*SimpleNamespace'
+        ValueError,
+        'value is a list, but requested output class is SimpleNamespace',
     ):
       _ = py_conversions.to_py(root, output_class=_py_types.SimpleNamespace)
 
     with self.assertRaisesRegex(
-        ValueError, 'expected list class; got instead: .*Obj1'
+        ValueError, 'value is a list, but requested output class is .*Obj1'
     ):
       _ = py_conversions.to_py(root, output_class=Obj1)
+
+  def test_output_class_incompatible_with_container_fails(self):
+    @dataclasses.dataclass
+    class Inner:
+      x: int = 0
+
+    list_value = fns.list([1])
+    dict_value = fns.dict({'k': 1})
+    obj_value = fns.new(x=1)
+    for name, value, cls, expected_error in (
+        (
+            'list_to_dataclass',
+            list_value,
+            Inner,
+            'value is a list, but requested output class is Inner; '
+            + r'expected a sequence class, e.g. list\[T\] or tuple\[T, ...\]',
+        ),
+        (
+            'list_to_namespace',
+            list_value,
+            _py_types.SimpleNamespace,
+            'value is a list, but requested output class is SimpleNamespace; '
+            + 'expected a sequence class',
+        ),
+        (
+            'list_to_dict',
+            list_value,
+            dict[str, int],
+            r'value is a list, but requested output class is dict\[str, int\]',
+        ),
+        (
+            'list_to_set',
+            list_value,
+            set[int],
+            r'value is a list, but requested output class is set\[int\]',
+        ),
+        (
+            'dict_to_list',
+            dict_value,
+            list[int],
+            r'value is a dict, but requested output class is list\[int\]; '
+            + 'expected a dataclass, SimpleNamespace or a dict class',
+        ),
+        (
+            'object_to_list',
+            obj_value,
+            list[int],
+            'value is an entity or a dict, but requested output class is '
+            + r'list\[int\]',
+        ),
+        (
+            'object_to_bytes',
+            obj_value,
+            bytes,
+            'value is an entity or a dict, but requested output class is bytes',
+        ),
+        (
+            'object_with_object_schema_to_int',
+            fns.obj(x=1),
+            int,
+            'value is an entity or a dict, but requested output class is int',
+        ),
+        (
+            'list_to_int',
+            list_value,
+            int,
+            'value is a list, but requested output class is int',
+        ),
+        (
+            'dict_to_optional_str',
+            dict_value,
+            str | None,
+            'value is a dict, but requested output class is str',
+        ),
+    ):
+      with self.subTest(name):
+        with self.assertRaisesRegex(ValueError, expected_error):
+          _ = py_conversions.to_py(fns.list([value]), output_class=list[cls])
+        with self.assertRaisesRegex(ValueError, expected_error):
+          _ = py_conversions.to_py(
+              fns.dict({'k': value}), output_class=dict[str, cls]
+          )
+        with_field = dataclasses.make_dataclass('WithField', [('a', cls)])
+        with self.assertRaisesRegex(ValueError, expected_error):
+          _ = py_conversions.to_py(fns.new(a=value), output_class=with_field)
+
+  def test_output_class_bare_containers(self):
+    @dataclasses.dataclass
+    class Obj:
+      a: list  # pylint: disable=g-bare-generic
+      b: tuple  # pylint: disable=g-bare-generic
+      c: dict  # pylint: disable=g-bare-generic
+
+    inner = fns.new(x=1)
+    root = fns.new(
+        a=fns.list([inner]), b=fns.list([1, 2]), c=fns.dict({'k': inner})
+    )
+    default_inner = py_conversions.to_py(inner)
+    self.assertEqual(
+        py_conversions.to_py(root, output_class=Obj),
+        Obj(a=[default_inner], b=(1, 2), c={'k': default_inner}),
+    )
+    self.assertEqual(
+        py_conversions.to_py(fns.list([1, 'a']), output_class=list), [1, 'a']
+    )
+    self.assertEqual(
+        py_conversions.to_py(fns.list([1, 'a']), output_class=tuple), (1, 'a')
+    )
+    self.assertEqual(
+        py_conversions.to_py(fns.dict({'k': 1}), output_class=dict), {'k': 1}
+    )
+    with self.assertRaisesRegex(
+        ValueError, 'value is a dict, but requested output class is list'
+    ):
+      _ = py_conversions.to_py(fns.dict({'k': 1}), output_class=list)
+
+  def test_output_class_bare_containers_with_entities(self):
+    inner = fns.new(x=1)
+    default_inner = py_conversions.to_py(inner)
+    self.assertEqual(
+        py_conversions.to_py(fns.list([inner]), output_class=tuple),
+        (default_inner,),
+    )
+    self.assertEqual(py_conversions.to_py(inner, output_class=dict), {'x': 1})
+
+  def test_output_class_unparameterized_typing_aliases_fail(self):
+    # Only bare `list`, `tuple` and `dict` are supported.
+    for name, cls in (
+        ('typing.List', typing.List),  # pylint: disable=g-bare-generic
+        ('typing.Tuple', typing.Tuple),  # pylint: disable=g-bare-generic
+        ('tuple[()]', tuple[()]),
+    ):
+      with self.subTest(name):
+        with self.assertRaisesRegex(
+            ValueError, 'expected list/tuple/Sequence; got instead'
+        ):
+          _ = py_conversions.to_py(fns.list([1, 2]), output_class=cls)
+    with self.assertRaisesRegex(ValueError, 'expected dict; got instead'):
+      _ = py_conversions.to_py(
+          fns.dict({'k': 1}),
+          output_class=typing.Dict,  # pylint: disable=g-bare-generic
+      )
 
   def test_output_class_dict_with_primitive(self):
     root = fns.dict({'a': 1, 'b': 2})
@@ -828,19 +971,13 @@ class ToPyTest(parameterized.TestCase):
     self.assertIs(converted.__class__, _py_types.SimpleNamespace)
 
     with self.assertRaisesRegex(
-        ValueError, r'expected dict class; got instead: list.int.'
+        ValueError, r'value is a dict, but requested output class is list.int.'
     ):
       _ = py_conversions.to_py(root, output_class=list[int])
 
   def test_output_class_dict_fails_with_non_dict(self):
     with self.assertRaisesRegex(
-        ValueError, 'expected dict class; got instead: list.int.'
-    ):
-      _ = py_conversions.to_py(
-          fns.dict({'a': 1, 'b': 2}), output_class=list[int]
-      )
-    with self.assertRaisesRegex(
-        ValueError, 'expected dict class; got instead: list.int.'
+        ValueError, 'value is a dict, but requested output class is list.int.'
     ):
       _ = py_conversions.to_py(fns.dict(), output_class=list[int])
 
@@ -901,7 +1038,9 @@ class ToPyTest(parameterized.TestCase):
       a: Obj1
 
     with self.assertRaisesRegex(
-        ValueError, 'only dataclasses or SimpleNamespace are supported'
+        ValueError,
+        'value is an entity or a dict, but requested output class is Obj; '
+        'expected a dataclass, SimpleNamespace or a dict class',
     ):
       _ = py_conversions.to_py(
           fns.obj(a=fns.obj(a=1)),
@@ -993,7 +1132,20 @@ class ToPyTest(parameterized.TestCase):
       _ = o.to_py(output_class=class_c)
 
   def test_output_class_converts_empty_obj_to_int(self):
+    # TODO: This should fail the same way as for non-empty
+    # entities.
     self.assertEqual(py_conversions.to_py(fns.new(), output_class=int), 0)
+    self.assertEqual(
+        py_conversions.to_py(fns.list([fns.new()]), output_class=list[int]), [0]
+    )
+
+  def test_output_class_primitive_for_root_container_fails(self):
+    with self.assertRaisesRegex(
+        ValueError, 'value is a dict, but requested output class is str'
+    ):
+      _ = py_conversions.to_py(
+          fns.slice([fns.dict({'a': 1})]), output_class=str | None
+      )
 
   def test_output_class_fails_with_object_id(self):
     with self.assertRaisesRegex(
@@ -1536,6 +1688,30 @@ class ToPyTest(parameterized.TestCase):
             ValueError, 'ITEMID schema is not supported in to_py conversion'
         ):
           _ = py_conversions.to_py(x)
+
+  def test_schema_fails(self):
+    @dataclasses.dataclass
+    class WithX:
+      x: Any = None
+
+    s = kde.schema.new_schema(a=schema_constants.INT32).eval()
+    for name, x, output_class in (
+        ('item', s, A),
+        ('slice', ds([s, s]), A),
+        ('list_item', fns.list([s]), list[A]),
+        ('dict_value', fns.dict({'k': s}), dict[str, A]),
+        ('entity_attr', fns.new(x=s), WithX),
+        ('object_attr', fns.obj(x=s), WithX),
+    ):
+      with self.subTest(name):
+        with self.assertRaisesRegex(
+            ValueError, '^schema is not supported in to_py conversion'
+        ):
+          _ = py_conversions.to_py(x)
+        with self.assertRaisesRegex(
+            ValueError, '^schema is not supported in to_py conversion'
+        ):
+          _ = py_conversions.to_py(x, output_class=output_class)
 
   def test_itemid_with_output_class(self):
     a = fns.new(x=1).get_itemid()

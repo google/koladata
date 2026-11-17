@@ -137,12 +137,12 @@ class DataclassesUtilTest(absltest.TestCase):
     class Obj2:
       a: Obj1
       c: Any = None
+      d: int = 0
 
-    self.assertEqual(util.get_class_field_type(Obj2, 'a', False), (Obj1, False))
-    self.assertIsNone(util.get_class_field_type(Obj2, 'b', False))
-    self.assertIsNone(util.get_class_field_type(Obj2, 'b', True))
-    self.assertEqual(util.get_class_field_type(Obj2, 'c', False), (None, True))
-    self.assertEqual(util.get_class_field_type(Obj2, 'c', True), (None, True))
+    self.assertEqual(util.get_class_field_type(Obj2, 'a'), (Obj1, False))
+    self.assertIsNone(util.get_class_field_type(Obj2, 'b'))
+    self.assertEqual(util.get_class_field_type(Obj2, 'c'), (None, True))
+    self.assertEqual(util.get_class_field_type(Obj2, 'd'), (int, False))
 
   def test_get_class_field_type_optional(self):
     util = testing_clib.DataClassesUtil()
@@ -152,8 +152,8 @@ class DataclassesUtilTest(absltest.TestCase):
       a: Obj1 | None
       b: Optional[Obj1]
 
-    self.assertEqual(util.get_class_field_type(Obj2, 'a', False), (Obj1, True))
-    self.assertEqual(util.get_class_field_type(Obj2, 'b', False), (Obj1, True))
+    self.assertEqual(util.get_class_field_type(Obj2, 'a'), (Obj1, True))
+    self.assertEqual(util.get_class_field_type(Obj2, 'b'), (Obj1, True))
 
   def test_get_class_field_list_tuple(self):
     util = testing_clib.DataClassesUtil()
@@ -163,19 +163,19 @@ class DataclassesUtilTest(absltest.TestCase):
       a: list[Obj1]
       b: tuple[Obj1, ...]
 
-    list_type, is_optional = util.get_class_field_type(Obj2, 'a', False)
+    list_type, is_optional = util.get_class_field_type(Obj2, 'a')
     self.assertFalse(is_optional)
-    tuple_type, is_optional = util.get_class_field_type(Obj2, 'b', False)
+    tuple_type, is_optional = util.get_class_field_type(Obj2, 'b')
     self.assertFalse(is_optional)
     self.assertEqual(list_type, list[Obj1])
     self.assertEqual(tuple_type, tuple[Obj1, ...])
     self.assertEqual(
-        util.get_class_field_type(list_type, '__items__', False), (Obj1, False)
+        util.get_class_field_type(list_type, '__items__'), (Obj1, False)
     )
     with self.assertRaisesRegex(ValueError, 'only tuple.T, .... is supported'):
-      _ = util.get_class_field_type(tuple[Obj1, Obj1], '__items__', False)
+      _ = util.get_class_field_type(tuple[Obj1, Obj1], '__items__')
     with self.assertRaisesRegex(ValueError, 'only tuple.T, .... is supported'):
-      _ = util.get_class_field_type(tuple[Obj1], '__items__', False)
+      _ = util.get_class_field_type(tuple[Obj1], '__items__')
 
   def test_get_class_field_dict(self):
     util = testing_clib.DataClassesUtil()
@@ -184,14 +184,14 @@ class DataclassesUtilTest(absltest.TestCase):
     class Obj2:
       a: dict[Obj1, _py_types.SimpleNamespace]
 
-    dict_type, is_optional = util.get_class_field_type(Obj2, 'a', False)
+    dict_type, is_optional = util.get_class_field_type(Obj2, 'a')
     self.assertFalse(is_optional)
     self.assertEqual(dict_type, dict[Obj1, _py_types.SimpleNamespace])
     self.assertEqual(
-        util.get_class_field_type(dict_type, '__keys__', False), (Obj1, False)
+        util.get_class_field_type(dict_type, '__keys__'), (Obj1, False)
     )
     self.assertEqual(
-        util.get_class_field_type(dict_type, '__values__', False),
+        util.get_class_field_type(dict_type, '__values__'),
         (_py_types.SimpleNamespace, False),
     )
 
@@ -203,64 +203,47 @@ class DataclassesUtilTest(absltest.TestCase):
       a: _py_types.SimpleNamespace
 
     self.assertEqual(
-        util.get_class_field_type(_py_types.SimpleNamespace, 'any_attr', False),
+        util.get_class_field_type(_py_types.SimpleNamespace, 'any_attr'),
         (None, True),
     )
     self.assertEqual(
-        util.get_class_field_type(Obj2, 'a', False),
+        util.get_class_field_type(Obj2, 'a'),
         (_py_types.SimpleNamespace, False),
     )
     with self.assertRaisesRegex(
-        ValueError, 'expected list class; got instead: .*SimpleNamespace'
+        ValueError,
+        'value is a list, but requested output class is SimpleNamespace',
     ):
-      _ = util.get_class_field_type(
-          _py_types.SimpleNamespace, '__items__', False
-      )
+      _ = util.get_class_field_type(_py_types.SimpleNamespace, '__items__')
     with self.assertRaisesRegex(
-        ValueError, 'expected list class; got instead: .*Obj2'
+        ValueError, 'value is a list, but requested output class is Obj2'
     ):
-      _ = util.get_class_field_type(Obj2, '__items__', False)
-
-  def test_get_class_field_type_for_primitive(self):
-    util = testing_clib.DataClassesUtil()
-
-    @dataclasses.dataclass
-    class Obj2:
-      a: int
-      b: Obj1
-
-    self.assertEqual(util.get_class_field_type(Obj2, 'a', True), (int, False))
-    self.assertEqual(util.get_class_field_type(Obj2, 'b', True), (Obj1, False))
-
-    self.assertEqual(
-        util.get_class_field_type(_py_types.SimpleNamespace, 'a', True),
-        (None, True),
-    )
+      _ = util.get_class_field_type(Obj2, '__items__')
 
   def test_get_class_field_type_errors(self):
     util = testing_clib.DataClassesUtil()
 
-    with self.assertRaisesRegex(ValueError, "field 'a' has unsupported type"):
-      _ = util.get_class_field_type(Obj1, 'a', False)
     with self.assertRaisesRegex(
-        ValueError, 'only dataclasses or SimpleNamespace are supported'
+        ValueError,
+        'value is an entity or a dict, but requested output class is int',
     ):
-      _ = util.get_class_field_type(int, 'a', False)
+      _ = util.get_class_field_type(int, 'a')
 
     with self.assertRaisesRegex(
-        ValueError, 'expected dict class; got instead: list.int.'
+        ValueError, 'value is a dict, but requested output class is list.int.'
     ):
-      _ = util.get_class_field_type(list[int], '__keys__', False)
+      _ = util.get_class_field_type(list[int], '__keys__')
 
     with self.assertRaisesRegex(
-        ValueError, 'expected dict class; got instead: list.int.'
+        ValueError, 'value is a dict, but requested output class is list.int.'
     ):
-      _ = util.get_class_field_type(list[int], '__values__', False)
+      _ = util.get_class_field_type(list[int], '__values__')
 
     with self.assertRaisesRegex(
-        ValueError, 'expected list class; got instead: dict.int. int.'
+        ValueError,
+        'value is a list, but requested output class is dict.int, int.',
     ):
-      _ = util.get_class_field_type(dict[int, int], '__items__', False)
+      _ = util.get_class_field_type(dict[int, int], '__items__')
 
   def test_get_maybe_decay_optional(self):
     util = testing_clib.DataClassesUtil()

@@ -87,12 +87,9 @@ class DataClassesUtil {
   // - `__values__`: `V` for `dict[K, V]`. For a dict class, any name other than
   //   `__items__` and `__keys__` is treated as `__values__`.
   // In all other cases, an error is returned.
-  // `for_primitive` indicates whether the caller's intention is to use it for a
-  // primitive type: dataclass fields of other types (e.g. `int`) are then
-  // returned as is instead of raising an error.
   absl::StatusOr<std::optional<FieldTypeDescriptor>> GetClassFieldType(
       arolla::python::PyObjectPtr absl_nonnull py_class,
-      absl::string_view attr_name, bool for_primitive = false);
+      absl::string_view attr_name);
 
   // Creates a class instance with the given attributes and values.
   // The `attr_names` and `attr_values` should have the same size.

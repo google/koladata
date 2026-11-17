@@ -43,11 +43,11 @@ PYBIND11_MODULE(testing_clib, m) {
            })
       .def("get_class_field_type",
            [](DataClassesUtil& self, py::handle py_class,
-              absl::string_view attr_name, bool for_primitive) -> py::object {
+              absl::string_view attr_name) -> py::object {
              absl::StatusOr<std::optional<DataClassesUtil::FieldTypeDescriptor>>
                  field_type = self.GetClassFieldType(
                      arolla::python::PyObjectPtr::NewRef(py_class.ptr()),
-                     attr_name, for_primitive);
+                     attr_name);
 
              if (!field_type.ok()) {
                arolla::python::SetPyErrFromStatus(field_type.status());

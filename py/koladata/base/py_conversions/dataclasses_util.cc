@@ -235,19 +235,16 @@ absl::StatusOr<std::vector<PyObject*>> DataClassesUtil::GetAttrValues(
 
 absl::StatusOr<std::optional<DataClassesUtil::FieldTypeDescriptor>>
 DataClassesUtil::GetClassFieldType(PyObjectPtr absl_nonnull py_class,
-                                   absl::string_view attr_name,
-                                   bool for_primitive) {
+                                   absl::string_view attr_name) {
   if (attr_name.empty()) {
     return absl::InvalidArgumentError("attr_name is empty");
   }
   RETURN_IF_ERROR(InitFns());
   ASSIGN_OR_RETURN(PyObjectPtr py_attr_name, GetPyStr(attr_name));
-  PyObjectPtr py_for_primitive =
-      PyObjectPtr::Own(PyBool_FromLong(for_primitive));
   PyObject* call_args[] = {py_class.get(), py_attr_name.get(),
-                           py_for_primitive.get(), type_hints_cache_.get()};
+                           type_hints_cache_.get()};
   PyObjectPtr py_attr = PyObjectPtr::Own(PyObject_Vectorcall(
-      fn_get_class_field_type_.get(), call_args, 4, nullptr));
+      fn_get_class_field_type_.get(), call_args, 3, nullptr));
   if (py_attr == nullptr) {
     return arolla::python::StatusWithRawPyErr(
         absl::StatusCode::kInvalidArgument,

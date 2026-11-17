@@ -187,26 +187,19 @@ class ToPyVisitor : public internal::AbstractVisitor {
                  : FindAndStoreClassResult::kUnspecifiedClass;
     }
 
-    ASSIGN_OR_RETURN(PyObject * parent_class, GetCachedClass(from_item));
-    std::pair<PyObject*, std::string> path_key(parent_class,
-                                               std::string(attr_name));
-
-    std::optional<DataClassesUtil::FieldTypeDescriptor> field_type;
-    auto class_cached_by_path_it = classes_by_path_.find(path_key);
-    if (class_cached_by_path_it != classes_by_path_.end()) {
-      field_type = class_cached_by_path_it->second;
-    } else {
-      ASSIGN_OR_RETURN(field_type,
-                       dataclasses_util_.GetClassFieldType(
-                           PyObjectPtr::NewRef(parent_class), attr_name,
-                           /*for_primitive=*/false));
-      classes_by_path_[std::move(path_key)] = field_type;
+    PyObject* parent_class = LookupTargetClass(from_item.value<ObjectId>());
+    if (parent_class == nullptr) {
+      return absl::InternalError(
+          "item holds an object id, but its class is not found in cache; "
+          "probably, it was not pre-visited");
     }
 
+    ASSIGN_OR_RETURN(
+        std::optional<DataClassesUtil::FieldTypeDescriptor> field_type,
+        GetChildClass(parent_class, attr_name));
     if (!field_type.has_value()) {
       return FindAndStoreClassResult::kIgnored;
     }
-
     ConvertedObjectEntry& entry = converted_object_cache_[object_id];
     if (entry.target_class == nullptr) {
       entry.target_class = field_type->type;
@@ -507,28 +500,28 @@ class ToPyVisitor : public internal::AbstractVisitor {
   // `schema::kListItemsSchemaAttr`, `schema::kDictKeysSchemaAttr` and
   // `schema::kDictValuesSchemaAttr`, of the items / keys / values of a list or
   // dict class (see `DataClassesUtil::GetClassFieldType`).
-  // If `parent_class` is null or None, returns nullopt.
+  // If `parent_class` is null (no output class), returns nullopt.
   absl::StatusOr<std::optional<DataClassesUtil::FieldTypeDescriptor>>
-  GetChildClass(PyObject* parent_class, absl::string_view child_name) {
-    if (parent_class == nullptr || Py_IsNone(parent_class)) {
+  GetChildClass(PyObject* absl_nullable parent_class,
+                absl::string_view child_name) {
+    if (parent_class == nullptr) {
       return std::nullopt;
     }
-
-    std::pair<PyObject*, std::string> key{parent_class,
-                                          std::string(child_name)};
-    auto child_class_it = classes_by_path_.find(key);
-    if (child_class_it == classes_by_path_.end()) {
-      // If the child would have been an object, it would have been already
-      // pre-visited and cached; at this point it can only be a primitive.
-      ASSIGN_OR_RETURN(
-          std::optional<DataClassesUtil::FieldTypeDescriptor> child_class,
-          dataclasses_util_.GetClassFieldType(PyObjectPtr::NewRef(parent_class),
-                                              child_name,
-                                              /*for_primitive=*/true));
-      classes_by_path_[std::move(key)] = child_class;
-      return child_class;
+    if (Py_IsNone(parent_class)) {
+      // Children of an untyped (`Any`) parent are untyped as well.
+      return DataClassesUtil::FieldTypeDescriptor{
+          .type = PyObjectPtr::NewRef(Py_None), .is_optional = true};
     }
-    return child_class_it->second;
+
+    auto [it, inserted] =
+        classes_by_path_.try_emplace({parent_class, std::string(child_name)});
+    if (inserted) {
+      // Note: on error the conversion fails, so the empty entry is never used.
+      ASSIGN_OR_RETURN(it->second, dataclasses_util_.GetClassFieldType(
+                                       PyObjectPtr::NewRef(parent_class),
+                                       child_name));
+    }
+    return it->second;
   }
 
   absl::Status VisitObject(const DataItem& object, const DataItem& schema,

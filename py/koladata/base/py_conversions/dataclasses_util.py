@@ -104,6 +104,32 @@ def maybe_decay_optional(t: _Type) -> tuple[_Type, bool]:
   return (underlying_type, True)
 
 
+# Descriptions of the classes that Koda values can be converted to.
+_LIST_CLASSES = 'a sequence class, e.g. list[T] or tuple[T, ...]'
+_DICT_OR_ENTITY_CLASSES = (
+    'a dataclass, SimpleNamespace or a dict class, e.g. dict[K, V]'
+)
+
+
+def _raise_incompatible_class(
+    value: str, t: _Type, expected: str
+) -> typing.NoReturn:
+  """Raises an error that `value` cannot be converted to the class `t`.
+
+  Args:
+    value: The description of the value, e.g. 'a list'. Only used in the
+      message.
+    t: The requested output class.
+    expected: The description of the supported classes: `_LIST_CLASSES` or
+      `_DICT_OR_ENTITY_CLASSES`.
+  """
+  class_name = t.__name__ if isinstance(t, type) else repr(t)
+  raise ValueError(
+      f'value is {value}, but requested output class is {class_name};'
+      f' expected {expected}'
+  )
+
+
 def _get_field_type_annotation(
     py_obj: _Type,
     attr_name: str,
@@ -117,9 +143,8 @@ def _get_field_type_annotation(
 
 
 def get_class_field_type(
-    py_obj: _Type,
+    py_obj: _Type | None,
     attr_name: str,
-    for_primitive: bool,
     type_hints_cache: dict[_Type, dict[str, _Type]],
 ) -> tuple[_Type | None, bool] | None:
   """Returns information about the type of the given field of py_obj.
@@ -137,13 +162,13 @@ def get_class_field_type(
       `__keys__` is treated as `__values__`, so that the key of a dict item can
       be passed as `attr_name` (which gives the field type if `py_obj` is a
       dataclass instead).
+  Bare `list`, `tuple` and `dict` are treated as `list[Any]`, `tuple[Any, ...]`
+  and `dict[Any, Any]`.
 
   Args:
     py_obj: The class to inspect.
     attr_name: The name of the field to inspect, or one of the special names
       described above.
-    for_primitive: Whether the caller's intention is to use it for a primitive
-      type.
     type_hints_cache: A cache of type hints for dataclasses.
 
   Returns:
@@ -158,10 +183,34 @@ def get_class_field_type(
   if py_obj is None:
     return (None, True)
 
-  if attr_name == '__items__' and (
-      py_obj is types.SimpleNamespace or dataclasses.is_dataclass(py_obj)
-  ):
-    raise ValueError(f'expected list class; got instead: {py_obj}')
+  origin_type = typing.get_origin(py_obj)
+
+  if attr_name == '__items__':
+    # The items of a list class; anything else is an error.
+    if py_obj is list or py_obj is tuple:
+      # Bare `list` or `tuple`.
+      return (None, True)
+    if not (
+        isinstance(origin_type, type)
+        and issubclass(origin_type, typing.Sequence)
+    ):
+      _raise_incompatible_class('a list', py_obj, _LIST_CLASSES)
+    # `list[Obj] or `tuple[Obj, ...]`
+    args = typing.get_args(py_obj)
+    if not args:
+      raise ValueError(
+          f'expected list/tuple/Sequence; got instead: {origin_type}'
+      )
+    if origin_type is tuple:
+      if len(args) != 2 or args[1] is not Ellipsis:
+        raise ValueError(
+            f'only tuple[T, ...] is supported; got instead: {origin_type}'
+        )
+    return maybe_decay_optional(args[0])
+
+  if py_obj is dict:
+    # Bare `dict`.
+    return (None, True)
 
   if py_obj is types.SimpleNamespace:
     # Fields of SimpleNamespace are not typed.
@@ -172,68 +221,21 @@ def get_class_field_type(
     t = _get_field_type_annotation(py_obj, attr_name, type_hints_cache)
     if t is None:
       return None
-    if t is Any:
-      return (None, True)
-    if dataclasses.is_dataclass(t):
-      return (t, False)
-    # x: Optional[Obj] or x: Obj | None
-    underlying_optional_type, is_optional = maybe_decay_optional(t)
-    if is_optional:
-      return (underlying_optional_type, is_optional)
-    # x: list[Obj] or x: dict[Obj, int]
-    if isinstance(t, types.GenericAlias):
-      return (t, False)
-    if t is types.SimpleNamespace:
-      return (t, False)
-    if for_primitive:
-      return (t, False)
-    raise ValueError(f"field '{attr_name}' has unsupported type: {t}")
+    # Handles `x: Any`, `x: Optional[Obj]` and `x: Obj | None`.
+    return maybe_decay_optional(t)
 
-  if origin_type := typing.get_origin(py_obj):
-    # `list[Obj] or `tuple[Obj, ...]`
-    if (
-        attr_name == '__items__'
-        and isinstance(origin_type, type)
-        and issubclass(origin_type, typing.Sequence)
-    ):
-      args = typing.get_args(py_obj)
-      if len(args) == 0:
-        raise ValueError(
-            'expected list/tuple/Sequence; got instead:'
-            f' {typing.get_origin(py_obj)}'
-        )
-      if origin_type is tuple:
-        if len(args) != 2 or args[1] is not Ellipsis:
-          raise ValueError(
-              'only tuple[T, ...] is supported; got instead:'
-              f' {typing.get_origin(py_obj)}'
-          )
+  if isinstance(origin_type, type) and issubclass(origin_type, typing.Mapping):
+    args = typing.get_args(py_obj)
+    if len(args) != 2:
+      raise ValueError(f'expected dict; got instead: {origin_type}')
+    # `dict[Obj, int]`
+    if attr_name == '__keys__':
       return maybe_decay_optional(args[0])
+    # `dict[int, Obj]`
+    return maybe_decay_optional(args[1])
 
-    if (
-        isinstance(origin_type, type)
-        and issubclass(origin_type, typing.Mapping)
-        and attr_name != '__items__'
-    ):
-      # `dict[Obj, int]`
-      if attr_name == '__keys__':
-        return maybe_decay_optional(typing.get_args(py_obj)[0])
-      # `dict[int, Obj]`
-      args = typing.get_args(py_obj)
-      if len(args) != 2:
-        raise ValueError(
-            f'expected dict; got instead: {typing.get_origin(py_obj)}'
-        )
-      return maybe_decay_optional(args[1])
-    if attr_name == '__keys__' or attr_name == '__values__':
-      raise ValueError(f'expected dict class; got instead: {py_obj}')
-    if attr_name == '__items__':
-      raise ValueError(f'expected list class; got instead: {py_obj}')
-    raise ValueError(
-        f'unsupported GenericAlias {py_obj} for attribute {attr_name}'
-    )
-
-  raise ValueError(
-      f'could not get type for attribute {attr_name}; only dataclasses or'
-      f' SimpleNamespace are supported; got instead: {py_obj}'
+  if attr_name == '__keys__' or attr_name == '__values__':
+    _raise_incompatible_class('a dict', py_obj, _DICT_OR_ENTITY_CLASSES)
+  _raise_incompatible_class(
+      'an entity or a dict', py_obj, _DICT_OR_ENTITY_CLASSES
   )

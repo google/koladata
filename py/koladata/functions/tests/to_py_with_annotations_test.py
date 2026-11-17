@@ -108,7 +108,9 @@ class ToPyWithAnnotationsTest(absltest.TestCase):
       a: Obj1
 
     with self.assertRaisesRegex(
-        ValueError, 'only dataclasses or SimpleNamespace are supported'
+        ValueError,
+        'value is an entity or a dict, but requested output class is Obj; '
+        'expected a dataclass, SimpleNamespace or a dict class',
     ):
       _ = py_conversions.to_py(
           fns.obj(a=fns.obj(a=1)),
