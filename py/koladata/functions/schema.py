@@ -163,11 +163,14 @@ def _get_dataclass_name(schema: schema_item.SchemaItem) -> str:
   Returns:
     If the `__schema_name__` attribute is present, it returns the last part of
     the name. Otherwise (e.g., if the schema was created via `kd.new_schema`
-    without an explicit name), it returns 'Entity'.
+    without an explicit name), it returns 'Anonymous_{hash}', where the hash is
+    derived from the schema's fingerprint.
   """
   name = schema.get_schema_name().to_py()
-  dataclass_name = name if name is not None else 'Entity'
-  return dataclass_name.split('.')[-1]
+  if name is None:
+    h = str(schema.no_bag().fingerprint)[:8]
+    return f'Anonymous_{h}'
+  return name.split('.')[-1]
 
 
 def _unwrap_optional(annotation: Any) -> Any:

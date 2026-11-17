@@ -47,6 +47,10 @@ MAX_DEPTH = 5
 
 class SchemaToPyTest(parameterized.TestCase):
 
+  def _make_dataclass_name(self, schema: kd.types.SchemaItem) -> str:
+    h = str(schema.no_bag().fingerprint)[:8]
+    return f'Anonymous_{h}'
+
   def _get_underlying_optional_type(self, tpe: Any) -> Any:
     underlying_tpe, is_optional = dataclasses_util.maybe_decay_optional(tpe)
     self.assertTrue(is_optional, f'Type {tpe!r} is not optional')
@@ -118,19 +122,19 @@ class SchemaToPyTest(parameterized.TestCase):
     )
 
     expected_inner_type1 = dataclasses.make_dataclass(
-        'Entity',
+        self._make_dataclass_name(schema.get_attr('z')),
         [
             ('x', int | None),
         ],
     )
     expected_inner_type2 = dataclasses.make_dataclass(
-        'Entity',
+        self._make_dataclass_name(schema.get_attr('a')),
         [
             ('a', int | None),
         ],
     )
     expected_type = dataclasses.make_dataclass(
-        'Entity',
+        self._make_dataclass_name(schema),
         [
             ('x', list[int | None] | None),
             ('y', dict[int, str | None] | None),
@@ -272,6 +276,16 @@ class SchemaToPyTest(parameterized.TestCase):
     converted_type = self._get_underlying_optional_type(converted_type)
     self._assert_similar_dataclasses(converted_type, expected_type)
 
+  def test_entity_schema_roundtrip(self):
+    schema, _, _, expected_type = self._get_entity_test_data()
+
+    converted_type = kd_schema.schema_to_py(schema)
+    self.assertIsNotNone(converted_type)
+    roundtrip_schema = kd_schema.schema_from_py(converted_type)
+    roundtrip_type = kd_schema.schema_to_py(roundtrip_schema)
+    roundtrip_type = self._get_underlying_optional_type(roundtrip_type)
+    self._assert_similar_dataclasses(roundtrip_type, expected_type)
+
   def test_entity_schema_as_output_class(self):
     schema, expected_inner_type1, expected_inner_type2, _ = (
         self._get_entity_test_data()
@@ -339,7 +353,7 @@ class SchemaToPyTest(parameterized.TestCase):
     x.a = kd.list([x])
 
     expected_dataclass = dataclasses.make_dataclass(
-        'Entity',
+        self._make_dataclass_name(x.get_schema()),
         [
             ('a', Any),
         ],
