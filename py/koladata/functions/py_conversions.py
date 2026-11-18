@@ -86,7 +86,7 @@ def to_py(
       unlimited depth. If output_class is set, this is ignored and the depth is
       determined by the output_class.
     obj_as_dict: Whether to convert objects to python dicts. By default objects
-      are converted to automatically constructed 'Obj' dataclass instances.
+      are converted to `types.SimpleNamespace` instances.
     include_missing_attrs: whether to include attributes with None value in
       objects.
     output_class: If not None, will be used recursively as the output type.

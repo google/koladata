@@ -1343,7 +1343,7 @@ Koda can easily interoperate with normal Python, Pandas, Numpy and Proto.
 [[1, 2], [3, 4]]
 
 >>> kd.obj(x=1, y=kd.obj(z=kd.obj(a=1))).to_py(max_depth=-1)
-Obj(x=1, y=Obj(z=Obj(a=1)))
+namespace(x=1, y=namespace(z=namespace(a=1)))
 
 >>> kd.list([1, 2, 3]).to_py()
 [1, 2, 3]
@@ -1356,19 +1356,20 @@ DataItem(List[Dict{...'b'=List[4, 5, 6]...}, Dict{...'b'=4...}], schema: OBJECT,
 
 # Using `output_class`:
 
->>> import types as _py_types
-
->>> koda_obj = kd.obj(x=1, y=2)
->>> koda_obj.to_py(output_class=_py_types.SimpleNamespace)
-namespace(...x=1...)
-
 >>> import dataclasses
 >>> @dataclasses.dataclass
 ... class Objxy:
 ...  x: int
 ...  y: int
+>>> koda_obj = kd.obj(x=1, y=2)
 >>> koda_obj.to_py(output_class=Objxy)
 Objxy(x=1, y=2)
+
+# Or generate a dataclass from a Koda entity schema with `kd.schema_to_py`:
+>>> point_schema = kd.named_schema('Point', x=kd.INT32, y=kd.INT32)
+>>> Point = kd.schema_to_py(point_schema)
+>>> point_schema.new(x=1, y=2).to_py(output_class=Point)
+Point(x=1, y=2)
 
 >>> kd.to_py(kd.list([1, 2, 3]), output_class=tuple[int,...])
 (1, 2, 3)

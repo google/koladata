@@ -200,7 +200,7 @@ def _example_computation_kd_vectorized(datas: list[Data]) -> list[list[Group]]:
   """An example vectorized computation in Koda with to/from py conversions."""
   datas_ds = kd.from_py(datas, schema=DATAS_SCHEMA)  # pylint: disable=protected-access
   item_groups = _example_computation_kd_no_py_vectorized(datas_ds)
-  return item_groups.to_py(max_depth=-1)
+  return item_groups.to_py(max_depth=-1, output_class=Group)
 
 
 _example_computation_kd_no_py_traced_vectorized = kd.fn(
@@ -619,7 +619,9 @@ def example_computation_kd_no_py_vectorized(state):
   expected_output = expected_output_fn()
   kd_ds = kd.from_py(ds, schema=DATAS_SCHEMA)  # pylint: disable=protected-access
   # Sanity check
-  output = _example_computation_kd_no_py_vectorized(kd_ds).to_py(max_depth=-1)
+  output = _example_computation_kd_no_py_vectorized(kd_ds).to_py(
+      max_depth=-1, output_class=Group
+  )
   assert output == expected_output, output
   while state:
     _ = _example_computation_kd_no_py_vectorized(kd_ds)
@@ -637,7 +639,7 @@ def example_computation_kd_no_py_traced_vectorized(state):
   kd_ds = kd.from_py(ds, schema=DATAS_SCHEMA)  # pylint: disable=protected-access
   # Sanity check
   output = _example_computation_kd_no_py_traced_vectorized(kd_ds).to_py(
-      max_depth=-1
+      max_depth=-1, output_class=Group
   )
   assert output == expected_output, output
   while state:
@@ -656,7 +658,7 @@ def example_computation_kd_no_py_single_bag_vectorized(state):
   kd_ds = kd.from_py(ds, schema=DATAS_SCHEMA)  # pylint: disable=protected-access
   # Sanity check
   output = _example_computation_kd_no_py_single_bag_vectorized(kd_ds).to_py(
-      max_depth=-1
+      max_depth=-1, output_class=Group
   )
   assert output == expected_output, output
   while state:
@@ -693,7 +695,7 @@ def example_computation_kd_no_py_single_bag_pointwise(state):
   # Sanity check. We return tuples instead of lists, so we need to convert
   # for exact equality comparison.
   output = _example_computation_kd_no_py_single_bag_pointwise(kd_ds).to_py(
-      max_depth=-1
+      max_depth=-1, output_class=list[Group]
   )
   assert output == expected_output, output
   while state:

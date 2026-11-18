@@ -28,13 +28,12 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "arolla/util/fingerprint.h"
 #include "py/arolla/py_utils/py_utils.h"
 
 namespace koladata::python {
 
-// Util class for working with Python dataclasses (getting attributes, making
-// instances, etc.) It also owns the dataclass object instances it creates.
+// Util class for working with Python dataclasses (getting attributes, field
+// types, etc.). It also owns the borrowed attribute values it returns.
 class DataClassesUtil {
  public:
   // Descriptor of a Python type, returned by `GetClassFieldType` and
@@ -52,10 +51,6 @@ class DataClassesUtil {
   };
 
   DataClassesUtil() = default;
-
-  absl::StatusOr<arolla::python::PyObjectPtr> MakeDataClassInstance(
-      absl::string_view class_name,
-      absl::Span<const absl::string_view> attr_names);
 
   // Returns attribute names and values on success and if `py_obj` represents a
   // Python object for which parsing attributes is supported (e.g. dataclasses).
@@ -107,14 +102,8 @@ class DataClassesUtil {
   absl::StatusOr<arolla::python::PyObjectPtr> GetPyStr(absl::string_view str);
 
  private:
-  absl::StatusOr<arolla::python::PyObjectPtr> MakeDataClass(
-      absl::string_view class_name,
-      absl::Span<const absl::string_view> attr_names);
-
   absl::Status InitFns();
 
-  absl::flat_hash_map<arolla::Fingerprint, arolla::python::PyObjectPtr>
-      dataclasses_cache_;
   absl::flat_hash_map<absl::string_view, arolla::python::PyObjectPtr>
       py_str_cache_;
 
@@ -124,7 +113,6 @@ class DataClassesUtil {
   // same class.
   arolla::python::PyObjectPtr type_hints_cache_;
 
-  arolla::python::PyObjectPtr fn_make_dataclass_;
   arolla::python::PyObjectPtr fn_fields_;
   arolla::python::PyObjectPtr fn_get_class_field_type_;
   arolla::python::PyObjectPtr fn_maybe_decay_optional_;

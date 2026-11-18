@@ -14,7 +14,6 @@
 
 import dataclasses
 import gc
-import importlib
 import math
 import sys
 import types as _py_types
@@ -33,7 +32,6 @@ from koladata.types import data_slice
 from koladata.types import mask_constants
 from koladata.types import schema_constants
 
-
 kde = kde_operators.kde
 kd = kde_operators.kd
 ds = data_slice.DataSlice.from_vals
@@ -45,7 +43,7 @@ def mutable_obj():
 
 def _default_obj(**attrs):
   """Returns an object equal to what `to_py` creates without output_class."""
-  return dataclasses.make_dataclass('Obj', [(k, Any) for k in attrs])(**attrs)
+  return _py_types.SimpleNamespace(**attrs)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -102,14 +100,7 @@ class ToPyTest(parameterized.TestCase):
     root.nested_list = fns.implode(fns.implode(nested_values))
     root.empty_list = []
 
-    @dataclasses.dataclass
-    class Obj:
-      list_value: list[int]
-      nested_list: list[list[int]]
-      empty_list: list[int]
-      none_list_value: list[None]
-
-    expected = Obj(
+    expected = _py_types.SimpleNamespace(
         list_value=[1, 2],
         nested_list=[[1, 2], [3, 4, 5]],
         empty_list=[],
@@ -143,9 +134,7 @@ class ToPyTest(parameterized.TestCase):
     lst = fns.list([1, 2, 3])
     obj = fns.obj(a=lst, b=lst)
     res = obj.to_py(obj_as_dict=True)
-    self.assertEqual(
-        res, {'a': [1, 2, 3], 'b': [1, 2, 3]}
-    )
+    self.assertEqual(res, {'a': [1, 2, 3], 'b': [1, 2, 3]})
     self.assertEqual(id(res['a']), id(res['b']))
     res = py_conversions.to_py(obj)
     self.assertEqual(id(res.a), id(res.b))
@@ -180,7 +169,8 @@ class ToPyTest(parameterized.TestCase):
       dict_value: Optional[dict[str, str]] = None
       empty_dict: Optional[dict[str, str]] = None
 
-    expected = Obj(
+    expected_cls = Obj if pass_class else _py_types.SimpleNamespace
+    expected = expected_cls(
         dict_value={'key_1': 'value_1', 'key_2': 'value_2'},
         empty_dict={},
     )
@@ -1189,11 +1179,12 @@ class ToPyTest(parameterized.TestCase):
         i=fns.int64(3),
     )
 
-    o1 = Obj1(a=1, b='x')
+    o1_any = _py_types.SimpleNamespace(a=1, b='x')
+    o2_any = _py_types.SimpleNamespace(a=2, b='y')
     o2 = Obj1(a=2, b='y')
-    l = [o1, o2]
-    d = {'a': o1, 'b': o2}
-    root_obj = Obj2(o1=o1, o2=o2, i=3, list1=l, list2=l, dict1=d, dict2=d)
+    l = [o1_any, o2_any]
+    d = {'a': o1_any, 'b': o2_any}
+    root_obj = Obj2(o1=o1_any, o2=o2, i=3, list1=l, list2=l, dict1=d, dict2=d)
     converted = py_conversions.to_py(root, output_class=Obj2)
     self.assertEqual(converted, root_obj)
 
@@ -1224,7 +1215,7 @@ class ToPyTest(parameterized.TestCase):
         direct_obj=koda_obj_2,
     )
 
-    o1 = Obj1(a=1, b='x')
+    o1 = _py_types.SimpleNamespace(a=1, b='x')
     o2 = Obj1(a=2, b='y')
     expected = TargetClass(list_of_any=[o1, o1], direct_obj=o2)
     converted = py_conversions.to_py(root, output_class=TargetClass)
@@ -1349,12 +1340,9 @@ class ToPyTest(parameterized.TestCase):
 
     o = ds([parent.embed_schema(), lst.embed_schema()])
 
-    @dataclasses.dataclass
-    class Obj:
-      lst: list[int]
-
     self.assertEqual(
-        py_conversions.to_py(o), [Obj(lst=[10, 20, 30]), [10, 20, 30]]
+        py_conversions.to_py(o),
+        [_py_types.SimpleNamespace(lst=[10, 20, 30]), [10, 20, 30]],
     )
 
   def test_dict_obj(self):
@@ -1369,13 +1357,9 @@ class ToPyTest(parameterized.TestCase):
         py_conversions.to_py(x, obj_as_dict=True), {'x': 1, 'y': 'abc'}
     )
 
-    @dataclasses.dataclass
-    class Obj:
-      x: int
-      y: str
-
     self.assertEqual(
-        py_conversions.to_py(x, obj_as_dict=False), Obj(x=1, y='abc')
+        py_conversions.to_py(x, obj_as_dict=False),
+        _py_types.SimpleNamespace(x=1, y='abc'),
     )
 
   def test_self_reference_object(self):
@@ -1452,12 +1436,7 @@ class ToPyTest(parameterized.TestCase):
     x.foo = [1, 2]
     x.bar = x.foo
 
-    @dataclasses.dataclass
-    class Obj:
-      foo: list[int]
-      bar: list[int]
-
-    expected = Obj(foo=[1, 2], bar=[1, 2])
+    expected = _py_types.SimpleNamespace(foo=[1, 2], bar=[1, 2])
 
     py_obj = py_conversions.to_py(x)
 
@@ -1511,9 +1490,7 @@ class ToPyTest(parameterized.TestCase):
     self.assertEqual(res.d, 11)
     testing.assert_equal(res.e[0], x.e[0])
     testing.assert_equal(res.e[1], x.e[1])
-    self.assertEqual(
-        res.f, dataclasses.make_dataclass('Obj', [('g', Any)])(g=x.f.g)
-    )
+    self.assertEqual(res.f, _py_types.SimpleNamespace(g=x.f.g))
     testing.assert_equal(res.f.g, x.f.g)
 
     res = py_conversions.to_py(x, max_depth=2, obj_as_dict=True)
@@ -1526,9 +1503,7 @@ class ToPyTest(parameterized.TestCase):
     testing.assert_equal(res['f']['g'], x.f.g)
 
     res = py_conversions.to_py(x, max_depth=3)
-    self.assertEqual(
-        res.f.g, dataclasses.make_dataclass('Obj', [('h', Any)])(h=17)
-    )
+    self.assertEqual(res.f.g, _py_types.SimpleNamespace(h=17))
 
     self.assertEqual(
         py_conversions.to_py(x, max_depth=3, obj_as_dict=True),
@@ -1550,18 +1525,6 @@ class ToPyTest(parameterized.TestCase):
     self.assertEqual(py_conversions.to_py(x, max_depth=0), [[1, 2], [3, 4]])
 
   def test_max_depth_on_slice(self):
-    @dataclasses.dataclass
-    class Obj0:
-      x: Any
-
-    @dataclasses.dataclass
-    class Obj1:  # pylint: disable=redefined-outer-name
-      y: Any
-
-    @dataclasses.dataclass
-    class Obj2:
-      z: Any
-
     o1_level2 = fns.obj(z=1)
     o2_level2 = fns.obj(z=2)
 
@@ -1575,15 +1538,29 @@ class ToPyTest(parameterized.TestCase):
     self.assertEqual(py_conversions.to_py(x, max_depth=0), [o1, o2])
 
     self.assertEqual(
-        py_conversions.to_py(x, max_depth=1), [Obj0(o1_level1), Obj0(o2_level1)]
+        py_conversions.to_py(x, max_depth=1),
+        [
+            _py_types.SimpleNamespace(x=o1_level1),
+            _py_types.SimpleNamespace(x=o2_level1),
+        ],
     )
     self.assertEqual(
         py_conversions.to_py(x, max_depth=2),
-        [Obj0(Obj1(o1_level2)), Obj0(Obj1(o2_level2))],
+        [
+            _py_types.SimpleNamespace(x=_py_types.SimpleNamespace(y=o1_level2)),
+            _py_types.SimpleNamespace(x=_py_types.SimpleNamespace(y=o2_level2)),
+        ],
     )
     self.assertEqual(
         py_conversions.to_py(x, max_depth=3),
-        [Obj0(Obj1(Obj2(1))), Obj0(Obj1(Obj2(2)))],
+        [
+            _py_types.SimpleNamespace(
+                x=_py_types.SimpleNamespace(y=_py_types.SimpleNamespace(z=1))
+            ),
+            _py_types.SimpleNamespace(
+                x=_py_types.SimpleNamespace(y=_py_types.SimpleNamespace(z=2))
+            ),
+        ],
     )
 
   def test_include_missing_attrs(self):
@@ -1639,16 +1616,12 @@ class ToPyTest(parameterized.TestCase):
 
   def test_empty_object(self):
     x = fns.obj()
-    self.assertEqual(
-        py_conversions.to_py(x), dataclasses.make_dataclass('Obj', [])()
-    )
+    self.assertEqual(py_conversions.to_py(x), _py_types.SimpleNamespace())
     self.assertEqual(py_conversions.to_py(x, obj_as_dict=True), {})
 
   def test_empty_entity(self):
     entity = fns.new()
-    self.assertEqual(
-        py_conversions.to_py(entity), dataclasses.make_dataclass('Obj', [])()
-    )
+    self.assertEqual(py_conversions.to_py(entity), _py_types.SimpleNamespace())
     self.assertEqual(py_conversions.to_py(entity, obj_as_dict=True), {})
 
   def test_list_and_dict_without_container_schema_in_bag_fail(self):
@@ -1694,15 +1667,7 @@ class ToPyTest(parameterized.TestCase):
   def test_named_schema(self):
     x = fns.new(x=123, schema='named_schema')
     res = py_conversions.to_py(x)
-    expected = dataclasses.make_dataclass('named_schema', [('x', Any)])(x=123)
-    self.assertEqual(
-        res,
-        expected,
-    )
-    self.assertEqual(
-        res.__class__.__name__,
-        'named_schema',
-    )
+    self.assertEqual(res, _py_types.SimpleNamespace(x=123))
 
   def test_itemid_not_supported(self):
     a = fns.new(x=1).get_itemid()
@@ -1820,18 +1785,35 @@ class ToPyTest(parameterized.TestCase):
     ):
       _ = py_conversions.to_py(root)
 
-  def test_missing_import(self):
-    x = fns.obj(x=1)
-    del sys.modules['koladata.base.py_conversions.dataclasses_util']
-    with self.assertRaisesRegex(
-        ValueError,
-        'could not import module koladata.base.py_conversions.dataclasses_util',
-    ):
-      _ = py_conversions.to_py(x)
-    import koladata.base.py_conversions.dataclasses_util  # pylint: disable=g-import-not-at-top
+  def test_sorted_attributes_repr(self):
+    self.assertEqual(
+        repr(py_conversions.to_py(fns.obj(b=1, a=2, c=3))),
+        'namespace(a=2, b=1, c=3)',
+    )
+    self.assertEqual(
+        repr(py_conversions.to_py(fns.new(b=1, a=2, c=3))),
+        'namespace(a=2, b=1, c=3)',
+    )
 
-    importlib.reload(koladata.base.py_conversions.dataclasses_util)
-    _ = py_conversions.to_py(x)
+  def test_missing_import(self):
+    x = fns.obj(a=1, b='x')
+    saved_module = sys.modules.pop(
+        'koladata.base.py_conversions.dataclasses_util'
+    )
+    try:
+      with self.assertRaisesRegex(
+          ValueError,
+          'could not import module'
+          ' koladata.base.py_conversions.dataclasses_util',
+      ):
+        _ = py_conversions.to_py(x, output_class=Obj1)
+    finally:
+      sys.modules['koladata.base.py_conversions.dataclasses_util'] = (
+          saved_module
+      )
+    self.assertEqual(
+        py_conversions.to_py(x, output_class=Obj1), Obj1(a=1, b='x')
+    )
 
 
 class ToPytreeTest(absltest.TestCase):
@@ -1852,7 +1834,7 @@ class ToPytreeTest(absltest.TestCase):
         ds([fns.new(x=1, y=2, schema=p), fns.new(x=3, schema=p)]).to_pytree(
             include_missing_attrs=False
         ),
-        [{'x': 1, 'y': 2}, {'x': 3}]
+        [{'x': 1, 'y': 2}, {'x': 3}],
     )
 
 

@@ -961,7 +961,7 @@ DataItem(Obj(x=1, y='a'), schema: OBJECT, bag_id: ...)
 # from_py/to_py are more general versions of to/from py conversions,
 # while from_pytree/to_pytree specialize to work with nested dicts/lists
 >>> kd.obj(x=1,y=2).to_py()
-Obj(x=1, y=2)
+namespace(x=1, y=2)
 >>> kd.obj(x=1,y=2).to_py().x
 1
 >>> kd.obj(x=1,y=2).to_pytree()

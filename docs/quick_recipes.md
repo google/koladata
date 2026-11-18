@@ -750,8 +750,8 @@ the attributes `year` (specifying the year the book was written) and `pages`
 (specifying the number of pages in the book):
 
 ```py
->>> Book = kd.named_schema('Book')
->>> books = Book.new(
+>>> book_schema = kd.named_schema('Book', year=kd.INT32, pages=kd.INT32)
+>>> books = book_schema.new(
 ...   year=kd.slice([1997, 2001, 1928, 1928, 2001]),
 ...   pages=kd.slice([212, 918, 331, 512, 331]),
 ... )
@@ -763,7 +763,8 @@ create hierarchical data:
 ```py
 # Group by year
 >>> grouped_books = kd.group_by(books, books.year)
->>> grouped_books.to_py()
+>>> Book = kd.schema_to_py(book_schema)
+>>> grouped_books.to_py(output_class=Book)
 [[Book(pages=212, year=1997)],
   [Book(pages=918, year=2001), Book(pages=331, year=2001)],
   [Book(pages=331, year=1928), Book(pages=512, year=1928)]]
@@ -817,10 +818,10 @@ is a powerful combination that can be tweaked for more advanced transformations:
 ```py
 >>> groups = kd.group_by(docs, docs.domain)
 >>> groups.to_py()
-[[Doc(domain='a', id=0, visits=11), Doc(domain='a', id=2, visits=99)],
-  [Doc(domain='b', id=1, visits=212)],
-  [Doc(domain='c', id=3, visits=123)],
-  [Doc(domain='d', id=4, visits=44)]]
+[[namespace(domain='a', id=0, visits=11), namespace(domain='a', id=2, visits=99)],
+  [namespace(domain='b', id=1, visits=212)],
+  [namespace(domain='c', id=3, visits=123)],
+  [namespace(domain='d', id=4, visits=44)]]
 
 >>> keys_from = groups.S[0].domain
 >>> keys_from.to_py()

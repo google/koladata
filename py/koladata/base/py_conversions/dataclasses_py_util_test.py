@@ -20,34 +20,6 @@ from koladata.base.py_conversions import dataclasses_util
 
 class DataclassesPyUtilTest(absltest.TestCase):
 
-  def test_creates_dataclass(self):
-    attr_names = ['x', 'y', 'z']
-    obj = dataclasses_util.make_dataclass('Obj123', attr_names)(1, 2.0, 'abc')
-    self.assertEqual(dataclasses.asdict(obj), {'x': 1, 'y': 2.0, 'z': 'abc'})
-    self.assertEqual(obj.__class__.__name__, 'Obj123')
-
-  def test_creates_dataclass_with_default_values(self):
-    attr_names = ['x', 'y', 'z']
-    obj = dataclasses_util.make_dataclass('Obj', attr_names)(1, 2.0)
-    self.assertEqual(dataclasses.asdict(obj), {'x': 1, 'y': 2.0, 'z': None})
-
-  def test_dataclass_eq(self):
-    attr_names = ['x', 'y', 'z']
-
-    obj = dataclasses_util.make_dataclass('Obj', attr_names)(1, 2.0, 'abc')
-
-    @dataclasses.dataclass
-    class Obj:
-      x: int
-      y: float
-      z: str
-
-    expected = Obj(1, 2.0, 'abc')
-
-    # Test that comparison is commutative.
-    self.assertEqual(obj, expected)
-    self.assertEqual(expected, obj)
-
   def test_fields_names_and_values(self):
     @dataclasses.dataclass
     class Obj:

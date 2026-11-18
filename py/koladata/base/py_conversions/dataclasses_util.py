@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Module for creating dataclasses from the list of attribute names."""
+"""Utilities for inspecting Python dataclasses and type annotations."""
 
 import dataclasses
 import types
@@ -20,26 +20,6 @@ import typing
 from typing import Any, Union
 
 _Type = type[Any] | types.UnionType | types.GenericAlias | typing.Optional[Any]
-
-
-def _eq(x, y):
-  """Checks whether two dataclasses are equal ignoring types."""
-  return dataclasses.is_dataclass(y) and dataclasses.asdict(
-      x
-  ) == dataclasses.asdict(y)
-
-
-def make_dataclass(class_name: str, attr_names):
-  obj_class = dataclasses.make_dataclass(
-      class_name,
-      [
-          (attr_name, Any, dataclasses.field(default=None))
-          for attr_name in attr_names
-      ],
-      eq=False,
-  )
-  obj_class.__eq__ = _eq  # pyrefly: ignore[bad-assignment]
-  return obj_class
 
 
 def fields_names_and_values(py_obj):

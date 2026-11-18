@@ -2674,7 +2674,7 @@ DataItem(present, schema: MASK)
 # Entity DataItem
 >>> e = kd.new(x=1, y=2.0)
 >>> e.to_py()
-Obj(x=1, y=2.0)
+namespace(x=1, y=2.0)
 
 >>> e.to_py(obj_as_dict=True)
 {'x': 1, 'y': 2.0}
@@ -2691,7 +2691,7 @@ Obj(x=1, y=2.0)
 # Object DataItem
 >>> o = kd.obj(x=1, y=2.0)
 >>> o.to_py()
-Obj(x=1, y=2.0)
+namespace(x=1, y=2.0)
 
 >>> o.to_py(obj_as_dict=True)
 {'x': 1, 'y': 2.0}
@@ -2713,16 +2713,16 @@ Obj(x=1, y=2.0)
 ...                     d=kd.list([2, 3]),
 ...                     e=kd.dict({'f': 4})))
 >>> i.to_py()
-Obj(a=Obj(b=DataItem(Obj(c=1), schema: OBJECT, bag_id: ...),
+namespace(a=namespace(b=DataItem(Obj(c=1), schema: OBJECT, bag_id: ...),
 d=DataItem(List[2, 3], schema: LIST[INT32], bag_id: ...),
 e=DataItem(Dict{'f'=4}, schema: DICT{STRING, INT32}, bag_id: ...)))
 
 >>> i.to_py(max_depth=3)
-Obj(a=Obj(b=Obj(c=1), d=[2, 3], e={'f': 4}))
+namespace(a=namespace(b=namespace(c=1), d=[2, 3], e={'f': 4}))
 
 # Use -1 to convert everything to Python
 >>> i.to_py(max_depth=-1)
-Obj(a=Obj(b=Obj(c=1), d=[2, 3], e={'f': 4}))
+namespace(a=namespace(b=namespace(c=1), d=[2, 3], e={'f': 4}))
 
 # Primitive DataSlice
 >>> ds = kd.slice([[1, 2], [None, 3]])
@@ -2733,16 +2733,13 @@ Obj(a=Obj(b=Obj(c=1), d=[2, 3], e={'f': 4}))
 >>> ds = kd.new(a=kd.slice([1, None, 3]),
 ...             y=kd.slice([4, 5, None]))
 >>> res = ds.to_py(); res
-[Obj(a=1, y=4), Obj(a=None, y=5), Obj(a=3, y=None)]
-
-# Note that every time the object gets its own Python class
->>> assert res[0].__class__ != ds.to_py()[0].__class__
+[namespace(a=1, y=4), namespace(a=None, y=5), namespace(a=3, y=None)]
 
 # Object DataSlice
 >>> ds = kd.obj(a=kd.slice([1, None, 3]),
 ...             y=kd.slice([4, 5, None]))
 >>> ds.to_py()
-[Obj(a=1, y=4), Obj(a=None, y=5), Obj(a=3, y=None)]
+[namespace(a=1, y=4), namespace(a=None, y=5), namespace(a=3, y=None)]
 
 # List DataSlice
 >>> lists = kd.implode(kd.slice([[1, 2], [None, 3]]))
@@ -2769,6 +2766,12 @@ Obj(a=Obj(b=Obj(c=1), d=[2, 3], e={'f': 4}))
 [SomeObj(a=2, y=6)]
 >>> kd.list([2, 3, 4]).to_py(output_class=tuple[int,...])
 (2, 3, 4)
+
+# Use `kd.schema_to_py` to generate a dataclass from an entity schema:
+>>> book_schema = kd.named_schema('Book', pages=kd.INT32, year=kd.INT32)
+>>> Book = kd.schema_to_py(book_schema)
+>>> book_schema.new(pages=212, year=1997).to_py(output_class=Book)
+Book(pages=212, year=1997)
 
 ```
 

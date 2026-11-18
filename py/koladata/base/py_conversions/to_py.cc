@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <numeric>
 #include <optional>
 #include <string>
 #include <type_traits>
@@ -30,6 +31,7 @@
 #include "absl/base/nullability.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/container/inlined_vector.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "arolla/util/status_macros_backport.h"
@@ -82,6 +84,37 @@ std::string PyObjectTypeName(PyObject* py_obj) {
     return "<unknown>";
   }
   return ((PyTypeObject*)py_obj)->tp_name;
+}
+
+// Creates an empty `types.SimpleNamespace` instance.
+absl::StatusOr<PyObjectPtr> NewSimpleNamespace() {
+  arolla::python::DCheckPyGIL();
+  // Note: this lazy static cache relies on the GIL and will need
+  // synchronization (e.g. `std::atomic`) if free-threaded Python is enabled.
+  static PyObject* simple_namespace_type = nullptr;
+  if (simple_namespace_type == nullptr) {
+    PyObjectPtr types_module = PyObjectPtr::Own(PyImport_ImportModule("types"));
+    PyObjectPtr ns_type;
+    if (types_module != nullptr) {
+      ns_type = PyObjectPtr::Own(
+          PyObject_GetAttrString(types_module.get(), "SimpleNamespace"));
+    }
+    if (ns_type == nullptr) {
+      return arolla::python::StatusCausedByPyErr(
+          absl::StatusCode::kInternal, "could not get types.SimpleNamespace");
+    }
+    if (!PyType_Check(ns_type.get())) {
+      return absl::InternalError("types.SimpleNamespace is not a type");
+    }
+    simple_namespace_type = ns_type.release();
+  }
+  PyObjectPtr py_obj =
+      PyObjectPtr::Own(PyObject_CallNoArgs(simple_namespace_type));
+  if (py_obj == nullptr) {
+    return arolla::python::StatusWithRawPyErr(
+        absl::StatusCode::kInternal, "could not create a new SimpleNamespace");
+  }
+  return py_obj;
 }
 
 // Implementation of the "To Python" visitor.
@@ -464,20 +497,27 @@ class ToPyVisitor : public internal::AbstractVisitor {
                            attr_values);
   }
 
-  // Sets the attributes of the given Python object.
+  // Sets the attributes of the given Python object in sorted order.
   absl::Status SetObjectAttributes(
       PyObject* object, absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataItem> attr_values) {
     DCHECK_EQ(attr_names.size(), attr_values.size());
-    for (size_t i = 0; i < attr_names.size(); ++i) {
-      ASSIGN_OR_RETURN(PyObjectPtr py_value,
-                       GetConvertedPyObjectOrCreatePrimitive(attr_values[i],
-                                                             std::nullopt));
+    // Use inline storage for typical entities (<= 16 attrs) to avoid a
+    // per-entity heap allocation during sorting.
+    absl::InlinedVector<size_t, 16> indices(attr_names.size());
+    std::iota(indices.begin(), indices.end(), 0);
+    std::sort(indices.begin(), indices.end(), [&](size_t a, size_t b) {
+      return attr_names[a] < attr_names[b];
+    });
+    for (size_t i : indices) {
+      ASSIGN_OR_RETURN(
+          PyObjectPtr py_value,
+          GetConvertedPyObjectOrCreatePrimitive(attr_values[i], std::nullopt));
       ASSIGN_OR_RETURN(PyObjectPtr attr_name_py,
                        dataclasses_util_.GetPyStr(attr_names[i]));
       if (PyObject_SetAttr(object, attr_name_py.get(), py_value.get()) < 0) {
         return arolla::python::StatusWithRawPyErr(
-            absl::StatusCode::kInternal, "could not set object attrubute");
+            absl::StatusCode::kInternal, "could not set object attribute");
       }
     }
     return absl::OkStatus();
@@ -518,9 +558,9 @@ class ToPyVisitor : public internal::AbstractVisitor {
         classes_by_path_.try_emplace({parent_class, std::string(child_name)});
     if (inserted) {
       // Note: on error the conversion fails, so the empty entry is never used.
-      ASSIGN_OR_RETURN(it->second, dataclasses_util_.GetClassFieldType(
-                                       PyObjectPtr::NewRef(parent_class),
-                                       child_name));
+      ASSIGN_OR_RETURN(it->second,
+                       dataclasses_util_.GetClassFieldType(
+                           PyObjectPtr::NewRef(parent_class), child_name));
     }
     return it->second;
   }
@@ -669,30 +709,7 @@ class ToPyVisitor : public internal::AbstractVisitor {
     }
 
     if (!obj_as_dict_ && item.is_entity() && schema.is_struct_schema()) {
-      ASSIGN_OR_RETURN(
-          std::vector<DataItem> attr_names,
-          db_->GetImpl().GetSchemaAttrsAsVector(schema, fallback_span_));
-      std::vector<absl::string_view> attr_names_vec;
-      attr_names_vec.reserve(attr_names.size());
-      for (const DataItem& attr_item : attr_names) {
-        absl::string_view attr = attr_item.value<arolla::Text>().view();
-        if (!schema::IsSchemaAnnotationAttr(attr)) {
-          // TODO: Add tests for metadata support.
-          attr_names_vec.push_back(attr);
-        }
-      }
-      ASSIGN_OR_RETURN(DataItem schema_name_attr,
-                       db_->GetImpl().GetSchemaAttrAllowMissing(
-                           schema, schema::kSchemaNameAttr, fallback_span_));
-      absl::string_view schema_name =
-          schema_name_attr.holds_value<arolla::Text>()
-              ? schema_name_attr.value<arolla::Text>().view()
-              : "Obj";
-
-      // Do not store the class in the cache, just create an instance.
-      ASSIGN_OR_RETURN(
-          PyObjectPtr py_obj,
-          dataclasses_util_.MakeDataClassInstance(schema_name, attr_names_vec));
+      ASSIGN_OR_RETURN(PyObjectPtr py_obj, NewSimpleNamespace());
       converted_object_cache_[object_id].obj = std::move(py_obj);
       return true;
     }
@@ -814,10 +831,9 @@ class ToPyVisitor : public internal::AbstractVisitor {
       const size_t attr_index = attr_name_to_index[attr_name_str];
       ASSIGN_OR_RETURN(PyObjectPtr attr_name_py,
                        dataclasses_util_.GetPyStr(attr_name_str));
-      ASSIGN_OR_RETURN(
-          PyObjectPtr py_value,
-          GetConvertedPyObjectOrCreatePrimitive(attr_values[attr_index],
-                                                std::nullopt));
+      ASSIGN_OR_RETURN(PyObjectPtr py_value,
+                       GetConvertedPyObjectOrCreatePrimitive(
+                           attr_values[attr_index], std::nullopt));
       if (py_value.get() != Py_None || include_missing_attrs_) {
         if (PyDict_SetItem(result.get(), attr_name_py.get(), py_value.get()) <
             0) {
