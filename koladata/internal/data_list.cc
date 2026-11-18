@@ -250,6 +250,32 @@ DataList& DataListVector::GetMutableFromMap(size_t index) {
   return list;
 }
 
+void DataListVector::CreateIfUnsetInArray(size_t index) {
+  auto& arr = std::get<Array>(data_);
+  ListAndPtr& lp = arr[index];
+  if (lp.ptr == nullptr) {
+    lp.ptr = &lp.list;
+  }
+}
+
+void DataListVector::CreateIfUnsetInMap(size_t index) {
+  auto& map = std::get<Map>(data_).map;
+  if (auto it = map.find(index); it != map.end()) {
+    return;
+  }
+  if (parent_ != nullptr && parent_->Get(index) != nullptr) {
+    return;
+  }
+  if (ShouldUseArray(map.size() + 1)) {
+    Map local_map = std::move(std::get<Map>(data_));
+    Array& arr = data_.emplace<Array>(size_);
+    std::move(local_map).ConvertToArray(arr, parent_.get());
+    CreateIfUnsetInArray(index);
+    return;
+  }
+  map.emplace(index, DataList());
+}
+
 void DataListVector::AppendMemoryStats(MemoryStatsEntry& stats) const {
   stats.shallow_size += sizeof(DataListVector);
   if (std::holds_alternative<Array>(data_)) {

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include <algorithm>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -691,6 +692,49 @@ BENCHMARK(BM_ExtendLists)
     ->ArgPair(100, 1)
     ->ArgPair(100, 10)
     ->ArgPair(100, 100);
+
+void BM_ExtendListsForked(benchmark::State& state) {
+  int64_t list_count = state.range(0);
+  int64_t initial_size = state.range(1);
+  int64_t updated_count = state.range(2);
+
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  AllocationId alloc = AllocateLists(list_count);
+  DataSliceImpl lists = DataSliceImpl::ObjectsFromAllocation(alloc, list_count);
+  auto initial_values = DataSliceImpl::Create(
+      arolla::CreateConstDenseArray<int>(initial_size, 0));
+  for (int64_t i = 0; i < list_count; ++i) {
+    CHECK_OK(db->ExtendList(lists[i], initial_values));
+  }
+
+  auto values = DataSliceImpl::Create(
+      arolla::CreateConstDenseArray<int>(updated_count, 1));
+  arolla::Buffer<int64_t>::Builder split_points_bldr(list_count + 1);
+  for (int64_t i = 0; i <= list_count; ++i) {
+    split_points_bldr.Set(i, std::min(i, updated_count));
+  }
+  auto edge = arolla::DenseArrayEdge::FromSplitPoints(
+                  {std::move(split_points_bldr).Build()})
+                  .value();
+
+  for (auto _ : state) {
+    auto db2 = db->PartiallyPersistentFork();
+    benchmark::DoNotOptimize(lists);
+    benchmark::DoNotOptimize(values);
+    benchmark::DoNotOptimize(edge);
+    benchmark::DoNotOptimize(db2);
+
+    CHECK_OK(db2->ExtendLists(lists, values, edge));
+
+    benchmark::DoNotOptimize(db2);
+  }
+}
+
+BENCHMARK(BM_ExtendListsForked)
+    ->Args({100, 100, 0})
+    ->Args({100, 100, 1})
+    ->Args({100, 100, 100})
+    ->Args({1000, 100, 1});
 
 void BM_ReplaceInLists(benchmark::State& state) {
   int64_t list_count = state.range(0);

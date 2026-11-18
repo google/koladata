@@ -347,6 +347,15 @@ class DataListVector {
     return GetMutableFromMap(index);
   }
 
+  void CreateIfUnset(size_t index) {
+    DCHECK_LT(index, size());
+    if (std::holds_alternative<Array>(data_)) {
+      CreateIfUnsetInArray(index);
+    } else {
+      CreateIfUnsetInMap(index);
+    }
+  }
+
   // Note: it doesn't include parent's size.
   void AppendMemoryStats(MemoryStatsEntry& stats) const;
 
@@ -403,6 +412,8 @@ class DataListVector {
   const DataList* absl_nullable GetFromMap(size_t index) const;
   DataList& GetMutableFromArray(size_t index);
   DataList& GetMutableFromMap(size_t index);
+  void CreateIfUnsetInArray(size_t index);
+  void CreateIfUnsetInMap(size_t index);
 
   size_t size_ = 0;
   std::variant<Map, Array> data_;

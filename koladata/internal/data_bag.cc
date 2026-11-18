@@ -1454,20 +1454,31 @@ class DataBagImpl::MutableListGetter {
   explicit MutableListGetter(DataBagImpl* bag, size_t update_size)
       : bag_(bag), update_size_(update_size) {}
 
-  DataList* operator()(ObjectId list_id) {
+  // Note: `touch_and_ignore=true` is used when we are not going to mutate
+  // the list, but need to ensure that it exists (in particular it might be
+  // present in the immutable parent). In this case the function returns nullptr
+  // because we can't return a mutable link to an immutable parent.
+  DataList* operator()(ObjectId list_id, bool touch_and_ignore = false) {
     AllocationId alloc_id(list_id);
     if (alloc_id != current_alloc_) {
       if (!alloc_id.IsListsAlloc()) {
         status_ = absl::FailedPreconditionError("lists expected");
         return nullptr;
       }
-      if (current_alloc_.has_value()) {
+      if (current_alloc_.has_value() || touch_and_ignore) {
         // If there are multiple allocations, we do not know the update size per
-        // allocation. Fall back to 1 for subsequent allocations.
+        //   allocation. Fall back to 1 for subsequent allocations.
+        // In the case of `touch_and_ignore` we also set it to 1 in order to
+        //   avoid triggering sparse->dense expansion when most of the lists
+        //   are not modified.
         update_size_ = 1;
       }
       lists_vec_ = &bag_->GetOrCreateMutableLists(alloc_id, update_size_);
       current_alloc_ = alloc_id;
+    }
+    if (touch_and_ignore) {
+      lists_vec_->CreateIfUnset(list_id.Offset());
+      return nullptr;
     }
     return &lists_vec_->GetMutable(list_id.Offset());
   }
@@ -1800,14 +1811,14 @@ absl::Status DataBagImpl::ExtendLists(
   bool list_size_overflow = false;
 
   lists.values<ObjectId>().ForEachPresent([&](int64_t i, ObjectId list_id) {
-    DataList* list = list_getter(list_id);
-    if (ABSL_PREDICT_FALSE(list == nullptr)) {
+    size_t src_pos = split_points[i];
+    size_t new_values_count = split_points[i + 1] - src_pos;
+    DataList* list =
+        list_getter(list_id, /*touch_and_ignore=*/new_values_count == 0);
+    if (list == nullptr) {
       return;
     }
-    size_t src_pos = split_points[i];
     size_t dst_pos = list->size();
-    size_t new_values_count = split_points[i + 1] - src_pos;
-
     size_t new_size = arolla::safe_add<size_t>(list->size(), new_values_count,
                                                &list_size_overflow);
     if (list_size_overflow) {
@@ -2175,16 +2186,15 @@ absl::Status DataBagImpl::ExtendList(const DataItem& list,
     return absl::OkStatus();
   }
   ASSIGN_OR_RETURN(ObjectId list_id, ItemToListObjectId(list));
-
-  // `GetMutable` triggers creation of the list if it was UNSET.
-  // We do it even if `values.size() == 0`.
-  DataList& dlist =
-      GetOrCreateMutableLists(AllocationId(list_id), /*update_size=*/1)
-          .GetMutable(list_id.Offset());
+  DataListVector& lvec =
+      GetOrCreateMutableLists(AllocationId(list_id), /*update_size=*/1);
 
   if (values.size() == 0) {
+    lvec.CreateIfUnset(list_id.Offset());
     return absl::OkStatus();
   }
+
+  DataList& dlist = lvec.GetMutable(list_id.Offset());
   size_t offset = dlist.size();
   if (std::numeric_limits<size_t>::max() - offset < values.size()) {
     return absl::InvalidArgumentError("list size can't be >= 2**63");

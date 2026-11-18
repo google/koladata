@@ -647,5 +647,116 @@ TEST(DataListTest, DataListVectorForEachList) {
   }
 }
 
+TEST(DataListTest, DataListVectorCreateIfUnset) {
+  // 1. Array mode
+  {
+    auto vec = std::make_shared<DataListVector>(4, /*update_size=*/1);
+    EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(*vec));
+    EXPECT_EQ(vec->Get(1), nullptr);
+
+    // Unset -> creates an empty list.
+    vec->CreateIfUnset(1);
+    ASSERT_NE(vec->Get(1), nullptr);
+    EXPECT_TRUE(vec->Get(1)->empty());
+    EXPECT_EQ(vec->Get(0), nullptr);
+    EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(*vec));
+
+    // Already set -> no-op, content is preserved.
+    vec->GetMutable(2).Insert(0, 7);
+    const DataList* list2 = vec->Get(2);
+    vec->CreateIfUnset(2);
+    EXPECT_EQ(vec->Get(2), list2);
+    EXPECT_THAT(*vec->Get(2), ElementsAre(DataItem(7)));
+
+    // Derived vector: a list present in parent is not copied.
+    auto derived = std::make_shared<DataListVector>(vec, /*update_size=*/1);
+    EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(*derived));
+    derived->CreateIfUnset(2);
+    EXPECT_EQ(derived->Get(2), vec->Get(2));
+    EXPECT_THAT(*derived->Get(2), ElementsAre(DataItem(7)));
+
+    // Derived vector: a list unset in parent is created in derived only.
+    derived->CreateIfUnset(3);
+    ASSERT_NE(derived->Get(3), nullptr);
+    EXPECT_TRUE(derived->Get(3)->empty());
+    EXPECT_EQ(vec->Get(3), nullptr);
+  }
+
+  // 2. Map mode
+  {
+    // Capacity 10: up to 3 elements in flat_hash_map.
+    auto vec = std::make_shared<DataListVector>(10, /*update_size=*/1);
+    EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*vec));
+
+    // Unset -> creates an empty list.
+    vec->CreateIfUnset(1);
+    EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*vec));
+    ASSERT_NE(vec->Get(1), nullptr);
+    EXPECT_TRUE(vec->Get(1)->empty());
+    EXPECT_EQ(vec->Get(0), nullptr);
+
+    // Already set -> no-op, content is preserved.
+    vec->GetMutable(4).Insert(0, 400);
+    const DataList* list4 = vec->Get(4);
+    vec->CreateIfUnset(4);
+    EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*vec));
+    EXPECT_EQ(vec->Get(4), list4);
+    EXPECT_THAT(*vec->Get(4), ElementsAre(DataItem(400)));
+
+    // 3rd element still fits into the map.
+    vec->CreateIfUnset(7);
+    EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*vec));
+    ASSERT_NE(vec->Get(7), nullptr);
+    EXPECT_TRUE(vec->Get(7)->empty());
+
+    // 4th element -> triggers transition to array mode.
+    vec->CreateIfUnset(9);
+    EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(*vec));
+    EXPECT_EQ(vec->Get(0), nullptr);
+    ASSERT_NE(vec->Get(1), nullptr);
+    EXPECT_TRUE(vec->Get(1)->empty());
+    EXPECT_THAT(*vec->Get(4), ElementsAre(DataItem(400)));
+    ASSERT_NE(vec->Get(7), nullptr);
+    EXPECT_TRUE(vec->Get(7)->empty());
+    ASSERT_NE(vec->Get(9), nullptr);
+    EXPECT_TRUE(vec->Get(9)->empty());
+  }
+
+  // 3. Derived in Map mode
+  {
+    auto parent = std::make_shared<DataListVector>(10, /*update_size=*/1);
+    parent->GetMutable(2).Insert(0, 20);
+    auto derived = std::make_shared<DataListVector>(parent, /*update_size=*/1);
+    EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*derived));
+
+    // A list present in parent is not copied.
+    derived->CreateIfUnset(2);
+    EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*derived));
+    EXPECT_EQ(derived->Get(2), parent->Get(2));
+    EXPECT_THAT(*derived->Get(2), ElementsAre(DataItem(20)));
+
+    // A list unset in parent is created in derived only.
+    derived->CreateIfUnset(5);
+    EXPECT_TRUE(DataListVectorTestFriend::is_map_mode(*derived));
+    ASSERT_NE(derived->Get(5), nullptr);
+    EXPECT_TRUE(derived->Get(5)->empty());
+    EXPECT_EQ(parent->Get(5), nullptr);
+
+    // Transition to array mode preserves links to parent.
+    derived->CreateIfUnset(6);
+    derived->CreateIfUnset(7);
+    derived->CreateIfUnset(8);
+    EXPECT_FALSE(DataListVectorTestFriend::is_map_mode(*derived));
+    EXPECT_EQ(derived->Get(2), parent->Get(2));
+    EXPECT_THAT(*derived->Get(2), ElementsAre(DataItem(20)));
+    for (size_t i : {5, 6, 7, 8}) {
+      ASSERT_NE(derived->Get(i), nullptr);
+      EXPECT_TRUE(derived->Get(i)->empty());
+    }
+    EXPECT_EQ(derived->Get(0), nullptr);
+    EXPECT_EQ(parent->Get(5), nullptr);
+  }
+}
+
 }  // namespace
 }  // namespace koladata::internal
