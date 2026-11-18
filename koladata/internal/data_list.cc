@@ -276,4 +276,20 @@ void DataListVector::AppendMemoryStats(MemoryStatsEntry& stats) const {
   }
 }
 
+int64_t DataListVector::GetOwnedItemCount() const {
+  int64_t size = 0;
+  if (std::holds_alternative<Array>(data_)) {
+    for (const ListAndPtr& lptr : std::get<Array>(data_)) {
+      if (lptr.IsMutable()) {
+        size += static_cast<int64_t>(lptr.list.size());
+      }
+    }
+  } else {
+    for (const auto& [idx, list] : std::get<Map>(data_).map) {
+      size += static_cast<int64_t>(list.size());
+    }
+  }
+  return size;
+}
+
 }  // namespace koladata::internal

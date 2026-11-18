@@ -2653,12 +2653,40 @@ TEST(DataBagTest, GetApproxTotalSize) {
 
     ASSERT_OK(db_parent->SetInDict(dicts[0], DataItem(1), DataItem(2)));
     ASSERT_OK(db_parent->SetInDict(dicts[1], DataItem(3), DataItem(4)));
+    ASSERT_OK(db_parent->AppendToList(lists[1], DataItem(10)));
+    ASSERT_OK(db_parent->AppendToList(lists[2], DataItem(20)));
+    db_parent->Freeze();
     auto db_cur = db_parent->PartiallyPersistentFork();
-    EXPECT_EQ(db_cur->GetApproxTotalSize(), 2);
+    EXPECT_EQ(db_cur->GetApproxTotalSize(), 4);
     ASSERT_OK(db_cur->AppendToList(lists[0], DataItem(1)));
+    // Modifying dicts[0] in child should not double-count dicts[1] or parent's
+    // dicts[0] entries.
+    ASSERT_OK(db_cur->SetInDict(dicts[0], DataItem(5), DataItem(6)));
+    EXPECT_EQ(db_cur->GetApproxTotalSize(), 6);
+  }
+  {
+    SCOPED_TRACE("sparse forks");
+    constexpr int64_t kMany = 100;
+    auto db_parent = db->PartiallyPersistentFork();
+    DataSliceImpl dicts =
+        DataSliceImpl::ObjectsFromAllocation(AllocateDicts(kMany), kMany);
+    DataSliceImpl lists =
+        DataSliceImpl::ObjectsFromAllocation(AllocateLists(kMany), kMany);
+    for (int64_t i = 0; i < kMany; ++i) {
+      ASSERT_OK(db_parent->SetInDict(dicts[i], DataItem(i), DataItem(i)));
+      ASSERT_OK(db_parent->AppendToList(lists[i], DataItem(i)));
+    }
+    db_parent->Freeze();
+    EXPECT_EQ(db_parent->GetApproxTotalSize(), 2 * kMany);
 
-    // Dict sizes are estimated as length.
-    EXPECT_EQ(db_cur->GetApproxTotalSize(), 3);
+    // Mutate a single dict and a single list on the fork (stays in sparse Map
+    // mode) and verify unmodified parent containers are not double-counted.
+    auto db_cur = db_parent->PartiallyPersistentFork();
+    ASSERT_OK(db_cur->SetInDict(dicts[0], DataItem(1000), DataItem(1000)));
+    ASSERT_OK(db_cur->AppendToList(lists[0], DataItem(1000)));
+    // Parent contributes 200; child contributes 1 new dict entry + 2 items in
+    // the copied lists[0].
+    EXPECT_EQ(db_cur->GetApproxTotalSize(), 2 * kMany + 3);
   }
 }
 

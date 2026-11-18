@@ -320,6 +320,10 @@ class DictVector {
   // Note: it doesn't include parent's size.
   void AppendMemoryStats(MemoryStatsEntry& stats) const;
 
+  // Returns total entry count stored in this DictVector, excluding entries
+  // inherited from `parent_`.
+  int64_t GetOwnedItemCount() const;
+
   // Returns true if this DictVector and all of its ancestors store dicts in
   // sparse Map mode without a shared single parent dict.
   bool IsSparse() const {

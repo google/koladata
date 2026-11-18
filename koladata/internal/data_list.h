@@ -350,6 +350,10 @@ class DataListVector {
   // Note: it doesn't include parent's size.
   void AppendMemoryStats(MemoryStatsEntry& stats) const;
 
+  // Returns total element count of lists owned by this DataListVector,
+  // excluding unmodified lists inherited from `parent_`.
+  int64_t GetOwnedItemCount() const;
+
   // Calls `callback(size_t index, const DataList& list)` for each present list.
   // Iteration stops on the first error and returns that status.
   template <typename Callback>

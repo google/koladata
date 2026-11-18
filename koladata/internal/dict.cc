@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -274,6 +275,20 @@ void DictVector::AppendMemoryStats(MemoryStatsEntry& stats) const {
       dict.AppendMemoryStats(stats);
     }
   }
+}
+
+int64_t DictVector::GetOwnedItemCount() const {
+  int64_t size = 0;
+  if (std::holds_alternative<Array>(data_)) {
+    for (const Dict& dict : std::get<Array>(data_)) {
+      size += static_cast<int64_t>(dict.data_.size());
+    }
+  } else {
+    for (const auto& [idx, dict] : std::get<Map>(data_).map) {
+      size += static_cast<int64_t>(dict.data_.size());
+    }
+  }
+  return size;
 }
 
 }  // namespace koladata::internal

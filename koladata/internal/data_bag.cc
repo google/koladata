@@ -4431,23 +4431,6 @@ int64_t DataBagImpl::GetApproxTotalSize() const {
         }
       };
 
-  auto add_lists = [&size](const DataListVector& lists) {
-    for (size_t i = 0; i < lists.size(); ++i) {
-      const DataList* list = lists.Get(i);
-      if (list) {
-        size += static_cast<int64_t>(list->size());
-      }
-    }
-  };
-
-  auto add_dicts = [&size](const DictVector& dicts) {
-    for (size_t i = 0; i < dicts.size(); ++i) {
-      if (const Dict* d = dicts.Get(i); d != nullptr) {
-        size += static_cast<int64_t>(d->GetSizeNoFallbacks());
-      }
-    }
-  };
-
   for (const auto* db = this; db != nullptr; db = db->parent_data_bag_.get()) {
     for (const auto& [key, source_collection] : db->sources_) {
       add_collection(source_collection);
@@ -4456,10 +4439,10 @@ int64_t DataBagImpl::GetApproxTotalSize() const {
       add_sparse_source(source);
     }
     for (const auto& [key, lists] : db->lists_) {
-      add_lists(*lists);
+      size += lists->GetOwnedItemCount();
     }
     for (const auto& [key, dicts] : db->dicts_) {
-      add_dicts(*dicts);
+      size += dicts->GetOwnedItemCount();
     }
   }
   return size;
