@@ -552,6 +552,27 @@ class FunctorFactoriesTest(parameterized.TestCase):
         ds('__main__'),
     )
 
+  def test_py_fn_py_object_metadata(self):
+    def my_py_fn(x, y=1):
+      """Returns sum."""
+      return x + y
+
+    fn = functor_factories.py_fn(arolla.abc.PyObject(my_py_fn))
+    testing.assert_equal(fn.get_attr('__doc__').no_bag(), ds('Returns sum.'))
+    testing.assert_equal(
+        fn.get_attr('__qualname__').no_bag(),
+        ds(
+            'FunctorFactoriesTest.test_py_fn_py_object_metadata.<locals>.my_py_fn'
+        ),
+    )
+    testing.assert_equal(fn.get_attr('__module__').no_bag(), ds('__main__'))
+
+    def no_doc_fn(x):
+      return x
+
+    fn_no_doc = functor_factories.py_fn(arolla.abc.PyObject(no_doc_fn))
+    self.assertFalse(kd.has_attr(fn_no_doc, '__doc__'))
+
   def test_py_fn_positional_params(self):
     def var_positional(*args):
       return sum(args)

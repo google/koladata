@@ -264,7 +264,7 @@ def _box_py_fn(
 
 
 def py_fn(
-    fn: Callable[..., Any],  # pylint: disable=redefined-outer-name
+    fn: Callable[..., Any] | arolla.abc.PyObject,  # pylint: disable=redefined-outer-name
     *,
     return_type_as: Any = data_slice.DataSlice,
     **defaults: Any,
@@ -302,7 +302,8 @@ def py_fn(
     A DataItem representing the functor.
   """
   boxed_f = _box_py_fn(fn)
-  sig = inspect.signature(boxed_f.py_value())  # pyrefly: ignore[bad-argument-type]
+  unboxed_f = boxed_f.py_value()
+  sig = inspect.signature(unboxed_f)  # pyrefly: ignore[bad-argument-type]
   args_expr, kwargs_expr = build_forwarding_args_kwargs_exprs(sig)
 
   py_functor = expr_fn(
@@ -317,11 +318,13 @@ def py_fn(
       ),
       signature=signature_utils.from_py_signature(sig),
   )
-  if fn.__doc__ is not None:
-    py_functor = py_functor.with_attr('__doc__', inspect.cleandoc(fn.__doc__))
-  if qualname := getattr(fn, '__qualname__', None):
+  if unboxed_f.__doc__ is not None:
+    py_functor = py_functor.with_attr(
+        '__doc__', inspect.cleandoc(unboxed_f.__doc__)
+    )
+  if qualname := getattr(unboxed_f, '__qualname__', None):
     py_functor = py_functor.with_attr('__qualname__', qualname)
-  if module := getattr(fn, '__module__', None):
+  if module := getattr(unboxed_f, '__module__', None):
     py_functor = py_functor.with_attr('__module__', module)
   py_functor = typing.cast(data_item.DataItem, py_functor)
   return bind(py_functor, **defaults) if defaults else py_functor

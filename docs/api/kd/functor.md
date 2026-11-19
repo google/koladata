@@ -450,7 +450,7 @@ Args:
 Returns:
   A DataBag containing the merged results of all functor evaluations.</code></pre>
 
-### `kd.functor.py_fn(fn: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **defaults: Any) -> DataItem` {#kd.functor.py_fn}
+### `kd.functor.py_fn(fn: Callable[..., Any] | PyObject, *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **defaults: Any) -> DataItem` {#kd.functor.py_fn}
 Aliases:
 
 - [kd.py_fn](../kd.md#kd.py_fn)

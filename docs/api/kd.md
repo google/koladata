@@ -1205,7 +1205,7 @@ Alias for [kd.masking.present_shaped_as](kd/masking.md#kd.masking.present_shaped
 
 Alias for [kd.curves.pwl_curve](kd/curves.md#kd.curves.pwl_curve)
 
-### `kd.py_fn(fn: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **defaults: Any) -> DataItem` {#kd.py_fn}
+### `kd.py_fn(fn: Callable[..., Any] | PyObject, *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **defaults: Any) -> DataItem` {#kd.py_fn}
 
 Alias for [kd.functor.py_fn](kd/functor.md#kd.functor.py_fn)
 
