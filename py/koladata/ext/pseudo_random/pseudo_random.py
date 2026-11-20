@@ -14,12 +14,12 @@
 
 """Pseudo-random utilities."""
 
-import os as _os
-from koladata.ext.pseudo_random import clib as _clib
+import os
+from koladata.ext.pseudo_random import clib
 
-next_uint64 = _clib.next_uint64
-next_fingerprint = _clib.next_fingerprint
-epoch_id = _clib.epoch_id
+next_uint64 = clib.next_uint64
+next_fingerprint = clib.next_fingerprint
+epoch_id = clib.epoch_id
 
 
 def reseed(entropy: int | bytes | None = None) -> None:
@@ -48,5 +48,5 @@ def reseed(entropy: int | bytes | None = None) -> None:
         1 + entropy.bit_length() // 8, byteorder='little'
     )
   elif entropy is None:
-    entropy = _os.urandom(16)
-  _clib.reseed(entropy)
+    entropy = os.urandom(16)
+  clib.reseed(entropy)

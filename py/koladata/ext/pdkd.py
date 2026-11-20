@@ -14,32 +14,32 @@
 
 """Tools for Pandas <-> Koda interoperability."""
 
-from collections.abc import Iterable as _Iterable, Mapping as _Mapping
+from collections.abc import Mapping, Sequence
 
-from arolla import arolla as _arolla
-from arolla.experimental import numpy_conversion as _numpy_conversion
-from koladata import kd as _kd
-from koladata.ext import npkd as _npkd
-import pandas as _pd
+from arolla import arolla
+from arolla.experimental import numpy_conversion
+from koladata import kd
+from koladata.ext import npkd
+import pandas as pd
 
-_kdi = _kd.eager
+kdi = kd.eager
 
 
-def _to_slice(series: _pd.Series) -> _kd.types.DataSlice:
+def _to_slice(series: pd.Series) -> kd.types.DataSlice:
   """Converts the `series` to a DataSlice."""
-  present = ~_pd.isna(series)
+  present = ~pd.isna(series)
   values_np = series[present].to_numpy()
   if series.dtype == 'object':
-    values_ds = _kd.from_py(list(values_np), from_dim=1, schema=_kd.OBJECT)
+    values_ds = kd.from_py(list(values_np), from_dim=1, schema=kd.OBJECT)
   else:
-    values_ds = _npkd.from_array(values_np)
-  mask_ds = _npkd.from_array(present.to_numpy()) == _kd.bool(True)  # pyrefly: ignore[missing-attribute]
-  return _kd.reverse_select(values_ds, mask_ds)
+    values_ds = npkd.from_array(values_np)
+  mask_ds = npkd.from_array(present.to_numpy()) == kd.bool(True)  # pyrefly: ignore[missing-attribute]
+  return kd.reverse_select(values_ds, mask_ds)
 
 
 def from_dataframe(
-    df_: _pd.DataFrame, as_obj: bool = False
-) -> _kd.types.DataSlice:
+    df_: pd.DataFrame, as_obj: bool = False
+) -> kd.types.DataSlice:
   """Creates a DataSlice from the given pandas DataFrame.
 
   The DataFrame must have at least one column. It will be converted to a
@@ -72,22 +72,20 @@ def from_dataframe(
     raise ValueError('DataFrame has no columns.')
 
   res = (
-      _kdi.obj(**kwargs)
-      if as_obj
-      else _kdi.new(overwrite_schema=False, **kwargs)
+      kdi.obj(**kwargs) if as_obj else kdi.new(overwrite_schema=False, **kwargs)
   )
 
-  if isinstance(df_.index, _pd.MultiIndex):
+  if isinstance(df_.index, pd.MultiIndex):
     indices = [
         df_.index.get_level_values(i).to_numpy()
         for i in range(df_.index.nlevels)
     ]
-    return _npkd.reshape_based_on_indices(res, indices)
+    return npkd.reshape_based_on_indices(res, indices)
 
   return res
 
 
-def from_series(series: _pd.Series) -> _kd.types.DataSlice:
+def from_series(series: pd.Series) -> kd.types.DataSlice:
   """Creates a DataSlice from the given pandas Series.
 
   The Series is first converted to a DataFrame with a single column named
@@ -99,22 +97,22 @@ def from_series(series: _pd.Series) -> _kd.types.DataSlice:
   Returns:
     DataSlice representing the content of the Series.
   """
-  res_df = _pd.DataFrame({'self_': series})
+  res_df = pd.DataFrame({'self_': series})
   return from_dataframe(res_df).self_
 
 
 _SPECIAL_COLUMN_NAMES = ('__items__', '__keys__', '__values__')
 _PD_FROM_KD = {
-    _kd.INT32: _pd.Int32Dtype(),
-    _kd.INT64: _pd.Int64Dtype(),
-    _kd.FLOAT32: _pd.Float32Dtype(),
-    _kd.FLOAT64: _pd.Float64Dtype(),
-    _kd.BOOLEAN: _pd.BooleanDtype(),
-    _kd.MASK: _pd.BooleanDtype(),
+    kd.INT32: pd.Int32Dtype(),
+    kd.INT64: pd.Int64Dtype(),
+    kd.FLOAT32: pd.Float32Dtype(),
+    kd.FLOAT64: pd.Float64Dtype(),
+    kd.BOOLEAN: pd.BooleanDtype(),
+    kd.MASK: pd.BooleanDtype(),
 }
 
 
-def _flat_ds_to_series(ds: _kd.types.DataSlice) -> _pd.Series:
+def _flat_ds_to_series(ds: kd.types.DataSlice) -> pd.Series:
   """Returns `ds` converted to a pd.Series.
 
   Note: this is _not_ a general purpose conversion tool as it expects `ds` to be
@@ -128,12 +126,12 @@ def _flat_ds_to_series(ds: _kd.types.DataSlice) -> _pd.Series:
   dtype = ds.get_dtype()
   if dtype in _PD_FROM_KD:
     # Fast path through arolla conversion for compatible types.
-    if dtype == _kd.MASK:
-      ds = _kd.cond(ds, True, None)
-    indices, values = _numpy_conversion.as_numpy_array_with_indices(
+    if dtype == kd.MASK:
+      ds = kd.cond(ds, True, None)
+    indices, values = numpy_conversion.as_numpy_array_with_indices(
         ds.internal_as_dense_array()
     )
-    res = _pd.Series(values, index=indices, dtype=_PD_FROM_KD[dtype])
+    res = pd.Series(values, index=indices, dtype=_PD_FROM_KD[dtype])
     return res.reindex(range(ds.get_size()))
   else:
     # We have a mix of types or something else that can't be converted through
@@ -146,31 +144,31 @@ def _flat_ds_to_series(ds: _kd.types.DataSlice) -> _pd.Series:
 
     def _normalize(v):
       if v is None:
-        return _pd.NA
-      elif isinstance(v, _kd.types.DataItem) and v.get_dtype() == _kd.MASK:
-        assert v == _kd.present
+        return pd.NA
+      elif isinstance(v, kd.types.DataItem) and v.get_dtype() == kd.MASK:
+        assert v == kd.present
         return True
       else:
         return v
 
-    pd_dtype = _pd.StringDtype() if dtype == _kd.STRING else 'object'
+    pd_dtype = pd.StringDtype() if dtype == kd.STRING else 'object'
     ds_py = [_normalize(v) for v in ds.internal_as_py()]
-    return _pd.Series(ds_py, dtype=pd_dtype)
+    return pd.Series(ds_py, dtype=pd_dtype)
 
 
 def _prepare_cols(
-    ds: _kd.types.DataSlice,
+    ds: kd.types.DataSlice,
     cols: (
-        _Iterable[str | _arolla.Expr] | _Mapping[str, str | _arolla.Expr] | None
+        Sequence[str | arolla.Expr] | Mapping[str, str | arolla.Expr] | None
     ) = None,
     include_self: bool = False,
-) -> tuple[dict[str, _pd.Series], _pd.Index | None]:
+) -> tuple[dict[str, pd.Series], pd.Index | None]:
   """Shared utility to prepare DataFrame columns and index."""
   if ds.get_ndim() == 0:
     ds = ds.repeat(1)
 
   if cols is not None:
-    if not isinstance(cols, _Mapping):
+    if not isinstance(cols, Mapping):
       cols = list(cols)
     if not ds.has_bag():
       raise ValueError(
@@ -182,18 +180,18 @@ def _prepare_cols(
           " 'self_' to the list of columns instead."
       )
 
-  get_attr_fn = _kdi.get_attr
+  get_attr_fn = kdi.get_attr
   schema = ds.get_schema()
   if cols is None:
     if not ds.has_bag():
       cols = ['self_']
     elif schema.is_entity_schema():
-      cols = _kd.dir(ds)
+      cols = kd.dir(ds)
       if include_self or not cols:
         cols.append('self_')
-    elif schema == _kd.OBJECT and _kd.is_entity(ds):
-      cols = _kd.dir(ds, intersection=False)
-      get_attr_fn = _kdi.maybe
+    elif schema == kd.OBJECT and kd.is_entity(ds):
+      cols = kd.dir(ds, intersection=False)
+      get_attr_fn = kdi.maybe
       if include_self or not cols:
         cols.append('self_')
     else:
@@ -204,9 +202,9 @@ def _prepare_cols(
       if col == 'self_':
         return ds
       return get_attr_fn(ds, col)
-    elif isinstance(col, _arolla.Expr):
+    elif isinstance(col, arolla.Expr):
       try:
-        return _kdi.eval(col, ds)
+        return kdi.eval(col, ds)
       except ValueError as e:
         raise ValueError(f'Cannot evaluate {col} on {ds!r}.') from e
     else:
@@ -214,7 +212,7 @@ def _prepare_cols(
 
   col_dss = []
   col_names = []
-  if isinstance(cols, _Mapping):
+  if isinstance(cols, Mapping):
     for col_name, col in cols.items():
       col_dss.append(_eval_col(col))
       col_names.append(col_name)
@@ -224,8 +222,8 @@ def _prepare_cols(
         if col in _SPECIAL_COLUMN_NAMES:
           continue
         col_names.append(col)
-      elif isinstance(col, _arolla.Expr):
-        if (expr_name := _kdi.expr.get_name(col)) is not None:
+      elif isinstance(col, arolla.Expr):
+        if (expr_name := kdi.expr.get_name(col)) is not None:
           col_names.append(expr_name)
         else:
           col_names.append(str(col))
@@ -234,7 +232,7 @@ def _prepare_cols(
       col_dss.append(_eval_col(col))
 
   try:
-    col_dss = _kdi.align(*col_dss)
+    col_dss = kdi.align(*col_dss)
   except ValueError as e:
     raise ValueError('All columns must have compatible shapes.') from e
 
@@ -246,20 +244,20 @@ def _prepare_cols(
   index = None
   ds_for_index = col_dss[0]
   if ds_for_index.get_ndim() > 1:
-    index = _pd.MultiIndex.from_arrays(
-        _npkd.get_elements_indices_from_ds(ds_for_index)
+    index = pd.MultiIndex.from_arrays(
+        npkd.get_elements_indices_from_ds(ds_for_index)
     )
 
   return col_dict, index
 
 
 def to_dataframe(
-    ds: _kd.types.DataSlice,
+    ds: kd.types.DataSlice,
     cols: (
-        _Iterable[str | _arolla.Expr] | _Mapping[str, str | _arolla.Expr] | None
+        Sequence[str | arolla.Expr] | Mapping[str, str | arolla.Expr] | None
     ) = None,
     include_self: bool = False,
-) -> _pd.DataFrame:
+) -> pd.DataFrame:
   """Creates a pandas DataFrame from the given DataSlice.
 
   If `ds` has no dimension, it will be converted to a single row DataFrame. If
@@ -348,13 +346,13 @@ def to_dataframe(
     DataFrame with columns from DataSlice fields.
   """
   col_dict, index = _prepare_cols(ds, cols, include_self)
-  return _pd.DataFrame(col_dict, index=index)
+  return pd.DataFrame(col_dict, index=index)
 
 
 def to_series(
-    ds: _kd.types.DataSlice,
-    col: str | _arolla.Expr | None = None,
-) -> _pd.Series:
+    ds: kd.types.DataSlice,
+    col: str | arolla.Expr | None = None,
+) -> pd.Series:
   """Creates a pandas Series from the given DataSlice.
 
   If `col` is not provided, it behaves like `to_dataframe` with no columns
@@ -375,7 +373,7 @@ def to_series(
     raise ValueError(
         f'to_series requires exactly one column, got {list(col_dict.keys())}'
     )
-  return _pd.Series(
+  return pd.Series(
       list(col_dict.values())[0],
       index=index,
       name=list(col_dict.keys())[0],

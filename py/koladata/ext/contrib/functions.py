@@ -14,13 +14,13 @@
 
 """Contrib functions."""
 
-from koladata import kd as _kd
+from koladata import kd
 
 
 def _pearson_correlation_impl(
-    x: _kd.types.DataSlice,
-    y: _kd.types.DataSlice,
-) -> _kd.types.DataSlice:
+    x: kd.types.DataSlice,
+    y: kd.types.DataSlice,
+) -> kd.types.DataSlice:
   """Internal implementation of Pearson correlation.
 
   Assumes x and y are already aligned (i.e. they have the same presence mask).
@@ -32,20 +32,20 @@ def _pearson_correlation_impl(
   Returns:
     A DataSlice containing the correlation.
   """
-  x_mean = _kd.math.agg_mean(x)
-  y_mean = _kd.math.agg_mean(y)
+  x_mean = kd.math.agg_mean(x)
+  y_mean = kd.math.agg_mean(y)
   # Covariance (unbiased/population)
-  cov = _kd.math.agg_mean((x - x_mean) * (y - y_mean))
+  cov = kd.math.agg_mean((x - x_mean) * (y - y_mean))
   # Standard deviation (use unbiased=False to match agg_mean's 1/N)
-  x_std = _kd.math.agg_std(x, unbiased=False)
-  y_std = _kd.math.agg_std(y, unbiased=False)
+  x_std = kd.math.agg_std(x, unbiased=False)
+  y_std = kd.math.agg_std(y, unbiased=False)
   return cov / (x_std * y_std)
 
 
 def pearson_correlation(
-    x: _kd.types.DataSlice,
-    y: _kd.types.DataSlice,
-) -> _kd.types.DataSlice:
+    x: kd.types.DataSlice,
+    y: kd.types.DataSlice,
+) -> kd.types.DataSlice:
   """Computes Pearson correlation for koladata slices x and y.
 
   Args:
@@ -55,15 +55,15 @@ def pearson_correlation(
   Returns:
     A DataSlice containing the correlation.
   """
-  mask = _kd.has(x) & _kd.has(y)
+  mask = kd.has(x) & kd.has(y)
   return _pearson_correlation_impl(x & mask, y & mask)
 
 
 def pearson_correlation_with_ci(
-    x: _kd.types.DataSlice,
-    y: _kd.types.DataSlice,
+    x: kd.types.DataSlice,
+    y: kd.types.DataSlice,
     alpha: float = 0.05,
-) -> _kd.types.DataSlice:
+) -> kd.types.DataSlice:
   """Computes Pearson correlation and confidence interval for koladata slices.
 
   Args:
@@ -75,14 +75,14 @@ def pearson_correlation_with_ci(
     A DataSlice of objects with 'correlation', 'lower_ci', and 'upper_ci'
     attributes.
   """
-  mask = _kd.has(x) & _kd.has(y)
+  mask = kd.has(x) & kd.has(y)
   r = _pearson_correlation_impl(x & mask, y & mask)
-  n = _kd.agg_count(mask)
+  n = kd.agg_count(mask)
 
   # Fisher transform
   # Clip r to [-1 + eps, 1 - eps] to avoid log(0)
-  r_clipped = _kd.math.maximum(-0.999999, _kd.math.minimum(0.999999, r))
-  z = 0.5 * _kd.math.log((1.0 + r_clipped) / (1.0 - r_clipped))
+  r_clipped = kd.math.maximum(-0.999999, kd.math.minimum(0.999999, r))
+  z = 0.5 * kd.math.log((1.0 + r_clipped) / (1.0 - r_clipped))
 
   # SE is 1/sqrt(n-3). If n <= 3, we cannot compute a valid CI.
   can_calculate_ci = n > 3
@@ -91,41 +91,41 @@ def pearson_correlation_with_ci(
   # elements, causing division by zero or sqrt of negative numbers where n <= 3.
   # Therefore, we use a safe value (n=4) for the calculation, and then filter
   # out the invalid results using kd.cond later.
-  n_safe = _kd.cond(can_calculate_ci, _kd.cast_to(n, _kd.FLOAT32), 4.0)
-  se = 1.0 / _kd.math.sqrt(n_safe - 3.0)
+  n_safe = kd.cond(can_calculate_ci, kd.cast_to(n, kd.FLOAT32), 4.0)
+  se = 1.0 / kd.math.sqrt(n_safe - 3.0)
 
   # z_{1-alpha/2} using normal distribution.
-  z_crit = _kd.math.normal_distribution_inverse_cdf(
-      _kd.item(1.0 - alpha / 2.0, _kd.FLOAT32)
+  z_crit = kd.math.normal_distribution_inverse_cdf(
+      kd.item(1.0 - alpha / 2.0, kd.FLOAT32)
   )
   lower_z = z - z_crit * se
   upper_z = z + z_crit * se
   # Inverse Fisher transform: tanh(z) = (exp(2z) - 1) / (exp(2z) + 1)
-  lower_ci_val = (_kd.math.exp(2.0 * lower_z) - 1.0) / (
-      _kd.math.exp(2.0 * lower_z) + 1.0
+  lower_ci_val = (kd.math.exp(2.0 * lower_z) - 1.0) / (
+      kd.math.exp(2.0 * lower_z) + 1.0
   )
-  upper_ci_val = (_kd.math.exp(2.0 * upper_z) - 1.0) / (
-      _kd.math.exp(2.0 * upper_z) + 1.0
+  upper_ci_val = (kd.math.exp(2.0 * upper_z) - 1.0) / (
+      kd.math.exp(2.0 * upper_z) + 1.0
   )
 
   lower_ci = lower_ci_val & can_calculate_ci
   upper_ci = upper_ci_val & can_calculate_ci
-  return _kd.obj(correlation=r, lower_ci=lower_ci, upper_ci=upper_ci)
+  return kd.obj(correlation=r, lower_ci=lower_ci, upper_ci=upper_ci)
 
 
-def average_rank(x: _kd.types.DataSlice) -> _kd.types.DataSlice:
+def average_rank(x: kd.types.DataSlice) -> kd.types.DataSlice:
   """Computes average rank natively in koladata."""
-  ord_ranks = _kd.cast_to(_kd.ordinal_rank(x) + 1, _kd.FLOAT32)
-  keys = _kd.unique(x, sort=True)
-  means = _kd.math.agg_mean(_kd.group_by(ord_ranks, x, sort=True))
-  mapping = _kd.dict(_kd.cast_to(keys, _kd.STRING), means)
-  return mapping[_kd.cast_to(x, _kd.STRING)]
+  ord_ranks = kd.cast_to(kd.ordinal_rank(x) + 1, kd.FLOAT32)
+  keys = kd.unique(x, sort=True)
+  means = kd.math.agg_mean(kd.group_by(ord_ranks, x, sort=True))
+  mapping = kd.dict(kd.cast_to(keys, kd.STRING), means)
+  return mapping[kd.cast_to(x, kd.STRING)]
 
 
 def spearman_correlation(
-    x: _kd.types.DataSlice,
-    y: _kd.types.DataSlice,
-) -> _kd.types.DataSlice:
+    x: kd.types.DataSlice,
+    y: kd.types.DataSlice,
+) -> kd.types.DataSlice:
   """Computes Spearman correlation using average ranks.
 
   Args:
@@ -135,17 +135,17 @@ def spearman_correlation(
   Returns:
     A DataSlice containing the correlation.
   """
-  mask = _kd.has(x) & _kd.has(y)
+  mask = kd.has(x) & kd.has(y)
   rank_x = average_rank(x & mask)
   rank_y = average_rank(y & mask)
   return _pearson_correlation_impl(rank_x, rank_y)
 
 
 def spearman_correlation_with_ci(
-    x: _kd.types.DataSlice,
-    y: _kd.types.DataSlice,
+    x: kd.types.DataSlice,
+    y: kd.types.DataSlice,
     alpha: float = 0.05,
-) -> _kd.types.DataSlice:
+) -> kd.types.DataSlice:
   """Computes Spearman correlation and confidence interval.
 
   Args:
@@ -157,7 +157,7 @@ def spearman_correlation_with_ci(
     A DataSlice of objects with 'correlation', 'lower_ci', and 'upper_ci'
     attributes.
   """
-  mask = _kd.has(x) & _kd.has(y)
+  mask = kd.has(x) & kd.has(y)
   rank_x = average_rank(x & mask)
   rank_y = average_rank(y & mask)
   # rank_x and rank_y are already aligned because they were computed from

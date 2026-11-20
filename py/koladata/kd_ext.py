@@ -34,6 +34,7 @@ from koladata.ext.tqdm import kd_ext_tqdm as _kd_ext_tqdm
 from koladata.ext.view import kv as _kv
 from koladata.operators import eager_op_utils as _eager_op_utils
 
+
 _HAS_DYNAMIC_ATTRIBUTES = True
 
 _tracing_config = {}
