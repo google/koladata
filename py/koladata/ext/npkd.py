@@ -14,24 +14,24 @@
 
 """Tools for Numpy <-> Koda interoperability."""
 
-from arolla import arolla
-from arolla.experimental import numpy_conversion
-from koladata import kd
-import numpy as np
+from arolla import arolla as _arolla
+from arolla.experimental import numpy_conversion as _numpy_conversion
+from koladata import kd as _kd
+import numpy as _np
 
-kdi = kd.eager
+_kdi = _kd.eager
 
-_DATA_SLICE_ONE = kd.item(1)
+_DATA_SLICE_ONE = _kd.item(1)
 
 
 # TODO: Use `shape.sizes()` once it's available.
-def _get_uniform_shape(ds: kd.types.DataSlice) -> list[int] | None:
+def _get_uniform_shape(ds: _kd.types.DataSlice) -> list[int] | None:
   shape = ds.get_shape()
   shape_py = []
   for d in range(shape.rank()):
-    dim_size = kd.shapes.dim_sizes(shape, d)
+    dim_size = _kd.shapes.dim_sizes(shape, d)
     collapsed_dim_size = (
-        0 if dim_size.get_size() == 0 else kd.collapse(dim_size).to_py()
+        0 if dim_size.get_size() == 0 else _kd.collapse(dim_size).to_py()
     )
     if collapsed_dim_size is None:
       return None
@@ -39,23 +39,23 @@ def _get_uniform_shape(ds: kd.types.DataSlice) -> list[int] | None:
   return shape_py
 
 
-def to_array(ds: kd.types.DataSlice) -> np.ndarray:
+def to_array(ds: _kd.types.DataSlice) -> _np.ndarray:
   """Converts a DataSlice to a numpy array."""
   if not ds.get_dtype().is_empty():
-    res = numpy_conversion.as_numpy_array(ds.internal_as_dense_array())
+    res = _numpy_conversion.as_numpy_array(ds.internal_as_dense_array())
   else:
     # TODO: pass `dtype=np.object_` here. Otherwise, a mix of e.g.
     # int and string will be coerced into string.
-    res = np.array(ds.internal_as_py())
+    res = _np.array(ds.internal_as_py())
   shape_py = _get_uniform_shape(ds)
   if shape_py is None:
     raise ValueError(
         'DataSlice has non-uniform shape. Please flatten it first.'
     )
-  return np.reshape(res, shape_py)
+  return _np.reshape(res, shape_py)
 
 
-def from_array(arr: np.ndarray) -> kd.types.DataSlice:
+def from_array(arr: _np.ndarray) -> _kd.types.DataSlice:
   """Converts a numpy array to a DataSlice.
 
   If `arr` is a numpy masked array (np.ma.MaskedArray), masked positions are
@@ -71,37 +71,35 @@ def from_array(arr: np.ndarray) -> kd.types.DataSlice:
 
   # TODO: treat string/bytes in the same way as other primitives.
   if (
-      arr.dtype == np.object_
-      or np.issubdtype(arr.dtype, np.str_)
-      or np.issubdtype(arr.dtype, np.bytes_)
+      arr.dtype == _np.object_
+      or _np.issubdtype(arr.dtype, _np.str_)
+      or _np.issubdtype(arr.dtype, _np.bytes_)
   ):
-    return kdi.from_py(list(arr), from_dim=1, schema=None)
+    return _kdi.from_py(list(arr), from_dim=1, schema=None)
 
   # NOTE: Converting Numpy Array of integers to signed version as Arolla might
   # not support unsigned integer in the long-term.
-  if np.issubdtype(arr.dtype, np.integer) and not np.issubdtype(
-      arr.dtype, np.signedinteger
+  if _np.issubdtype(arr.dtype, _np.integer) and not _np.issubdtype(
+      arr.dtype, _np.signedinteger
   ):
-    if np.isdtype(arr.dtype, np.uint8) or np.isdtype(arr.dtype, np.uint16):
-      arr = arr.astype(np.int32)
+    if _np.isdtype(arr.dtype, _np.uint8) or _np.isdtype(arr.dtype, _np.uint16):
+      arr = arr.astype(_np.int32)
     else:
       # NOTE: Values larger than max int64 will be overflown, which is
       # consistent with the rest of Koda (e.g. from_proto).
-      arr = arr.astype(np.int64)
+      arr = arr.astype(_np.int64)
 
   flat = arr.flatten()
-  if isinstance(arr, np.ma.MaskedArray) and arr.mask is not np.ma.nomask:
+  if isinstance(arr, _np.ma.MaskedArray) and arr.mask is not _np.ma.nomask:
     # Build a sparse array `da`: only pass the present (non-masked) values,
     # along with their indices and the total size.
-    mask_flat = np.ma.getmaskarray(flat)
-    present_ids = np.where(~mask_flat)[0]
-    present_values = np.asarray(flat.data[present_ids])
-    da = arolla.dense_array(
-        present_values, ids=present_ids, size=len(flat)
-    )
+    mask_flat = _np.ma.getmaskarray(flat)
+    present_ids = _np.where(~mask_flat)[0]
+    present_values = _np.asarray(flat.data[present_ids])
+    da = _arolla.dense_array(present_values, ids=present_ids, size=len(flat))
   else:
-    da = arolla.dense_array(flat)
-  return kd.slice(da).reshape(arr.shape)
+    da = _arolla.dense_array(flat)
+  return _kd.slice(da).reshape(arr.shape)
 
 
 # Two following functions get_indices_from_ds and reshape_based_on_indices
@@ -111,7 +109,7 @@ def from_array(arr: np.ndarray) -> kd.types.DataSlice:
 # reshape_based_on_indices(ds.flatten(), get_indices_from_ds(ds)) == ds.
 
 
-def get_elements_indices_from_ds(ds: kd.types.DataSlice) -> list[np.ndarray]:
+def get_elements_indices_from_ds(ds: _kd.types.DataSlice) -> list[_np.ndarray]:
   """Returns a list of np arrays representing the DataSlice's indices.
 
   You can consider this as a n-dimensional coordinates of the items, p.ex. for a
@@ -145,19 +143,19 @@ def get_elements_indices_from_ds(ds: kd.types.DataSlice) -> list[np.ndarray]:
   ds_shape = ds.get_shape()
   index_cols = []
   for d in range(ds.get_ndim()):
-    value = kdi.index(
-        kdi.expand_to_shape(_DATA_SLICE_ONE, ds_shape[: d + 1])
+    value = _kdi.index(
+        _kdi.expand_to_shape(_DATA_SLICE_ONE, ds_shape[: d + 1])
     ).expand_to(ds)
     index_cols.append(
-        numpy_conversion.as_numpy_array(value.internal_as_dense_array())
+        _numpy_conversion.as_numpy_array(value.internal_as_dense_array())
     )
   return index_cols
 
 
 def reshape_based_on_indices(
-    ds: kd.types.DataSlice,
-    indices: list[np.ndarray],
-) -> kd.types.DataSlice:
+    ds: _kd.types.DataSlice,
+    indices: list[_np.ndarray],
+) -> _kd.types.DataSlice:
   """Reshapes a DataSlice corresponding to the given indices.
 
   Inverse operation to get_elements_indices_from_ds.
@@ -206,17 +204,17 @@ def reshape_based_on_indices(
       )
 
   indices = [  # pyrefly: ignore[bad-assignment]
-      kd.slice(arolla.dense_array_int64(index_dimension))
+      _kd.slice(_arolla.dense_array_int64(index_dimension))
       for index_dimension in indices
   ]
 
   # Let's make this more efficient when/if necessary.
   # For now we create a system of nested dicts:
   # {index_0 -> {index_1 -> {... -> {index_n -> value}}}}
-  db = kdi.mutable_bag()
+  db = _kdi.mutable_bag()
   dict_schema = ds.get_schema().no_bag()
   for _ in indices:
-    dict_schema = db.dict_schema(kdi.INT64, dict_schema)
+    dict_schema = db.dict_schema(_kdi.INT64, dict_schema)
   lookup = db.dict(schema=dict_schema)
   cur_lookup = lookup.repeat(ds.get_size())
 
@@ -231,7 +229,7 @@ def reshape_based_on_indices(
 
   prefix = lookup
   for _ in range(len(indices)):
-    num_children = (kdi.agg_max(prefix.get_keys()) + 1) | 0
+    num_children = (_kdi.agg_max(prefix.get_keys()) + 1) | 0
     prefix = prefix.repeat(num_children)
-    prefix = prefix[kdi.index(prefix)]
+    prefix = prefix[_kdi.index(prefix)]
   return prefix.with_bag(ds.get_bag())

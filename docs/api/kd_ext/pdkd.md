@@ -9,7 +9,7 @@
 
 
 
-### `kd_ext.pdkd.df(ds: DataSlice, cols: Sequence[str | Expr] | Mapping[str, str | Expr] | None = None, include_self: bool = False) -> DataFrame` {#kd_ext.pdkd.df}
+### `kd_ext.pdkd.df(ds: DataSlice, cols: Iterable[str | Expr] | Mapping[str, str | Expr] | None = None, include_self: bool = False) -> DataFrame` {#kd_ext.pdkd.df}
 Aliases:
 
 - [kd_ext.pdkd.to_dataframe](#kd_ext.pdkd.to_dataframe)
@@ -142,7 +142,7 @@ Args:
 Returns:
   DataSlice representing the content of the Series.</code></pre>
 
-### `kd_ext.pdkd.to_dataframe(ds: DataSlice, cols: Sequence[str | Expr] | Mapping[str, str | Expr] | None = None, include_self: bool = False) -> DataFrame` {#kd_ext.pdkd.to_dataframe}
+### `kd_ext.pdkd.to_dataframe(ds: DataSlice, cols: Iterable[str | Expr] | Mapping[str, str | Expr] | None = None, include_self: bool = False) -> DataFrame` {#kd_ext.pdkd.to_dataframe}
 
 Alias for [kd_ext.pdkd.df](#kd_ext.pdkd.df)
 
