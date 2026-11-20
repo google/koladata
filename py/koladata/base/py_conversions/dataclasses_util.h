@@ -98,12 +98,16 @@ class DataClassesUtil {
   absl::StatusOr<FieldTypeDescriptor> MaybeDecayOptional(
       arolla::python::PyObjectPtr absl_nonnull py_type);
 
-  // Returns a python string with the given content.
-  absl::StatusOr<arolla::python::PyObjectPtr> GetPyStr(absl::string_view str);
+  // Returns an interned Python string with the given content.
+  // Returned string is a borrowed reference owned by DataClassesUtil.
+  absl::StatusOr<PyObject*> GetPyStr(absl::string_view str);
 
  private:
   absl::Status InitFns();
 
+  // Keys point into the UTF-8 buffers of interned strings owned by
+  // `py_str_cache_` (heap-allocated PyUnicodeObject buffers remain stable
+  // across map rehashes).
   absl::flat_hash_map<absl::string_view, arolla::python::PyObjectPtr>
       py_str_cache_;
 

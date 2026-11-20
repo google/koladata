@@ -513,9 +513,9 @@ class ToPyVisitor : public internal::AbstractVisitor {
       ASSIGN_OR_RETURN(
           PyObjectPtr py_value,
           GetConvertedPyObjectOrCreatePrimitive(attr_values[i], std::nullopt));
-      ASSIGN_OR_RETURN(PyObjectPtr attr_name_py,
+      ASSIGN_OR_RETURN(PyObject * attr_name_py,
                        dataclasses_util_.GetPyStr(attr_names[i]));
-      if (PyObject_SetAttr(object, attr_name_py.get(), py_value.get()) < 0) {
+      if (PyObject_SetAttr(object, attr_name_py, py_value.get()) < 0) {
         return arolla::python::StatusWithRawPyErr(
             absl::StatusCode::kInternal, "could not set object attribute");
       }
@@ -829,14 +829,13 @@ class ToPyVisitor : public internal::AbstractVisitor {
 
     for (const absl::string_view& attr_name_str : attr_names_vec) {
       const size_t attr_index = attr_name_to_index[attr_name_str];
-      ASSIGN_OR_RETURN(PyObjectPtr attr_name_py,
+      ASSIGN_OR_RETURN(PyObject * attr_name_py,
                        dataclasses_util_.GetPyStr(attr_name_str));
       ASSIGN_OR_RETURN(PyObjectPtr py_value,
                        GetConvertedPyObjectOrCreatePrimitive(
                            attr_values[attr_index], std::nullopt));
       if (py_value.get() != Py_None || include_missing_attrs_) {
-        if (PyDict_SetItem(result.get(), attr_name_py.get(), py_value.get()) <
-            0) {
+        if (PyDict_SetItem(result.get(), attr_name_py, py_value.get()) < 0) {
           return arolla::python::StatusWithRawPyErr(
               absl::StatusCode::kInternal, "could not set an item in a dict");
         }

@@ -33,6 +33,13 @@ class Obj1:
 
 class DataclassesUtilTest(absltest.TestCase):
 
+  def test_get_py_str_interned_and_cached(self):
+    util = testing_clib.DataClassesUtil()
+    s1 = util.get_py_str('custom_field_name_123')
+    s2 = util.get_py_str('custom_field_name_' + '123')
+    self.assertIs(s1, s2)
+    self.assertIs(s1, sys.intern('custom_field_name_123'))
+
   def test_get_attr_values(self):
     util = testing_clib.DataClassesUtil()
 

@@ -33,6 +33,12 @@ namespace py = pybind11;
 PYBIND11_MODULE(testing_clib, m) {
   py::class_<DataClassesUtil>(m, "DataClassesUtil")
       .def(py::init<>())
+      .def("get_py_str",
+           [](DataClassesUtil& self, absl::string_view str) -> py::object {
+             PyObject* py_obj =
+                 arolla::python::pybind11_unstatus_or(self.GetPyStr(str));
+             return py::reinterpret_borrow<py::object>(py_obj);
+           })
       .def("get_class_field_type",
            [](DataClassesUtil& self, py::handle py_class,
               absl::string_view attr_name) -> py::object {
