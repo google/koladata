@@ -130,6 +130,17 @@ class DataBag : public arolla::RefcountedBase {
   static absl::StatusOr<DataBagPtr> ImmutableEmptyWithFallbacks(
       absl::Span<const DataBagPtr absl_nullable> fallbacks);
 
+  // Returns an immutable DataBag combining `fallbacks` (in decreasing priority
+  // order) while merging adjacent small fallbacks so that fallback sizes form a
+  // geometric progression (at most O(log N) fallbacks for N total triples).
+  // When `compact_tail` is true, merges toward the low-priority tail (suited
+  // for `enriched(acc, delta)`); when false, merges toward the high-priority
+  // head (suited for `updated(acc, delta)`).
+  // An error is returned if any fallback is mutable.
+  static absl::StatusOr<DataBagPtr> ImmutableCompactWithFallbacks(
+      absl::Span<const DataBagPtr absl_nullable> fallbacks,
+      bool compact_tail = true);
+
   // Returns a new DataBag with all the fallbacks merged.
   absl::StatusOr<DataBagPtr> MergeFallbacks();
 

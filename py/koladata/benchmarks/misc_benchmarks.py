@@ -408,5 +408,135 @@ def kd_functor_is_prime(state):
     kd_is_prime(998244353)
 
 
+def _make_incremental_step_slices(num_steps: int, items_per_step: int = 8):
+  """Creates per-step entity DataSlices with populated and unset attributes."""
+  schema = kd.uu_schema(
+      seed='bench_incremental_step',
+      step=kd.INT64,
+      text=kd.STRING,
+      tag=kd.STRING,
+      score=kd.FLOAT32,
+  )
+  steps = []
+  for i in range(num_steps):
+    steps.append(
+        kd.new(
+            step=kd.slice([i] * items_per_step),
+            text=kd.slice([f'payload_{i}_{j}' for j in range(items_per_step)]),
+            schema=schema,
+        )
+    )
+  return steps
+
+
+def _probe_step_slice(step_slice, bag):
+  s = step_slice.with_bag(bag)
+  # Read both a populated attribute and an unset attribute (which probes all
+  # fallbacks when missing).
+  _ = s.text
+  _ = s.tag
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['steps'])
+@google_benchmark.option.args([64])
+@google_benchmark.option.args([256])
+@google_benchmark.option.args([512])
+def incremental_bag_updated(state):
+  """Benchmark incremental bag accumulation with kd.bags.updated."""
+  steps = _make_incremental_step_slices(state.range(0))
+  stubs = [s.no_bag() for s in steps]
+  bags = [s.get_bag() for s in steps]
+  while state:
+    acc_bag = kd.bags.new()
+    for stub, delta_bag in zip(stubs, bags):
+      acc_bag = kd.bags.updated(acc_bag, delta_bag)
+      _probe_step_slice(stub, acc_bag)
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['steps'])
+@google_benchmark.option.args([64])
+@google_benchmark.option.args([256])
+@google_benchmark.option.args([512])
+def incremental_bag_compact_updated(state):
+  """Benchmark incremental bag accumulation with kd.bags.compact_updated."""
+  steps = _make_incremental_step_slices(state.range(0))
+  stubs = [s.no_bag() for s in steps]
+  bags = [s.get_bag() for s in steps]
+  while state:
+    acc_bag = kd.bags.new()
+    for stub, delta_bag in zip(stubs, bags):
+      acc_bag = kd.bags.compact_updated(acc_bag, delta_bag)
+      _probe_step_slice(stub, acc_bag)
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['steps'])
+@google_benchmark.option.args([64])
+@google_benchmark.option.args([256])
+@google_benchmark.option.args([512])
+def incremental_bag_enriched(state):
+  """Benchmark incremental bag accumulation with kd.bags.enriched."""
+  steps = _make_incremental_step_slices(state.range(0))
+  stubs = [s.no_bag() for s in steps]
+  bags = [s.get_bag() for s in steps]
+  while state:
+    acc_bag = kd.bags.new()
+    for stub, delta_bag in zip(stubs, bags):
+      acc_bag = kd.bags.enriched(acc_bag, delta_bag)
+      _probe_step_slice(stub, acc_bag)
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['steps'])
+@google_benchmark.option.args([64])
+@google_benchmark.option.args([256])
+@google_benchmark.option.args([512])
+def incremental_bag_compact_enriched(state):
+  """Benchmark incremental bag accumulation with kd.bags.compact_enriched."""
+  steps = _make_incremental_step_slices(state.range(0))
+  stubs = [s.no_bag() for s in steps]
+  bags = [s.get_bag() for s in steps]
+  while state:
+    acc_bag = kd.bags.new()
+    for stub, delta_bag in zip(stubs, bags):
+      acc_bag = kd.bags.compact_enriched(acc_bag, delta_bag)
+      _probe_step_slice(stub, acc_bag)
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['steps'])
+@google_benchmark.option.args([64])
+@google_benchmark.option.args([256])
+@google_benchmark.option.args([512])
+def incremental_bag_adopt_each_step(state):
+  """Benchmark incremental accumulation with full adoption at every step."""
+  steps = _make_incremental_step_slices(state.range(0))
+  while state:
+    acc = steps[0]
+    _probe_step_slice(steps[0].no_bag(), acc.get_bag())
+    for step_slice in steps[1:]:
+      acc = kd.concat(acc, step_slice)
+      _probe_step_slice(step_slice.no_bag(), acc.get_bag())
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['steps'])
+@google_benchmark.option.args([64])
+@google_benchmark.option.args([256])
+@google_benchmark.option.args([512])
+def incremental_bag_mutable(state):
+  """Benchmark incremental accumulation with an in-place mutable DataBag."""
+  steps = _make_incremental_step_slices(state.range(0))
+  stubs = [s.no_bag() for s in steps]
+  bags = [s.get_bag() for s in steps]
+  while state:
+    mut_bag = kd.mutable_bag()
+    for stub, delta_bag in zip(stubs, bags):
+      mut_bag.merge_inplace(delta_bag, overwrite=False)
+      _probe_step_slice(stub, mut_bag)
+
+
 if __name__ == '__main__':
   google_benchmark.main()

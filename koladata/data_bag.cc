@@ -14,9 +14,11 @@
 //
 #include "koladata/data_bag.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <limits>
 #include <string>
 #include <utility>
 #include <vector>
@@ -29,6 +31,7 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "arolla/util/status_macros_backport.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
@@ -40,6 +43,7 @@
 #include "arolla/util/repr.h"
 #include "koladata/data_bag_repr.h"
 #include "koladata/internal/data_bag.h"
+#include "koladata/internal/object_id.h"
 
 namespace koladata {
 
@@ -139,7 +143,138 @@ absl::StatusOr<internal::DataBagImplPtr> MergeFallbacksToForkedImpl(
   return forked_impl;
 }
 
+// Tracks cumulative merged input weight for `ImmutableCompactWithFallbacks`:
+// - Fresh leaves initialize to `max(1, GetApproxTotalSize())` rather than 1 so
+//   small deltas of total weight d << N onto a large N-triple base bag cost
+//   O(d log T) without merging the base bag (achieving
+//   O(sum_i w_i (1 + log(W / w_i))) instead of O(W log T)). Byte size
+//   (`GetApproxTotalByteSize()`) would better reflect large string/bytes
+//   payloads, but scanning items to sum string lengths is too expensive here.
+// - Merged tiers inherit the sum of their inputs' weights rather than
+//   recomputing deduplicated size: each tier's weight grows >= 1.5x per merge
+//   (avoiding O(N * T) re-merging when overwrites keep live size < 2 * delta,
+//   at the cost of O(log W) space amplification on overwritten keys) and skips
+//   rescanning `merged_bag`. Under tree/linear accumulation total weight equals
+//   the sum of leaf sizes, while saturating addition below guards against
+//   exponential weight doubling across diamond DAGs of distinct merged bags.
+struct CompactionWeight {
+  int64_t weight;
+};
+
+const internal::ObjectId& CompactionWeightCacheKey() {
+  static const internal::ObjectId kKey = internal::AllocateSingleObject();
+  return kKey;
+}
+
+int64_t GetOrInitCompactionWeight(DataBag& bag) {
+  DCHECK(!bag.IsMutable());
+  DCHECK(bag.GetFallbacks().empty());
+  const internal::ObjectId& key = CompactionWeightCacheKey();
+  if (auto cached = bag.GetCachedMetadataOrNull<CompactionWeight>(key);
+      cached != nullptr) {
+    return cached->weight;
+  }
+  int64_t weight = std::max<int64_t>(1, bag.GetImpl().GetApproxTotalSize());
+  return bag
+      .SetCachedMetadata<CompactionWeight>(key, CompactionWeight{weight})
+      ->weight;
+}
+
 }  // namespace
+
+absl::StatusOr<DataBagPtr> DataBag::ImmutableCompactWithFallbacks(
+    absl::Span<const DataBagPtr absl_nullable> fallbacks, bool compact_tail) {
+  ASSIGN_OR_RETURN(DataBagPtr root, ImmutableEmptyWithFallbacks(fallbacks));
+  std::vector<DataBagPtr> leaves;
+  leaves.reserve(root->GetFallbacks().size());
+  VisitFallbacks(*root, [&](DataBagPtr cur) {
+    if (!cur->GetImpl().IsEmpty()) {
+      DCHECK(cur->GetFallbacks().empty());
+      leaves.push_back(std::move(cur));
+    }
+  });
+
+  if (leaves.empty()) {
+    return DataBag::Empty();
+  }
+  if (leaves.size() == 1) {
+    return std::move(leaves[0]);
+  }
+
+  struct WeightedBag {
+    DataBagPtr bag;
+    int64_t weight;
+  };
+  // Earlier tiers have higher priority when `compact_tail` is true; otherwise
+  // leaves are pushed in reverse so later tiers have higher priority.
+  const auto conflict_policy = compact_tail
+                                   ? internal::MergeOptions::kKeepOriginal
+                                   : internal::MergeOptions::kOverwrite;
+  const internal::MergeOptions merge_options{
+      .data_conflict_policy = conflict_policy,
+      .schema_conflict_policy = conflict_policy};
+  std::vector<WeightedBag> tiers;
+  tiers.reserve(leaves.size());
+
+  auto push_and_compact = [&](DataBagPtr leaf) -> absl::Status {
+    int64_t leaf_weight = GetOrInitCompactionWeight(*leaf);
+    tiers.push_back(WeightedBag{std::move(leaf), leaf_weight});
+    int64_t merged_weight = tiers.back().weight;
+    size_t merge_from = tiers.size() - 1;
+    while (merge_from > 0 &&
+           (merged_weight > std::numeric_limits<int64_t>::max() / 2 ||
+            tiers[merge_from - 1].weight < 2 * merged_weight)) {
+      --merge_from;
+      if (merged_weight <=
+          std::numeric_limits<int64_t>::max() - tiers[merge_from].weight) {
+        merged_weight += tiers[merge_from].weight;
+      } else {
+        merged_weight = std::numeric_limits<int64_t>::max();
+      }
+    }
+    if (merge_from == tiers.size() - 1) {
+      return absl::OkStatus();
+    }
+    auto merged_impl = internal::DataBagImpl::CreateEmptyDatabag();
+    for (size_t j = merge_from; j < tiers.size(); ++j) {
+      RETURN_IF_ERROR(
+          merged_impl->MergeInplace(tiers[j].bag->GetImpl(), merge_options));
+    }
+    DataBagPtr merged_bag = FromImpl(std::move(merged_impl));
+    merged_bag->UnsafeMakeImmutable();
+    merged_bag->SetCachedMetadata<CompactionWeight>(
+        CompactionWeightCacheKey(), CompactionWeight{merged_weight});
+    tiers.resize(merge_from);
+    tiers.push_back(WeightedBag{std::move(merged_bag), merged_weight});
+    return absl::OkStatus();
+  };
+
+  if (compact_tail) {
+    for (DataBagPtr& leaf : leaves) {
+      RETURN_IF_ERROR(push_and_compact(std::move(leaf)));
+    }
+  } else {
+    for (auto it = leaves.rbegin(); it != leaves.rend(); ++it) {
+      RETURN_IF_ERROR(push_and_compact(std::move(*it)));
+    }
+  }
+
+  if (tiers.size() == 1) {
+    return std::move(tiers[0].bag);
+  }
+  std::vector<DataBagPtr> compact_fallbacks;
+  compact_fallbacks.reserve(tiers.size());
+  if (compact_tail) {
+    for (WeightedBag& tier : tiers) {
+      compact_fallbacks.push_back(std::move(tier.bag));
+    }
+  } else {
+    for (auto it = tiers.rbegin(); it != tiers.rend(); ++it) {
+      compact_fallbacks.push_back(std::move(it->bag));
+    }
+  }
+  return ImmutableEmptyWithFallbacks(compact_fallbacks);
+}
 
 absl::StatusOr<DataBagPtr> DataBag::MergeFallbacks() {
   if (fallbacks_.empty()) {

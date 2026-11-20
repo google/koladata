@@ -38,6 +38,7 @@ class EnrichedOrUpdatedDbOperatorFamily : public arolla::OperatorFamily {
 
  protected:
   virtual bool is_enriched_operator() const = 0;
+  virtual bool is_compact_operator() const { return false; }
 };
 
 // kd.bags.enriched.
@@ -49,6 +50,20 @@ class EnrichedDbOperatorFamily final
 // kd.bags.updated.
 class UpdatedDbOperatorFamily final : public EnrichedOrUpdatedDbOperatorFamily {
   bool is_enriched_operator() const override { return false; }
+};
+
+// kd.bags.compact_enriched.
+class CompactEnrichedDbOperatorFamily final
+    : public EnrichedOrUpdatedDbOperatorFamily {
+  bool is_enriched_operator() const override { return true; }
+  bool is_compact_operator() const override { return true; }
+};
+
+// kd.bags.compact_updated.
+class CompactUpdatedDbOperatorFamily final
+    : public EnrichedOrUpdatedDbOperatorFamily {
+  bool is_enriched_operator() const override { return false; }
+  bool is_compact_operator() const override { return true; }
 };
 
 }  // namespace koladata::ops

@@ -520,5 +520,208 @@ TEST(DataBagTest, GetApproxByteSize) {
             db->GetApproxByteSize() + db2->GetApproxByteSize());
 }
 
+TEST(DataBagTest, ImmutableCompactWithFallbacks) {
+  {
+    SCOPED_TRACE("rejects mutable fallback");
+    auto mut_db = DataBag::EmptyMutable();
+    EXPECT_THAT(
+        DataBag::ImmutableCompactWithFallbacks({mut_db}),
+        StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("immutable")));
+  }
+
+  {
+    SCOPED_TRACE("empty and null fallbacks");
+    ASSERT_OK_AND_ASSIGN(
+        auto empty_db,
+        DataBag::ImmutableCompactWithFallbacks({nullptr, DataBag::Empty()}));
+    EXPECT_FALSE(empty_db->IsMutable());
+    EXPECT_TRUE(empty_db->IsEmpty());
+    EXPECT_THAT(empty_db->GetFallbacks(), ElementsAre());
+  }
+
+  {
+    SCOPED_TRACE(
+        "repeated head updates stay logarithmic and preserve priority");
+    constexpr int kSteps = 128;
+    auto shared_mut = DataBag::EmptyMutable();
+    ASSERT_OK_AND_ASSIGN(
+        auto shared_obj,
+        EntityCreator::FromAttrs(shared_mut, {"val"}, {test::DataItem(-1)}));
+    shared_mut->UnsafeMakeImmutable();
+
+    DataBagPtr acc = shared_mut;
+    std::vector<DataSlice> step_items;
+    for (int step = 0; step < kSteps; ++step) {
+      auto delta = DataBag::EmptyMutable();
+      // Vary delta sizes (alternating small and larger deltas) and overwrite
+      // shared_obj.val so priority order is exercised.
+      ASSERT_OK(shared_obj.WithBag(delta).SetAttr("val", test::DataItem(step)));
+      const int extra = (step % 2 == 0) ? 1 : 8;
+      for (int j = 0; j < extra; ++j) {
+        ASSERT_OK_AND_ASSIGN(
+            auto item,
+            EntityCreator::FromAttrs(delta, {"step"}, {test::DataItem(step)}));
+        if (j == 0) {
+          step_items.push_back(item.WithBag(nullptr));
+        }
+      }
+      delta->UnsafeMakeImmutable();
+      // `updated(acc, delta)` puts `delta` at higher priority (`{delta, acc}`).
+      ASSERT_OK_AND_ASSIGN(
+          acc, DataBag::ImmutableCompactWithFallbacks({delta, acc},
+                                                      /*compact_tail=*/false));
+      FlattenFallbackFinder fbf(*acc);
+      EXPECT_LE(fbf.GetFlattenFallbacks().size(), 12);
+    }
+    EXPECT_THAT(shared_obj.WithBag(acc).GetAttr("val"),
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(kSteps - 1, acc))));
+    for (int step = 0; step < kSteps; ++step) {
+      EXPECT_THAT(step_items[step].WithBag(acc).GetAttr("step"),
+                  IsOkAndHolds(IsEquivalentTo(test::DataItem(step, acc))));
+    }
+  }
+
+  {
+    SCOPED_TRACE(
+        "repeated tail enrichments stay logarithmic and preserve priority");
+    constexpr int kSteps = 128;
+    auto shared_mut = DataBag::EmptyMutable();
+    ASSERT_OK_AND_ASSIGN(
+        auto shared_obj,
+        EntityCreator::FromAttrs(shared_mut, {"val"}, {test::DataItem(0)}));
+    shared_mut->UnsafeMakeImmutable();
+
+    DataBagPtr acc = shared_mut;
+    std::vector<DataSlice> step_items;
+    for (int step = 1; step <= kSteps; ++step) {
+      auto delta = DataBag::EmptyMutable();
+      ASSERT_OK(shared_obj.WithBag(delta).SetAttr("val", test::DataItem(step)));
+      ASSERT_OK_AND_ASSIGN(
+          auto item,
+          EntityCreator::FromAttrs(delta, {"step"}, {test::DataItem(step)}));
+      step_items.push_back(item.WithBag(nullptr));
+      delta->UnsafeMakeImmutable();
+      // `enriched(acc, delta)` puts `acc` at higher priority (`{acc, delta}`).
+      ASSERT_OK_AND_ASSIGN(
+          acc, DataBag::ImmutableCompactWithFallbacks({acc, delta},
+                                                      /*compact_tail=*/true));
+      FlattenFallbackFinder fbf(*acc);
+      EXPECT_LE(fbf.GetFlattenFallbacks().size(), 12);
+    }
+    EXPECT_THAT(shared_obj.WithBag(acc).GetAttr("val"),
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(0, acc))));
+    for (int step = 1; step <= kSteps; ++step) {
+      EXPECT_THAT(step_items[step - 1].WithBag(acc).GetAttr("step"),
+                  IsOkAndHolds(IsEquivalentTo(test::DataItem(step, acc))));
+    }
+  }
+
+  {
+    SCOPED_TRACE("large base bag is not copied by small deltas");
+    auto base_db = DataBag::EmptyMutable();
+    DataSlice first_base_obj;
+    for (int i = 0; i < 100; ++i) {
+      ASSERT_OK_AND_ASSIGN(
+          auto obj,
+          EntityCreator::FromAttrs(base_db, {"v"}, {test::DataItem(7)}));
+      if (i == 0) {
+        first_base_obj = obj.WithBag(nullptr);
+      }
+    }
+    base_db->UnsafeMakeImmutable();
+
+    DataBagPtr acc = base_db;
+    for (int step = 0; step < 10; ++step) {
+      auto delta = DataBag::EmptyMutable();
+      ASSERT_OK_AND_ASSIGN(
+          auto item,
+          EntityCreator::FromAttrs(delta, {"s"}, {test::DataItem(step)}));
+      (void)item;
+      delta->UnsafeMakeImmutable();
+      ASSERT_OK_AND_ASSIGN(
+          acc, DataBag::ImmutableCompactWithFallbacks({delta, acc},
+                                                      /*compact_tail=*/false));
+    }
+    // `base_db` (~200 triples) >> 10 small deltas, so `base_db` stays
+    // untouched as the lowest-priority leaf without copying.
+    ASSERT_FALSE(acc->GetFallbacks().empty());
+    EXPECT_EQ(acc->GetFallbacks().back().get(), base_db.get());
+    EXPECT_THAT(first_base_obj.WithBag(acc).GetAttr("v"),
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(7, acc))));
+  }
+
+  {
+    SCOPED_TRACE("partial overwrites do not re-merge base tier every step");
+    auto base_db = DataBag::EmptyMutable();
+    std::vector<DataSlice> objs;
+    for (int i = 0; i < 15; ++i) {
+      ASSERT_OK_AND_ASSIGN(
+          auto obj,
+          EntityCreator::FromAttrs(base_db, {"val"}, {test::DataItem(0)}));
+      objs.push_back(obj.WithBag(nullptr));
+    }
+    base_db->UnsafeMakeImmutable();
+
+    DataBagPtr acc = base_db;
+    const internal::DataBagImpl* oldest_tier_impl = &base_db->GetImpl();
+    int oldest_tier_merges = 0;
+    for (int step = 1; step <= 32; ++step) {
+      auto delta = DataBag::EmptyMutable();
+      for (int i = 0; i < 10; ++i) {
+        ASSERT_OK(objs[i].WithBag(delta).SetAttr("val", test::DataItem(step)));
+      }
+      delta->UnsafeMakeImmutable();
+      ASSERT_OK_AND_ASSIGN(
+          acc, DataBag::ImmutableCompactWithFallbacks({delta, acc},
+                                                      /*compact_tail=*/false));
+      const internal::DataBagImpl* cur_oldest =
+          acc->GetFallbacks().empty() ? &acc->GetImpl()
+                                      : &acc->GetFallbacks().back()->GetImpl();
+      if (cur_oldest != oldest_tier_impl) {
+        ++oldest_tier_merges;
+        oldest_tier_impl = cur_oldest;
+      }
+    }
+    // Cumulative tier weights grow logarithmically instead of resetting to 15
+    // after deduplicating the 10 overwritten items on each step.
+    EXPECT_LE(oldest_tier_merges, 6);
+    for (int i = 0; i < 10; ++i) {
+      EXPECT_THAT(objs[i].WithBag(acc).GetAttr("val"),
+                  IsOkAndHolds(IsEquivalentTo(test::DataItem(32, acc))));
+    }
+    for (int i = 10; i < 15; ++i) {
+      EXPECT_THAT(objs[i].WithBag(acc).GetAttr("val"),
+                  IsOkAndHolds(IsEquivalentTo(test::DataItem(0, acc))));
+    }
+  }
+
+  {
+    SCOPED_TRACE("diamond DAG of merged bags saturates int64 weight safely");
+    auto a = DataBag::EmptyMutable();
+    ASSERT_OK_AND_ASSIGN(
+        auto obj_a, EntityCreator::FromAttrs(a, {"v"}, {test::DataItem(1)}));
+    a->UnsafeMakeImmutable();
+    auto c = DataBag::EmptyMutable();
+    ASSERT_OK_AND_ASSIGN(
+        auto obj_c, EntityCreator::FromAttrs(c, {"v"}, {test::DataItem(2)}));
+    c->UnsafeMakeImmutable();
+
+    DataBagPtr db_a = a;
+    DataBagPtr db_c = c;
+    for (int step = 0; step < 70; ++step) {
+      ASSERT_OK_AND_ASSIGN(
+          auto next_a, DataBag::ImmutableCompactWithFallbacks({db_a, db_c}));
+      ASSERT_OK_AND_ASSIGN(
+          auto next_c, DataBag::ImmutableCompactWithFallbacks({db_c, db_a}));
+      db_a = std::move(next_a);
+      db_c = std::move(next_c);
+    }
+    EXPECT_THAT(obj_a.WithBag(db_a).GetAttr("v"),
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(1, db_a))));
+    EXPECT_THAT(obj_c.WithBag(db_a).GetAttr("v"),
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(2, db_a))));
+  }
+}
+
 }  // namespace
 }  // namespace koladata

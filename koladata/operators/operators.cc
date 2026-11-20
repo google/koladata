@@ -80,6 +80,10 @@ OPERATOR("kd.allocation.new_listid_shaped", NewListIdShaped);
 OPERATOR("kd.assertion.assert_present_scalar", AssertPresentScalar);
 OPERATOR("kd.assertion.assert_primitive", AssertPrimitive);
 //
+OPERATOR_FAMILY("kd.bags.compact_enriched",
+                std::make_unique<CompactEnrichedDbOperatorFamily>());
+OPERATOR_FAMILY("kd.bags.compact_updated",
+                std::make_unique<CompactUpdatedDbOperatorFamily>());
 OPERATOR_FAMILY("kd.bags.enriched",
                 std::make_unique<EnrichedDbOperatorFamily>());
 OPERATOR("kd.bags.is_null_bag", IsNullBag);

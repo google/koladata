@@ -116,3 +116,73 @@ def updated(*bags):  # pylint: disable=unused-argument
     An immutable DataBag updated by `bags`.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@_optools.add_to_registry(via_cc_operator_package=True)
+@_arolla.optools.as_backend_operator(
+    'kd.bags.compact_enriched',
+    qtype_constraints=[
+        _qtype_utils.expect_data_bag_args(_P.bags),
+    ],
+    qtype_inference_expr=_qtypes.DATA_BAG,
+    aux_policy=_aux_policies.CLASSIC_AUX_POLICY,
+)
+def compact_enriched(*bags):  # pylint: disable=unused-argument
+  """Creates an immutable DataBag enriched by `bags` with O(log N) fallbacks.
+
+  Has the same conflict-resolution semantics as `kd.bags.enriched(*bags)`
+  (earlier DataBags take precedence), while merging adjacent small low-priority
+  fallbacks so fallback sizes form a geometric progression from left to right.
+
+  If you repeatedly accumulate enrichments on the right via
+  `state = kd.bags.compact_enriched(state, *extra_bags)`, `state` retains at
+  most O(log N) fallbacks and the total work across T calls is
+  O((N + T) log N), where N is the initial size of `state` plus the total size
+  of all `extra_bags` (i.e. O(N log N) when updates are non-empty). Prepending
+  small bags on the left (`compact_enriched(*extra_bags, state)`) does not have
+  this guarantee and may re-merge `state` on every call; use
+  `kd.bags.compact_updated(state, *extra_bags)` when newer bags should take
+  precedence.
+
+  Args:
+    *bags: DataBag(s) for enriching.
+
+  Returns:
+    An immutable DataBag enriched by `bags`.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@_optools.add_to_registry(via_cc_operator_package=True)
+@_arolla.optools.as_backend_operator(
+    'kd.bags.compact_updated',
+    qtype_constraints=[
+        _qtype_utils.expect_data_bag_args(_P.bags),
+    ],
+    qtype_inference_expr=_qtypes.DATA_BAG,
+    aux_policy=_aux_policies.CLASSIC_AUX_POLICY,
+)
+def compact_updated(*bags):  # pylint: disable=unused-argument
+  """Creates an immutable DataBag updated by `bags` with O(log N) fallbacks.
+
+  Has the same conflict-resolution semantics as `kd.bags.updated(*bags)`
+  (later DataBags take precedence), while merging adjacent small high-priority
+  fallbacks so fallback sizes form a geometric progression from left to right.
+
+  If you repeatedly accumulate updates on the right via
+  `state = kd.bags.compact_updated(state, *extra_bags)`, `state` retains at
+  most O(log N) fallbacks and the total work across T calls is
+  O((N + T) log N), where N is the initial size of `state` plus the total size
+  of all `extra_bags` (i.e. O(N log N) when updates are non-empty). Prepending
+  small bags on the left (`compact_updated(*extra_bags, state)`) does not have
+  this guarantee and may re-merge `state` on every call; use
+  `kd.bags.compact_enriched(state, *extra_bags)` when `state` should take
+  precedence.
+
+  Args:
+    *bags: DataBag(s) for updating.
+
+  Returns:
+    An immutable DataBag updated by `bags`.
+  """
+  raise NotImplementedError('implemented in the backend')

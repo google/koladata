@@ -23,6 +23,7 @@
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
+#include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/types/span.h"
@@ -60,21 +61,30 @@ namespace {
 class EnrichedOrUpdatedDbOperator final : public arolla::QExprOperator {
  public:
   EnrichedOrUpdatedDbOperator(absl::Span<const arolla::QTypePtr> input_types,
-                              bool is_enriched_operator)
+                              bool is_enriched_operator,
+                              bool is_compact_operator)
       : arolla::QExprOperator(input_types, arolla::GetQType<DataBagPtr>()),
-        is_enriched_operator_(is_enriched_operator) {}
+        is_enriched_operator_(is_enriched_operator),
+        is_compact_operator_(is_compact_operator) {}
 
  private:
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const override {
+    const char* op_name =
+        is_compact_operator_
+            ? (is_enriched_operator_ ? "kd.bags.compact_enriched"
+                                     : "kd.bags.compact_updated")
+            : (is_enriched_operator_ ? "kd.bags.enriched" : "kd.bags.updated");
     return MakeBoundOperator(
-        is_enriched_operator_ ? "kd.bags.enriched" : "kd.bags.updated",
+        op_name,
         [input_slots = std::vector<arolla::TypedSlot>(input_slots.begin(),
                                                       input_slots.end()),
          output_slot = output_slot.UnsafeToSlot<DataBagPtr>(),
-         is_enriched_operator = is_enriched_operator_](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+         is_enriched_operator = is_enriched_operator_,
+         is_compact_operator = is_compact_operator_](
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           std::vector<DataBagPtr> db_list(input_slots.size());
           for (size_t i = 0; i < input_slots.size(); ++i) {
             auto db = frame.Get(input_slots[i].UnsafeToSlot<DataBagPtr>());
@@ -86,6 +96,14 @@ class EnrichedOrUpdatedDbOperator final : public arolla::QExprOperator {
           if (!is_enriched_operator) {
             std::reverse(db_list.begin(), db_list.end());
           }
+          if (is_compact_operator) {
+            ASSIGN_OR_RETURN(
+                DataBagPtr res,
+                DataBag::ImmutableCompactWithFallbacks(
+                    db_list, /*compact_tail=*/is_enriched_operator));
+            frame.Set(output_slot, std::move(res));
+            return absl::OkStatus();
+          }
           // Note: ImmutableEmptyWithFallbacks returns an error if fallbacks are
           // mutable. Here we explicitly freeze all fallbacks, so we assume that
           // the error can not happen.
@@ -96,6 +114,7 @@ class EnrichedOrUpdatedDbOperator final : public arolla::QExprOperator {
   }
 
   bool is_enriched_operator_;
+  bool is_compact_operator_;
 };
 
 }  // namespace
@@ -112,8 +131,8 @@ EnrichedOrUpdatedDbOperatorFamily::DoGetOperator(
   }
 
   return arolla::EnsureOutputQTypeMatches(
-      std::make_shared<EnrichedOrUpdatedDbOperator>(input_types,
-                                                    is_enriched_operator()),
+      std::make_shared<EnrichedOrUpdatedDbOperator>(
+          input_types, is_enriched_operator(), is_compact_operator()),
       input_types, output_type);
 }
 
