@@ -14,20 +14,19 @@
 
 """Utilities for manipulating nested data."""
 
-import types as py_types
+import types as _py_types
 
-from koladata import kd
-from koladata.ext import functools
+from koladata import kd as _kd
+from koladata.ext import functools as _functools
 
-
-kdi = kd.eager
+_kdi = _kd.eager
 
 
 def selected_path_update(
-    root_ds: kd.types.DataSlice,
+    root_ds: _kd.types.DataSlice,
     selection_ds_path: list[str],
-    selection_ds: kd.types.DataSlice | py_types.FunctionType,
-) -> kd.types.DataBag:
+    selection_ds: _kd.types.DataSlice | _py_types.FunctionType,
+) -> _kd.types.DataBag:
   """Returns a DataBag where only the selected items are present in child lists.
 
   The selection_ds_path must contain at least one list attribute. In general,
@@ -55,8 +54,10 @@ def selected_path_update(
     need to be combined with the @root_ds via
     @root_ds.updated(selected_path(....)).
   """
-  selection_ds: kd.types.DataSlice = functools.MaybeEval(selection_ds, root_ds)
-  if selection_ds.get_schema() != kd.MASK:
+  selection_ds: _kd.types.DataSlice = _functools.MaybeEval(
+      selection_ds, root_ds
+  )
+  if selection_ds.get_schema() != _kd.MASK:
     raise ValueError(
         f'selection_ds must be kd.MASK, got: {selection_ds.get_schema()}.'
     )
@@ -87,7 +88,7 @@ def selected_path_update(
         f'That is not the case for: {selection_ds_path}'
     )
 
-  db = kdi.mutable_bag()
+  db = _kdi.mutable_bag()
   mask = selection_ds
   for parent_slice, child_slice, attribute, make_list in reversed(
       list(
@@ -101,13 +102,13 @@ def selected_path_update(
   ):
     child_slice = child_slice.no_bag()
     if make_list:
-      child_slice = kdi.select(child_slice, mask)
+      child_slice = _kdi.select(child_slice, mask)
       if parent_slice.get_ndim() == root_ds.get_ndim():
         # For the root, we must update all lists, since the user will query
         # them as we do not return the filtered root.
-        mask = kdi.has(root_ds)
+        mask = _kdi.has(root_ds)
       else:
-        mask = kdi.agg_any(mask)
+        mask = _kdi.agg_any(mask)
       child_slice = db.list_like(mask, child_slice)
     db.adopt_stub(parent_slice & mask).set_attr(attribute, child_slice)
   return db.freeze()

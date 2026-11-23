@@ -51,19 +51,17 @@ class KdExtTest(absltest.TestCase):
     )
 
   def test_vis(self):
-    self.assertTrue(hasattr(kd_ext.vis, 'register_formatters'))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(callable(kd_ext.vis.register_formatters))
 
   def test_dir(self):
     for api_name in dir(kd_ext):
       self.assertFalse(api_name.startswith('_'))
 
   def test_eager(self):
-    self.assertCountEqual(kd_ext.eager.__all__, dir(kd_ext.eager))
-    self.assertCountEqual(
-        set(dir(kd_ext)) - set(dir(kd_ext.eager)), ['eager']
-    )
+    self.assertCountEqual(kd_ext.eager.__all__, dir(kd_ext.eager))  # pyrefly: ignore[missing-attribute]
+    self.assertCountEqual(set(dir(kd_ext)) - set(dir(kd_ext.eager)), ['eager'])
     self.assertCountEqual(set(dir(kd_ext.eager)) - set(dir(kd_ext)), [])
-    for name in kd_ext.eager.__all__:
+    for name in kd_ext.eager.__all__:  # pyrefly: ignore[missing-attribute]
       self.assertIs(getattr(kd_ext.eager, name), getattr(kd_ext, name))
     for bad_name in ['eager']:
       with self.assertRaises(AttributeError):
@@ -72,7 +70,7 @@ class KdExtTest(absltest.TestCase):
   def test_lazy_and_eager_ops(self):
     ds = kd.slice([1, 1, 0, 2, None])
     expected = kd.dict(kd.slice([0, 1, 2]), kd.int64([1, 2, 1]))
-    res1 = kd_ext.contrib.value_counts(ds)  # pyrefly: ignore[missing-attribute]
+    res1 = kd_ext.contrib.value_counts(ds)
     res2 = kd_ext.eager.contrib.value_counts(ds)
     res3 = kd_ext.lazy.contrib.value_counts(ds).eval()
     kd.testing.assert_equivalent(res1, expected)
@@ -80,7 +78,7 @@ class KdExtTest(absltest.TestCase):
     kd.testing.assert_equivalent(res3, expected)
 
     def f(ds):
-      return kd_ext.contrib.value_counts(ds)  # pyrefly: ignore[missing-attribute]
+      return kd_ext.contrib.value_counts(ds)
 
     traced_f = kd.functor.trace_py_fn(f)
     res4 = traced_f(ds)
@@ -93,22 +91,38 @@ class KdExtTest(absltest.TestCase):
 
   def test_ids_package(self):
     self.assertIn('ids', dir(kd_ext))
-    schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
+    schema = kd_ext.ids.with_auto_attributes(
         kd.schema.new_schema(a=kd.INT32),
-        foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
+        foo_id=kd_ext.ids.auto_id('foo'),
     )
     kd.testing.assert_equal(
         schema.foo_id,
         kd.STRING.with_bag(schema.get_bag()),
     )
+    self.assertIsInstance(kd_ext.lazy.ids.auto_id('foo'), arolla.Expr)
 
   def test_function(self):
-    self.assertIs(kd_ext.npkd.to_array, npkd.to_array)  # pyrefly: ignore[missing-attribute]
+    self.assertIs(kd_ext.npkd.to_array, npkd.to_array)
 
   def test_kv(self):
     # More comprehensive tests are in ext/view/.
-    kv = kd_ext.kv  # pyrefly: ignore[missing-attribute]
+    kv = kd_ext.kv
+    self.assertIsInstance(kv.view(1), kv.types.View)
     self.assertEqual(kv.map(lambda x: x + 1, kv.view([1, 2])[:]).get(), (2, 3))
+
+  def test_exported_symbols(self):
+    self.assertTrue(callable(kd_ext.contrib.pearson_correlation))
+    self.assertTrue(callable(kd_ext.pdkd.to_dataframe))
+    self.assertTrue(callable(kd_ext.nested_data.selected_path_update))
+    self.assertIs(
+        kd_ext.storage.DataSlicePath,
+        kd_ext.storage.data_slice_path.DataSlicePath,
+    )
+    self.assertIsNotNone(kd_ext.storage.DataSliceManager)
+    self.assertIsInstance(kd_ext.pseudo_random.next_uint64(), int)
+    self.assertTrue(callable(kd_ext.tqdm.tqdm))
+    self.assertIsNotNone(kd_ext.tqdm.ProgressRecord)
+    self.assertTrue(callable(kd_ext.functor.to_py))
 
 
 if __name__ == '__main__':

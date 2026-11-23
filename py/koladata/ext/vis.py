@@ -14,35 +14,34 @@
 
 """Koda visualization functionality."""
 
-import dataclasses
-import enum
-import functools
-import html
-import inspect
-import json
-import os.path
-import sys
-import textwrap
+import dataclasses as _dataclasses
+import enum as _enum
+import functools as _functools
+import html as _html
+import inspect as _inspect
+import json as _json
+import os.path as _os_path
+import sys as _sys
+import textwrap as _textwrap
 from typing import Any as _Any, Callable as _Callable
-import uuid
+import uuid as _uuid
 
-from arolla import arolla
-import IPython
-from IPython.core import interactiveshell
-from koladata import kd
-
+from arolla import arolla as _arolla
+import IPython as _IPython
+from IPython.core import interactiveshell as _interactiveshell
+from koladata import kd as _kd
 
 _COLAB_REQUIRED_MSG = (
     'Koda visualization extensions are only supported in Colab.'
 )
 
 
-@functools.cache
+@_functools.cache
 def _colab_frontend():
   return None
 
 
-def _get_cell_id(info: interactiveshell.ExecutionInfo) -> str:
+def _get_cell_id(info: _interactiveshell.ExecutionInfo) -> str:
   if info.cell_id is not None:
     return info.cell_id
   # Note that the current version of IPython does not support cell_id yet,
@@ -56,7 +55,7 @@ def _get_cell_id(info: interactiveshell.ExecutionInfo) -> str:
   return colab_frontend.GetRunningCellId()
 
 
-@functools.cache
+@_functools.cache
 def _colab_output():
   try:
     # pylint: disable=g-import-not-at-top
@@ -67,7 +66,7 @@ def _colab_output():
   return output
 
 
-@functools.cache
+@_functools.cache
 def _colab_js_builder():
   try:
     # pylint: disable=g-import-not-at-top
@@ -78,7 +77,7 @@ def _colab_js_builder():
   return js_builder
 
 
-@functools.cache
+@_functools.cache
 def _colab_message():
   try:
     # pylint: disable=g-import-not-at-top
@@ -89,7 +88,7 @@ def _colab_message():
   return message
 
 
-@functools.cache
+@_functools.cache
 def _colab_publish():
   try:
     # pylint: disable=g-import-not-at-top
@@ -100,24 +99,24 @@ def _colab_publish():
   return publish
 
 
-@functools.cache
+@_functools.cache
 def _js_eval_global():
   """Empehermal version of js that is not stored in the output cell."""
   return _colab_js_builder().Js(mode=_colab_js_builder().EVAL)
 
 
-@functools.cache
+@_functools.cache
 def _js_global():
   """Persisted version of js that is is saved in the output cell."""
   return _colab_js_builder().js_global
 
 
-kdi = kd.eager
-kde = kd.lazy
-DataSliceOrExpr = kd.types.DataSlice | arolla.Expr
+_kdi = _kd.eager
+_kde = _kd.lazy
+_DataSliceOrExpr = _kd.types.DataSlice | _arolla.Expr
 
 
-class AccessType(enum.Enum):
+class AccessType(_enum.Enum):
   """Types of accesses that can appear in an access path."""
 
   FLAT_SLICE_INDEX = 'flat-slice-index'
@@ -132,7 +131,7 @@ class AccessType(enum.Enum):
   MULTI_SLICE_INDEX = 'multi-slice-index'
 
 
-class DescendMode(enum.Enum):
+class DescendMode(_enum.Enum):
   VALUE = 'value'
   ATTR = 'attr'
 
@@ -148,8 +147,8 @@ def _load_koda_visualization_library() -> str:
     )
   except ImportError:
     # PyPI package mode.
-    js_filename = os.path.join(
-        os.path.dirname(sys.modules[__name__].__file__),
+    js_filename = _os_path.join(
+        _os_path.dirname(_sys.modules[__name__].__file__),
         'data_slice_webcomponents.js',
     )
   with open(js_filename, 'r') as f:
@@ -162,11 +161,11 @@ def _publish_koda_visualization_library():
 
 
 def _jagged_array_sizes_to_py(
-    shape: kd.types.JaggedShape,
+    shape: _kd.types.JaggedShape,
 ) -> list[list[int]]:
   return [
-      kd.eval(kde.shapes.dim_sizes(shape, rank)).to_py()
-      for rank in range(kd.eval(kde.shapes.rank(shape)))
+      _kd.eval(_kde.shapes.dim_sizes(shape, rank)).to_py()
+      for rank in range(_kd.eval(_kde.shapes.rank(shape)))
   ]
 
 
@@ -183,7 +182,7 @@ _CssLength = int | str
 _AccessPath = list[dict[str, str | list[int]]]
 
 
-@dataclasses.dataclass
+@_dataclasses.dataclass
 class DataSliceVisOptions:
   """Options for visualizing a DataSlice."""
 
@@ -209,7 +208,7 @@ class DataSliceVisOptions:
 
 
 def _format_item_html(
-    item: kd.types.DataItem,
+    item: _kd.types.DataItem,
     truncate_unbounded_types: bool = True,
     options: DataSliceVisOptions | None = None,
 ) -> str:
@@ -217,11 +216,13 @@ def _format_item_html(
   options = options or DataSliceVisOptions()
   unbounded_type_max_len = options.unbounded_type_max_len
   dtype = item.get_dtype()
-  if (dtype == kd.STRING or dtype == kd.BYTES) and not truncate_unbounded_types:
+  if (
+      dtype == _kd.STRING or dtype == _kd.BYTES
+  ) and not truncate_unbounded_types:
     unbounded_type_max_len = -1
 
   detail_pane_str = str(
-      kdi.get_repr(
+      _kdi.get_repr(
           item,
           format_html=True,
           item_limit=options.item_limit,
@@ -231,13 +232,13 @@ def _format_item_html(
   )
 
   # Unescape whitespace for easier viewing in the detail pane.
-  if dtype == kd.STRING:
+  if dtype == _kd.STRING:
     detail_pane_str = detail_pane_str.replace('\\n', '\n').replace('\\t', '\t')
   return detail_pane_str
 
 
 def _format_data_item(
-    item: kd.types.DataItem,
+    item: _kd.types.DataItem,
     additional_access: list[str] | None = None,
     truncate_unbounded_types: bool = True,
     options: DataSliceVisOptions | None = None,
@@ -267,7 +268,7 @@ def _format_data_item(
   schema = item.get_schema()
   # These are types that do not want to tile (i.e. they should always appear on
   # a single line).
-  if dtype == kd.FLOAT32 or dtype == kd.FLOAT64 or schema == kd.ITEMID:
+  if dtype == _kd.FLOAT32 or dtype == _kd.FLOAT64 or schema == _kd.ITEMID:
     outer_class_attr = 'class="always-elide"'
   else:
     outer_class_attr = ''
@@ -282,7 +283,7 @@ def _format_data_item(
   )
 
 
-@dataclasses.dataclass
+@_dataclasses.dataclass
 class _DataSliceTableData:
   headers: str
   items_begin: int
@@ -294,13 +295,13 @@ class _DataSliceTableData:
   stats: str
 
 
-def _is_clickable(ds: kd.types.DataSlice) -> bool:
+def _is_clickable(ds: _kd.types.DataSlice) -> bool:
   """Returns True if `ds` has only entities objects or lists."""
   schema = ds.get_schema()
   return (schema.is_entity_schema() or schema.is_list_schema()) or (
-      schema == kd.OBJECT
+      schema == _kd.OBJECT
       and not ds.is_empty()
-      and kd.full_equal(kd.has(ds), kd.has_entity(ds) | kd.has_list(ds))
+      and _kd.full_equal(_kd.has(ds), _kd.has_entity(ds) | _kd.has_list(ds))
   )
 
 
@@ -322,7 +323,7 @@ def _focus_data_cell(
   context.setTimeout(table_elem.focusDataCell.bind(table_elem, row, col), 0)
 
 
-def _make_stats_html(ds: kd.types.DataSlice) -> str:
+def _make_stats_html(ds: _kd.types.DataSlice) -> str:
   """Returns the HTML for the stats."""
   if ds.get_size() <= 1:
     return ''
@@ -332,26 +333,24 @@ def _make_stats_html(ds: kd.types.DataSlice) -> str:
     return ''
   stats = ''
 
-  is_int = s == kd.INT32 or s == kd.INT64
+  is_int = s == _kd.INT32 or s == _kd.INT64
 
-  if s == kd.FLOAT32 or s == kd.FLOAT64 or is_int:
-    stats += kd.strings.format(
-        'average: {avg}</br>', avg=kd.math.mean(ds)
-    )
+  if s == _kd.FLOAT32 or s == _kd.FLOAT64 or is_int:
+    stats += _kd.strings.format('average: {avg}</br>', avg=_kd.math.mean(ds))
     if ds.get_shape().rank() > 0:
-      stats += kd.strings.format(
-          'stddev: {stddev}</br>', stddev=kd.math.agg_std(ds)
+      stats += _kd.strings.format(
+          'stddev: {stddev}</br>', stddev=_kd.math.agg_std(ds)
       )
-    stats += kd.strings.format(
+    stats += _kd.strings.format(
         'min: {min_val}</br>max: {max_val}</br>',
-        min_val=kd.math.min(ds),
-        max_val=kd.math.max(ds),
+        min_val=_kd.math.min(ds),
+        max_val=_kd.math.max(ds),
     )
-  stats += f'unique count: {kd.count(kd.unique(ds))}</br>'
-  if is_int or s == kd.STRING:
-    grouped_items = kd.group_by(ds)
-    unique_keys = kd.collapse(grouped_items)
-    item_count = kd.agg_count(grouped_items)
+  stats += f'unique count: {_kd.count(_kd.unique(ds))}</br>'
+  if is_int or s == _kd.STRING:
+    grouped_items = _kd.group_by(ds)
+    unique_keys = _kd.collapse(grouped_items)
+    item_count = _kd.agg_count(grouped_items)
     count_and_values = list(zip(item_count.to_py(), unique_keys.to_py()))
     # Sort by counts only, not by values.
     count_and_values.sort(key=lambda x: x[0], reverse=True)
@@ -360,14 +359,14 @@ def _make_stats_html(ds: kd.types.DataSlice) -> str:
       value_str = str(value)
       if len(value_str) > 50:
         value_str = value_str[:50] + '...'
-      value_str = html.escape(value_str)
+      value_str = _html.escape(value_str)
       stats += f'top {i}:\tcount: {count},\tvalue: {value_str}</br>'
   return f"""<details><summary>Statistics</summary>\
       <div id="stats-data">{stats}</div></details>"""
 
 
 def _create_data_slice_table_data(
-    ds: kd.types.DataSlice,
+    ds: _kd.types.DataSlice,
     items_begin: int = 0,
     options: DataSliceVisOptions | None = None,
 ) -> _DataSliceTableData:
@@ -376,7 +375,7 @@ def _create_data_slice_table_data(
   # Message containing metadata about the DataSlice, which is generated before
   # we slice the DataSlice to the desired range.
   schema_html = str(
-      kdi.get_repr(
+      _kdi.get_repr(
           ds.get_schema(),
           format_html=True,
           depth=4,
@@ -384,7 +383,7 @@ def _create_data_slice_table_data(
       )
   )
   message = (
-      f'present: {kdi.count(ds)}/{ds.get_size()}, ndims: {ds.get_ndim()}, '
+      f'present: {_kdi.count(ds)}/{ds.get_size()}, ndims: {ds.get_ndim()}, '
       f'schema: <span {AccessType.GET_SCHEMA.value}="">{schema_html}</span>'
   )
 
@@ -401,11 +400,11 @@ def _create_data_slice_table_data(
   footer = ''
   clickable_headers = []
   headers = '[values]'
-  if isinstance(ds, kd.types.DataItem):
+  if isinstance(ds, _kd.types.DataItem):
     # Increase repr_depth because we are less concerned with outputting too much
     # data when there is only one item and users can use implode to
     # view data in a more hierarchical way.
-    options = dataclasses.replace(options, repr_depth=options.repr_depth + 1)
+    options = _dataclasses.replace(options, repr_depth=options.repr_depth + 1)
 
     # Allow unbounded types to be shown in full for DataItems
     joined_data = _format_data_item(
@@ -416,12 +415,12 @@ def _create_data_slice_table_data(
     # Decide attributes to show based on the entire DataSlice rather than items
     # in the selected range.
     all_attrs = (
-        sorted(kd.dir(ds, intersection=False))
+        sorted(_kd.dir(ds, intersection=False))
         if ds.has_bag() and ds.is_entity()
         else []
     )
     attrs_to_show = all_attrs[0 : options.attr_limit]
-    ds = kdi.at(ds.flatten(), kdi.range(items_begin, items_end))
+    ds = _kdi.at(ds.flatten(), _kdi.range(items_begin, items_end))
 
     if attrs_to_show:
       headers = ','.join(['[itemid]', *attrs_to_show])
@@ -434,8 +433,8 @@ def _create_data_slice_table_data(
 
       # Render all attribute rows.
       for header in attrs_to_show:
-        ds_attr = kdi.maybe(ds, header)
-        attr_access = f'{AccessType.SCHEMA_ATTR.value}={html.escape(header)}'
+        ds_attr = _kdi.maybe(ds, header)
+        attr_access = f'{AccessType.SCHEMA_ATTR.value}={_html.escape(header)}'
 
         data_items = []
         for i, v in enumerate(ds_attr.L):
@@ -483,9 +482,9 @@ def _create_data_slice_table_data(
   )
 
 
-@dataclasses.dataclass
+@_dataclasses.dataclass
 class _BreadcrumbEntry:
-  ds: kd.types.DataSlice
+  ds: _kd.types.DataSlice
   name: str
 
 
@@ -494,7 +493,7 @@ class _DataSliceViewState:
 
   def __init__(
       self,
-      ds: kd.types.DataSlice,
+      ds: _kd.types.DataSlice,
       instance_id: str,
       options: DataSliceVisOptions | None = None,
   ):
@@ -534,7 +533,7 @@ class _DataSliceViewState:
     )
 
     # Sync the data-item attribute with whether the DataSlice is a DataItem.
-    if isinstance(self.ds, kd.types.DataItem):
+    if isinstance(self.ds, _kd.types.DataItem):
       table_elem.setAttribute('data-item', '')
     else:
       table_elem.removeAttribute('data-item')
@@ -544,7 +543,7 @@ class _DataSliceViewState:
         'data-loaded-range', f'{new_data.items_begin},{new_data.items_end}'
     )
     table_elem.setAttribute('data-headers', new_data.headers)
-    table_elem.setAttribute('data-sizes', json.dumps(new_data.sizes))
+    table_elem.setAttribute('data-sizes', _json.dumps(new_data.sizes))
     table_elem.setAttribute('data-header-classes', new_data.header_classes)
     table_elem.innerHTML = new_data.data
     self.footer_elem.innerHTML = new_data.footer
@@ -556,7 +555,7 @@ class _DataSliceViewState:
         table_elem.scrollToIndex.bind(table_elem, scroll_to_index), 0
     )
 
-    if isinstance(self.ds, kd.types.DataItem):
+    if isinstance(self.ds, _kd.types.DataItem):
       _focus_data_cell(_js_eval_global(), self.instance_id)
 
     table_elem.classList.remove('loading')
@@ -571,7 +570,7 @@ class _DataSliceViewState:
       )
     self.breadcrumb_elem.innerHTML = ''.join(parts) if len(parts) > 1 else ''
 
-  def _update_ds(self, next_ds: kd.types.DataSlice):
+  def _update_ds(self, next_ds: _kd.types.DataSlice):
     if self.ds.get_ndim() != next_ds.get_ndim():
       self.items_begin = 0
     self.ds = next_ds
@@ -592,9 +591,9 @@ class _DataSliceViewState:
 
   def descend_into_attr(self, header: str):
     """Handles a click on a header that represents an expandable attr."""
-    if kdi.is_primitive(self.ds):
+    if _kdi.is_primitive(self.ds):
       return
-    next_ds = kdi.maybe(self.ds, header)
+    next_ds = _kdi.maybe(self.ds, header)
 
     # Need to check clickability here because all header clicks will call
     # this method.
@@ -618,7 +617,7 @@ class _DataSliceViewState:
       value = entry['value']
       match entry['type']:
         case AccessType.FLAT_SLICE_INDEX.value:
-          if not isinstance(next_ds, kd.types.DataItem):
+          if not isinstance(next_ds, _kd.types.DataItem):
             next_ds = next_ds.flatten().take(int(value))
             crumbs.append(f'.flatten().S[{value}]')
         case AccessType.SCHEMA_ATTR.value:
@@ -650,7 +649,7 @@ class _DataSliceViewState:
               str(value[i]) if i < len(value) else ':'
               for i in range(next_ds.get_ndim())
           )
-          next_ds = kd.subslice(next_ds, *value, ...)
+          next_ds = _kd.subslice(next_ds, *value, ...)
           crumbs.append(f'.S[{joined_multi_index}]')
     return next_ds, crumbs
 
@@ -726,11 +725,11 @@ class _DataSliceViewState:
         f'[data-access-id="{access_id}"]'
     )
     target_ds, _ = self._apply_access_path(access_path)
-    options = dataclasses.replace(self.options, item_limit=-1)
+    options = _dataclasses.replace(self.options, item_limit=-1)
     item_html = _format_item_html(target_ds, options=options)
     # lstrip since the previousSibling of elem already has the whitespace to
     # indent the first line.
-    target_elem.innerHTML = textwrap.indent(item_html, whitespace).lstrip()
+    target_elem.innerHTML = _textwrap.indent(item_html, whitespace).lstrip()
     self._end_loading()
 
   def _handle_dim_index_click(self, dimension: int, flat_index: int):
@@ -738,7 +737,7 @@ class _DataSliceViewState:
     # Convert the flat index into a multi-index.
     multi_index = []
     for i in range(dimension + 1):
-      multi_index.append(kd.index(self.ds, dim=i).flatten().take(flat_index))
+      multi_index.append(_kd.index(self.ds, dim=i).flatten().take(flat_index))
     self.descend_into_access_path(
         [{'type': AccessType.MULTI_SLICE_INDEX.value, 'value': multi_index}],
         DescendMode.VALUE,
@@ -796,12 +795,12 @@ def _css_length_to_string(length: _CssLength) -> str:
 
 
 def visualize_slice(
-    ds: kd.types.DataSlice,
+    ds: _kd.types.DataSlice,
     options: DataSliceVisOptions | None = None,
 ) -> _DataSliceViewState:
   """Visualizes a DataSlice as a html widget."""
   options = options or DataSliceVisOptions()
-  instance_id = 'id_' + str(uuid.uuid4())
+  instance_id = 'id_' + str(_uuid.uuid4())
   data = _create_data_slice_table_data(ds, items_begin=0, options=options)
 
   # Populate style dict with optional CSS properties.
@@ -1000,7 +999,7 @@ def visualize_slice(
 
   # Main HTML output that persists in the notebook even if the kernel is
   # disconnected.
-  is_data_item = isinstance(ds, kd.types.DataItem)
+  is_data_item = isinstance(ds, _kd.types.DataItem)
   data_item_attr = 'data-item' if is_data_item else ''
   no_bag_attr = 'no-bag' if not ds.has_bag() else ''
   stats_div = f'<div id="stats">{data.stats}</div>'
@@ -1123,12 +1122,12 @@ class _Watcher:
   event listeners of the previous execution when the cell is executed again.
   """
 
-  def __init__(self, shell: interactiveshell.InteractiveShell):
+  def __init__(self, shell: _interactiveshell.InteractiveShell):
     self._cell_id_to_state = {}
     self._shell = shell
 
-  def post_run_cell(self, exec_result: interactiveshell.ExecutionResult):
-    if isinstance(exec_result.result, kd.types.DataSlice):
+  def post_run_cell(self, exec_result: _interactiveshell.ExecutionResult):
+    if isinstance(exec_result.result, _kd.types.DataSlice):
       state = visualize_slice(exec_result.result)
       cell_id = _get_cell_id(exec_result.info)
 
@@ -1149,14 +1148,14 @@ _OLD_FORMATTER = None
 
 
 def _set_ds_formatter(formatter: _Callable[[...], _Any]):
-  shell = IPython.get_ipython()
+  shell = _IPython.get_ipython()
   if not shell:
     raise RuntimeError('IPython shell not initialized.')
   # Note that `for_type` does not modify the registered formatter if the
   # formatter. Therefore, popping is necessary to cover the None case.
   html_formatters = shell.display_formatter.formatters['text/html']
-  old_formatter = html_formatters.type_printers.pop(kd.types.DataSlice, None)
-  html_formatters.for_type(kd.types.DataSlice, formatter)
+  old_formatter = html_formatters.type_printers.pop(_kd.types.DataSlice, None)
+  html_formatters.for_type(_kd.types.DataSlice, formatter)
   return old_formatter
 
 
@@ -1176,7 +1175,7 @@ def register_formatters() -> bool:
   _OLD_FORMATTER = _set_ds_formatter(lambda *args: '')
 
   # Register a new post_run_cell back.
-  shell = IPython.get_ipython()
+  shell = _IPython.get_ipython()
   _WATCHER = _Watcher(shell)
   shell.events.register('post_run_cell', _WATCHER.post_run_cell)
   return True
@@ -1193,7 +1192,7 @@ def unregister_formatters() -> bool:
     return False
 
   # Restore the old formatter after popping any existing one.
-  shell = IPython.get_ipython()
+  shell = _IPython.get_ipython()
   _set_ds_formatter(_OLD_FORMATTER)
 
   # Remove any post_run_cell back from this module.
@@ -1201,7 +1200,7 @@ def unregister_formatters() -> bool:
   to_remove = [
       cb
       for cb in post_run_cell_callbacks
-      if inspect.ismethod(cb) and cb.__self__.__class__.__module__ == __name__
+      if _inspect.ismethod(cb) and cb.__self__.__class__.__module__ == __name__
   ]
   for callback in to_remove:
     shell.events.unregister('post_run_cell', callback)
