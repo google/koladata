@@ -16,6 +16,7 @@
 
 import copy
 import dataclasses
+import types
 from typing import Any
 
 import google_benchmark
@@ -425,7 +426,7 @@ def _not_none_not_object(schema):
 @google_benchmark.register
 @google_benchmark.option.arg_names(['schema', 'from_dim'])
 @google_benchmark.option.args_product([[0, 1, 2, 3], [0, 1]])
-def universal_converter_no_caching_flat(state):
+def from_py_no_caching_flat(state):
   # NOTE: There is no caching of Python objects, as all of them are unique.
   schema = _SCHEMA_ARG[state.range(0)]
   from_dim = state.range(1)
@@ -439,7 +440,7 @@ def universal_converter_no_caching_flat(state):
 @google_benchmark.register
 @google_benchmark.option.arg_names(['schema', 'from_dim'])
 @google_benchmark.option.args_product([[0, 1, 2, 3], [0, 1]])
-def universal_converter_no_caching_nested(state):
+def from_py_no_caching_nested(state):
   # NOTE: There is no caching of Python objects, as all of them are unique.
   schema = _SCHEMA_ARG[state.range(0)]
   from_dim = state.range(1)
@@ -455,7 +456,7 @@ def universal_converter_no_caching_nested(state):
 @google_benchmark.register
 @google_benchmark.option.arg_names(['schema', 'from_dim'])
 @google_benchmark.option.args_product([[0, 1, 2, 3], [0, 12]])
-def universal_converter_no_caching_deep_nesting(state):
+def from_py_no_caching_deep_nesting(state):
   # NOTE: There is no caching of Python objects, as all of them are unique.
   schema = _SCHEMA_ARG[state.range(0)]
   from_dim = state.range(1)
@@ -477,7 +478,7 @@ def universal_converter_no_caching_deep_nesting(state):
 @google_benchmark.register
 @google_benchmark.option.arg_names(['schema'])
 @google_benchmark.option.args_product([[0, 3]])  # OBJECT and None
-def deep_universal_converter(state):
+def from_py_deep(state):
   schema = _SCHEMA_ARG[state.range(0)]
   d = {'abc': 42}
   for _ in range(1000):
@@ -489,7 +490,7 @@ def deep_universal_converter(state):
 @google_benchmark.register
 @google_benchmark.option.arg_names(['schema'])
 @google_benchmark.option.args_product([[0, 3]])  # OBJECT and None
-def deep_universal_converter_dict_as_obj(state):
+def from_py_deep_dict_as_obj(state):
   schema = _SCHEMA_ARG[state.range(0)]
   d = {'abc': 42}
   for _ in range(1000):
@@ -501,7 +502,7 @@ def deep_universal_converter_dict_as_obj(state):
 @google_benchmark.register
 @google_benchmark.option.arg_names(['schema'])
 @google_benchmark.option.args_product([[0, 3]])  # OBJECT and None
-def universal_converter_object(state):
+def from_py_object(state):
   schema = _SCHEMA_ARG[state.range(0)]
 
   @dataclasses.dataclass
@@ -523,7 +524,7 @@ def universal_converter_object(state):
 
 
 @google_benchmark.register
-def universal_converter_entity(state):
+def from_py_entity(state):
   schema = kd.schema.new_schema(x=kd.INT32, y=kd.INT32, z=kd.INT32)
 
   @dataclasses.dataclass
@@ -553,8 +554,55 @@ def universal_converter_entity(state):
 
 @google_benchmark.register
 @google_benchmark.option.arg_names(['schema'])
+@google_benchmark.option.args_product([[0, 3]])  # OBJECT and None
+def from_py_simplenamespace_object(state):
+  schema = _SCHEMA_ARG[state.range(0)]
+
+  def create_obj(depth=5):
+    if depth == 0:
+      return types.SimpleNamespace(x=123, y=456, z=789)
+    return types.SimpleNamespace(
+        x=create_obj(depth - 1),
+        y=create_obj(depth - 1),
+        z=create_obj(depth - 1),
+    )
+
+  obj = [create_obj() for _ in range(1000)]
+
+  while state:
+    _ = kd.from_py(obj, schema=schema)
+
+
+@google_benchmark.register
+def from_py_simplenamespace_entity(state):
+  schema = kd.schema.new_schema(x=kd.INT32, y=kd.INT32, z=kd.INT32)
+
+  def create_obj(depth=5):
+    if depth == 0:
+      return types.SimpleNamespace(x=123, y=456, z=789)
+    return types.SimpleNamespace(
+        x=create_obj(depth - 1),
+        y=create_obj(depth - 1),
+        z=create_obj(depth - 1),
+    )
+
+  def create_schema(leaf_schema):
+    schema = leaf_schema
+    for _ in range(5):
+      schema = kd.schema.new_schema(x=schema, y=schema, z=schema)
+    schema = kd.schema.list_schema(schema)
+    return schema
+
+  obj = [create_obj() for _ in range(1000)]
+
+  while state:
+    _ = kd.from_py(obj, schema=create_schema(schema))
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['schema'])
 @google_benchmark.option.args_product([[0, 3]])
-def universal_converter_list(state):
+def from_py_list(state):
   schema = _SCHEMA_ARG[state.range(0)]
   l = [1, 2, 3]
   for _ in range(10):
@@ -566,7 +614,7 @@ def universal_converter_list(state):
 @google_benchmark.register
 @google_benchmark.option.arg_names(['schema'])
 @google_benchmark.option.args_product([[0, 3, 6]])
-def universal_converter_list_of_obj_primitives(state):
+def from_py_list_of_obj_primitives(state):
   l = [42] * 10000
   if state.range(0) == 6:
     schema = kd.list_schema(kd.OBJECT)
@@ -580,7 +628,7 @@ def universal_converter_list_of_obj_primitives(state):
 @google_benchmark.register
 @google_benchmark.option.arg_names(['schema'])
 @google_benchmark.option.args_product([[0, 3]])
-def universal_converter_itemid(state):
+def from_py_itemid(state):
   schema = _SCHEMA_ARG[state.range(0)]
   l = [1, 2, 3]
   for _ in range(10):
