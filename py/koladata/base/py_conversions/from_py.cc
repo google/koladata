@@ -345,6 +345,9 @@ class FromPyConverter {
         } else {
           has_regular_dict = true;
         }
+      } else if (is_entity_schema && !Py_IsNone(py_obj)) {
+        // Fall back to ConvertEntities, which handles mixed dicts and objects.
+        return DictConversionMode::kNoDict;
       }
     }
     return has_obj_dict ? (has_regular_dict ? DictConversionMode::kMixedDicts
@@ -1242,6 +1245,8 @@ class FromPyConverter {
 
     std::optional<arolla::bitmap::AlmostFullBuilder> bitmap_builder;
 
+    std::vector<absl::string_view> attr_names_views(attr_names_vec.begin(),
+                                                    attr_names_vec.end());
     std::vector<std::vector<PyObject*>> attr_python_values_vec(
         attr_names.size());
     for (size_t i = 0; i < py_objects.size(); ++i) {
@@ -1251,23 +1256,20 @@ class FromPyConverter {
           bitmap_builder.emplace(py_objects.size());
         }
         bitmap_builder->AddMissed(i);
-        for (int i = 0; i < attr_names.size(); ++i) {
-          attr_python_values_vec[i].push_back(Py_None);
+        for (size_t j = 0; j < attr_names.size(); ++j) {
+          attr_python_values_vec[j].push_back(Py_None);
         }
         continue;
       }
 
-      std::vector<absl::string_view> attr_names_views(attr_names_vec.begin(),
-                                                      attr_names_vec.end());
       ASSIGN_OR_RETURN(
           std::vector<PyObject*> attr_result,
           // TODO(b/379122942) consider creating one call to GetAttrValues
           // for all py_objects, if it makes the code faster.
-
           dataclasses_util_.GetAttrValues(py_obj, attr_names_views));
 
-      for (int i = 0; i < attr_result.size(); ++i) {
-        attr_python_values_vec[i].push_back(attr_result[i]);
+      for (size_t j = 0; j < attr_result.size(); ++j) {
+        attr_python_values_vec[j].push_back(attr_result[j]);
       }
     }
     return CreateEntitiesFromAttrNamesAndValues(

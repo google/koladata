@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
 import copy
 import dataclasses
 import enum
@@ -1025,10 +1026,14 @@ assigned schema: INT32"""),
       schema = kde.list_schema(entity_schema).eval()
       entity = fns.new(a=2, schema=entity_schema)
       d = {'a': 3}
-      with self.assertRaisesRegex(
-          ValueError, 'expected dict object when parsing dict as object'
-      ):
-        _ = from_py([d, entity], schema=schema, dict_as_obj=True)
+      x = from_py([d, entity], schema=schema, dict_as_obj=True)
+      testing.assert_equivalent(
+          x,
+          fns.list(
+              [fns.new(a=3, schema=entity_schema), entity],
+              item_schema=entity_schema,
+          ),
+      )
 
   def test_dict_as_obj_object(self):
     obj = from_py(
@@ -1646,13 +1651,193 @@ assigned schema: ENTITY(x=INT32)"""),
       ),
   )
   def test_simple_namespace(self, schema, expected_schema):
-    ns1 = types.SimpleNamespace(x=1, y=3.14)
-    ns2 = types.SimpleNamespace(a=ns1, b=2)
-    obj = from_py(ns2, schema=schema)
-    inner_obj = obj.a
-    testing.assert_equal(inner_obj.x.no_bag(), ds(1, schema=expected_schema))
-    testing.assert_equal(inner_obj.y.no_bag(), ds(3.14, schema=expected_schema))
-    testing.assert_equal(obj.b.no_bag(), ds(2, schema=expected_schema))
+    class SubNamespace(types.SimpleNamespace):
+      pass
+
+    for ns_cls in (types.SimpleNamespace, SubNamespace):
+      ns1 = ns_cls(x=1, y=3.14)
+      ns2 = ns_cls(a=ns1, b=2)
+      obj = from_py(ns2, schema=schema)
+      inner_obj = obj.a
+      testing.assert_equal(inner_obj.x.no_bag(), ds(1, schema=expected_schema))
+      testing.assert_equal(
+          inner_obj.y.no_bag(), ds(3.14, schema=expected_schema)
+      )
+      testing.assert_equal(obj.b.no_bag(), ds(2, schema=expected_schema))
+
+  def test_simple_namespace_with_entity_schema_missing_attrs(self):
+    class SubNamespace(types.SimpleNamespace):
+      pass
+
+    schema = kde.schema.new_schema(
+        x=schema_constants.INT64, y=schema_constants.STRING
+    ).eval()
+    res = from_py(
+        [
+            types.SimpleNamespace(x=1),
+            types.SimpleNamespace(y='hi', extra=99),
+            SubNamespace(x=2),
+            types.SimpleNamespace(),
+            None,
+        ],
+        schema=schema,
+        from_dim=1,
+    )
+    expected = fns.slice([
+        fns.new(x=1, schema=schema),
+        fns.new(y='hi', schema=schema),
+        fns.new(x=2, schema=schema),
+        fns.new(schema=schema),
+        None,
+    ])
+    testing.assert_equivalent(res, expected)
+
+    # Dataclasses missing schema attributes still raise AttributeError.
+    with self.assertRaisesRegex(AttributeError, "has no attribute 'y'"):
+      _ = from_py(NestedKlass(x='a'), schema=schema)
+
+    # Class spoofing __class__ = SimpleNamespace does not take the __dict__
+    # shortcut and raises AttributeError on missing attributes.
+    class SpoofedNamespace:
+      __class__ = types.SimpleNamespace
+
+      def __init__(self):
+        self.x = 1
+
+    with self.assertRaisesRegex(AttributeError, "has no attribute 'y'"):
+      from_py(SpoofedNamespace(), schema=schema)
+
+  def test_mixed_dict_and_objects_with_entity_schema(self):
+    @dataclasses.dataclass
+    class Item:
+      a: int
+      b: str
+      meta: Any
+
+    class PlainObj:
+      a = 4
+      b = 'plain'
+      meta = None
+
+    entity_schema = kde.schema.new_schema(
+        a=schema_constants.INT64,
+        b=schema_constants.STRING,
+        meta=schema_constants.OBJECT,
+    ).eval()
+    res = from_py(
+        [
+            types.SimpleNamespace(a=1, meta=types.SimpleNamespace(x=10)),
+            {'a': 2, 'b': 'hi', 'meta': {'y': 20}},
+            Item(a=3, b='dc', meta=types.SimpleNamespace(z=30)),
+            PlainObj(),
+            None,
+            types.SimpleNamespace(),
+        ],
+        schema=entity_schema,
+        from_dim=1,
+    )
+    expected = fns.slice([
+        fns.new(
+            a=1,
+            meta=fns.obj(x=ds(10, schema_constants.OBJECT)),
+            schema=entity_schema,
+        ),
+        fns.new(
+            a=2,
+            b='hi',
+            meta=fns.obj(
+                fns.dict(
+                    {'y': 20},
+                    key_schema=schema_constants.OBJECT,
+                    value_schema=schema_constants.OBJECT,
+                )
+            ),
+            schema=entity_schema,
+        ),
+        fns.new(
+            a=3,
+            b='dc',
+            meta=fns.obj(z=ds(30, schema_constants.OBJECT)),
+            schema=entity_schema,
+        ),
+        fns.new(a=4, b='plain', schema=entity_schema),
+        None,
+        fns.new(schema=entity_schema),
+    ])
+    testing.assert_equivalent(res, expected)
+
+    with self.assertRaisesRegex(
+        ValueError, 'dict_as_obj requires keys to be valid unicode objects'
+    ):
+      _ = from_py(
+          [types.SimpleNamespace(a=1), {1: 2}],
+          schema=entity_schema,
+          from_dim=1,
+      )
+
+    # STRING DataItem dict keys match schema attributes via str hash/eq.
+    di_res = from_py(
+        [
+            {fns.item('a'): 1, fns.item('b'): 'from_di'},
+            types.SimpleNamespace(a=2, b='from_ns'),
+        ],
+        schema=entity_schema,
+        from_dim=1,
+    )
+    testing.assert_equivalent(
+        di_res,
+        fns.slice([
+            fns.new(a=1, b='from_di', schema=entity_schema),
+            fns.new(a=2, b='from_ns', schema=entity_schema),
+        ]),
+    )
+
+    # OrderedDict (non-exact dict) fails consistently standalone and mixed.
+    with self.assertRaisesRegex(
+        ValueError, 'schema mismatch: expected dict object'
+    ):
+      from_py(collections.OrderedDict({'a': 1}), schema=entity_schema)
+    with self.assertRaisesRegex(AttributeError, "has no attribute 'a'"):
+      from_py(
+          [collections.OrderedDict({'a': 1}), types.SimpleNamespace(a=2)],
+          schema=entity_schema,
+          from_dim=1,
+      )
+
+    # A later element's __getattr__ clearing an earlier dict must not free or
+    # corrupt the earlier dict's values before conversion.
+    # Allocate a fresh non-interned string owned only by `d` so `d.clear()`
+    # frees it unless `from_py` took an owned ref (`getrefcount` adds +1).
+    d = {'a': 1, 'b': ''.join(['dynamic', '_val']), 'meta': {'x': 10}}
+    self.assertEqual(sys.getrefcount(d['b']), 2)
+
+    class MutatingObj:
+
+      def __getattr__(self, name):
+        d.clear()
+        return {'a': 2, 'b': 'after', 'meta': None}[name]
+
+    mutated_res = from_py(
+        [d, MutatingObj()], schema=entity_schema, from_dim=1
+    )
+    testing.assert_equivalent(
+        mutated_res,
+        fns.slice([
+            fns.new(
+                a=1,
+                b='dynamic_val',
+                meta=fns.obj(
+                    fns.dict(
+                        {'x': 10},
+                        key_schema=schema_constants.OBJECT,
+                        value_schema=schema_constants.OBJECT,
+                    )
+                ),
+                schema=entity_schema,
+            ),
+            fns.new(a=2, b='after', schema=entity_schema),
+        ]),
+    )
 
   def test_dataclasses_with_schema(self):
 

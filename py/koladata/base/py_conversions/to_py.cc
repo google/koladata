@@ -88,26 +88,7 @@ std::string PyObjectTypeName(PyObject* py_obj) {
 
 // Creates an empty `types.SimpleNamespace` instance.
 absl::StatusOr<PyObjectPtr> NewSimpleNamespace() {
-  arolla::python::DCheckPyGIL();
-  // Note: this lazy static cache relies on the GIL and will need
-  // synchronization (e.g. `std::atomic`) if free-threaded Python is enabled.
-  static PyObject* simple_namespace_type = nullptr;
-  if (simple_namespace_type == nullptr) {
-    PyObjectPtr types_module = PyObjectPtr::Own(PyImport_ImportModule("types"));
-    PyObjectPtr ns_type;
-    if (types_module != nullptr) {
-      ns_type = PyObjectPtr::Own(
-          PyObject_GetAttrString(types_module.get(), "SimpleNamespace"));
-    }
-    if (ns_type == nullptr) {
-      return arolla::python::StatusCausedByPyErr(
-          absl::StatusCode::kInternal, "could not get types.SimpleNamespace");
-    }
-    if (!PyType_Check(ns_type.get())) {
-      return absl::InternalError("types.SimpleNamespace is not a type");
-    }
-    simple_namespace_type = ns_type.release();
-  }
+  ASSIGN_OR_RETURN(PyObject * simple_namespace_type, GetSimpleNamespaceType());
   PyObjectPtr py_obj =
       PyObjectPtr::Own(PyObject_CallNoArgs(simple_namespace_type));
   if (py_obj == nullptr) {

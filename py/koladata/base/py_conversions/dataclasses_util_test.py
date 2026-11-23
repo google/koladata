@@ -53,6 +53,10 @@ class DataclassesUtilTest(absltest.TestCase):
 
     self.assertEqual(util.get_attr_values(obj, ['a', 'b', 'c']), [1, 2, 3])
     self.assertEqual(util.get_attr_values(obj, ['c', 'b', 'a']), [3, 2, 1])
+    self.assertEqual(
+        util.get_attr_values({'a': 1, 'b': 2, 'c': 3}, ['c', 'b', 'a']),
+        [3, 2, 1],
+    )
 
   def test_get_attr_values_no_leak(self):
     util = testing_clib.DataClassesUtil()

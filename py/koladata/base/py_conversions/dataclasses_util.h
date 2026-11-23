@@ -59,10 +59,12 @@ class DataClassesUtil {
   absl::StatusOr<std::optional<AttrResult>> GetAttrNamesAndValues(
       PyObject* py_obj);
 
-  // Get the values of object's attributes for corresponding attr_names.
-  // Returned values are borrowed references owned by DataClassesUtil.
+  // Get the values of object's attributes for corresponding `attr_names`.
+  // For `dict` and `types.SimpleNamespace` instances, missing attributes are
+  // returned as `Py_None`. Returned values are borrowed references owned by
+  // DataClassesUtil.
   absl::StatusOr<std::vector<PyObject*>> GetAttrValues(
-      PyObject* py_obj, absl::Span<const absl::string_view> sorted_attr_names);
+      PyObject* py_obj, absl::Span<const absl::string_view> attr_names);
 
   // Returns the type of the given field in the class.
   // If the class is a dataclass, the type of the field is returned.
@@ -104,6 +106,8 @@ class DataClassesUtil {
 
  private:
   absl::Status InitFns();
+  absl::StatusOr<std::vector<PyObject*>> GetDictValues(
+      PyObject* py_dict, absl::Span<const absl::string_view> attr_names);
 
   // Keys point into the UTF-8 buffers of interned strings owned by
   // `py_str_cache_` (heap-allocated PyUnicodeObject buffers remain stable
@@ -127,6 +131,9 @@ class DataClassesUtil {
   // them as it got new references from dataclass object.
   std::deque<arolla::python::PyObjectPtr> owned_values_;
 };
+
+// Returns a borrowed reference to `types.SimpleNamespace` (cached).
+absl::StatusOr<PyObject* absl_nonnull> GetSimpleNamespaceType();
 
 // Returns true if `type` is non-null and specifies a concrete type (i.e. not
 // `Py_None`, which `DataClassesUtil` uses for `Any` and `Any | None`).

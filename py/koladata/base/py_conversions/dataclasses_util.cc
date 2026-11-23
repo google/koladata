@@ -31,6 +31,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "py/arolla/py_utils/py_utils.h"
+#include "py/koladata/base/boxing.h"
 
 namespace koladata::python {
 namespace {
@@ -74,7 +75,37 @@ absl::StatusOr<PyObjectPtr> InitFnFromModule(absl::string_view fn_name) {
   return fn;
 }
 
+absl::StatusOr<bool> IsSimpleNamespace(PyObject* py_obj) {
+  ASSIGN_OR_RETURN(PyObject * simple_namespace_type, GetSimpleNamespaceType());
+  return PyObject_TypeCheck(
+      py_obj, reinterpret_cast<PyTypeObject*>(simple_namespace_type));
+}
+
 }  // namespace
+
+absl::StatusOr<PyObject* absl_nonnull> GetSimpleNamespaceType() {
+  arolla::python::DCheckPyGIL();
+  // Note: this lazy static cache relies on the GIL and will need
+  // synchronization if free-threaded Python is enabled.
+  static PyObject* simple_namespace_type = nullptr;
+  if (simple_namespace_type == nullptr) {
+    PyObjectPtr types_module = PyObjectPtr::Own(PyImport_ImportModule("types"));
+    PyObjectPtr ns_type;
+    if (types_module != nullptr) {
+      ns_type = PyObjectPtr::Own(
+          PyObject_GetAttrString(types_module.get(), "SimpleNamespace"));
+    }
+    if (ns_type == nullptr) {
+      return arolla::python::StatusCausedByPyErr(
+          absl::StatusCode::kInternal, "could not get types.SimpleNamespace");
+    }
+    if (!PyType_Check(ns_type.get())) {
+      return absl::InternalError("types.SimpleNamespace is not a type");
+    }
+    simple_namespace_type = ns_type.release();
+  }
+  return simple_namespace_type;
+}
 
 absl::StatusOr<PyObject*> DataClassesUtil::GetPyStr(absl::string_view str) {
   auto it = py_str_cache_.find(str);
@@ -126,8 +157,53 @@ absl::StatusOr<PyObjectPtr> DataClassesUtil::CreateClassInstanceKwargs(
   return py_instance;
 }
 
+absl::StatusOr<std::vector<PyObject*>> DataClassesUtil::GetDictValues(
+    PyObject* py_dict, absl::Span<const absl::string_view> attr_names) {
+  std::vector<PyObject*> values;
+  values.reserve(attr_names.size());
+  for (absl::string_view attr_name : attr_names) {
+    ASSIGN_OR_RETURN(PyObject * py_attr_name, GetPyStr(attr_name));
+    PyObject* py_value = PyDict_GetItemWithError(py_dict, py_attr_name);
+    if (py_value == nullptr) {
+      if (PyErr_Occurred()) {
+        return arolla::python::StatusWithRawPyErr(
+            absl::StatusCode::kInvalidArgument,
+            absl::StrFormat("could not get attr %s", attr_name));
+      }
+      values.push_back(Py_None);
+      continue;
+    }
+    owned_values_.push_back(PyObjectPtr::NewRef(py_value));
+    values.push_back(py_value);
+  }
+  return values;
+}
+
 absl::StatusOr<std::vector<PyObject*>> DataClassesUtil::GetAttrValues(
     PyObject* py_obj, absl::Span<const absl::string_view> attr_names) {
+  if (PyDict_CheckExact(py_obj)) {
+    Py_ssize_t pos = 0;
+    PyObject* py_key = nullptr;
+    while (PyDict_Next(py_obj, &pos, &py_key, nullptr)) {
+      if (!PyUnicode_Check(py_key)) {
+        RETURN_IF_ERROR(PyDictKeyAsStringView(py_key).status());
+      }
+    }
+    return GetDictValues(py_obj, attr_names);
+  }
+  ASSIGN_OR_RETURN(bool is_simple_namespace, IsSimpleNamespace(py_obj));
+  if (is_simple_namespace) {
+    PyObjectPtr py_dict =
+        PyObjectPtr::Own(PyObject_GenericGetDict(py_obj, nullptr));
+    if (py_dict == nullptr) {
+      return arolla::python::StatusWithRawPyErr(
+          absl::StatusCode::kInvalidArgument,
+          "could not get __dict__ from SimpleNamespace");
+    }
+    // Look up directly in __dict__ instead of PyObject_GetAttr to avoid raising
+    // and clearing AttributeError on missing attributes.
+    return GetDictValues(py_dict.get(), attr_names);
+  }
   std::vector<PyObject*> values;
   values.reserve(attr_names.size());
   for (absl::string_view attr_name : attr_names) {
