@@ -586,7 +586,7 @@ class FnToPyTest(absltest.TestCase):
   def test_fn_to_py_with_kd_ext_operator(self):
     @kd.trace_as_fn()
     def get_x(ds):
-      return kd_ext.contrib.get_attr_or_item(ds, 'x')  # pyrefly: ignore[missing-attribute]
+      return kd_ext.contrib.get_attr_or_item(ds, 'x')
 
     def compute(ds):
       return get_x(ds) + 1

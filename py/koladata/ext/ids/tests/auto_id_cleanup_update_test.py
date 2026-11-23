@@ -24,18 +24,18 @@ class IdsAutoIdCleanupUpdateTest(parameterized.TestCase):
 
   def test_auto_id_cleanup_update(self):
     schema = kd.schema.new_schema(a=kd.INT32)
-    schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
+    schema = kd_ext.ids.with_auto_attributes(
         schema,
-        foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
+        foo_id=kd_ext.ids.auto_id('foo'),
     )
     x = kd.new(a=ds([1, 2, 3]), schema=schema)
-    x = x.updated(kd_ext.ids.auto_id_update(x))  # pyrefly: ignore[missing-attribute]
+    x = x.updated(kd_ext.ids.auto_id_update(x))
 
     # Verify we have IDs
     kd.testing.assert_equivalent(x.foo_id, ds(['foo_1', 'foo_2', 'foo_3']))
 
     # Get cleanup update
-    update_bag = kd_ext.ids.auto_id_cleanup_update(x)  # pyrefly: ignore[missing-attribute]
+    update_bag = kd_ext.ids.auto_id_cleanup_update(x)
     x_clean = x.updated(update_bag)
 
     expected = kd.new(a=ds([1, 2, 3]))
@@ -43,18 +43,18 @@ class IdsAutoIdCleanupUpdateTest(parameterized.TestCase):
 
   def test_auto_id_cleanup_update_keep_other_metadata(self):
     schema = kd.schema.new_schema(a=kd.INT32)
-    schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
+    schema = kd_ext.ids.with_auto_attributes(
         schema,
-        foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
+        foo_id=kd_ext.ids.auto_id('foo'),
     )
     # Add other metadata manually.
     schema = kd.core.with_metadata(schema, other_meta=kd.schema.new_schema(val=kd.INT32))
 
     x = kd.new(a=ds([1, 2, 3]), schema=schema)
-    x = x.updated(kd_ext.ids.auto_id_update(x))  # pyrefly: ignore[missing-attribute]
+    x = x.updated(kd_ext.ids.auto_id_update(x))
 
     # Get cleanup update
-    update_bag = kd_ext.ids.auto_id_cleanup_update(x)  # pyrefly: ignore[missing-attribute]
+    update_bag = kd_ext.ids.auto_id_cleanup_update(x)
     x_clean = x.updated(update_bag)
 
     # Verify foo_id is gone
@@ -74,11 +74,11 @@ class IdsAutoIdCleanupUpdateTest(parameterized.TestCase):
 
   def test_cleanup_schema_only(self):
     schema = kd.schema.new_schema(a=kd.INT32)
-    schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
+    schema = kd_ext.ids.with_auto_attributes(
         schema,
-        foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
+        foo_id=kd_ext.ids.auto_id('foo'),
     )
-    update_bag = kd_ext.ids.auto_id_cleanup_update(schema)  # pyrefly: ignore[missing-attribute]
+    update_bag = kd_ext.ids.auto_id_cleanup_update(schema)
     clean_schema = schema.updated(update_bag)
 
     # Verify foo_id is gone from schema
@@ -89,20 +89,20 @@ class IdsAutoIdCleanupUpdateTest(parameterized.TestCase):
 
   def test_nested(self):
     leaf_schema = kd.schema.new_schema(val=kd.INT32)
-    leaf_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
+    leaf_schema = kd_ext.ids.with_auto_attributes(
         leaf_schema,
-        leaf_id=kd_ext.ids.auto_id('leaf'),  # pyrefly: ignore[missing-attribute]
+        leaf_id=kd_ext.ids.auto_id('leaf'),
     )
     root_schema = kd.schema.new_schema(leaf=leaf_schema)
-    root_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
+    root_schema = kd_ext.ids.with_auto_attributes(
         root_schema,
-        root_id=kd_ext.ids.auto_id('root'),  # pyrefly: ignore[missing-attribute]
+        root_id=kd_ext.ids.auto_id('root'),
     )
     leaf = kd.new(val=ds([1, 2]), schema=leaf_schema)
     root = kd.new(leaf=leaf, schema=root_schema)
-    root = root.updated(kd_ext.ids.auto_id_update(root))  # pyrefly: ignore[missing-attribute]
+    root = root.updated(kd_ext.ids.auto_id_update(root))
 
-    update_bag = kd_ext.ids.auto_id_cleanup_update(root)  # pyrefly: ignore[missing-attribute]
+    update_bag = kd_ext.ids.auto_id_cleanup_update(root)
     root_clean = root.updated(update_bag)
 
     with self.assertRaisesRegex(
@@ -120,28 +120,28 @@ class IdsAutoIdCleanupUpdateTest(parameterized.TestCase):
 
   def test_nested_lists(self):
     list_item_schema = kd.schema.new_schema(val=kd.INT32)
-    list_item_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
+    list_item_schema = kd_ext.ids.with_auto_attributes(
         list_item_schema,
-        item_id=kd_ext.ids.auto_id('item'),  # pyrefly: ignore[missing-attribute]
+        item_id=kd_ext.ids.auto_id('item'),
     )
     root_schema = kd.schema.new_schema(
         items=kd.list_schema(item_schema=list_item_schema)
     )
-    root_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
+    root_schema = kd_ext.ids.with_auto_attributes(
         root_schema,
-        root_id=kd_ext.ids.auto_id('root'),  # pyrefly: ignore[missing-attribute]
+        root_id=kd_ext.ids.auto_id('root'),
     )
     lists_exploded = kd.new(val=ds([[1, 2], [3, 4, 5]]), schema=list_item_schema)
     lists = kd.implode(lists_exploded, ndim=1)
     root = kd.new(items=lists, schema=root_schema)
-    root = root.updated(kd_ext.ids.auto_id_pointwise_update(root))  # pyrefly: ignore[missing-attribute]
+    root = root.updated(kd_ext.ids.auto_id_pointwise_update(root))
     kd.testing.assert_equivalent(
         root.items[:].item_id,
         ds([['item_1', 'item_2'], ['item_1', 'item_2', 'item_3']]),
     )
     kd.testing.assert_equivalent(root.root_id, ds(['root_1', 'root_1']))
 
-    update_bag = kd_ext.ids.auto_id_cleanup_update(root)  # pyrefly: ignore[missing-attribute]
+    update_bag = kd_ext.ids.auto_id_cleanup_update(root)
     root_clean = root.updated(update_bag)
 
     with self.assertRaisesRegex(
@@ -162,17 +162,17 @@ class IdsAutoIdCleanupUpdateTest(parameterized.TestCase):
 
   def test_nested_dicts(self):
     value_schema = kd.schema.new_schema(val=kd.INT32)
-    value_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
+    value_schema = kd_ext.ids.with_auto_attributes(
         value_schema,
-        value_id=kd_ext.ids.auto_id('value'),  # pyrefly: ignore[missing-attribute]
+        value_id=kd_ext.ids.auto_id('value'),
     )
     dict_schema = kd.dict_schema(
         key_schema=kd.STRING, value_schema=value_schema
     )
     root_schema = kd.schema.new_schema(values=dict_schema)
-    root_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
+    root_schema = kd_ext.ids.with_auto_attributes(
         root_schema,
-        root_id=kd_ext.ids.auto_id('root'),  # pyrefly: ignore[missing-attribute]
+        root_id=kd_ext.ids.auto_id('root'),
     )
     dicts = kd.dict_shaped(
         kd.shapes.new(2),
@@ -181,14 +181,14 @@ class IdsAutoIdCleanupUpdateTest(parameterized.TestCase):
         schema=dict_schema,
     )
     root = kd.new(values=dicts, schema=root_schema)
-    root = root.updated(kd_ext.ids.auto_id_pointwise_update(root))  # pyrefly: ignore[missing-attribute]
+    root = root.updated(kd_ext.ids.auto_id_pointwise_update(root))
     kd.testing.assert_equivalent(
         root.values[:].value_id,
         ds([['value_1', 'value_2'], ['value_1', 'value_2', 'value_3']]),
     )
     kd.testing.assert_equivalent(root.root_id, ds(['root_1', 'root_1']))
 
-    update_bag = kd_ext.ids.auto_id_cleanup_update(root)  # pyrefly: ignore[missing-attribute]
+    update_bag = kd_ext.ids.auto_id_cleanup_update(root)
     root_clean = root.updated(update_bag)
 
     with self.assertRaisesRegex(
@@ -209,35 +209,35 @@ class IdsAutoIdCleanupUpdateTest(parameterized.TestCase):
 
   def test_auto_id_cleanup_update_set_again(self):
     schema = kd.schema.new_schema(a=kd.INT32)
-    schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
+    schema = kd_ext.ids.with_auto_attributes(
         schema,
-        foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
+        foo_id=kd_ext.ids.auto_id('foo'),
     )
     x = kd.new(a=ds([1, 2, 3]), schema=schema)
-    x = x.enriched(kd_ext.ids.auto_id_update(x))  # pyrefly: ignore[missing-attribute]
+    x = x.enriched(kd_ext.ids.auto_id_update(x))
 
     # Verify we have IDs
     kd.testing.assert_equivalent(x.foo_id, ds(['foo_1', 'foo_2', 'foo_3']))
 
     # Get cleanup update
-    update_bag = kd_ext.ids.auto_id_cleanup_update(x)  # pyrefly: ignore[missing-attribute]
+    update_bag = kd_ext.ids.auto_id_cleanup_update(x)
     x_clean = x.updated(update_bag)
 
     expected = kd.new(a=ds([1, 2, 3]))
     kd.testing.assert_equivalent(x_clean, expected, schemas_equality=False)
 
-    schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
+    schema = kd_ext.ids.with_auto_attributes(
         schema,
-        foo_id=kd_ext.ids.auto_id('foo')  # pyrefly: ignore[missing-attribute]
+        foo_id=kd_ext.ids.auto_id('foo')
     )
     x_reset = x_clean.updated(kd.extract(schema).get_bag())
-    x_reset = x_reset.updated(kd_ext.ids.auto_id_update(x_reset))  # pyrefly: ignore[missing-attribute]
+    x_reset = x_reset.updated(kd_ext.ids.auto_id_update(x_reset))
     kd.testing.assert_equivalent(
         x_reset.foo_id, ds(['foo_1', 'foo_2', 'foo_3'])
     )
 
     # Get cleanup update again
-    update_bag = kd_ext.ids.auto_id_cleanup_update(x_reset)  # pyrefly: ignore[missing-attribute]
+    update_bag = kd_ext.ids.auto_id_cleanup_update(x_reset)
     x_clean_again = x_reset.updated(update_bag)
     expected = kd.new(a=ds([1, 2, 3]))
     kd.testing.assert_equivalent(

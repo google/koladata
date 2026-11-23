@@ -21,7 +21,7 @@ from koladata import kd_ext
 I = kd.I
 kde = kd_ext.lazy
 ds = kd.slice
-get_attr_or_item = kd_ext.contrib.get_attr_or_item  # pyrefly: ignore[missing-attribute]
+get_attr_or_item = kd_ext.contrib.get_attr_or_item
 
 _ENTITY_KEY = kd.new(a=1)
 _MIXED_OBJECTS = ds(
@@ -623,7 +623,7 @@ class GetAttrOrItemTest(parameterized.TestCase):
 
   def test_tracing(self):
     def f(x, k):
-      return kd_ext.contrib.get_attr_or_item(x, k)  # pyrefly: ignore[missing-attribute]
+      return kd_ext.contrib.get_attr_or_item(x, k)
 
     fn = kd.trace_py_fn(f)
     mixed = ds([kd.obj(x=42), kd.obj(kd.dict({'x': 'hello'}))])
@@ -639,7 +639,7 @@ class GetAttrOrItemTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
         kde.contrib.get_attr_or_item,
-        (  # pyrefly: ignore[bad-argument-type]
+        (
             (
                 kd.qtypes.DATA_SLICE,
                 kd.qtypes.DATA_SLICE,

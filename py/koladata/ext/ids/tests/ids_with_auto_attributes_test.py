@@ -25,10 +25,10 @@ class IdsWithAutoAttributesTest(parameterized.TestCase):
 
   def test_auto_id_attributes(self):
     schema = kd.schema.new_schema(a=kd.INT32)
-    schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
+    schema = kd_ext.ids.with_auto_attributes(
         schema,
-        foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
-        bar_id=kd_ext.ids.auto_id('bar'),  # pyrefly: ignore[missing-attribute]
+        foo_id=kd_ext.ids.auto_id('foo'),
+        bar_id=kd_ext.ids.auto_id('bar'),
     )
     # The schema should now have a STRING attribute for foo_id and bar_id.
     kd.testing.assert_equal(
@@ -68,10 +68,10 @@ class IdsWithAutoAttributesTest(parameterized.TestCase):
 
   def test_auto_reference_attributes(self):
     schema = kd.schema.new_schema(a=kd.INT32)
-    schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
+    schema = kd_ext.ids.with_auto_attributes(
         schema,
-        foo_ref=kd_ext.ids.auto_reference('foo'),  # pyrefly: ignore[missing-attribute]
-        foo_ref_second=kd_ext.ids.auto_reference('foo'),  # pyrefly: ignore[missing-attribute]
+        foo_ref=kd_ext.ids.auto_reference('foo'),
+        foo_ref_second=kd_ext.ids.auto_reference('foo'),
     )
     # The schema should now have a STRING attribute for foo_id and bar_id.
     kd.testing.assert_equal(
@@ -100,10 +100,10 @@ class IdsWithAutoAttributesTest(parameterized.TestCase):
 
   def test_auto_reference_list_attribute(self):
     schema = kd.schema.new_schema(a=kd.INT32)
-    schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
+    schema = kd_ext.ids.with_auto_attributes(
         schema,
-        foo_id=kd_ext.ids.auto_reference_list(  # pyrefly: ignore[missing-attribute]
-            kd_ext.ids.auto_reference('foo')  # pyrefly: ignore[missing-attribute]
+        foo_id=kd_ext.ids.auto_reference_list(
+            kd_ext.ids.auto_reference('foo')
         ),
     )
     # The schema should now have a STRING attribute for foo_id.
