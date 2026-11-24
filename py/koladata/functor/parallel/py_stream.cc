@@ -62,7 +62,7 @@ using ::arolla::python::PyObjectPtr;
 using ::arolla::python::PyQValueType;
 using ::arolla::python::ReleasePyGIL;
 using ::arolla::python::SetPyErrFromStatus;
-using ::arolla::python::StatusWithRawPyErr;
+using ::arolla::python::StatusCausedByPyErr;
 using ::arolla::python::UnsafeUnwrapPyQValue;
 using ::arolla::python::UnwrapPyQType;
 using ::arolla::python::WrapAsPyQValue;
@@ -502,10 +502,10 @@ PyObject* PyStreamWriter_close(PyObject* self, PyObject* py_tuple_args,
   absl::Status close_status;
   if (py_exception != Py_None) {
     PyErr_RestoreRaisedException(PyObjectPtr::NewRef(py_exception));
-    close_status =
-        StatusWithRawPyErr(absl::StatusCode::kInvalidArgument,
-                           absl::StrFormat("Python exception: %s",
-                                           Py_TYPE(py_exception)->tp_name));
+    close_status = StatusCausedByPyErr(
+        absl::StatusCode::kInvalidArgument,
+        absl::StrFormat("stream was closed with a python exception: %s",
+                        Py_TYPE(py_exception)->tp_name));
   }
   std::move(*fields.stream_writer).Close(std::move(close_status));
   fields.closed = true;

@@ -1618,8 +1618,12 @@ following example showcases a variant of a family of problems related to this:
 >>> functor = kd.fn(fn)  # Traces fine.
 >>> functor(kd.slice([1, 2, 3]), 1)
 Traceback (most recent call last):
-ValueError: object with unsupported type, arolla.abc.expr.Expr, for value:
   ...
+  ValueError: object with unsupported type, arolla.abc.expr.Expr, for value:
+  ...
+  The above exception was the direct cause of the following exception:
+  ...
+ValueError: python callable failed with ValueError
 ```
 
 During tracing of `fn`, the function is called using `fn(I.ds, I.scalar_value)`.

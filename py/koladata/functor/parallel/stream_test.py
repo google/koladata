@@ -69,11 +69,15 @@ class StreamTest(parameterized.TestCase):
     try:
       raise ValueError('Boom!')
     except ValueError as ex:
+      original_ex = ex
       stream_writer.close(ex)
     stream_reader = stream.make_reader()
     self.assertEqual(stream_reader.read_available(), [arolla.int32(0)])
-    with self.assertRaisesWithLiteralMatch(ValueError, 'Boom!'):
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, 'stream was closed with a python exception: ValueError'
+    ) as cm:
       stream_reader.read_available()
+    self.assertIs(cm.exception.__cause__, original_ex)
 
   def test_stream_writer_orphaded(self):
     stream, stream_writer = clib.Stream.new(arolla.INT32)
@@ -334,9 +338,13 @@ class StreamTest(parameterized.TestCase):
       stream.read_all(timeout=-1)
     with self.assertRaisesWithLiteralMatch(TimeoutError, ''):
       stream.read_all(timeout=0)
-    writer.close(RuntimeError('Boom!'))
-    with self.assertRaisesWithLiteralMatch(RuntimeError, 'Boom!'):
+    ex = RuntimeError('Boom!')
+    writer.close(ex)
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, 'stream was closed with a python exception: RuntimeError'
+    ) as cm:
       stream.read_all(timeout=None)
+    self.assertIs(cm.exception.__cause__, ex)
 
   def test_stream_read_all_timeout_without_cancellation_context(self):
     stream, _ = clib.Stream.new(arolla.INT32)
@@ -421,9 +429,13 @@ class StreamTest(parameterized.TestCase):
       stream.yield_all(timeout=-1)
     with self.assertRaisesWithLiteralMatch(TimeoutError, ''):
       list(stream.yield_all(timeout=0))
-    writer.close(RuntimeError('Boom!'))
-    with self.assertRaisesWithLiteralMatch(RuntimeError, 'Boom!'):
+    ex = RuntimeError('Boom!')
+    writer.close(ex)
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, 'stream was closed with a python exception: RuntimeError'
+    ) as cm:
       list(stream.yield_all(timeout=None))
+    self.assertIs(cm.exception.__cause__, ex)
 
   def test_stream_yield_all_timeout_without_cancellation_context(self):
     stream, _ = clib.Stream.new(arolla.INT32)
