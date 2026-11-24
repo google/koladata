@@ -82,32 +82,38 @@ PyObject* PyStreamWriter_new(QTypePtr value_qtype,
                              StreamWriterPtr stream_writer);
 
 struct PyStreamWriterObject final {
-  PyObject_HEAD;
   struct Fields {
     const QTypePtr value_qtype;
     StreamWriterPtr stream_writer;
     bool closed = false;
   };
-  Fields fields;
+  PyObject_HEAD;
+  union {  // Constructed and destroyed manually.
+    Fields fields;
+  };
   PyObject* weakrefs;
 };
 
 struct PyStreamReaderObject final {
-  PyObject_HEAD;
   struct Fields {
     StreamReaderPtr stream_reader;
   };
-  Fields fields;
+  PyObject_HEAD;
+  union {  // Constructed and destroyed manually.
+    Fields fields;
+  };
   PyObject* weakrefs;
 };
 
 struct PyStreamYieldAllObject final {
-  PyObject_HEAD;
   struct Fields {
     StreamReaderPtr stream_reader;
     absl::Time deadline;
   };
-  Fields fields;
+  PyObject_HEAD;
+  union {  // Constructed and destroyed manually.
+    Fields fields;
+  };
   PyObject* weakrefs;
 };
 
@@ -128,19 +134,19 @@ PyStreamYieldAllObject::Fields& PyStreamYieldAll_fields(PyObject* self) {
 
 void PyStreamWriter_dealloc(PyObject* self) {
   PyObject_ClearWeakRefs(self);
-  PyStreamWriter_fields(self).~Fields();
+  std::destroy_at(&PyStreamWriter_fields(self));
   Py_TYPE(self)->tp_free(self);
 }
 
 void PyStreamReader_dealloc(PyObject* self) {
   PyObject_ClearWeakRefs(self);
-  PyStreamReader_fields(self).~Fields();
+  std::destroy_at(&PyStreamReader_fields(self));
   Py_TYPE(self)->tp_free(self);
 }
 
 void PyStreamYieldAll_dealloc(PyObject* self) {
   PyObject_ClearWeakRefs(self);
-  PyStreamYieldAll_fields(self).~Fields();
+  std::destroy_at(&PyStreamYieldAll_fields(self));
   Py_TYPE(self)->tp_free(self);
 }
 
@@ -598,7 +604,7 @@ PyMethodDef kPyStream_methods[] = {
         "new",
         &PyStreamNew,
         METH_O | METH_CLASS,
-        ("new(value_qtype, /)\n"
+        ("new($type, value_qtype, /)\n"
          "--\n\n"
          "Returns a new `tuple[Stream, StreamWriter]`."),
     },
@@ -606,7 +612,7 @@ PyMethodDef kPyStream_methods[] = {
         "make_reader",
         &PyStream_make_reader,
         METH_NOARGS,
-        ("make_reader()\n"
+        ("make_reader($self, /)\n"
          "--\n\n"
          "Returns a new reader for the stream."),
     },
@@ -614,7 +620,7 @@ PyMethodDef kPyStream_methods[] = {
         "read_all",
         reinterpret_cast<PyCFunction>(&PyStream_read_all),
         METH_FASTCALL | METH_KEYWORDS,
-        ("read_all(*, timeout)\n"
+        ("read_all($self, /, *, timeout)\n"
          "--\n\n"
          "Waits until the stream is closed and returns all its items.\n\n"
          "If `timeout` is not `None` and the stream is not closed within\n"
@@ -628,7 +634,7 @@ PyMethodDef kPyStream_methods[] = {
         "yield_all",
         reinterpret_cast<PyCFunction>(&PyStream_yield_all),
         METH_FASTCALL | METH_KEYWORDS,
-        ("yield_all(*, timeout)\n"
+        ("yield_all($self, /, *, timeout)\n"
          "--\n\n"
          "Returns an iterator for the stream items.\n\n"
          "If `timeout` is not `None` and the stream doesn't close within\n"
@@ -645,7 +651,7 @@ PyMethodDef kPyStreamWriter_methods[] = {
         "orphaned",
         &PyStreamWriter_orphaned,
         METH_NOARGS,
-        ("orphaned()\n"
+        ("orphaned($self, /)\n"
          "--\n\n"
          "Returns true if the stream no longer has any readers."),
     },
@@ -653,7 +659,7 @@ PyMethodDef kPyStreamWriter_methods[] = {
         "write",
         &PyStreamWriter_write,
         METH_O,
-        ("write(item, /)\n"
+        ("write($self, item, /)\n"
          "--\n\n"
          "Write an item to the stream."),
     },
@@ -661,7 +667,7 @@ PyMethodDef kPyStreamWriter_methods[] = {
         "close",
         reinterpret_cast<PyCFunction>(&PyStreamWriter_close),
         METH_VARARGS | METH_KEYWORDS,
-        ("close(exception=None)\n"
+        ("close($self, /, exception=None)\n"
          "--\n\n"
          "Closes the stream."),
     },
@@ -674,7 +680,7 @@ PyMethodDef kPyStreamReader_methods[] = {
         "read_available",
         reinterpret_cast<PyCFunction>(&PyStreamReader_read_available),
         METH_VARARGS | METH_KEYWORDS,
-        ("read_available(limit=None)\n"
+        ("read_available($self, /, limit=None)\n"
          "--\n\n"
          "Returns the available items from the stream.\n\n"
          "Returns an empty list if no more data is currently available and\n"
@@ -688,7 +694,7 @@ PyMethodDef kPyStreamReader_methods[] = {
         "subscribe_once",
         &PyStreamReader_subscribe_once,
         METH_O,
-        ("subscribe_once(callback, /)\n"
+        ("subscribe_once($self, callback, /)\n"
          "--\n\n"
          "Registers a one-time callback for when items arrive or the stream "
          "closes.\n\n"

@@ -12,7 +12,7 @@ Subclasses of this class might have further specialization.
 
 
 
-### `DataBag.adopt(slice, /)` {#kd.types.DataBag.adopt}
+### `DataBag.adopt(self, slice, /)` {#kd.types.DataBag.adopt}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Adopts all data reachable from the given slice into this DataBag.
 
@@ -22,7 +22,7 @@ Args:
 Returns:
   The DataSlice with this DataBag (including adopted data) attached.</code></pre>
 
-### `DataBag.adopt_stub(slice, /)` {#kd.types.DataBag.adopt_stub}
+### `DataBag.adopt_stub(self, slice, /)` {#kd.types.DataBag.adopt_stub}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Copies the given DataSlice&#39;s schema stub into this DataBag.
 
@@ -134,7 +134,7 @@ Args:
 Returns:
   A DataSlice with the dicts.</code></pre>
 
-### `DataBag.dict_schema(key_schema, value_schema)` {#kd.types.DataBag.dict_schema}
+### `DataBag.dict_schema(self, /, key_schema, value_schema)` {#kd.types.DataBag.dict_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a dict schema from the schemas of the keys and values</code></pre>
 
@@ -175,7 +175,7 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an empty mutable DataBag. Only works in eager mode.</code></pre>
 
-### `DataBag.fork(mutable=True)` {#kd.types.DataBag.fork}
+### `DataBag.fork(self, /, mutable=True)` {#kd.types.DataBag.fork}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a newly created DataBag with the same content as self.
 
@@ -191,11 +191,11 @@ Returns:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a frozen DataBag equivalent to `self`.</code></pre>
 
-### `DataBag.get_approx_byte_size()` {#kd.types.DataBag.get_approx_byte_size}
+### `DataBag.get_approx_byte_size(self, /)` {#kd.types.DataBag.get_approx_byte_size}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns approximate size of the DataBag in bytes.</code></pre>
 
-### `DataBag.get_approx_size()` {#kd.types.DataBag.get_approx_size}
+### `DataBag.get_approx_size(self, /)` {#kd.types.DataBag.get_approx_size}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns approximate size of the DataBag in triples.</code></pre>
 
@@ -226,11 +226,11 @@ Args:
 Returns:
   DataSlice of nested Lists</code></pre>
 
-### `DataBag.is_empty()` {#kd.types.DataBag.is_empty}
+### `DataBag.is_empty(self, /)` {#kd.types.DataBag.is_empty}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns True if the DataBag is empty.</code></pre>
 
-### `DataBag.is_mutable()` {#kd.types.DataBag.is_mutable}
+### `DataBag.is_mutable(self, /)` {#kd.types.DataBag.is_mutable}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataBag is mutable.</code></pre>
 
@@ -277,7 +277,7 @@ Args:
 Returns:
   A DataSlice with the lists.</code></pre>
 
-### `DataBag.list_schema(item_schema)` {#kd.types.DataBag.list_schema}
+### `DataBag.list_schema(self, /, item_schema)` {#kd.types.DataBag.list_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a list schema from the schema of the items</code></pre>
 
@@ -298,7 +298,7 @@ Args:
 Returns:
   A DataSlice with the lists.</code></pre>
 
-### `DataBag.merge_fallbacks()` {#kd.types.DataBag.merge_fallbacks}
+### `DataBag.merge_fallbacks(self, /)` {#kd.types.DataBag.merge_fallbacks}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new DataBag with all the fallbacks merged.</code></pre>
 
@@ -330,11 +330,11 @@ Args:
 Returns:
   self, so that multiple DataBag modifications can be chained.</code></pre>
 
-### `DataBag.named_schema(name, /, **attrs)` {#kd.types.DataBag.named_schema}
+### `DataBag.named_schema(self, name, /, **attrs)` {#kd.types.DataBag.named_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a named schema with ItemId derived only from its name.</code></pre>
 
-### `DataBag.new(*, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.types.DataBag.new}
+### `DataBag.new(self, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.types.DataBag.new}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates Entities with given attrs.
 
@@ -351,7 +351,7 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs.</code></pre>
 
-### `DataBag.new_like(shape_and_mask_from, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.types.DataBag.new_like}
+### `DataBag.new_like(self, shape_and_mask_from, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.types.DataBag.new_like}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Entities with the shape and sparsity from shape_and_mask_from.
 
@@ -368,11 +368,11 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs.</code></pre>
 
-### `DataBag.new_schema(**attrs)` {#kd.types.DataBag.new_schema}
+### `DataBag.new_schema(self, /, **attrs)` {#kd.types.DataBag.new_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new schema object with given types of attrs.</code></pre>
 
-### `DataBag.new_shaped(shape, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.types.DataBag.new_shaped}
+### `DataBag.new_shaped(self, shape, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.types.DataBag.new_shaped}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Entities with the given shape.
 
@@ -388,7 +388,7 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs.</code></pre>
 
-### `DataBag.obj(arg, *, itemid=None, **attrs)` {#kd.types.DataBag.obj}
+### `DataBag.obj(self, arg, /, *, itemid=None, **attrs)` {#kd.types.DataBag.obj}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Objects with an implicit stored schema.
 
@@ -404,7 +404,7 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs and kd.OBJECT schema.</code></pre>
 
-### `DataBag.obj_like(shape_and_mask_from, *, itemid=None, **attrs)` {#kd.types.DataBag.obj_like}
+### `DataBag.obj_like(self, shape_and_mask_from, /, *, itemid=None, **attrs)` {#kd.types.DataBag.obj_like}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates Objects with shape and sparsity from shape_and_mask_from.
 
@@ -420,7 +420,7 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs.</code></pre>
 
-### `DataBag.obj_shaped(shape, *, itemid=None, **attrs)` {#kd.types.DataBag.obj_shaped}
+### `DataBag.obj_shaped(self, shape, /, *, itemid=None, **attrs)` {#kd.types.DataBag.obj_shaped}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates Objects with the given shape.
 
@@ -434,7 +434,7 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs.</code></pre>
 
-### `DataBag.overwriting_merge_update(other_db)` {#kd.types.DataBag.overwriting_merge_update}
+### `DataBag.overwriting_merge_update(self, other_db, /)` {#kd.types.DataBag.overwriting_merge_update}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new DataBag with the update from other_db.
 
@@ -456,7 +456,7 @@ Returns:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a representation of schema triples in the DataBag.</code></pre>
 
-### `DataBag.uu(seed='', *, schema=None, overwrite_schema=False, **kwargs)` {#kd.types.DataBag.uu}
+### `DataBag.uu(self, /, seed='', *, schema=None, overwrite_schema=False, **kwargs)` {#kd.types.DataBag.uu}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates an item whose ids are uuid(s) with the set attributes.
 
@@ -487,11 +487,11 @@ Returns:
   data_slice.DataSlice
     </code></pre>
 
-### `DataBag.uu_schema(seed='', **attrs)` {#kd.types.DataBag.uu_schema}
+### `DataBag.uu_schema(self, /, seed='', **attrs)` {#kd.types.DataBag.uu_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new uuschema from given types of attrs.</code></pre>
 
-### `DataBag.uuobj(seed='', **kwargs)` {#kd.types.DataBag.uuobj}
+### `DataBag.uuobj(self, /, seed='', **kwargs)` {#kd.types.DataBag.uuobj}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates object(s) whose ids are uuid(s) with the provided attributes.
 

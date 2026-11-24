@@ -13,14 +13,14 @@ Note: It is strongly advised that all streams be explicitly closed.
 
 
 
-### `StreamWriter.close(exception=None)` {#kd.types.StreamWriter.close}
+### `StreamWriter.close(self, /, exception=None)` {#kd.types.StreamWriter.close}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Closes the stream.</code></pre>
 
-### `StreamWriter.orphaned()` {#kd.types.StreamWriter.orphaned}
+### `StreamWriter.orphaned(self, /)` {#kd.types.StreamWriter.orphaned}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns true if the stream no longer has any readers.</code></pre>
 
-### `StreamWriter.write(item, /)` {#kd.types.StreamWriter.write}
+### `StreamWriter.write(self, item, /)` {#kd.types.StreamWriter.write}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Write an item to the stream.</code></pre>

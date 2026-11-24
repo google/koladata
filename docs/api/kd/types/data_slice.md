@@ -35,7 +35,7 @@ is equivalent to ds.S[*slices]. For example,
 
 Please see kd.subslice for more detailed explanations and examples.</code></pre>
 
-### `DataSlice.append(value, /)` {#kd.types.DataSlice.append}
+### `DataSlice.append(self, value, /)` {#kd.types.DataSlice.append}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Append a value to each list in this DataSlice</code></pre>
 
@@ -43,7 +43,7 @@ Please see kd.subslice for more detailed explanations and examples.</code></pre>
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Koda functor that partially binds a function to `args` and `kwargs`.</code></pre>
 
-### `DataSlice.clear()` {#kd.types.DataSlice.clear}
+### `DataSlice.clear(self, /)` {#kd.types.DataSlice.clear}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Clears all dicts or lists in this DataSlice</code></pre>
 
@@ -160,7 +160,7 @@ Args:
   self: The DataSlice to visualize.
   options: This should be a `koladata.ext.vis.DataSliceVisOptions`.</code></pre>
 
-### `DataSlice.embed_schema()` {#kd.types.DataSlice.embed_schema}
+### `DataSlice.embed_schema(self, /)` {#kd.types.DataSlice.embed_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice with OBJECT schema.
 
@@ -360,7 +360,7 @@ Args:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of the DataSlice with a forked mutable DataBag.</code></pre>
 
-### `DataSlice.freeze_bag()` {#kd.types.DataSlice.freeze_bag}
+### `DataSlice.freeze_bag(self, /)` {#kd.types.DataSlice.freeze_bag}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a frozen DataSlice equivalent to `self`.</code></pre>
 
@@ -368,7 +368,7 @@ Args:
 
 Alias for [kd.slices.slice](../slices.md#kd.slices.slice)
 
-### `DataSlice.get_attr(attr_name, /, default=None)` {#kd.types.DataSlice.get_attr}
+### `DataSlice.get_attr(self, attr_name, /, default=None)` {#kd.types.DataSlice.get_attr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Gets attribute `attr_name` where missing items are filled from `default`.
 
@@ -390,7 +390,7 @@ schema. In case of primitives, an empty slice is returned.
 Args:
   x: A DataSlice.</code></pre>
 
-### `DataSlice.get_bag()` {#kd.types.DataSlice.get_bag}
+### `DataSlice.get_bag(self, /)` {#kd.types.DataSlice.get_bag}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the attached DataBag.</code></pre>
 
@@ -431,7 +431,7 @@ Returns:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the key schema of a Dict schema.</code></pre>
 
-### `DataSlice.get_keys()` {#kd.types.DataSlice.get_keys}
+### `DataSlice.get_keys(self, /)` {#kd.types.DataSlice.get_keys}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns keys of all dicts in this DataSlice.</code></pre>
 
@@ -485,15 +485,15 @@ Args:
 Args:
   dict_ds: DataSlice of Dicts.</code></pre>
 
-### `DataSlice.get_schema()` {#kd.types.DataSlice.get_schema}
+### `DataSlice.get_schema(self, /)` {#kd.types.DataSlice.get_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a schema DataItem with type information about this DataSlice.</code></pre>
 
-### `DataSlice.get_schema_name()` {#kd.types.DataSlice.get_schema_name}
+### `DataSlice.get_schema_name(self, /)` {#kd.types.DataSlice.get_schema_name}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the name of the named Schema, or missing string otherwise.</code></pre>
 
-### `DataSlice.get_shape()` {#kd.types.DataSlice.get_shape}
+### `DataSlice.get_shape(self, /)` {#kd.types.DataSlice.get_shape}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the shape of the DataSlice.</code></pre>
 
@@ -548,7 +548,7 @@ Returns:
   A MASK DataSlice with the same shape as `x` that contains present if the
   attribute exists for the corresponding item.</code></pre>
 
-### `DataSlice.has_bag()` {#kd.types.DataSlice.has_bag}
+### `DataSlice.has_bag(self, /)` {#kd.types.DataSlice.has_bag}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `present` if DataSlice `ds` has a DataBag attached.</code></pre>
 
@@ -574,58 +574,58 @@ Args:
 Returns:
   DataSlice of nested Lists</code></pre>
 
-### `DataSlice.internal_as_arolla_value()` {#kd.types.DataSlice.internal_as_arolla_value}
+### `DataSlice.internal_as_arolla_value(self, /)` {#kd.types.DataSlice.internal_as_arolla_value}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Converts primitive DataSlice / DataItem into an equivalent Arolla value.</code></pre>
 
-### `DataSlice.internal_as_dense_array()` {#kd.types.DataSlice.internal_as_dense_array}
+### `DataSlice.internal_as_dense_array(self, /)` {#kd.types.DataSlice.internal_as_dense_array}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Converts primitive DataSlice to an Arolla DenseArray with appropriate qtype.</code></pre>
 
-### `DataSlice.internal_as_py()` {#kd.types.DataSlice.internal_as_py}
+### `DataSlice.internal_as_py(self, /)` {#kd.types.DataSlice.internal_as_py}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Python object equivalent to this DataSlice.
 
 If the values in this DataSlice represent objects, then the returned python
 structure will contain DataItems.</code></pre>
 
-### `DataSlice.internal_is_itemid_schema()` {#kd.types.DataSlice.internal_is_itemid_schema}
+### `DataSlice.internal_is_itemid_schema(self, /)` {#kd.types.DataSlice.internal_is_itemid_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice is ITEMID Schema.</code></pre>
 
-### `DataSlice.is_dict()` {#kd.types.DataSlice.is_dict}
+### `DataSlice.is_dict(self, /)` {#kd.types.DataSlice.is_dict}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice has Dict schema or contains only dicts.</code></pre>
 
-### `DataSlice.is_dict_schema()` {#kd.types.DataSlice.is_dict_schema}
+### `DataSlice.is_dict_schema(self, /)` {#kd.types.DataSlice.is_dict_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice is a Dict Schema.</code></pre>
 
-### `DataSlice.is_empty()` {#kd.types.DataSlice.is_empty}
+### `DataSlice.is_empty(self, /)` {#kd.types.DataSlice.is_empty}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice is empty.</code></pre>
 
-### `DataSlice.is_entity()` {#kd.types.DataSlice.is_entity}
+### `DataSlice.is_entity(self, /)` {#kd.types.DataSlice.is_entity}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice has Entity schema or contains only entities.</code></pre>
 
-### `DataSlice.is_entity_schema()` {#kd.types.DataSlice.is_entity_schema}
+### `DataSlice.is_entity_schema(self, /)` {#kd.types.DataSlice.is_entity_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice represents an Entity Schema.</code></pre>
 
-### `DataSlice.is_list()` {#kd.types.DataSlice.is_list}
+### `DataSlice.is_list(self, /)` {#kd.types.DataSlice.is_list}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice has List schema or contains only lists.</code></pre>
 
-### `DataSlice.is_list_schema()` {#kd.types.DataSlice.is_list_schema}
+### `DataSlice.is_list_schema(self, /)` {#kd.types.DataSlice.is_list_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice is a List Schema.</code></pre>
 
-### `DataSlice.is_mutable()` {#kd.types.DataSlice.is_mutable}
+### `DataSlice.is_mutable(self, /)` {#kd.types.DataSlice.is_mutable}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff the attached DataBag is mutable.</code></pre>
 
-### `DataSlice.is_named_schema()` {#kd.types.DataSlice.is_named_schema}
+### `DataSlice.is_named_schema(self, /)` {#kd.types.DataSlice.is_named_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice is a named Schema.</code></pre>
 
@@ -652,11 +652,11 @@ Args:
 Returns:
   A MASK DataItem.</code></pre>
 
-### `DataSlice.is_primitive_schema()` {#kd.types.DataSlice.is_primitive_schema}
+### `DataSlice.is_primitive_schema(self, /)` {#kd.types.DataSlice.is_primitive_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice is a primitive (scalar) Schema.</code></pre>
 
-### `DataSlice.is_struct_schema()` {#kd.types.DataSlice.is_struct_schema}
+### `DataSlice.is_struct_schema(self, /)` {#kd.types.DataSlice.is_struct_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice represents a Struct Schema.</code></pre>
 
@@ -672,7 +672,7 @@ Returns:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new Entity with this Schema.</code></pre>
 
-### `DataSlice.no_bag()` {#kd.types.DataSlice.no_bag}
+### `DataSlice.no_bag(self, /)` {#kd.types.DataSlice.no_bag}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of DataSlice without DataBag.</code></pre>
 
@@ -694,7 +694,7 @@ Args:
 Returns:
   The result of calling `fn`.</code></pre>
 
-### `DataSlice.pop(index, /)` {#kd.types.DataSlice.pop}
+### `DataSlice.pop(self, index=-1, /)` {#kd.types.DataSlice.pop}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Pop a value from each list in this DataSlice</code></pre>
 
@@ -902,7 +902,7 @@ Args:
 Returns:
   Filtered DataSlice.</code></pre>
 
-### `DataSlice.set_attr(attr_name, value, /, overwrite_schema=False)` {#kd.types.DataSlice.set_attr}
+### `DataSlice.set_attr(self, attr_name, value, /, overwrite_schema=False)` {#kd.types.DataSlice.set_attr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Sets an attribute `attr_name` to `value`.
 
@@ -917,7 +917,7 @@ Args:
   value: new value for attribute `attr_name`.
   overwrite_schema: if True, schema for attribute is always updated.</code></pre>
 
-### `DataSlice.set_attrs(*, overwrite_schema=False, **attrs)` {#kd.types.DataSlice.set_attrs}
+### `DataSlice.set_attrs(self, /, *, overwrite_schema=False, **attrs)` {#kd.types.DataSlice.set_attrs}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Sets multiple attributes on an object / entity.
 
@@ -927,11 +927,11 @@ Args:
   **attrs: attribute values that are converted to DataSlices with DataBag
     adoption.</code></pre>
 
-### `DataSlice.set_metadata(**attrs)` {#kd.types.DataSlice.set_metadata}
+### `DataSlice.set_metadata(self, /, **attrs)` {#kd.types.DataSlice.set_metadata}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Mutably sets metadata attributes on the schema DataSlice.</code></pre>
 
-### `DataSlice.set_schema(schema, /)` {#kd.types.DataSlice.set_schema}
+### `DataSlice.set_schema(self, schema, /)` {#kd.types.DataSlice.set_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of DataSlice with the provided `schema`.
 
@@ -1146,7 +1146,7 @@ Args:
   overwrite_schema: if True, schema for attributes is always updated.
   **attrs: attrs to set in the update.</code></pre>
 
-### `DataSlice.with_bag(bag, /)` {#kd.types.DataSlice.with_bag}
+### `DataSlice.with_bag(self, bag, /)` {#kd.types.DataSlice.with_bag}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of DataSlice with DataBag `db`.</code></pre>
 

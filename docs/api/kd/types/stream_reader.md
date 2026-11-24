@@ -11,7 +11,7 @@ Note: This class supports parametrization like StreamReader[T].
 
 
 
-### `StreamReader.read_available(limit=None)` {#kd.types.StreamReader.read_available}
+### `StreamReader.read_available(self, /, limit=None)` {#kd.types.StreamReader.read_available}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the available items from the stream.
 
@@ -24,7 +24,7 @@ an error; otherwise, raises the error passed during closing.
 Args:
   limit: The maximum number of items to return.</code></pre>
 
-### `StreamReader.subscribe_once(callback, /)` {#kd.types.StreamReader.subscribe_once}
+### `StreamReader.subscribe_once(self, callback, /)` {#kd.types.StreamReader.subscribe_once}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Registers a one-time callback for when items arrive or the stream closes.
 

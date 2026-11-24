@@ -88,7 +88,7 @@ PyMethodDef kPyExecutor_methods[] = {
         "schedule",
         PyExecutor_schedule,
         METH_O,
-        ("schedule(task_fn, /)\n"
+        ("schedule($self, task_fn, /)\n"
          "--\n\n"
          "Schedules a task to be executed by the executor.\n"
          "Note: The task inherits the current cancellation context."),

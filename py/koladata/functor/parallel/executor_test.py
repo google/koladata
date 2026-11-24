@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 import sys
 import threading
 from unittest import mock
@@ -97,6 +98,13 @@ class ExecutorTest(absltest.TestCase):
         'unexpected self.qtype: expected an executor, got tuple<EXECUTOR>',
     ):
       tuple_executor.schedule(type)
+
+  def test_signatures(self):
+    executor = arolla.abc.invoke_op('koda_internal.parallel.get_eager_executor')
+    self.assertEqual(
+        inspect.signature(executor.schedule),
+        inspect.signature(lambda task_fn, /: None),
+    )
 
 
 if __name__ == '__main__':

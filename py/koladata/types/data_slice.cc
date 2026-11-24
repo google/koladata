@@ -1072,24 +1072,24 @@ PyObject* absl_nullable PyDataSlice_debug_repr(PyObject* self) {
 
 PyMethodDef kPyDataSlice_methods[] = {
     {"get_bag", PyDataSlice_get_bag, METH_NOARGS,
-     "get_bag()\n"
+     "get_bag($self, /)\n"
      "--\n\n"
      "Returns the attached DataBag."},
     {"has_bag", PyDataSlice_has_bag, METH_NOARGS,
-     "has_bag()\n"
+     "has_bag($self, /)\n"
      "--\n\n"
      "Returns `present` if DataSlice `ds` has a DataBag attached."},
     {"with_bag", PyDataSlice_with_bag, METH_O,
-     "with_bag(bag, /)\n"
+     "with_bag($self, bag, /)\n"
      "--\n\n"
      "Returns a copy of DataSlice with DataBag `db`."},
     {"no_bag", PyDataSlice_no_bag, METH_NOARGS,
-     "no_bag()\n"
+     "no_bag($self, /)\n"
      "--\n\n"
      "Returns a copy of DataSlice without DataBag."},
     {"from_vals", (PyCFunction)PyDataSlice_from_vals,
      METH_CLASS | METH_FASTCALL | METH_KEYWORDS,
-     "from_vals(x, /, schema=None)\n"
+     "from_vals($type, x, /, schema=None)\n"
      "--\n\n"
      R"""(Returns a DataSlice created from `x`.
 
@@ -1104,17 +1104,17 @@ Args:
 )"""},
     {"_unspecified", (PyCFunction)PyDataSlice_unspecified,
      METH_CLASS | METH_NOARGS,
-     "_unspecified()\n"
+     "_unspecified($type, /)\n"
      "--\n\n"
      "Returns an UNSPECIFIED with DataSlice QType."},
     {"_to_py_impl", (PyCFunction)PyDataSlice_to_py,
      METH_FASTCALL | METH_KEYWORDS,
-     "_to_py_impl(ds, *, max_depth=-1, obj_as_dict=False, "
+     "_to_py_impl($self, /, *, max_depth=-1, obj_as_dict=False, "
      "include_missing_attrs=True, output_class=None)\n"
      "--\n\n"
      "Returns a Python object equivalent to this DataSlice.\n"},
     {"internal_as_py", PyDataSlice_internal_as_py, METH_NOARGS,
-     "internal_as_py()\n"
+     "internal_as_py($self, /)\n"
      "--\n\n"
      "Returns a Python object equivalent to this DataSlice.\n"
      "\n"
@@ -1122,90 +1122,90 @@ Args:
      "python\nstructure will contain DataItems.\n"},
     {"internal_as_arolla_value", PyDataSlice_internal_as_arolla_value,
      METH_NOARGS,
-     "internal_as_arolla_value()\n"
+     "internal_as_arolla_value($self, /)\n"
      "--\n\n"
      "Converts primitive DataSlice / DataItem into an equivalent Arolla "
      "value."},
     {"internal_as_dense_array", PyDataSlice_internal_as_dense_array,
      METH_NOARGS,
-     "internal_as_dense_array()\n"
+     "internal_as_dense_array($self, /)\n"
      "--\n\n"
      "Converts primitive DataSlice to an Arolla DenseArray with appropriate "
      "qtype."},
     {"_to_proto", (PyCFunction)PyDataSlice_to_proto, METH_FASTCALL,
-     "to_proto(message_class)\n"
+     "_to_proto($self, message_class, /)\n"
      "--\n\n"
      "Converts this DataSlice to a proto message or list of proto messages."},
     {"get_shape", PyDataSlice_get_shape, METH_NOARGS,
-     "get_shape()\n"
+     "get_shape($self, /)\n"
      "--\n\n"
      "Returns the shape of the DataSlice."},
     {"get_schema", PyDataSlice_get_schema, METH_NOARGS,
-     "get_schema()\n"
+     "get_schema($self, /)\n"
      "--\n\n"
      "Returns a schema DataItem with type information about this DataSlice."},
     {"is_list_schema", PyDataSlice_is_list_schema, METH_NOARGS,
-     "is_list_schema()\n"
+     "is_list_schema($self, /)\n"
      "--\n\n"
      "Returns present iff this DataSlice is a List Schema."},
     {"is_entity_schema", PyDataSlice_is_entity_schema, METH_NOARGS,
-     "is_entity_schema()\n"
+     "is_entity_schema($self, /)\n"
      "--\n\n"
      "Returns present iff this DataSlice represents an Entity Schema."},
     {"is_struct_schema", PyDataSlice_is_struct_schema, METH_NOARGS,
-     "is_struct_schema()\n"
+     "is_struct_schema($self, /)\n"
      "--\n\n"
      "Returns present iff this DataSlice represents a Struct Schema."},
     {"is_dict", PyDataSlice_is_dict, METH_NOARGS,
-     "is_dict()\n"
+     "is_dict($self, /)\n"
      "--\n\n"
      "Returns present iff this DataSlice has Dict schema or contains only "
      "dicts."},
     {"is_list", PyDataSlice_is_list, METH_NOARGS,
-     "is_list()\n"
+     "is_list($self, /)\n"
      "--\n\n"
      "Returns present iff this DataSlice has List schema or contains only "
      "lists."},
     {"is_entity", PyDataSlice_is_entity, METH_NOARGS,
-     "is_entity()\n"
+     "is_entity($self, /)\n"
      "--\n\n"
      "Returns present iff this DataSlice has Entity schema or contains only "
      "entities."},
     {"is_dict_schema", PyDataSlice_is_dict_schema, METH_NOARGS,
-     "is_dict_schema()\n"
+     "is_dict_schema($self, /)\n"
      "--\n\n"
      "Returns present iff this DataSlice is a Dict Schema."},
     {"is_named_schema", PyDataSlice_is_named_schema, METH_NOARGS,
-     "is_named_schema()\n"
+     "is_named_schema($self, /)\n"
      "--\n\n"
      "Returns present iff this DataSlice is a named Schema."},
     {"get_schema_name", PyDataSlice_get_schema_name, METH_NOARGS,
-     "get_schema_name()\n"
+     "get_schema_name($self, /)\n"
      "--\n\n"
      "Returns the name of the named Schema, or missing string otherwise."},
     {"is_primitive_schema", PyDataSlice_is_primitive_schema, METH_NOARGS,
-     "is_primitive_schema()\n"
+     "is_primitive_schema($self, /)\n"
      "--\n\n"
      "Returns present iff this DataSlice is a primitive (scalar) Schema."},
     {"internal_is_itemid_schema", PyDataSlice_internal_is_itemid_schema,
      METH_NOARGS,
-     "internal_is_itemid_schema()\n"
+     "internal_is_itemid_schema($self, /)\n"
      "--\n\n"
      "Returns present iff this DataSlice is ITEMID Schema."},
     {"is_empty", PyDataSlice_is_empty, METH_NOARGS,
-     "is_empty()\n"
+     "is_empty($self, /)\n"
      "--\n\n"
      "Returns present iff this DataSlice is empty."},
     {"is_mutable", PyDataSlice_is_mutable, METH_NOARGS,
-     "is_mutable()\n"
+     "is_mutable($self, /)\n"
      "--\n\n"
      "Returns present iff the attached DataBag is mutable."},
     {"freeze_bag", PyDataSlice_freeze_bag, METH_NOARGS,
-     "freeze_bag()\n"
+     "freeze_bag($self, /)\n"
      "--\n\n"
      "Returns a frozen DataSlice equivalent to `self`."},
     {"set_schema", PyDataSlice_set_schema, METH_O,
-     "set_schema(schema, /)\n"
+     "set_schema($self, schema, /)\n"
      "--\n\n"
      R"""(Returns a copy of DataSlice with the provided `schema`.
 
@@ -1218,12 +1218,12 @@ Returns:
   DataSlice with the provided `schema`.
 )"""},
     {"get_keys", PyDataSlice_get_keys, METH_NOARGS,
-     "get_keys()\n"
+     "get_keys($self, /)\n"
      "--\n\n"
      "Returns keys of all dicts in this DataSlice."},
     {"get_attr", (PyCFunction)PyDataSlice_get_attr,
      METH_FASTCALL | METH_KEYWORDS,
-     "get_attr(attr_name, /, default=None)\n"
+     "get_attr($self, attr_name, /, default=None)\n"
      "--\n\n"
      "Gets attribute `attr_name` where missing items are filled from "
      "`default`.\n\n"
@@ -1233,7 +1233,7 @@ Returns:
      "           Note that this value can be fully omitted."},
     {"set_attr", (PyCFunction)PyDataSlice_set_attr,
      METH_FASTCALL | METH_KEYWORDS,
-     "set_attr(attr_name, value, /, overwrite_schema=False)\n"
+     "set_attr($self, attr_name, value, /, overwrite_schema=False)\n"
      "--\n\n"
      R"""(Sets an attribute `attr_name` to `value`.
 
@@ -1250,7 +1250,7 @@ Args:
 )"""},
     {"set_attrs", (PyCFunction)PyDataSlice_set_attrs,
      METH_FASTCALL | METH_KEYWORDS,
-     "set_attrs(*, overwrite_schema=False, **attrs)\n"
+     "set_attrs($self, /, *, overwrite_schema=False, **attrs)\n"
      "--\n\n"
      R"""(Sets multiple attributes on an object / entity.
 
@@ -1262,23 +1262,23 @@ Args:
 )"""},
     {"set_metadata", (PyCFunction)PyDataSlice_set_metadata,
      METH_FASTCALL | METH_KEYWORDS,
-     "set_metadata(**attrs)\n"
+     "set_metadata($self, /, **attrs)\n"
      "--\n\n"
      "Mutably sets metadata attributes on the schema DataSlice."},
     {"append", (PyCFunction)PyDataSlice_append, METH_FASTCALL,
-     "append(value, /)\n"
+     "append($self, value, /)\n"
      "--\n\n"
      "Append a value to each list in this DataSlice"},
     {"pop", (PyCFunction)PyDataSlice_pop, METH_FASTCALL | METH_KEYWORDS,
-     "pop(index, /)\n"
+     "pop($self, index=-1, /)\n"
      "--\n\n"
      "Pop a value from each list in this DataSlice"},
     {"clear", PyDataSlice_clear, METH_NOARGS,
-     "clear()\n"
+     "clear($self, /)\n"
      "--\n\n"
      "Clears all dicts or lists in this DataSlice"},
     {"embed_schema", PyDataSlice_embed_schema, METH_NOARGS,
-     "embed_schema()\n"
+     "embed_schema($self, /)\n"
      "--\n\n"
      R"""(Returns a DataSlice with OBJECT schema.
 
@@ -1288,7 +1288,7 @@ Args:
 )"""},
     {"_dir_impl", (PyCFunction)PyDataSlice_dir_impl,
      METH_FASTCALL | METH_KEYWORDS,
-     "_dir_impl(*, intersection=None)\n"
+     "_dir_impl($self, /, *, intersection=None)\n"
      "--\n\n"
      R"""(Returns a sorted list of unique attribute names of this DataSlice.
 
@@ -1303,11 +1303,13 @@ Returns:
   A list of unique attributes sorted by alphabetical order.
 )"""},
     {"__format__", (PyCFunction)PyDataSlice_format, METH_O,
+     "__format__($self, format_spec, /)\n"
+     "--\n\n"
      "Returns a format representation with a special support for non empty "
      "specification.\n\nDataSlice will be replaced with base64 encoded "
      "DataSlice.\nMust be used with kd.fstr or kde.fstr."},
     {"_debug_repr", (PyCFunction)PyDataSlice_debug_repr, METH_NOARGS,
-     "_debug_repr()\n"
+     "_debug_repr($self, /)\n"
      "--\n\n"
      "Returns a string representation of the DataSlice for debugging "
      "purposes."},

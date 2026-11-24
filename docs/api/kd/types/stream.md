@@ -15,7 +15,7 @@ This might be changed in the future.
 
 
 
-### `Stream.make_reader()` {#kd.types.Stream.make_reader}
+### `Stream.make_reader(self, /)` {#kd.types.Stream.make_reader}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new reader for the stream.</code></pre>
 
@@ -23,7 +23,7 @@ This might be changed in the future.
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new `tuple[Stream, StreamWriter]`.</code></pre>
 
-### `Stream.read_all(*, timeout)` {#kd.types.Stream.read_all}
+### `Stream.read_all(self, /, *, timeout)` {#kd.types.Stream.read_all}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Waits until the stream is closed and returns all its items.
 
@@ -36,7 +36,7 @@ Args:
 Returns:
   A list containing the stream items.</code></pre>
 
-### `Stream.yield_all(*, timeout)` {#kd.types.Stream.yield_all}
+### `Stream.yield_all(self, /, *, timeout)` {#kd.types.Stream.yield_all}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an iterator for the stream items.
 

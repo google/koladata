@@ -577,12 +577,24 @@ class DataSliceTest(parameterized.TestCase):
     # Tests that all methods have an inspectable signature. This is not added
     # automatically for methods defined in CPython and requires the docstring
     # to follow a specific format.
-    for fn_name in dir(data_slice.DataSlice):
-      if fn_name.startswith('_'):
+    instance = ds([1, 2, 3])
+    for fn_name in dir(instance):
+      if fn_name.startswith('_') or isinstance(
+          inspect.getattr_static(instance, fn_name), property
+      ):
         continue
-      fn = getattr(data_slice.DataSlice, fn_name)
+      fn = getattr(instance, fn_name)
       if callable(fn):
         _ = inspect.signature(fn)  # Shouldn't raise.
+
+    self.assertEqual(
+        inspect.signature(instance.pop),
+        inspect.signature(lambda index=-1, /: None),
+    )
+    self.assertEqual(
+        inspect.signature(instance.__format__),
+        inspect.signature(lambda format_spec, /: None),
+    )
 
   def test_new(self):
     with self.assertRaisesRegex(ValueError, 'only Schema'):

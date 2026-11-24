@@ -12,7 +12,7 @@ Subclasses of this class might have further specialization.
 
 
 
-### `Executor.schedule(task_fn, /)` {#kd.types.Executor.schedule}
+### `Executor.schedule(self, task_fn, /)` {#kd.types.Executor.schedule}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Schedules a task to be executed by the executor.
 Note: The task inherits the current cancellation context.</code></pre>

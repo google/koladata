@@ -1610,21 +1610,22 @@ PyObject* absl_nullable PyDataBag_is_empty(PyObject* self, PyObject*) {
 
 PyMethodDef kPyDataBag_methods[] = {
     {"is_mutable", (PyCFunction)PyDataBag_is_mutable, METH_NOARGS,
-     "is_mutable()\n"
+     "is_mutable($self, /)\n"
      "--\n\n"
      "Returns present iff this DataBag is mutable."},
     {"empty", (PyCFunction)PyDataBag_empty, METH_CLASS | METH_NOARGS,
-     "empty()\n"
+     "empty($type, /)\n"
      "--\n\n"
      "Returns an empty immutable DataBag."},
     {"empty_mutable", (PyCFunction)PyDataBag_empty_mutable,
      METH_CLASS | METH_NOARGS,
-     "empty_mutable()\n"
+     "empty_mutable($type, /)\n"
      "--\n\n"
      "Returns an empty mutable DataBag. Only works in eager mode."},
     {"new", (PyCFunction)PyDataBag_new_factory<DataBagFactoryMode::kWithBag>,
      METH_FASTCALL | METH_KEYWORDS,
-     "new(*, schema=None, overwrite_schema=False, itemid=None, **attrs)\n"
+     "new($self, /, *, schema=None, overwrite_schema=False, itemid=None, "
+     "**attrs)\n"
      "--\n\n"
      R"""(Creates Entities with given attrs.
 
@@ -1643,8 +1644,8 @@ Returns:
     {"_new_no_bag",
      (PyCFunction)PyDataBag_new_factory<DataBagFactoryMode::kNoBag>,
      METH_CLASS | METH_FASTCALL | METH_KEYWORDS,
-     "_new_no_bag(*, schema=None, overwrite_schema=False, itemid=None, "
-     "**attrs)\n"
+     "_new_no_bag($type, /, *, schema=None, overwrite_schema=False, "
+     "itemid=None, **attrs)\n"
      "--\n\n"
      ""
      "Same as `db.new` but without a DataBag. Returns a whole DataSlice with "
@@ -1652,8 +1653,8 @@ Returns:
      ""},
     {"new_shaped", (PyCFunction)PyDataBag_new_factory_shaped,
      METH_FASTCALL | METH_KEYWORDS,
-     "new_shaped(shape, *, schema=None, overwrite_schema=False, itemid=None, "
-     "**attrs)\n"
+     "new_shaped($self, shape, /, *, schema=None, overwrite_schema=False, "
+     "itemid=None, **attrs)\n"
      "--\n\n"
      R"""(Creates new Entities with the given shape.
 
@@ -1670,8 +1671,8 @@ Returns:
   data_slice.DataSlice with the given attrs.)"""},
     {"new_like", (PyCFunction)PyDataBag_new_factory_like,
      METH_FASTCALL | METH_KEYWORDS,
-     "new_like(shape_and_mask_from, *, schema=None, overwrite_schema=False, "
-     "itemid=None, **attrs)\n"
+     "new_like($self, shape_and_mask_from, /, *, schema=None, "
+     "overwrite_schema=False, itemid=None, **attrs)\n"
      "--\n\n"
      R"""(Creates new Entities with the shape and sparsity from shape_and_mask_from.
 
@@ -1689,7 +1690,7 @@ Returns:
   data_slice.DataSlice with the given attrs.)"""},
     {"obj", (PyCFunction)PyDataBag_obj_factory<DataBagFactoryMode::kWithBag>,
      METH_FASTCALL | METH_KEYWORDS,
-     "obj(arg, *, itemid=None, **attrs)\n"
+     "obj($self, arg, /, *, itemid=None, **attrs)\n"
      "--\n\n"
      R"""(Creates new Objects with an implicit stored schema.
 
@@ -1707,7 +1708,7 @@ Returns:
     {"_obj_no_bag",
      (PyCFunction)PyDataBag_obj_factory<DataBagFactoryMode::kNoBag>,
      METH_CLASS | METH_FASTCALL | METH_KEYWORDS,
-     "_obj_no_bag(arg, *, itemid=None, **attrs)\n"
+     "_obj_no_bag($type, arg, /, *, itemid=None, **attrs)\n"
      "--\n\n"
      ""
      "Same as `db.obj` but without a DataBag. Returns a whole DataSlice with "
@@ -1715,7 +1716,7 @@ Returns:
      ""},
     {"obj_shaped", (PyCFunction)PyDataBag_obj_factory_shaped,
      METH_FASTCALL | METH_KEYWORDS,
-     "obj_shaped(shape, *, itemid=None, **attrs)\n"
+     "obj_shaped($self, shape, /, *, itemid=None, **attrs)\n"
      "--\n\n"
      R"""(Creates Objects with the given shape.
 
@@ -1730,7 +1731,7 @@ Returns:
   data_slice.DataSlice with the given attrs.)"""},
     {"obj_like", (PyCFunction)PyDataBag_obj_factory_like,
      METH_FASTCALL | METH_KEYWORDS,
-     "obj_like(shape_and_mask_from, *, itemid=None, **attrs)\n"
+     "obj_like($self, shape_and_mask_from, /, *, itemid=None, **attrs)\n"
      "--\n\n"
      R"""(Creates Objects with shape and sparsity from shape_and_mask_from.
 
@@ -1747,7 +1748,7 @@ Returns:
   data_slice.DataSlice with the given attrs.)"""},
     {"uu", (PyCFunction)PyDataBag_uu_entity_factory,
      METH_FASTCALL | METH_KEYWORDS,
-     "uu(seed='', *, schema=None, overwrite_schema=False, **kwargs)\n"
+     "uu($self, /, seed='', *, schema=None, overwrite_schema=False, **kwargs)\n"
      "--\n\n"
      R"""(Creates an item whose ids are uuid(s) with the set attributes.
 
@@ -1779,7 +1780,7 @@ Returns:
     )"""},
     {"uuobj", (PyCFunction)PyDataBag_uu_obj_factory,
      METH_FASTCALL | METH_KEYWORDS,
-     "uuobj(seed='', **kwargs)\n"
+     "uuobj($self, /, seed='', **kwargs)\n"
      "--\n\n"
      R"""(Creates object(s) whose ids are uuid(s) with the provided attributes.
 
@@ -1805,66 +1806,68 @@ Returns:
     )"""},
     {"new_schema", (PyCFunction)PyDataBag_schema_factory,
      METH_FASTCALL | METH_KEYWORDS,
-     "new_schema(**attrs)\n"
+     "new_schema($self, /, **attrs)\n"
      "--\n\n"
      "Creates new schema object with given types of attrs."},
     {"uu_schema", (PyCFunction)PyDataBag_uu_schema_factory,
      METH_FASTCALL | METH_KEYWORDS,
-     "uu_schema(seed='', **attrs)\n"
+     "uu_schema($self, /, seed='', **attrs)\n"
      "--\n\n"
      "Creates new uuschema from given types of attrs."},
     {"named_schema", (PyCFunction)PyDataBag_named_schema_factory,
      METH_FASTCALL | METH_KEYWORDS,
-     "named_schema(name, /, **attrs)\n"
+     "named_schema($self, name, /, **attrs)\n"
      "--\n\n"
      "Creates a named schema with ItemId derived only from its name."},
     {"_dict_shaped", (PyCFunction)PyDataBag_dict_shaped, METH_FASTCALL,
-     "_dict_shaped(shape, items_or_keys, values, key_schema, value_schema, "
-     "schema, itemid, /)\n"
+     "_dict_shaped($self, shape, items_or_keys, values, key_schema, "
+     "value_schema, schema, itemid, /)\n"
      "--\n\n"
      "DataBag._dict_shaped"},
     {"_dict_like", (PyCFunction)PyDataBag_dict_like, METH_FASTCALL,
-     "_dict_like(shape_and_mask_from, items_or_keys, values, key_schema, "
-     "value_schema, schema, itemid, /)\n"
+     "_dict_like($self, shape_and_mask_from, items_or_keys, values, "
+     "key_schema, value_schema, schema, itemid, /)\n"
      "--\n\n"
      "DataBag._dict_like"},
     {"_list", (PyCFunction)PyDataBag_list, METH_FASTCALL,
-     "_list(values, item_schema, schema, itemid, /)\n"
+     "_list($self, values, item_schema, schema, itemid, /)\n"
+     "--\n\n"
      "DataBag._list"},
     {"list_schema", (PyCFunction)PyDataBag_list_schema,
      METH_FASTCALL | METH_KEYWORDS,
-     "list_schema(item_schema)\n"
+     "list_schema($self, /, item_schema)\n"
      "--\n\n"
      "Returns a list schema from the schema of the items"},
     {"dict_schema", (PyCFunction)PyDataBag_dict_schema,
      METH_FASTCALL | METH_KEYWORDS,
-     "dict_schema(key_schema, value_schema)\n"
+     "dict_schema($self, /, key_schema, value_schema)\n"
      "--\n\n"
      "Returns a dict schema from the schemas of the keys and values"},
     {"_list_shaped", (PyCFunction)PyDataBag_list_shaped, METH_FASTCALL,
-     "_list_shaped(shape, values, item_schema, schema, itemid, /)\n"
+     "_list_shaped($self, shape, values, item_schema, schema, itemid, /)\n"
      "--\n\n"
      "DataBag._list_shaped"},
     {"_list_like", (PyCFunction)PyDataBag_list_like, METH_FASTCALL,
-     "_list_like(shape_and_mask_from, values, item_schema, schema, itemid, /)\n"
+     "_list_like($self, shape_and_mask_from, values, item_schema, schema, "
+     "itemid, /)\n"
      "--\n\n"
      "DataBag._list_like"},
     {"_implode", (PyCFunction)PyDataBag_implode, METH_FASTCALL,
-     "_implode(x, ndim, /)\n"
+     "_implode($self, x, ndim, itemid, /)\n"
      "--\n\n"
      "DataBag._implode"},
     {"_concat_lists", (PyCFunction)PyDataBag_concat_lists, METH_FASTCALL,
-     "_concat_lists(*lists)\n"
+     "_concat_lists($self, /, *lists)\n"
      "--\n\n"
      "DataBag._concat_lists"},
     {"_merge_inplace", (PyCFunction)PyDataBag_merge_inplace, METH_FASTCALL,
-     "_merge_inplace(overwrite, allow_data_conflicts, allow_schema_conflicts, "
-     "*bags)\n"
+     "_merge_inplace($self, overwrite, allow_data_conflicts, "
+     "allow_schema_conflicts, /, *bags)\n"
      "--\n\n"
      "DataBag._merge_inplace"},
     {"overwriting_merge_update",
      (PyCFunction)PyDataBag_overwriting_merge_update, METH_O,
-     "overwriting_merge_update(other_db)\n"
+     "overwriting_merge_update($self, other_db, /)\n"
      "--\n\n"
      R"""(Returns a new DataBag with the update from other_db.
 
@@ -1883,7 +1886,7 @@ Returns:
     DataBag with the update from other_db.
 )"""},
     {"adopt", (PyCFunction)PyDataBag_adopt, METH_O,
-     "adopt(slice, /)\n"
+     "adopt($self, slice, /)\n"
      "--\n\n"
      R"""(Adopts all data reachable from the given slice into this DataBag.
 
@@ -1894,7 +1897,7 @@ Returns:
   The DataSlice with this DataBag (including adopted data) attached.
 )"""},
     {"adopt_stub", (PyCFunction)PyDataBag_adopt_stub, METH_O,
-     "adopt_stub(slice, /)\n"
+     "adopt_stub($self, slice, /)\n"
      "--\n\n"
      R"""(Copies the given DataSlice's schema stub into this DataBag.
 
@@ -1909,11 +1912,11 @@ Returns:
   The "stub" with this DataBag attached.
 )"""},
     {"merge_fallbacks", PyDataBag_merge_fallbacks, METH_NOARGS,
-     "merge_fallbacks()\n"
+     "merge_fallbacks($self, /)\n"
      "--\n\n"
      "Returns a new DataBag with all the fallbacks merged."},
     {"fork", (PyCFunction)PyDataBag_fork, METH_FASTCALL | METH_KEYWORDS,
-     "fork(mutable=True)\n"
+     "fork($self, /, mutable=True)\n"
      "--\n\n"
      R"""(Returns a newly created DataBag with the same content as self.
 
@@ -1927,41 +1930,41 @@ Returns:
 )"""},
     {"_contents_repr", (PyCFunction)PyDataBag_contents_repr<DataBagToStr>,
      METH_FASTCALL | METH_KEYWORDS,
-     "_contents_repr(triple_limit=1000)\n"
+     "_contents_repr($self, /, *, triple_limit=1000)\n"
      "--\n\n"
      "Returns a string representation of the contents of this DataBag."},
     {"_data_triples_repr",
      (PyCFunction)PyDataBag_contents_repr<DataOnlyBagToStr>,
      METH_FASTCALL | METH_KEYWORDS,
-     "_data_triples_repr(triple_limit=1000)\n"
+     "_data_triples_repr($self, /, *, triple_limit=1000)\n"
      "--\n\n"
      "Returns a string representation of the contents of this DataBag, "
      "omitting schema contents"},
     {"_schema_triples_repr",
      (PyCFunction)PyDataBag_contents_repr<SchemaOnlyBagToStr>,
      METH_FASTCALL | METH_KEYWORDS,
-     "_schema_triples_repr(triple_limit=1000)\n"
+     "_schema_triples_repr($self, /, *, triple_limit=1000)\n"
      "--\n\n"
      "Returns a string representation of the schema contents of this DataBag"},
     {"_from_proto", (PyCFunction)PyDataBag_from_proto, METH_FASTCALL,
-     "_from_proto(message_list, extensions_list, itemid, schema, /)\n"
+     "_from_proto($self, message_list, extensions_list, itemid, schema, /)\n"
      "--\n\n"
      "Returns a DataSlice converted from a list of proto messages."},
     {"_schema_from_proto", (PyCFunction)PyDataBag_schema_from_proto,
      METH_FASTCALL,
-     "_schema_from_proto(message_class, extensions, /)\n"
+     "_schema_from_proto($self, message_class, extensions, /)\n"
      "--\n\n"
      "Returns a schema DataItem converted from a proto message class."},
     {"get_approx_size", PyDataBag_get_approx_size, METH_NOARGS,
-     "get_approx_size()\n"
+     "get_approx_size($self, /)\n"
      "--\n\n"
      "Returns approximate size of the DataBag in triples."},
     {"get_approx_byte_size", PyDataBag_get_approx_byte_size, METH_NOARGS,
-     "get_approx_byte_size()\n"
+     "get_approx_byte_size($self, /)\n"
      "--\n\n"
      "Returns approximate size of the DataBag in bytes."},
     {"is_empty", PyDataBag_is_empty, METH_NOARGS,
-     "is_empty()\n"
+     "is_empty($self, /)\n"
      "--\n\n"
      "Returns True if the DataBag is empty."},
     {nullptr} /* sentinel */

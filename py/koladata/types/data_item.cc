@@ -147,7 +147,7 @@ PyObject* absl_nullable PyDataItem_from_vals(PyTypeObject* cls,
 PyMethodDef kPyDataItem_methods[] = {
     {"from_vals", (PyCFunction)PyDataItem_from_vals,
      METH_CLASS | METH_FASTCALL | METH_KEYWORDS,
-     "from_vals(x, /, schema=None)\n"
+     "from_vals($type, x, /, schema=None)\n"
      "--\n\n"
      R"""(Returns a DataItem created from `x`.
 

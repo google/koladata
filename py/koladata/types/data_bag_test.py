@@ -2364,12 +2364,46 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     # Tests that all methods have an inspectable signature. This is not added
     # automatically for methods defined in CPython and requires the docstring
     # to follow a specific format.
-    for fn_name in dir(data_bag.DataBag):
-      if fn_name.startswith('_'):
+    instance = bag()
+    for fn_name in dir(instance):
+      if fn_name.startswith('_') or isinstance(
+          inspect.getattr_static(instance, fn_name), property
+      ):
         continue
-      fn = getattr(data_bag.DataBag, fn_name)
+      fn = getattr(instance, fn_name)
       if callable(fn):
         _ = inspect.signature(fn)  # Shouldn't raise.
+
+    self.assertEqual(
+        inspect.signature(instance.new_shaped),
+        inspect.signature(
+            lambda shape, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs: None  # pylint: disable=line-too-long
+        ),
+    )
+    self.assertEqual(
+        inspect.signature(instance.new_like),
+        inspect.signature(
+            lambda shape_and_mask_from, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs: None  # pylint: disable=line-too-long
+        ),
+    )
+    self.assertEqual(
+        inspect.signature(instance.obj),
+        inspect.signature(lambda arg, /, *, itemid=None, **attrs: None),
+    )
+    self.assertEqual(
+        inspect.signature(instance.obj_shaped),
+        inspect.signature(lambda shape, /, *, itemid=None, **attrs: None),
+    )
+    self.assertEqual(
+        inspect.signature(instance.obj_like),
+        inspect.signature(
+            lambda shape_and_mask_from, /, *, itemid=None, **attrs: None
+        ),
+    )
+    self.assertEqual(
+        inspect.signature(instance.overwriting_merge_update),
+        inspect.signature(lambda other_db, /: None),
+    )
 
   def test_get_approx_size(self):
     # This test approximate size of the DataBag. It is fine to change numbers

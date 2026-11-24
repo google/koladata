@@ -307,12 +307,19 @@ class DataItemTest(parameterized.TestCase):
     # Tests that all methods have an inspectable signature. This is not added
     # automatically for methods defined in CPython and requires the docstring
     # to follow a specific format.
-    for fn_name in dir(data_item.DataItem):
-      if fn_name.startswith('_'):
+    instance = ds(1)
+    for fn_name in dir(instance):
+      if fn_name.startswith('_') or isinstance(
+          inspect.getattr_static(instance, fn_name), property
+      ):
         continue
-      fn = getattr(data_item.DataItem, fn_name)
+      fn = getattr(instance, fn_name)
       if callable(fn):
         _ = inspect.signature(fn)  # Shouldn't raise.
+    self.assertEqual(
+        inspect.signature(instance.from_vals),
+        inspect.signature(lambda x, /, schema=None: None),
+    )
 
   def test_colab_has_safe_repr(self):
     self.assertTrue(hasattr(data_item.DataItem, '_COLAB_HAS_SAFE_REPR'))

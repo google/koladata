@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import gc
+import inspect
 import re
 import sys
 import threading
@@ -513,6 +514,46 @@ class StreamTest(parameterized.TestCase):
     with self.subTest('stream[QValue] <- stream[QValue]'):
       res_qvalue: list[arolla.QValue] = fn_qvalue(stream_qvalue)
       del res_qvalue
+
+  def test_signatures(self):
+    stream, writer = clib.Stream.new(arolla.INT32)
+    reader = stream.make_reader()
+    self.assertEqual(
+        inspect.signature(clib.Stream.new),
+        inspect.signature(lambda value_qtype, /: None),
+    )
+    self.assertEqual(
+        inspect.signature(stream.make_reader),
+        inspect.signature(lambda: None),
+    )
+    self.assertEqual(
+        inspect.signature(stream.read_all),
+        inspect.signature(lambda *, timeout: None),
+    )
+    self.assertEqual(
+        inspect.signature(stream.yield_all),
+        inspect.signature(lambda *, timeout: None),
+    )
+    self.assertEqual(
+        inspect.signature(writer.orphaned),
+        inspect.signature(lambda: None),
+    )
+    self.assertEqual(
+        inspect.signature(writer.write),
+        inspect.signature(lambda item, /: None),
+    )
+    self.assertEqual(
+        inspect.signature(writer.close),
+        inspect.signature(lambda exception=None: None),
+    )
+    self.assertEqual(
+        inspect.signature(reader.read_available),
+        inspect.signature(lambda limit=None: None),
+    )
+    self.assertEqual(
+        inspect.signature(reader.subscribe_once),
+        inspect.signature(lambda callback, /: None),
+    )
 
 
 if __name__ == '__main__':
