@@ -324,7 +324,7 @@ class FromPyConverter {
 
   // Determines how Python dicts in `py_objects` should be converted based on
   // their key types, the specified `schema`, and `dict_as_obj_`.
-  DictConversionMode GetDictConversionMode(
+  absl::StatusOr<DictConversionMode> GetDictConversionMode(
       const std::vector<PyObject*>& py_objects,
       const std::optional<DataSlice>& schema) {
     if (schema && schema->IsDictSchema()) {
@@ -338,7 +338,8 @@ class FromPyConverter {
     bool has_obj_dict = false;
     bool has_regular_dict = false;
     for (PyObject* py_obj : py_objects) {
-      if (PyDict_Check(py_obj)) {
+      ASSIGN_OR_RETURN(bool is_dict, IsSupportedPyDict(py_obj));
+      if (is_dict) {
         if (is_entity_schema ||
             (dict_as_obj_ && DictHasOnlyStringKeys(py_obj))) {
           has_obj_dict = true;
@@ -515,7 +516,8 @@ class FromPyConverter {
       groups.lists.Add(index, py_obj);
       return true;
     }
-    if (PyDict_CheckExact(py_obj)) {
+    ASSIGN_OR_RETURN(bool is_dict, IsSupportedPyDict(py_obj));
+    if (is_dict) {
       if (dict_as_obj_ && DictHasOnlyStringKeys(py_obj)) {
         RETURN_IF_ERROR(groups.objects.AddDict(index, py_obj));
       } else {
@@ -843,7 +845,9 @@ class FromPyConverter {
                                   itemid, cur_depth, executor, result);
     }
 
-    switch (GetDictConversionMode(py_objects, schema)) {
+    ASSIGN_OR_RETURN(DictConversionMode dict_mode,
+                     GetDictConversionMode(py_objects, schema));
+    switch (dict_mode) {
       case DictConversionMode::kDictAsObj:
         return ConvertDictsAsObj(py_objects, std::move(cur_shape), schema,
                                  std::move(itemid), cur_depth, executor,
@@ -1019,7 +1023,8 @@ class FromPyConverter {
       }
       std::vector<std::pair<PyObject*, PyObject*>>& cur_dict_keys_values =
           py_keys_values[dict_index];
-      if (!PyDict_CheckExact(py_obj)) {
+      ASSIGN_OR_RETURN(bool is_dict, IsSupportedPyDict(py_obj));
+      if (!is_dict) {
         // This can only happen if there is a schema provided; otherwise we
         // always parse objects one by one.
         return absl::InvalidArgumentError(error_message_for_schema_mismatch);

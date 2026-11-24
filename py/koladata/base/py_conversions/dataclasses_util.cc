@@ -81,7 +81,68 @@ absl::StatusOr<bool> IsSimpleNamespace(PyObject* py_obj) {
       py_obj, reinterpret_cast<PyTypeObject*>(simple_namespace_type));
 }
 
+// Borrowed pointers to cached `collections` types (kept alive for process
+// lifetime).
+struct SupportedDictSubclassTypes {
+  PyTypeObject* absl_nonnull defaultdict_type;
+  PyTypeObject* absl_nonnull counter_type;
+};
+
+absl::StatusOr<SupportedDictSubclassTypes> GetSupportedDictSubclassTypes() {
+  arolla::python::DCheckPyGIL();
+  // Note: this lazy static cache relies on the GIL and will need
+  // synchronization if free-threaded Python is enabled.
+  static PyTypeObject* defaultdict_type = nullptr;
+  static PyTypeObject* counter_type = nullptr;
+  if (defaultdict_type == nullptr) {
+    PyObjectPtr collections_mod =
+        PyObjectPtr::Own(PyImport_ImportModule("collections"));
+    if (collections_mod == nullptr) {
+      return arolla::python::StatusCausedByPyErr(
+          absl::StatusCode::kInternal, "could not import collections");
+    }
+    auto get_type = [&](const char* name) -> absl::StatusOr<PyObjectPtr> {
+      PyObjectPtr attr =
+          PyObjectPtr::Own(PyObject_GetAttrString(collections_mod.get(), name));
+      if (attr == nullptr) {
+        return arolla::python::StatusCausedByPyErr(
+            absl::StatusCode::kInternal,
+            absl::StrFormat("could not get collections.%s", name));
+      }
+      if (!PyType_Check(attr.get())) {
+        return absl::InternalError(
+            absl::StrFormat("collections.%s is not a type", name));
+      }
+      return attr;
+    };
+    ASSIGN_OR_RETURN(PyObjectPtr dd, get_type("defaultdict"));
+    ASSIGN_OR_RETURN(PyObjectPtr cnt, get_type("Counter"));
+    // Intentionally leak one ref per type so the cached pointers stay valid and
+    // we never Py_DECREF during C++ static teardown after Py_Finalize.
+    defaultdict_type = reinterpret_cast<PyTypeObject*>(dd.release());
+    counter_type = reinterpret_cast<PyTypeObject*>(cnt.release());
+  }
+  return SupportedDictSubclassTypes{defaultdict_type, counter_type};
+}
+
 }  // namespace
+
+namespace py_conversions_internal {
+
+absl::StatusOr<bool> IsSupportedPyDictSubclass(PyObject* absl_nonnull py_obj) {
+  ASSIGN_OR_RETURN(SupportedDictSubclassTypes supported_types,
+                   GetSupportedDictSubclassTypes());
+  PyTypeObject* type = Py_TYPE(py_obj);
+  if (type == supported_types.defaultdict_type ||
+      type == supported_types.counter_type) {
+    return true;
+  }
+  return absl::InvalidArgumentError(absl::StrFormat(
+      "dict subclass `%s` is not supported; convert it to `dict` first",
+      type->tp_name));
+}
+
+}  // namespace py_conversions_internal
 
 absl::StatusOr<PyObject* absl_nonnull> GetSimpleNamespaceType() {
   arolla::python::DCheckPyGIL();
@@ -181,7 +242,8 @@ absl::StatusOr<std::vector<PyObject*>> DataClassesUtil::GetDictValues(
 
 absl::StatusOr<std::vector<PyObject*>> DataClassesUtil::GetAttrValues(
     PyObject* py_obj, absl::Span<const absl::string_view> attr_names) {
-  if (PyDict_CheckExact(py_obj)) {
+  if (PyDict_Check(py_obj)) {
+    RETURN_IF_ERROR(IsSupportedPyDict(py_obj).status());
     Py_ssize_t pos = 0;
     PyObject* py_key = nullptr;
     while (PyDict_Next(py_obj, &pos, &py_key, nullptr)) {
