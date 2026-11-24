@@ -119,12 +119,10 @@ class TracingTest(absltest.TestCase):
       tracing.trace(lambda x, **y: x)
 
   def test_eager_only_methods_not_allowed(self):
-    with self.assertRaisesWithPredicateMatch(
+    with self.assertRaisesRegex(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            r'calling \.append\(\) on a DataSlice is not supported in'
-            r' expr/tracing mode',
-        ),
+        r'calling \.append\(\) on a DataSlice is not supported in'
+        r' expr/tracing mode',
     ):
       tracing.trace(lambda x: x.append())
 
@@ -154,12 +152,12 @@ class TracingTest(absltest.TestCase):
     ):
       tracing.trace(my_fn)
 
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         TypeError,
-        arolla.testing.any_note_regex(
+        notes=[
             'Error occurred during tracing of the'
             ' function.*TracingTest.test_tracing_fail.*my_fn.*'
-        ),
+        ],
     ):
       tracing.trace(my_fn)
 
@@ -277,11 +275,8 @@ class TracingTest(absltest.TestCase):
 
       return kd.functor.expr_fn(tracing.trace(baz))(y)
 
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape("Unexpected inputs ['x']")
-        ),
+    with self.assertRaisesRegex(
+        ValueError, re.escape("Unexpected inputs ['x']")
     ):
       tracing.trace(foo)
 
@@ -293,11 +288,8 @@ class TracingTest(absltest.TestCase):
       traced_internal_fn = tracing.trace(internal_fn)
       return traced_internal_fn(x)
 
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape("Unexpected inputs ['y']")
-        ),
+    with self.assertRaisesRegex(
+        ValueError, re.escape("Unexpected inputs ['y']")
     ):
       tracing.trace(fn)
 

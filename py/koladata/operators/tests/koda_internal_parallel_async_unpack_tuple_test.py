@@ -109,11 +109,17 @@ class KodaInternalParallelAsyncUnpackTupleTest(absltest.TestCase):
     )
     unpacked_future = kde_internal.parallel.async_unpack_tuple(error_future)
     res = expr_eval.eval(unpacked_future, foo=1, bar=0)
-    with self.assertRaisesRegex(ValueError, 'division by zero'):
+    with arolla.testing.assert_raises(
+        ValueError,
+        root_cause=arolla.testing.exc(ValueError, 'division by zero'),
+    ):
       _ = expr_eval.eval(
           kde_internal.parallel.get_future_value_for_testing(res[0])
       )
-    with self.assertRaisesRegex(ValueError, 'division by zero'):
+    with arolla.testing.assert_raises(
+        ValueError,
+        root_cause=arolla.testing.exc(ValueError, 'division by zero'),
+    ):
       _ = expr_eval.eval(
           kde_internal.parallel.get_future_value_for_testing(res[1])
       )

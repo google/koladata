@@ -111,11 +111,8 @@ class ListTest(parameterized.TestCase):
     # Successful.
     x = fns.list([1, 2, 3], itemid=itemid.get_itemid())
     # ITEMID's triples are stripped in the new DataBag.
-    with self.assertRaisesWithPredicateMatch(
-        AttributeError,
-        arolla.testing.any_cause_message_regex(
-            "attribute 'non_existent' is missing"
-        ),
+    with self.assertRaisesRegex(
+        AttributeError, "attribute 'non_existent' is missing"
     ):
       _ = triple.with_bag(x.get_bag()).non_existent
 
@@ -271,16 +268,18 @@ Assigned schema for list items: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}"
     itemid = kde.allocation.new_listid().eval()
     lst1 = fns.list([fns.obj(x=1), fns.obj(y=2)], itemid=itemid)
     lst2 = fns.list([fns.obj(x=1), fns.obj(y=3)], itemid=itemid)
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            r"""cannot merge DataBags due to an exception encountered when merging lists.
+        cause_chain=[
+            arolla.testing.exc(
+                message=r"""cannot merge DataBags due to an exception encountered when merging lists.
 
 The conflicting list in the first DataBag: List\[Entity\(\):\$[0-9a-zA-Z]{22}, Entity\(\):\$[0-9a-zA-Z]{22}\]
 The conflicting list in the second DataBag: List\[Entity\(\):\$[0-9a-zA-Z]{22}, Entity\(\):\$[0-9a-zA-Z]{22}\]
 
-The cause is the value at index 0 is incompatible: Entity\(\):\$[0-9a-zA-Z]{22} vs Entity\(\):\$[0-9a-zA-Z]{22}""",
-        ),
+The cause is the value at index 0 is incompatible: Entity\(\):\$[0-9a-zA-Z]{22} vs Entity\(\):\$[0-9a-zA-Z]{22}"""
+            )
+        ],
     ):
       fns.obj(lst1=lst1, lst2=lst2)
 
@@ -288,16 +287,18 @@ The cause is the value at index 0 is incompatible: Entity\(\):\$[0-9a-zA-Z]{22} 
     itemid = kde.allocation.new_listid().eval()
     lst1 = fns.list([fns.obj(x=1), fns.obj(y=2)], itemid=itemid)
     lst2 = fns.list([fns.obj(x=1)], itemid=itemid)
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            r"""cannot merge DataBags due to an exception encountered when merging lists.
+        cause_chain=[
+            arolla.testing.exc(
+                message=r"""cannot merge DataBags due to an exception encountered when merging lists.
 
 The conflicting list in the first DataBag: List\[Entity\(\):\$[0-9a-zA-Z]{22}, Entity\(\):\$[0-9a-zA-Z]{22}\]
 The conflicting list in the second DataBag: List\[Entity\(\):\$[0-9a-zA-Z]{22}\]
 
-The cause is the list sizes are incompatible: 2 vs 1""",
-        ),
+The cause is the list sizes are incompatible: 2 vs 1"""
+            )
+        ],
     ):
       fns.obj(lst1=lst1, lst2=lst2)
 
@@ -307,15 +308,17 @@ The cause is the list sizes are incompatible: 2 vs 1""",
 
     e1 = fns.new(x=lst1)
     e2 = e1.with_attrs(x=lst2)
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            r"""cannot merge DataBags due to an exception encountered when merging entities.
+        cause_chain=[
+            arolla.testing.exc(
+                message=r"""cannot merge DataBags due to an exception encountered when merging entities.
 
 The conflicting entities in the both DataBags: Entity\(\):\$[0-9a-zA-Z]{22}
 
-The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId \$[0-9a-zA-Z]{22} vs List\[1, 2\] with ItemId \$[0-9a-zA-Z]{22}""",
-        ),
+The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId \$[0-9a-zA-Z]{22} vs List\[1, 2\] with ItemId \$[0-9a-zA-Z]{22}"""
+            )
+        ],
     ):
       fns.obj(e1=e1, e2=e2)
 

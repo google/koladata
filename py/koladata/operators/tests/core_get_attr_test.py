@@ -236,12 +236,7 @@ class CoreGetAttrTest(parameterized.TestCase):
 
   def test_missing(self):
     entity = bag().new(a=1, b=2)
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex(
-            r'the attribute \'c\' is missing'
-        ),
-    ):
+    with self.assertRaisesRegex(ValueError, r'the attribute \'c\' is missing'):
       kd.core.get_attr(entity, 'c')
 
   def test_missing_slice_attr_name(self):

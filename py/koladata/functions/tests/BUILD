@@ -126,7 +126,6 @@ py_test(
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -146,7 +145,6 @@ py_test(
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -180,7 +178,6 @@ py_test(
         "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -234,7 +231,6 @@ py_test(
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
     ],
 )
 

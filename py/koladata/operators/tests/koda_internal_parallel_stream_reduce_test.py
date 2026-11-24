@@ -162,7 +162,9 @@ class KodaInternalParallelStreamReduceTest(parameterized.TestCase):
     res = kde_internal.parallel.stream_reduce(
         default_executor, fn, stream, initial_value=ds(0)
     ).eval()  # no error
-    with self.assertRaisesRegex(RuntimeError, re.escape('Boom!')):
+    with arolla.testing.assert_raises(
+        Exception, root_cause=arolla.testing.exc(RuntimeError, 'Boom!')
+    ):
       res.read_all(timeout=None)
 
   @arolla.abc.add_default_cancellation_context

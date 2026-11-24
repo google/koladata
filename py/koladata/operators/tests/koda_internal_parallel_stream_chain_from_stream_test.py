@@ -108,7 +108,9 @@ class KodaInternalParallelStreamChainFromStreamTest(parameterized.TestCase):
     writers[1].close(ValueError('Boom!'))
     self.assertEqual(reader.read_available(), [])
     writers[0].close()
-    with self.assertRaisesRegex(ValueError, re.escape('Boom!')):
+    with arolla.testing.assert_raises(
+        ValueError, root_cause=arolla.testing.exc(ValueError, 'Boom!')
+    ):
       reader.read_available()
 
   def test_error_non_stream_of_streams(self):

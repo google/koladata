@@ -132,10 +132,10 @@ class PyMapPyOnCondTest(parameterized.TestCase):
   def test_error_non_mask_cond(self):
     fn = lambda _: None
     val = ds([1])
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape('expected a mask, got cond: INT32')
+        root_cause=arolla.testing.exc(
+            ValueError, 'expected a mask, got cond: INT32'
         ),
     ):
       expr_eval.eval(kde.py.map_py_on_cond(fn, fn, val, val))
@@ -143,13 +143,14 @@ class PyMapPyOnCondTest(parameterized.TestCase):
   def test_error_higher_dimension_cond(self):
     fn = lambda _: None
     val = ds([1])
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape(
+        root_cause=arolla.testing.exc(
+            ValueError,
+            (
                 "'cond' must have the same or smaller dimension than `args` and"
                 ' `kwargs`'
-            )
+            ),
         ),
     ):
       expr_eval.eval(kde.py.map_py_on_cond(fn, fn, val.repeat(1) > 2, val))
@@ -183,21 +184,20 @@ class PyMapPyOnCondTest(parameterized.TestCase):
       return x
 
     expr = kde.py.map_py_on_cond(fn1, fn2, mask_constants.present, ds(1))
-    with self.assertRaisesRegex(
+    with arolla.testing.assert_raises(
         ValueError,
-        re.escape(
-            'unsupported type, arolla.abc.expr.Expr, for value:\n\n '
-            f' {ds(1) + I.x}'
-        ),
-    ):
-      expr_eval.eval(expr)
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_note_regex(
+        root_cause=arolla.testing.exc(
+            ValueError,
             re.escape(
-                'Error occurred during evaluation of kd.map_py_on_cond with'
-                f' true_fn={fn1} and false_fn={fn2}'
-            )
+                'unsupported type, arolla.abc.expr.Expr, for value:\n\n '
+                f' {ds(1) + I.x}'
+            ),
+            notes=[
+                re.escape(
+                    'Error occurred during evaluation of kd.map_py_on_cond with'
+                    f' true_fn={fn1} and false_fn={fn2}'
+                )
+            ],
         ),
     ):
       expr_eval.eval(expr)
@@ -210,22 +210,20 @@ class PyMapPyOnCondTest(parameterized.TestCase):
       return x
 
     expr = kde.py.map_py_on_cond(fn2, fn1, mask_constants.missing, ds(1))
-    with self.assertRaisesRegex(
+    with arolla.testing.assert_raises(
         ValueError,
-        re.escape(
-            'unsupported type, arolla.abc.expr.Expr, for value:\n\n '
-            f' {ds(1) + I.x}'
-        ),
-    ):
-      expr_eval.eval(expr)
-
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_note_regex(
+        root_cause=arolla.testing.exc(
+            ValueError,
             re.escape(
-                'Error occurred during evaluation of kd.map_py_on_cond with'
-                f' true_fn={fn2} and false_fn={fn1}'
-            )
+                'unsupported type, arolla.abc.expr.Expr, for value:\n\n '
+                f' {ds(1) + I.x}'
+            ),
+            notes=[
+                re.escape(
+                    'Error occurred during evaluation of kd.map_py_on_cond with'
+                    f' true_fn={fn2} and false_fn={fn1}'
+                )
+            ],
         ),
     ):
       expr_eval.eval(expr)

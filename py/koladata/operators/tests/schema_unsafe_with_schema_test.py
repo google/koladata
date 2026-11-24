@@ -80,10 +80,7 @@ class SchemaUnsafeWithSchemaTest(parameterized.TestCase):
 
   def test_schema_from_different_bag(self):
     entity = kd.new(a=1, b='x')
-    with self.assertRaisesWithPredicateMatch(
-        AttributeError,
-        arolla.testing.any_cause_message_regex("the attribute 'c' is missing"),
-    ):
+    with self.assertRaisesRegex(AttributeError, "the attribute 'c' is missing"):
       _ = entity.c
 
     new_bag = bag()

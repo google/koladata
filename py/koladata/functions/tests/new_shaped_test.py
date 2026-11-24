@@ -84,8 +84,9 @@ class NewShapedTest(absltest.TestCase):
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
 
   def test_broadcast_error(self):
-    with self.assertRaisesWithPredicateMatch(
-        ValueError, arolla.testing.any_cause_message_regex('cannot be expanded')
+    with arolla.testing.assert_raises(
+        ValueError,
+        root_cause=arolla.testing.exc(ValueError, 'cannot be expanded'),
     ):
       fns.new_shaped(jagged_shape.create_shape([2]), a=ds([42]))
 
@@ -112,11 +113,8 @@ class NewShapedTest(absltest.TestCase):
     # Successful.
     x = fns.new_shaped(itemid.get_shape(), a=42, itemid=itemid)
     # ITEMID's triples are stripped in the new DataBag.
-    with self.assertRaisesWithPredicateMatch(
-        AttributeError,
-        arolla.testing.any_cause_message_regex(
-            "attribute 'non_existent' is missing"
-        ),
+    with self.assertRaisesRegex(
+        AttributeError, "attribute 'non_existent' is missing"
     ):
       _ = x.non_existent
 
@@ -170,10 +168,10 @@ class NewShapedTest(absltest.TestCase):
 
   def test_schema_arg_implicit_casting_failure(self):
     schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            "schema for attribute 'a' is incompatible"
+        root_cause=arolla.testing.exc(
+            ValueError, "schema for attribute 'a' is incompatible"
         ),
     ):
       fns.new_shaped(jagged_shape.create_shape([2]), a='xyz', schema=schema)
@@ -284,28 +282,29 @@ class NewShapedTest(absltest.TestCase):
           a=1,
           schema=ds([schema_constants.INT32, schema_constants.STRING]),
       )
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            'expected Entity schema, got INT32'
+        root_cause=arolla.testing.exc(
+            ValueError, 'expected Entity schema, got INT32'
         ),
     ):
       fns.new_shaped(
           jagged_shape.create_shape(), a=1, schema=schema_constants.INT32
       )
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            'expected Entity schema, got OBJECT'
+        root_cause=arolla.testing.exc(
+            ValueError, 'expected Entity schema, got OBJECT'
         ),
     ):
       fns.new_shaped(
           jagged_shape.create_shape(), a=1, schema=schema_constants.OBJECT
       )
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape('expected Entity schema, got LIST[INT32]')
+        root_cause=arolla.testing.exc(
+            ValueError,
+            re.escape('expected Entity schema, got LIST[INT32]'),
         ),
     ):
       fns.new_shaped(
@@ -316,41 +315,40 @@ class NewShapedTest(absltest.TestCase):
 
   def test_schema_error_message(self):
     schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape(
-                r"""the schema for attribute 'a' is incompatible.
+        re.escape(
+            r'cannot create Item(s) with the provided schema: ENTITY(a=INT32)'
+        ),
+        cause_chain=[
+            arolla.testing.exc(
+                message=r"""the schema for attribute 'a' is incompatible.
 
 Expected schema for 'a': INT32
 Assigned schema for 'a': STRING
 
 To fix this, explicitly override schema of 'a' in the original schema by passing overwrite_schema=True."""
             )
-        ),
-    ) as cm:
+        ],
+    ):
       fns.new_shaped(jagged_shape.create_shape(), a='a', schema=schema)
-    self.assertRegex(
-        str(cm.exception),
-        re.escape(
-            r'cannot create Item(s) with the provided schema: ENTITY(a=INT32)'
-        ),
-    )
 
     db1 = object_factories.mutable_bag()
     _ = db1.uuobj(x=1)
     db2 = object_factories.mutable_bag()
     b = db2.uuobj(x=1)
     b.x = 2
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            r"""cannot merge DataBags due to an exception encountered when merging entities.
+        cause_chain=[
+            arolla.testing.exc(
+                message=r"""cannot merge DataBags due to an exception encountered when merging entities.
 
 The conflicting entities in the both DataBags: Entity\(\):\#[0-9a-zA-Z]{22}
 
-The cause is the values of attribute 'x' are different: 1 vs 2""",
-        ),
+The cause is the values of attribute 'x' are different: 1 vs 2"""
+            )
+        ],
     ):
       db1.new_shaped(jagged_shape.create_shape(), y=b)
 

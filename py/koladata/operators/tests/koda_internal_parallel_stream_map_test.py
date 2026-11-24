@@ -128,7 +128,9 @@ class KodaInternalParallelStreamMapTest(parameterized.TestCase):
     res = kde_internal.parallel.stream_map(
         default_executor, stream, fn, value_type_as=i32(0)
     ).eval()  # no error
-    with self.assertRaisesRegex(RuntimeError, re.escape('Boom!')):
+    with arolla.testing.assert_raises(
+        Exception, root_cause=arolla.testing.exc(RuntimeError, 'Boom!')
+    ):
       res.read_all(timeout=None)
 
   @arolla.abc.add_default_cancellation_context

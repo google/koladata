@@ -133,7 +133,9 @@ class StreamsCallTest(parameterized.TestCase):
       raise RuntimeError('Boom!')
 
     res = kde.streams.call(py_fn(fn)).eval()
-    with self.assertRaisesRegex(RuntimeError, 'Boom!'):
+    with arolla.testing.assert_raises(
+        Exception, root_cause=arolla.testing.exc(RuntimeError, 'Boom!')
+    ):
       res.read_all(timeout=1)
 
   def test_error_fn_returns_non_stream(self):

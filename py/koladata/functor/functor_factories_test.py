@@ -587,19 +587,12 @@ class FunctorFactoriesTest(parameterized.TestCase):
     testing.assert_equal(
         kd.call(functor_factories.py_fn(positional_only), 1), ds(1)
     )
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex(
-            'unknown keyword arguments.*args'
-        ),
-    ):
+    with self.assertRaisesRegex(ValueError, 'unknown keyword arguments.*args'):
       _ = kd.call(functor_factories.py_fn(positional_only), args=1)
 
-    with self.assertRaisesWithPredicateMatch(
+    with self.assertRaisesRegex(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            'no value provided for positional or keyword parameter .y.'
-        ),
+        'no value provided for positional or keyword parameter .y.',
     ):
       _ = kd.call(
           functor_factories.py_fn(lambda x, y: x + y), fns.obj(x=1, y=2)
@@ -618,10 +611,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
         ),
         ds(3),
     )
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex('unknown keyword arguments.*y'),
-    ):
+    with self.assertRaisesRegex(ValueError, 'unknown keyword arguments.*y'):
       _ = (
           kd.call(
               functor_factories.py_fn(lambda foo: foo.x + foo.y),
@@ -814,11 +804,8 @@ class FunctorFactoriesTest(parameterized.TestCase):
     f = functor_factories.bind(
         functor_factories.py_fn(lambda x, y: x + y), x=1, y=I.z
     )
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape('unknown keyword arguments: [z]')
-        ),
+    with self.assertRaisesRegex(
+        ValueError, re.escape('unknown keyword arguments: [z]')
     ):
       # This forwards argument 'z' to the underlying Python function as well,
       # which does not accept it.
@@ -838,19 +825,13 @@ class FunctorFactoriesTest(parameterized.TestCase):
   def test_bind_positional(self):
     fn = functor_factories.py_fn(lambda x, /: x)
     f = functor_factories.bind(fn, x=1)
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex('unknown keyword arguments.*x'),
-    ):
+    with self.assertRaisesRegex(ValueError, 'unknown keyword arguments.*x'):
       _ = f()
 
     fn = functor_factories.py_fn(lambda x: x)
     f = functor_factories.bind(fn, x=1)
     testing.assert_equal(f().no_bag(), ds(1))
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex('parameter .x. specified twice'),
-    ):
+    with self.assertRaisesRegex(ValueError, 'parameter .x. specified twice'):
       _ = f(1)
 
   def test_bind_explicit_return_type(self):
@@ -901,10 +882,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
     f = functor_factories.bind(fn)
     testing.assert_equal(kd.call(f, x=1, y=2), ds(3))
 
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex('parameter .y. specified twice'),
-    ):
+    with self.assertRaisesRegex(ValueError, 'parameter .y. specified twice'):
       kd.call(functor_factories.bind(fn, 1), 2, y=2)
 
     f = functor_factories.bind(
@@ -1349,11 +1327,8 @@ class FunctorFactoriesTest(parameterized.TestCase):
   def test_allow_arbitrary_unused_inputs_on_py_fn(self):
     fn = functor_factories.py_fn(lambda x, y: x + y)
     self.assertEqual(fn(x=1, y=2), 3)
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape('unknown keyword arguments: [z]')
-        ),
+    with self.assertRaisesRegex(
+        ValueError, re.escape('unknown keyword arguments: [z]')
     ):
       _ = fn(x=1, y=2, z=3)
     fn2 = functor_factories.allow_arbitrary_unused_inputs(fn)

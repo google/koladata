@@ -12,11 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import re
-
 from absl.testing import absltest
 from absl.testing import parameterized
-from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
@@ -42,11 +39,9 @@ class CoreShallowCloneTest(parameterized.TestCase):
     x = db.obj(y=y)
     result = kd.shallow_clone(x)
     testing.assert_equal(result.y.no_bag(), y.no_bag())
-    with self.assertRaisesWithPredicateMatch(
+    with self.assertRaisesRegex(
         AttributeError,
-        arolla.testing.any_cause_message_regex(
-            re.escape('object schema is missing for the DataItem')
-        ),
+        'object schema is missing for the DataItem',
     ):
       _ = result.y.x
 
@@ -56,10 +51,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
     x = db.new(y=y)
     result = kd.shallow_clone(x)
     testing.assert_equal(result.y.no_bag(), y.no_bag())
-    with self.assertRaisesWithPredicateMatch(
-        AttributeError,
-        arolla.testing.any_cause_message_regex("the attribute 'x' is missing"),
-    ):
+    with self.assertRaisesRegex(AttributeError, "the attribute 'x' is missing"):
       _ = result.y.x
 
   def test_entities(self):
@@ -221,10 +213,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
     self.assertFalse(res.get_bag().is_mutable())
     testing.assert_equal(res.x.no_bag(), ds(42))
     testing.assert_equal(res.z.no_bag(), ds(12))
-    with self.assertRaisesWithPredicateMatch(
-        AttributeError,
-        arolla.testing.any_cause_message_regex("attribute 'y' is missing"),
-    ):
+    with self.assertRaisesRegex(AttributeError, "attribute 'y' is missing"):
       _ = res.y
 
   def test_itemid(self):

@@ -116,11 +116,8 @@ class ObjsShapedAsTest(absltest.TestCase):
     itemid = fns.new(non_existent=ds([[42, 42], [42]])).get_itemid()
     assert itemid.has_bag()
     x = kd.objs.shaped_as(itemid, a=42, itemid=itemid)
-    with self.assertRaisesWithPredicateMatch(
-        AttributeError,
-        arolla.testing.any_cause_message_regex(
-            "attribute 'non_existent' is missing"
-        ),
+    with self.assertRaisesRegex(
+        AttributeError, "attribute 'non_existent' is missing"
     ):
       _ = x.non_existent
 

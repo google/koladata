@@ -101,7 +101,9 @@ class KodaInternalParallelStreamInterleaveFromStreamTest(
       swriter.write(stream)
       self.assertEqual(reader.read_available(), [])
     writers[2].close(ValueError('Boom!'))
-    with self.assertRaisesRegex(ValueError, re.escape('Boom!')):
+    with arolla.testing.assert_raises(
+        ValueError, root_cause=arolla.testing.exc(ValueError, 'Boom!')
+    ):
       reader.read_available()
 
   def test_error_non_stream_of_streams(self):

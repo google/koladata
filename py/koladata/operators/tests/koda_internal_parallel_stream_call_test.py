@@ -121,7 +121,9 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
       raise RuntimeError('Boom!')
 
     res = kde_internal.parallel.stream_call(default_executor, py_fn(fn)).eval()
-    with self.assertRaisesRegex(RuntimeError, 'Boom!'):
+    with arolla.testing.assert_raises(
+        Exception, root_cause=arolla.testing.exc(RuntimeError, 'Boom!')
+    ):
       res.read_all(timeout=1)
 
   def test_error_fn_returns_wrong_type(self):
@@ -170,7 +172,9 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
         default_executor, lambda x: x, kde_internal.parallel.stream_await(arg)
     ).eval()
     arg_writer.close(RuntimeError('Boom!'))
-    with self.assertRaisesRegex(RuntimeError, re.escape('Boom!')):
+    with arolla.testing.assert_raises(
+        Exception, root_cause=arolla.testing.exc(RuntimeError, 'Boom!')
+    ):
       res.read_all(timeout=1)
 
   def test_error_in_awaited_arg_after_value(self):
@@ -180,7 +184,9 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
     ).eval()
     arg_writer.write(ds(1))
     arg_writer.close(RuntimeError('Boom!'))
-    with self.assertRaisesRegex(RuntimeError, re.escape('Boom!')):
+    with arolla.testing.assert_raises(
+        Exception, root_cause=arolla.testing.exc(RuntimeError, 'Boom!')
+    ):
       res.read_all(timeout=1)
 
   def test_error_empty_awaited_arg(self):

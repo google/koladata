@@ -70,7 +70,10 @@ class KodaInternalParallelAsyncEvalTest(absltest.TestCase):
     # Note that the async eval does not raise, just stores the error in the
     # future.
     res_future = expr_eval.eval(expr, foo=1, bar=0)
-    with self.assertRaisesRegex(ValueError, 'division by zero'):
+    with arolla.testing.assert_raises(
+        ValueError,
+        root_cause=arolla.testing.exc(ValueError, 'division by zero'),
+    ):
       _ = expr_eval.eval(
           kde_internal.parallel.get_future_value_for_testing(res_future)
       )
@@ -86,7 +89,10 @@ class KodaInternalParallelAsyncEvalTest(absltest.TestCase):
         executor, outer_op, inner_expr
     )
     res_future = expr_eval.eval(outer_expr, foo=1, bar=0)
-    with self.assertRaisesRegex(ValueError, 'division by zero'):
+    with arolla.testing.assert_raises(
+        ValueError,
+        root_cause=arolla.testing.exc(ValueError, 'division by zero'),
+    ):
       _ = expr_eval.eval(
           kde_internal.parallel.get_future_value_for_testing(res_future)
       )
@@ -109,7 +115,10 @@ class KodaInternalParallelAsyncEvalTest(absltest.TestCase):
     )
     res_future = expr_eval.eval(outer_expr, foo=1, bar=0)
     # With the eager executor, we always get the first error.
-    with self.assertRaisesRegex(ValueError, 'division by zero'):
+    with arolla.testing.assert_raises(
+        ValueError,
+        root_cause=arolla.testing.exc(ValueError, 'division by zero'),
+    ):
       _ = expr_eval.eval(
           kde_internal.parallel.get_future_value_for_testing(res_future)
       )
@@ -117,7 +126,9 @@ class KodaInternalParallelAsyncEvalTest(absltest.TestCase):
         executor, outer_op, inner_expr2, inner_expr1
     )
     res_future = expr_eval.eval(outer_expr, foo=1, bar=0)
-    with self.assertRaisesRegex(ValueError, 'inner error'):
+    with arolla.testing.assert_raises(
+        ValueError, root_cause=arolla.testing.exc(ValueError, 'inner error')
+    ):
       _ = expr_eval.eval(
           kde_internal.parallel.get_future_value_for_testing(res_future)
       )
@@ -137,7 +148,10 @@ class KodaInternalParallelAsyncEvalTest(absltest.TestCase):
         executor, outer_op, inner_expr1, inner_expr2
     )
     res_future = expr_eval.eval(outer_expr, foo=1, bar=0)
-    with self.assertRaisesRegex(ValueError, 'division by zero'):
+    with arolla.testing.assert_raises(
+        ValueError,
+        root_cause=arolla.testing.exc(ValueError, 'division by zero'),
+    ):
       _ = expr_eval.eval(
           kde_internal.parallel.get_future_value_for_testing(res_future)
       )
@@ -145,7 +159,10 @@ class KodaInternalParallelAsyncEvalTest(absltest.TestCase):
         executor, outer_op, inner_expr2, inner_expr1
     )
     res_future = expr_eval.eval(outer_expr, foo=1, bar=0)
-    with self.assertRaisesRegex(ValueError, 'division by zero'):
+    with arolla.testing.assert_raises(
+        ValueError,
+        root_cause=arolla.testing.exc(ValueError, 'division by zero'),
+    ):
       _ = expr_eval.eval(
           kde_internal.parallel.get_future_value_for_testing(res_future)
       )

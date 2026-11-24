@@ -132,10 +132,7 @@ class MathDivideTest(parameterized.TestCase):
       kd.math.divide(x, y)
 
     z = ds([[1, 2], [3]])
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex('shapes are not compatible'),
-    ):
+    with self.assertRaisesRegex(ValueError, 'shapes are not compatible'):
       kd.math.divide(x, z)
 
     b = ds([True, False, True])

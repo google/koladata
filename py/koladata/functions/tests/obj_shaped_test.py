@@ -83,8 +83,9 @@ class ObjShapedTest(absltest.TestCase):
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
 
   def test_broadcast_error(self):
-    with self.assertRaisesWithPredicateMatch(
-        ValueError, arolla.testing.any_cause_message_regex('cannot be expanded')
+    with arolla.testing.assert_raises(
+        ValueError,
+        root_cause=arolla.testing.exc(ValueError, 'cannot be expanded'),
     ):
       fns.obj_shaped(jagged_shape.create_shape([2]), a=ds([42]))
 
@@ -111,17 +112,15 @@ class ObjShapedTest(absltest.TestCase):
     # Successful.
     x = fns.obj_shaped(itemid.get_shape(), a=42, itemid=itemid)
     # ITEMID's triples are stripped in the new DataBag.
-    with self.assertRaisesWithPredicateMatch(
-        AttributeError,
-        arolla.testing.any_cause_message_regex(
-            "attribute 'non_existent' is missing"
-        ),
+    with self.assertRaisesRegex(
+        AttributeError, "attribute 'non_existent' is missing"
     ):
       _ = x.non_existent
 
   def test_schema_arg(self):
-    with self.assertRaisesWithPredicateMatch(
-        ValueError, arolla.testing.any_cause_message_regex('please use new')
+    with arolla.testing.assert_raises(
+        ValueError,
+        root_cause=arolla.testing.exc(ValueError, 'please use new'),
     ):
       fns.obj_shaped(
           jagged_shape.create_shape(), a=1, b='a', schema=schema_constants.INT32

@@ -127,8 +127,8 @@ class PyMapPyTest(parameterized.TestCase):
       stopped.wait(timeout=1.0)
       return x
 
-    with self.assertRaisesWithPredicateMatch(
-        ValueError, arolla.testing.any_cause_message_regex('failed on 0')
+    with arolla.testing.assert_raises(
+        ValueError, root_cause=arolla.testing.exc(ValueError, 'failed on 0')
     ):
       kd.py.map_py(fn, ds([0, 1, 2]), max_threads=2)
 
@@ -193,35 +193,38 @@ class PyMapPyTest(parameterized.TestCase):
     )
     self.assertFalse(res.is_mutable())
 
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape('cannot find a common schema')
+        root_cause=arolla.testing.exc(
+            ValueError, 'cannot find a common schema'
         ),
     ):
       _ = kd.py.map_py(my_func_dynamic_schema, ds([1, 2]), schema=schema)
 
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape('cannot create Item(s) with the provided schema: OBJECT')
+        root_cause=arolla.testing.exc(
+            ValueError, 'expected Entity schema, got OBJECT'
         ),
     ):
       _ = kd.py.map_py(my_func_obj_schema, ds([1, 2]), schema=schema)
 
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape('expected a schema, got schema=1')
+        root_cause=arolla.testing.exc(
+            ValueError, 'expected a schema, got schema=1'
         ),
     ):
       _ = kd.py.map_py(my_func_correct_schema, val, schema=1)
 
-    with self.assertRaisesRegex(
+    with arolla.testing.assert_raises(
         ValueError,
-        re.escape("""the schema is incompatible:
+        root_cause=arolla.testing.exc(
+            ValueError,
+            re.escape("""the schema is incompatible:
 expected schema: ENTITY(u=INT32, v=INT32)
 assigned schema: ENTITY(u=INT64)"""),
+        ),
     ):
       _ = kd.py.map_py(
           my_func_correct_schema,
@@ -277,9 +280,9 @@ assigned schema: ENTITY(u=INT64)"""),
 
     val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
 
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex('unsupported type: set'),
+        root_cause=arolla.testing.exc(ValueError, 'unsupported type: set'),
     ):
       kd.py.map_py(as_set, val)
 
@@ -289,43 +292,46 @@ assigned schema: ENTITY(u=INT64)"""),
 
     val1 = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
     val2 = ds([[0, 1, None, 2], [3, 4], []])
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
+        root_cause=arolla.testing.exc(
+            ValueError,
             re.escape(
                 'DataSlice with shape=JaggedShape(3, [4, 2, 0]) cannot be'
                 ' expanded to shape=JaggedShape(3, [4, 2, 3])'
-            )
+            ),
         ),
     ):
       kd.py.map_py(add_x_y, val1, val2)
 
   def test_map_py_no_inputs(self):
-    with self.assertRaisesWithPredicateMatch(
-        TypeError,
-        arolla.testing.any_cause_message_regex(
-            'expected at least one input DataSlice, got none'
+    with arolla.testing.assert_raises(
+        Exception,
+        root_cause=arolla.testing.exc(
+            TypeError, 'expected at least one input DataSlice, got none'
         ),
     ):
       kd.py.map_py(lambda: None)
 
   def test_map_py_item_invalid_fn(self):
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape('expected a python callable, got fn=PyObject{1}')
+        root_cause=arolla.testing.exc(
+            ValueError,
+            re.escape('expected a python callable, got fn=PyObject{1}'),
         ),
     ):
       kd.py.map_py(arolla.abc.PyObject(1), ds(list(range(10))))
 
   def test_map_py_invalid_item_completed_callback(self):
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
+        root_cause=arolla.testing.exc(
+            ValueError,
             re.escape(
                 'expected a python callable, got'
                 ' item_completed_callback=DataItem(1, schema: INT32)'
-            )
+            ),
         ),
     ):
       kd.py.map_py(
@@ -338,26 +344,26 @@ assigned schema: ENTITY(u=INT64)"""),
     def agg_count(x):
       return len([i for i in x if i is not None])
 
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            'ndim should be between 0 and 3, got ndim=-1'
+        root_cause=arolla.testing.exc(
+            ValueError, 'ndim should be between 0 and 3, got ndim=-1'
         ),
     ):
       kd.py.map_py(agg_count, val, ndim=-1)
 
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            'ndim should be between 0 and 3, got ndim=4'
+        root_cause=arolla.testing.exc(
+            ValueError, 'ndim should be between 0 and 3, got ndim=4'
         ),
     ):
       kd.py.map_py(agg_count, val, ndim=4)
 
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            'expected a scalar integer, got ndim=None'
+        root_cause=arolla.testing.exc(
+            ValueError, 'expected a scalar integer, got ndim=None'
         ),
     ):
       kd.py.map_py(agg_count, val, ndim=None)
@@ -425,17 +431,17 @@ assigned schema: ENTITY(u=INT64)"""),
     testing.assert_equal(res_int[ds(1)].no_bag(), ds([1]))
 
   def test_map_py_invalid_include_missing(self):
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            'expected a scalar boolean, got include_missing=1'
+        root_cause=arolla.testing.exc(
+            ValueError, 'expected a scalar boolean, got include_missing=1'
         ),
     ):
       _ = kd.py.map_py(lambda x: x, ds([0]), include_missing=1)
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            '`include_missing=False` can only be used with `ndim=0`',
+        root_cause=arolla.testing.exc(
+            ValueError, '`include_missing=False` can only be used with `ndim=0`'
         ),
     ):
       _ = kd.py.map_py(lambda x: x, ds([0]), ndim=1, include_missing=False)
@@ -501,9 +507,11 @@ assigned schema: ENTITY(u=INT64)"""),
       finally:
         stop_barrier.wait(0.1)
 
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(r'\[CANCELLED\].*interrupted'),
+        root_cause=arolla.testing.exc(
+            ValueError, r'\[CANCELLED\].*interrupted'
+        ),
     ):
       kd.py.map_py(fn, ds(list(range(n))), max_threads=2 * n)
 
@@ -517,9 +525,11 @@ assigned schema: ENTITY(u=INT64)"""),
     mock_executor_init.side_effect = (
         lambda *_, **__: arolla.abc.simulate_SIGINT() or mock.DEFAULT
     )
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(r'\[CANCELLED\].*interrupted'),
+        root_cause=arolla.testing.exc(
+            ValueError, r'\[CANCELLED\].*interrupted'
+        ),
     ):
       kd.py.map_py(lambda x: x + 1, ds([1, 2, 3]), max_threads=4)
 
@@ -527,20 +537,20 @@ assigned schema: ENTITY(u=INT64)"""),
     def foo(x):
       return x + I.x
 
-    with self.assertRaisesRegex(
+    with arolla.testing.assert_raises(
         ValueError,
-        re.escape(
-            'unsupported type, arolla.abc.expr.Expr, for value:\n\n '
-            f' {ds(1) + I.x}'
-        ),
-    ):
-      kd.py.map_py(foo, ds(1))
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_note_regex(
+        root_cause=arolla.testing.exc(
+            ValueError,
             re.escape(
-                f'Error occurred during evaluation of kd.map_py with fn={foo}'
-            )
+                'unsupported type, arolla.abc.expr.Expr, for value:\n\n '
+                f' {ds(1) + I.x}'
+            ),
+            notes=[
+                re.escape(
+                    'Error occurred during evaluation of kd.map_py with'
+                    f' fn={foo}'
+                )
+            ],
         ),
     ):
       kd.py.map_py(foo, ds(1))

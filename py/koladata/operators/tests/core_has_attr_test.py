@@ -27,7 +27,6 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
-
 kd = kde_operators.kd
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
@@ -131,41 +130,38 @@ class CoreHasAttrTest(parameterized.TestCase):
         kd.core.has_attr(mixed_objects, 'a'),
         ds([present, present, present]),
     )
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            r"""cannot find a common schema
+        (
+            "failed to get attribute 'b' due to conflict with the schema from"
+            ' the default value'
+        ),
+        cause_chain=[
+            arolla.testing.exc(
+                message=r"""cannot find a common schema
 
  the common schema\(s\) \$[0-9a-zA-Z]{22}: ENTITY\(foo=STRING\)
  the first conflicting schema \$[0-9a-zA-Z]{22}: ENTITY\(foo=STRING\)""",
-        ),
-    ) as cm:
+            ),
+        ],
+    ):
       kd.core.get_attr(object_2, 'b', db.new(foo='baz'))
-    self.assertRegex(
-        str(cm.exception),
-        r"failed to get attribute 'b' due to conflict with the schema from the"
-        r' default value',
-    )
 
     # Although "a" is present in all objects, getting it might still fail.
-    with self.assertRaisesWithPredicateMatch(
+    with self.assertRaisesRegex(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            r"""cannot find a common schema
+        r"""cannot find a common schema
 
  the common schema\(s\) INT32: INT32
  the first conflicting schema \$[0-9a-zA-Z]{22}: ENTITY\(foo=STRING\)""",
-        ),
     ):
       kd.core.get_attr(mixed_objects, 'a')
-    with self.assertRaisesWithPredicateMatch(
+    with self.assertRaisesRegex(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            r"""cannot find a common schema
+        r"""cannot find a common schema
 
  the common schema\(s\) INT32: INT32
  the first conflicting schema \$[0-9a-zA-Z]{22}: ENTITY\(foo=STRING\)""",
-        ),
     ):
       kd.core.maybe(mixed_objects, 'a')
 
@@ -175,10 +171,7 @@ class CoreHasAttrTest(parameterized.TestCase):
         kd.core.has_attr(mixed_objects, 'c'),
         ds([present, missing, present]),
     )
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex("the attribute 'c' is missing"),
-    ):
+    with self.assertRaisesRegex(ValueError, "the attribute 'c' is missing"):
       kd.core.get_attr(mixed_objects, 'c')
     testing.assert_equal(
         kd.core.maybe(mixed_objects, 'c').no_bag(),

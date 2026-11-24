@@ -486,10 +486,7 @@ class DataSliceTest(parameterized.TestCase):
     testing.assert_not_equal(result.no_bag(), o.no_bag())
     testing.assert_equal(result.b.no_bag(), o.b.no_bag())
     testing.assert_equal(result.c.no_bag(), o.c.no_bag())
-    with self.assertRaisesWithPredicateMatch(
-        AttributeError,
-        arolla.testing.any_cause_message_regex("attribute 'a' is missing"),
-    ):
+    with self.assertRaisesRegex(AttributeError, "attribute 'a' is missing"):
       _ = result.b.a
 
   def test_shallow_clone_with_overrides(self):

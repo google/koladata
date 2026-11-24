@@ -217,15 +217,7 @@ def eager_eval(expr: Any, /, **leaf_values: Any) -> arolla.QValue:
     elif node.is_placeholder:
       raise ValueError('placeholders are not supported')
     else:
-      koda_op = _get_eager_koda_op(node.op)
-      try:
-        return koda_op(*args)
-      # Note that ValueError is expected in the Arolla tests and we need to
-      # convert KodaError to ValueError.
-      except ValueError as e:
-        raise ValueError(str(e)) from None
-      except Exception as e:
-        raise e
+      return _get_eager_koda_op(node.op)(*args)
 
   expr = arolla.as_expr(expr)
   output_qtype = _get_output_qtype(expr, **leaf_qvalues)

@@ -73,7 +73,9 @@ class KodaInternalParallelStreamChainTest(absltest.TestCase):
     stream2_writer.close()
     chained_stream = kd_internal.parallel.stream_chain(stream1, stream2)
     stream_reader = chained_stream.make_reader()
-    with self.assertRaisesRegex(AssertionError, 'test error'):
+    with arolla.testing.assert_raises(
+        Exception, root_cause=arolla.testing.exc(AssertionError, 'test error')
+    ):
       _ = stream_reader.read_available()
 
   def test_chain_with_bags(self):

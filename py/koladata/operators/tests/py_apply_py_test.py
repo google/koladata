@@ -106,33 +106,31 @@ class PyApplyPyTest(parameterized.TestCase):
     )
 
   def test_error_call_non_callable(self):
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape('expected a python callable, got fn=PyObject{{}}')
+        root_cause=arolla.testing.exc(
+            ValueError,
+            re.escape('expected a python callable, got fn=PyObject{{}}'),
         ),
     ):
       kd.py.apply_py(arolla.abc.PyObject({}))
 
   def test_error_unexpected_return_type(self):
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape(
+        root_cause=arolla.testing.exc(
+            ValueError,
+            (
                 'expected the result to have qtype DATA_SLICE, got'
                 ' tuple<INT32>; consider specifying the `return_type_as=`'
                 ' parameter'
-            )
+            ),
         ),
     ):
       kd.py.apply_py(lambda: arolla.tuple(1))
-    with self.assertRaisesWithPredicateMatch(
+    with self.assertRaisesRegex(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape(
-                'expected the result to have qtype DATA_BAG, got tuple<INT32>'
-            )
-        ),
+        'expected the result to have qtype DATA_BAG, got tuple<INT32>',
     ):
 
       kd.py.apply_py(lambda: arolla.tuple(1), return_type_as=data_bag.DataBag)
@@ -166,20 +164,20 @@ class PyApplyPyTest(parameterized.TestCase):
     def foo(x):
       return x + I.x
 
-    with self.assertRaisesRegex(
+    with arolla.testing.assert_raises(
         ValueError,
-        re.escape(
-            'failed to construct a QValue from the provided input containing'
-            f' an Expr: {ds(1) + I.x}'
-        ),
-    ):
-      kd.py.apply_py(foo, ds(1))
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_note_regex(
+        root_cause=arolla.testing.exc(
+            ValueError,
             re.escape(
-                f'Error occurred during evaluation of kd.apply_py with fn={foo}'
-            )
+                'failed to construct a QValue from the provided input'
+                f' containing an Expr: {ds(1) + I.x}'
+            ),
+            notes=[
+                re.escape(
+                    'Error occurred during evaluation of kd.apply_py with'
+                    f' fn={foo}'
+                )
+            ],
         ),
     ):
       kd.py.apply_py(foo, ds(1))

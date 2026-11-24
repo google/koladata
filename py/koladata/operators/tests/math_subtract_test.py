@@ -126,10 +126,7 @@ class MathSubtractTest(parameterized.TestCase):
       kd.math.subtract(x, y)
 
     z = ds([[1, 2], [3]])
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex('shapes are not compatible'),
-    ):
+    with self.assertRaisesRegex(ValueError, 'shapes are not compatible'):
       kd.math.subtract(x, z)
 
     w = ds([1, 2.0, 3], schema_constants.OBJECT)

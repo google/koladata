@@ -238,7 +238,9 @@ class KodaInternalParallelStreamWhileLoopYieldsChainedTest(
     expr = _stream_while_yields(
         eager_executor, py_fn(condition_fn), body_fn, yields=stream_make()
     )
-    with self.assertRaisesRegex(NotImplementedError, re.escape('Boom!')):
+    with arolla.testing.assert_raises(
+        Exception, root_cause=arolla.testing.exc(NotImplementedError, 'Boom!')
+    ):
       expr_eval.eval(expr, condition=1).read_all(timeout=0)
 
   def test_error_in_condition_stream(self):
@@ -255,7 +257,9 @@ class KodaInternalParallelStreamWhileLoopYieldsChainedTest(
         body_fn,
         yields=stream_make(),
     )
-    with self.assertRaisesRegex(NotImplementedError, re.escape('Boom!')):
+    with arolla.testing.assert_raises(
+        Exception, root_cause=arolla.testing.exc(NotImplementedError, 'Boom!')
+    ):
       expr_eval.eval(expr).read_all(timeout=0)
 
   def test_error_condition_stream_empty(self):
@@ -360,7 +364,9 @@ class KodaInternalParallelStreamWhileLoopYieldsChainedTest(
             n=0,
         )
     )
-    with self.assertRaisesRegex(NotImplementedError, re.escape('Boom!')):
+    with arolla.testing.assert_raises(
+        Exception, root_cause=arolla.testing.exc(NotImplementedError, 'Boom!')
+    ):
       expr.read_all(timeout=0)
 
   def test_error_bad_body_fn(self):

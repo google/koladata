@@ -1038,38 +1038,32 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
         (db.list([1, 2, 3]) & ds(None))[0],
         ds(None, schema_constants.INT32).with_bag(db),
     )
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape(
-                'unsupported narrowing cast to INT64 for the given STRING'
-                ' DataSlice'
-            )
-        ),
-    ) as cm:
-      _ = (db.list() & ds(None))['abc']
-    self.assertRegex(
-        str(cm.exception),
         re.escape(
             'cannot get items from list(s): expected indices to be integers'
         ),
-    )
-
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape(
-                """unsupported narrowing cast to INT64 for the given STRING DataSlice"""
-            )
+        root_cause=arolla.testing.exc(
+            ValueError,
+            (
+                'unsupported narrowing cast to INT64 for the given STRING'
+                ' DataSlice'
+            ),
         ),
-    ) as cm:
-      (db.list() & ds(None))['abc'] = 42
-    self.assertRegex(
-        str(cm.exception),
+    ):
+      _ = (db.list() & ds(None))['abc']
+
+    with arolla.testing.assert_raises(
+        ValueError,
         re.escape(
             'cannot set items from list(s): expected indices to be integers'
         ),
-    )
+        root_cause=arolla.testing.exc(
+            ValueError,
+            """unsupported narrowing cast to INT64 for the given STRING DataSlice""",
+        ),
+    ):
+      (db.list() & ds(None))['abc'] = 42
 
     testing.assert_equal(
         (db.dict({'a': 42}) & ds(None))['a'],
@@ -1107,13 +1101,14 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
         ValueError, 'passing a Python list/tuple.*is ambiguous'
     ):
       del lst[[1, 2]]  # pyrefly: ignore[unsupported-operation]
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape(
+        root_cause=arolla.testing.exc(
+            ValueError,
+            (
                 'unsupported narrowing cast to INT64 for the given STRING'
                 ' DataSlice'
-            )
+            ),
         ),
     ):
       del lst['a']

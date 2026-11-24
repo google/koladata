@@ -44,12 +44,12 @@ class BoxingTest(absltest.TestCase):
     ):
       _ = py_boxing.as_qvalue(lambda x: 6 if x == 5 else 7)
 
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         TypeError,
-        arolla.testing.any_note_regex(
+        notes=[
             'Error occurred during tracing of the function.*If you only need'
-            ' Python evaluation, you can use `kd[.]py_fn[(]fn[)]` instead',
-        ),
+            ' Python evaluation, you can use `kd[.]py_fn[(]fn[)]` instead'
+        ],
     ):
       _ = py_boxing.as_qvalue(lambda x: 6 if x == 5 else 7)
 

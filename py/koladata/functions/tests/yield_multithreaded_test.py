@@ -129,12 +129,7 @@ class YieldMultithreadedTest(absltest.TestCase):
         arolla.tuple(*parallel.yield_multithreaded(fn, x)),
         arolla.tuple(x.foo),
     )
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex(
-            "the attribute 'foo' is missing"
-        ),
-    ):
+    with self.assertRaisesRegex(ValueError, "the attribute 'foo' is missing"):
       _ = list(*parallel.yield_multithreaded(fn, fns.new(bar=57)))
 
   def test_non_dataslice_inputs(self):
@@ -307,12 +302,7 @@ class YieldMultithreadedTest(absltest.TestCase):
       z = wait_for_cancellation(x + 2)
       return user_facing_kd.iterables.make(y, z)
 
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex(
-            r'\[CANCELLED\].*interrupted'
-        ),
-    ):
+    with self.assertRaisesRegex(ValueError, r'\[CANCELLED\].*interrupted'):
       _ = list(
           *parallel.yield_multithreaded(
               functor_factories.trace_py_fn(fn), x=ds(1), max_threads=2

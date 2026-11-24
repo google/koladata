@@ -15,7 +15,6 @@
 import re
 
 from absl.testing import absltest
-from arolla import arolla
 from koladata.operators import kde_operators
 from koladata.types import data_bag
 from koladata.types import data_slice
@@ -29,24 +28,20 @@ ds = data_slice.DataSlice.from_vals
 class PointwiseArollaOpErrorTest(absltest.TestCase):
 
   def test_incompatible_shapes(self):
-    with self.assertRaisesWithPredicateMatch(
+    with self.assertRaisesRegex(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape(
-                'shapes are not compatible: JaggedShape(3) vs '
-                'JaggedShape(2, [2, 1])'
-            ),
+        re.escape(
+            'shapes are not compatible: JaggedShape(3) vs '
+            'JaggedShape(2, [2, 1])'
         ),
     ):
       kd.math.subtract(ds([1, 2, 3]), ds([[1, 2], [3]]))
 
-    with self.assertRaisesWithPredicateMatch(
+    with self.assertRaisesRegex(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape(
-                'shapes are not compatible: JaggedShape(3) vs '
-                'JaggedShape(2, [2, 1])'
-            ),
+        re.escape(
+            'shapes are not compatible: JaggedShape(3) vs '
+            'JaggedShape(2, [2, 1])'
         ),
     ):
       kd.math.subtract(ds([None, None, None]), ds([[None, None], [None]]))

@@ -109,7 +109,9 @@ class AssertionWithAssertionTest(parameterized.TestCase):
       raise ValueError('fn error')
 
     expr = kde.assertion.with_assertion(ds(1), mask_constants.missing, fn)
-    with self.assertRaisesRegex(ValueError, 'fn error'):
+    with arolla.testing.assert_raises(
+        ValueError, root_cause=arolla.testing.exc(ValueError, 'fn error')
+    ):
       expr_eval.eval(expr)
 
   def test_functor_eval_incompatible_arity(self):

@@ -136,10 +136,11 @@ class MathAggSumTest(parameterized.TestCase):
 
   def test_mixed_slice_error(self):
     x = data_slice.DataSlice.from_vals([1, 2.0], schema_constants.OBJECT)
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            'DataSlice with mixed types is not supported'
+        root_cause=arolla.testing.exc(
+            ValueError,
+            'DataSlice with mixed types is not supported',
         ),
     ):
       kd.math.agg_sum(x)

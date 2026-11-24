@@ -209,11 +209,8 @@ class ObjsLikeTest(absltest.TestCase):
     # Successful.
     x = kd.objs.like(ds([[1, None], [1]]), a=42, itemid=itemid)
     # ITEMID's triples are stripped in the new DataBag.
-    with self.assertRaisesWithPredicateMatch(
-        AttributeError,
-        arolla.testing.any_cause_message_regex(
-            "attribute 'non_existent' is missing"
-        ),
+    with self.assertRaisesRegex(
+        AttributeError, "attribute 'non_existent' is missing"
     ):
       _ = x.non_existent
 

@@ -16,7 +16,6 @@ import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from arolla import arolla
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -133,10 +132,7 @@ class DataSliceAttrsTest(parameterized.TestCase):
           x.get_attr('abc').get_schema(), schema_constants.INT64.with_bag(db)
       )
       # Missing
-      with self.assertRaisesWithPredicateMatch(
-          ValueError,
-          arolla.testing.any_cause_message_regex(r"attribute 'xyz' is missing"),
-      ):
+      with self.assertRaisesRegex(ValueError, r"attribute 'xyz' is missing"):
         x.get_attr('xyz')
       testing.assert_equal(x.get_attr('xyz', None), ds([None]).with_bag(db))
       testing.assert_equal(x.get_attr('xyz', b'b'), ds([b'b']).with_bag(db))
@@ -412,25 +408,17 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
 
   def test_set_get_attr_object_missing_schema_attr(self):
     obj = bag().obj(a=1)
-    with self.assertRaisesWithPredicateMatch(
+    with self.assertRaisesRegex(
         AttributeError,
-        arolla.testing.any_cause_message_regex(
-            'object schema is missing for the DataItem'
-        ),
+        'object schema is missing for the DataItem',
     ):
       _ = obj.with_bag(bag()).a
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex(
-            'object schema is missing for the DataItem'
-        ),
+    with self.assertRaisesRegex(
+        ValueError, 'object schema is missing for the DataItem'
     ):
       obj.with_bag(bag()).a = 1
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex(
-            r'object schema is missing for the DataItem'
-        ),
+    with self.assertRaisesRegex(
+        ValueError, r'object schema is missing for the DataItem'
     ):
       del obj.with_bag(bag()).a
 
@@ -441,25 +429,16 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
         db.new(a=1), schema_constants.OBJECT
     )
     obj = ds([obj_1, obj_2])
-    with self.assertRaisesWithPredicateMatch(
-        AttributeError,
-        arolla.testing.any_cause_message_regex(
-            re.escape('object schema(s) are missing')
-        ),
+    with self.assertRaisesRegex(
+        AttributeError, re.escape('object schema(s) are missing')
     ):
       _ = obj.a
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape('object schema(s) are missing')
-        ),
+    with self.assertRaisesRegex(
+        ValueError, re.escape('object schema(s) are missing')
     ):
       obj.a = 1
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape('object schema(s) are missing')
-        ),
+    with self.assertRaisesRegex(
+        ValueError, re.escape('object schema(s) are missing')
     ):
       del obj.a
 
@@ -473,27 +452,21 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
   def test_set_get_attr_object_wrong_schema_attr(self):
     obj = bag().obj(a=1)
     obj.set_attr('__schema__', schema_constants.INT32)
-    with self.assertRaisesWithPredicateMatch(
+    with self.assertRaisesRegex(
         AttributeError,
-        arolla.testing.any_cause_message_regex(
-            'cannot get or set attributes on schema: INT32'
-        ),
+        'cannot get or set attributes on schema: INT32',
     ):
       _ = obj.a
-    with self.assertRaisesWithPredicateMatch(
+    with self.assertRaisesRegex(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            'cannot get or set attributes on schema: INT32'
-        ),
+        'cannot get or set attributes on schema: INT32',
     ):
       obj.a = 1
-    with self.assertRaisesWithPredicateMatch(
+    with self.assertRaisesRegex(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape(
-                r'objects must have ObjectId(s) as __schema__ attribute, got'
-                r' INT32'
-            )
+        re.escape(
+            r'objects must have ObjectId(s) as __schema__ attribute, got'
+            r' INT32'
         ),
     ):
       del obj.a
@@ -524,11 +497,9 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
     # data already merged into db2.
     obj2.a = 57
 
-    with self.assertRaisesWithPredicateMatch(
+    with self.assertRaisesRegex(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            "the values of attribute 'a' are different: 2 vs 57"
-        ),
+        "the values of attribute 'a' are different: 2 vs 57",
     ):
       root.set_attr('d', ds([obj1, obj2, obj3]))
 
@@ -557,9 +528,8 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
 
   def test_getattr_errors(self):
     x = ds([1, 2, 3])
-    with self.assertRaisesWithPredicateMatch(
-        AttributeError,
-        arolla.testing.any_cause_message_regex("failed to get attribute 'abc'"),
+    with self.assertRaisesRegex(
+        AttributeError, "failed to get attribute 'abc'"
     ):
       _ = x.abc
     with self.assertRaisesRegex(TypeError, r'attribute name must be string'):
@@ -571,9 +541,9 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
     obj = db.obj(a=db.obj(x=1, y=3.14))
     entity = db.new(a=db.new(x=1, y=3.14))
     entity.get_schema().a = obj.a.get_attr('__schema__')
-    with self.assertRaisesWithPredicateMatch(
+    with self.assertRaisesRegex(
         AttributeError,
-        arolla.testing.any_cause_message_regex(
+        (
             "failed to get attribute 'a': DataSlice cannot have an implicit"
             ' schema as its schema'
         ),
@@ -741,36 +711,30 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
           e.a.get_schema(), schema_constants.INT32.with_bag(db)
       )
       del e.get_schema().b
-      with self.assertRaisesWithPredicateMatch(
+      with self.assertRaisesRegex(
           AttributeError,
-          arolla.testing.any_cause_message_regex(
-              re.escape(
-                  """the attribute 'b' is missing on the schema.
+          re.escape(
+              """the attribute 'b' is missing on the schema.
 
 If it is not a typo, perhaps ignore the schema when getting the attribute. For example, ds.maybe('b')"""
-              )
           ),
       ):
         _ = e.b
-      with self.assertRaisesWithPredicateMatch(
+      with self.assertRaisesRegex(
           ValueError,
-          arolla.testing.any_cause_message_regex(
-              re.escape(
-                  """the attribute 'c' is missing on the schema.
+          re.escape(
+              """the attribute 'c' is missing on the schema.
 
 If it is not a typo, perhaps ignore the schema when getting the attribute. For example, ds.maybe('c')"""
-              )
           ),
       ):
         del e.get_schema().c
-      with self.assertRaisesWithPredicateMatch(
+      with self.assertRaisesRegex(
           ValueError,
-          arolla.testing.any_cause_message_regex(
-              re.escape(
-                  """the attribute 'c' is missing on the schema.
+          re.escape(
+              """the attribute 'c' is missing on the schema.
 
 If it is not a typo, perhaps ignore the schema when getting the attribute. For example, ds.maybe('c')"""
-              )
           ),
       ):
         del e.c
@@ -778,49 +742,41 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     with self.subTest('object'):
       o = db.obj(a=1, b=2)
       del o.a
-      with self.assertRaisesWithPredicateMatch(
+      with self.assertRaisesRegex(
           AttributeError,
-          arolla.testing.any_cause_message_regex(
-              re.escape(
-                  """the attribute 'a' is missing on the schema.
+          re.escape(
+              """the attribute 'a' is missing on the schema.
 
 If it is not a typo, perhaps ignore the schema when getting the attribute. For example, ds.maybe('a')"""
-              )
           ),
       ):
         _ = o.a
       del o.get_attr('__schema__').b
-      with self.assertRaisesWithPredicateMatch(
+      with self.assertRaisesRegex(
           ValueError,
-          arolla.testing.any_cause_message_regex(
-              re.escape(
-                  """the attribute 'b' is missing on the schema.
+          re.escape(
+              """the attribute 'b' is missing on the schema.
 
 If it is not a typo, perhaps ignore the schema when getting the attribute. For example, ds.maybe('b')"""
-              )
           ),
       ):
         del o.b
-      with self.assertRaisesWithPredicateMatch(
+      with self.assertRaisesRegex(
           ValueError,
-          arolla.testing.any_cause_message_regex(
-              re.escape(
-                  """the attribute 'c' is missing on the schema.
+          re.escape(
+              """the attribute 'c' is missing on the schema.
 
 If it is not a typo, perhaps ignore the schema when getting the attribute. For example, ds.maybe('c')"""
-              )
           ),
       ):
         del o.c
 
-    with self.assertRaisesWithPredicateMatch(
+    with self.assertRaisesRegex(
         AttributeError,
-        arolla.testing.any_cause_message_regex(
-            re.escape(
-                """failed to get attribute 'a': the attribute 'a' is missing for at least one object at ds.flatten().S[1]
+        re.escape(
+            """failed to get attribute 'a': the attribute 'a' is missing for at least one object at ds.flatten().S[1]
 
 If it is not a typo, perhaps ignore the schema when getting the attribute. For example, ds.maybe('a')"""
-            )
         ),
     ):
       _ = ds([[db.obj(a=1), db.obj(b=2)]]).a

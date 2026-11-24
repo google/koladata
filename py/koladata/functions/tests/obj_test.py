@@ -100,17 +100,15 @@ class ObjTest(parameterized.TestCase):
     # Successful.
     x = fns.obj(a=42, itemid=itemid)
     # ITEMID's triples are stripped in the new DataBag.
-    with self.assertRaisesWithPredicateMatch(
-        AttributeError,
-        arolla.testing.any_cause_message_regex(
-            "attribute 'non_existent' is missing"
-        ),
+    with self.assertRaisesRegex(
+        AttributeError, "attribute 'non_existent' is missing"
     ):
       _ = x.non_existent
 
   def test_schema_arg(self):
-    with self.assertRaisesWithPredicateMatch(
-        ValueError, arolla.testing.any_cause_message_regex('please use new')
+    with arolla.testing.assert_raises(
+        ValueError,
+        root_cause=arolla.testing.exc(ValueError, 'please use new'),
     ):
       fns.obj(a=1, b='a', schema=schema_constants.INT32)
 

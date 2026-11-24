@@ -73,20 +73,18 @@ class SlicesTakeTest(parameterized.TestCase):
       kd.take(ds([[[1]], [[2], [3]]]), ds([1, 2, 3]))
 
   def test_wrong_dtype_error(self):
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape(
+        'kd.slices.take: the provided indices must contain only integers',
+        root_cause=arolla.testing.exc(
+            ValueError,
+            (
                 'unsupported narrowing cast to INT64 for the given STRING'
                 ' DataSlice'
-            )
+            ),
         ),
-    ) as cm:
+    ):
       kd.take(ds([[1], [2, 3]]), ds(['1', '2']))
-    self.assertRegex(
-        str(cm.exception),
-        'kd.slices.take: the provided indices must contain only integers',
-    )
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

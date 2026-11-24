@@ -79,27 +79,19 @@ class SlicesSelectTest(parameterized.TestCase):
     def filter_fn(x):  # pylint: disable=unused-argument
       raise ValueError('test error')
 
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex('test error'),
+    with arolla.testing.assert_raises(
+        ValueError, root_cause=arolla.testing.exc(ValueError, 'test error')
     ):
 
       kd.slices.select(ds([1, 2, 3]), functor_factories.py_fn(filter_fn))
 
-    with self.assertRaisesRegex(ValueError, 'test error'):
-      _ = kde.slices.select(I.x, filter_fn)
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_note_regex(
-            'Error occurred during tracing of the function.*'
-        ),
-    ):
-      _ = kde.slices.select(I.x, filter_fn)
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_note_regex(
-            'Error occurred while processing argument: `fltr`'
-        ),
+        'test error',
+        notes=[
+            'Error occurred during tracing of the function.*',
+            'Error occurred while processing argument: `fltr`',
+        ],
     ):
       _ = kde.slices.select(I.x, filter_fn)
 

@@ -17,7 +17,6 @@ import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from arolla import arolla
 from koladata.functions import object_factories
 from koladata.operators import kde_operators
 from koladata.operators.tests.testdata import lists_implode_testdata
@@ -78,11 +77,8 @@ class ImplodeTest(parameterized.TestCase):
         ds([['a', 'b'], ['c']]), ndim=1, itemid=itemid.get_itemid()
     )
     # ITEMID's triples are stripped in the new DataBag.
-    with self.assertRaisesWithPredicateMatch(
-        AttributeError,
-        arolla.testing.any_cause_message_regex(
-            "attribute 'non_existent' is missing"
-        ),
+    with self.assertRaisesRegex(
+        AttributeError, "attribute 'non_existent' is missing"
     ):
       _ = triple.with_bag(x.get_bag()).non_existent
 

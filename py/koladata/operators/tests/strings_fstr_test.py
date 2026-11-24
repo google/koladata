@@ -214,11 +214,11 @@ class StringsFstrTest(parameterized.TestCase):
 
   def test_not_serializable(self):
     f = functor_factories.py_fn(lambda x: x)
-    with self.assertRaisesWithPredicateMatch(
+    with arolla.testing.assert_raises(
         ValueError,
-        arolla.testing.any_note_regex(
+        notes=[
             r'If you are using kd\.py_fn, try switching to kd\.register_py_fn'
-        ),
+        ],
     ):
       kde.strings.fstr(f'{f(I.x):s}')
 

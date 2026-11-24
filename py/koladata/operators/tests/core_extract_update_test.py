@@ -76,10 +76,7 @@ class CoreExtractBagTest(absltest.TestCase):
     o2 = kd.schema.unsafe_with_schema(o1.with_bag(bag2), new_schema.no_bag())
     self.assertFalse(bag2.is_mutable())
     testing.assert_equal(o2[:].b, ds([1, None, 2]).with_bag(bag2))
-    with self.assertRaisesWithPredicateMatch(
-        AttributeError,
-        arolla.testing.any_cause_message_regex("attribute 'c' is missing"),
-    ):
+    with self.assertRaisesRegex(AttributeError, "attribute 'c' is missing"):
       _ = o2[:].c
     testing.assert_equal(
         o2[:].get_schema(), kd.named_schema('test').with_bag(bag2)

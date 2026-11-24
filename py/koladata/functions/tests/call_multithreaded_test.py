@@ -167,12 +167,7 @@ class CallMultithreadedTest(absltest.TestCase):
     testing.assert_equal(
         parallel.call_multithreaded(fn, fns.new(foo=57)).no_bag(), ds(57)
     )
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex(
-            "the attribute 'foo' is missing"
-        ),
-    ):
+    with self.assertRaisesRegex(ValueError, "the attribute 'foo' is missing"):
       _ = parallel.call_multithreaded(fn, fns.new(bar=57))
 
   def test_call_non_dataslice_inputs(self):
@@ -302,10 +297,7 @@ class CallMultithreadedTest(absltest.TestCase):
       z = wait_for_cancellation(x + 2)
       return y + z
 
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex(r'\[CANCELLED\].*interrupted'),
-    ):
+    with self.assertRaisesRegex(ValueError, r'\[CANCELLED\].*interrupted'):
       parallel.call_multithreaded(
           functor_factories.trace_py_fn(fn), x=ds(1), max_threads=2
       )

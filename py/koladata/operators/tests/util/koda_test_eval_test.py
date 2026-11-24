@@ -166,7 +166,9 @@ class KodaTestEvalTest(parameterized.TestCase):
     x = arolla.optional_int32(2**30 + 1)
     y = arolla.optional_int32(4)
 
-    with self.assertRaisesRegex(ValueError, 'fake error'):
+    with arolla.testing.assert_raises(
+        ValueError, root_cause=arolla.testing.exc(ValueError, 'fake error')
+    ):
       _ = koda_test_eval.eager_eval(expr, x=x, y=y)
 
   def test_op_translation_is_used(self):
