@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import collections
 import dataclasses
 import gc
 import sys
@@ -58,15 +57,6 @@ class DataclassesUtilTest(absltest.TestCase):
         util.get_attr_values({'a': 1, 'b': 2, 'c': 3}, ['c', 'b', 'a']),
         [3, 2, 1],
     )
-    self.assertEqual(
-        util.get_attr_values(
-            collections.Counter({'a': 1, 'b': 2}), ['b', 'a', 'c']
-        ),
-        [2, 1, None],
-    )
-    dd = collections.defaultdict(list, {'a': 1})
-    self.assertEqual(util.get_attr_values(dd, ['a', 'missing']), [1, None])
-    self.assertEqual(dict(dd), {'a': 1})
 
   def test_get_attr_values_no_leak(self):
     util = testing_clib.DataClassesUtil()
@@ -107,16 +97,6 @@ class DataclassesUtilTest(absltest.TestCase):
 
     with self.assertRaisesRegex(AttributeError, 'object has no attribute'):
       _ = util.get_attr_values(1, ['a', 'b', 'c'])
-
-    class CustomDict(dict):
-      pass
-
-    with self.assertRaisesRegex(
-        ValueError,
-        'dict subclass `CustomDict` is not supported; convert it to `dict`'
-        ' first',
-    ):
-      _ = util.get_attr_values(CustomDict({'a': 1}), ['a'])
 
   def test_get_class_field_type(self):
     util = testing_clib.DataClassesUtil()

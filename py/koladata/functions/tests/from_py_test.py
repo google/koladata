@@ -1792,30 +1792,17 @@ assigned schema: ENTITY(x=INT32)"""),
         ]),
     )
 
-    # Dict subclasses (e.g. defaultdict, Counter) work standalone and mixed.
-    testing.assert_equivalent(
-        from_py(collections.Counter({'a': 1}), schema=entity_schema),
-        fns.new(a=1, schema=entity_schema),
-    )
-    dd = collections.defaultdict(list, {'a': 1})
-    testing.assert_equivalent(
-        from_py(
-            [
-                collections.Counter({'a': 1}),
-                dd,
-                types.SimpleNamespace(a=2, b='ns', meta=None),
-            ],
-            schema=entity_schema,
-            from_dim=1,
-        ),
-        fns.slice([
-            fns.new(a=1, schema=entity_schema),
-            fns.new(a=1, schema=entity_schema),
-            fns.new(a=2, b='ns', schema=entity_schema),
-        ]),
-    )
-    # Missing schema attributes must not invoke defaultdict.__missing__.
-    self.assertEqual(dict(dd), {'a': 1})
+    # OrderedDict (non-exact dict) fails consistently standalone and mixed.
+    with self.assertRaisesRegex(
+        ValueError, 'schema mismatch: expected dict object'
+    ):
+      from_py(collections.OrderedDict({'a': 1}), schema=entity_schema)
+    with self.assertRaisesRegex(AttributeError, "has no attribute 'a'"):
+      from_py(
+          [collections.OrderedDict({'a': 1}), types.SimpleNamespace(a=2)],
+          schema=entity_schema,
+          from_dim=1,
+      )
 
     # A later element's __getattr__ clearing an earlier dict must not free or
     # corrupt the earlier dict's values before conversion.
@@ -2852,168 +2839,6 @@ assigned schema: ENTITY(a=FLOAT32)"""),
               kde.list_schema(schema_constants.OBJECT)
           ).eval(),
       )
-
-  @parameterized.named_parameters(
-      ('defaultdict', lambda d=(): collections.defaultdict(int, d)),
-      ('counter', collections.Counter),
-  )
-  def test_dict_subclasses(self, make_dict):
-    d1 = make_dict({'a': 1, 'b': 2})
-    d2 = make_dict({'a': 3, 'c': 4})
-
-    # schema=OBJECT: single item (DFS), multi-item (bulk), repeated ref, itemid.
-    testing.assert_equivalent(
-        from_py(d1),
-        fns.obj(
-            fns.dict(
-                {'a': 1, 'b': 2},
-                key_schema=schema_constants.OBJECT,
-                value_schema=schema_constants.OBJECT,
-            )
-        ),
-    )
-    testing.assert_equivalent(
-        from_py([d1, d2, d1, None], from_dim=1),
-        fns.slice([
-            fns.obj(
-                fns.dict(
-                    {'a': 1, 'b': 2},
-                    key_schema=schema_constants.OBJECT,
-                    value_schema=schema_constants.OBJECT,
-                )
-            ),
-            fns.obj(
-                fns.dict(
-                    {'a': 3, 'c': 4},
-                    key_schema=schema_constants.OBJECT,
-                    value_schema=schema_constants.OBJECT,
-                )
-            ),
-            fns.obj(
-                fns.dict(
-                    {'a': 1, 'b': 2},
-                    key_schema=schema_constants.OBJECT,
-                    value_schema=schema_constants.OBJECT,
-                )
-            ),
-            None,
-        ]),
-    )
-    itemid = kde.uuid_for_dict(a=1).eval()
-    testing.assert_equivalent(
-        from_py(d1, itemid=itemid),
-        fns.obj(
-            fns.dict(
-                {'a': 1, 'b': 2},
-                key_schema=schema_constants.OBJECT,
-                value_schema=schema_constants.OBJECT,
-                itemid=itemid,
-            )
-        ),
-        ids_equality=True,
-    )
-
-    # dict_as_obj=True with schema=OBJECT (single, bulk, and non-string keys).
-    testing.assert_equivalent(
-        from_py(d1, dict_as_obj=True),
-        fns.obj(
-            a=ds(1, schema_constants.OBJECT),
-            b=ds(2, schema_constants.OBJECT),
-        ),
-    )
-    testing.assert_equivalent(
-        from_py([d1, d2, make_dict({1: 2})], from_dim=1, dict_as_obj=True),
-        fns.slice([
-            fns.obj(
-                a=ds(1, schema_constants.OBJECT),
-                b=ds(2, schema_constants.OBJECT),
-            ),
-            fns.obj(
-                a=ds(3, schema_constants.OBJECT),
-                c=ds(4, schema_constants.OBJECT),
-            ),
-            fns.obj(
-                fns.dict(
-                    {1: 2},
-                    key_schema=schema_constants.OBJECT,
-                    value_schema=schema_constants.OBJECT,
-                )
-            ),
-        ]),
-    )
-
-    # schema=None (auto schema): dict and dict_as_obj, mixed with plain dict.
-    testing.assert_equivalent(
-        from_py([d1, {'a': 3, 'c': 4}], from_dim=1, schema=None),
-        fns.slice([fns.dict({'a': 1, 'b': 2}), fns.dict({'a': 3, 'c': 4})]),
-    )
-    testing.assert_equivalent(
-        from_py(
-            [d1, {'a': 3, 'c': 4}], from_dim=1, schema=None, dict_as_obj=True
-        ),
-        fns.new(a=ds([1, 3]), b=ds([2, None]), c=ds([None, 4])),
-        schemas_equality=False,
-    )
-
-    # Explicit dict schema.
-    dict_schema = kde.dict_schema(
-        schema_constants.STRING, schema_constants.INT64
-    ).eval()
-    testing.assert_equivalent(
-        from_py([d1, None], from_dim=1, schema=dict_schema),
-        fns.slice([
-            fns.dict({'a': 1, 'b': 2}, schema=dict_schema),
-            None,
-        ]),
-    )
-
-    # Explicit entity schema (standalone and nested).
-    entity_schema = kde.schema.new_schema(
-        a=schema_constants.INT64, b=schema_constants.INT64
-    ).eval()
-    testing.assert_equivalent(
-        from_py(d1, schema=entity_schema),
-        fns.new(a=1, b=2, schema=entity_schema),
-    )
-    with self.assertRaisesRegex(
-        ValueError, 'dict_as_obj requires keys to be valid unicode objects'
-    ):
-      from_py(make_dict({1: 2}), schema=entity_schema)
-
-  @parameterized.named_parameters(
-      ('custom_dict', type('MyDict', (dict,), {}), 'MyDict'),
-      ('ordered_dict', collections.OrderedDict, 'OrderedDict'),
-      (
-          'defaultdict_subclass',
-          lambda d: type('MyDD', (collections.defaultdict,), {})(int, d),
-          'MyDD',
-      ),
-      (
-          'counter_subclass',
-          type('MyCounter', (collections.Counter,), {}),
-          'MyCounter',
-      ),
-  )
-  def test_unsupported_dict_subclasses(self, make_dict, type_name):
-    d = make_dict({'a': 1})
-    expected_msg = (
-        f'dict subclass `(?:collections\\.)?{type_name}` is not supported;'
-        ' convert it to `dict` first'
-    )
-    with self.assertRaisesRegex(ValueError, expected_msg):
-      from_py(d)
-    with self.assertRaisesRegex(ValueError, expected_msg):
-      from_py(
-          d,
-          schema=kde.dict_schema(
-              schema_constants.STRING, schema_constants.INT64
-          ).eval(),
-      )
-    entity_schema = kde.schema.new_schema(a=schema_constants.INT64).eval()
-    with self.assertRaisesRegex(ValueError, expected_msg):
-      from_py(d, schema=entity_schema)
-    with self.assertRaisesRegex(ValueError, expected_msg):
-      from_py([d, types.SimpleNamespace(a=2)], schema=entity_schema, from_dim=1)
 
   def test_arg_errors_schema(self):
     with self.assertRaisesRegex(

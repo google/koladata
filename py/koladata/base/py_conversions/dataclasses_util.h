@@ -135,23 +135,6 @@ class DataClassesUtil {
 // Returns a borrowed reference to `types.SimpleNamespace` (cached).
 absl::StatusOr<PyObject* absl_nonnull> GetSimpleNamespaceType();
 
-namespace py_conversions_internal {
-absl::StatusOr<bool> IsSupportedPyDictSubclass(PyObject* absl_nonnull py_obj);
-}  // namespace py_conversions_internal
-
-// Returns true if `py_obj` is an exact `dict`, `collections.defaultdict`, or
-// `collections.Counter`, false if `py_obj` is not a `dict`, or an
-// InvalidArgumentError if `py_obj` is any other `dict` subclass.
-inline absl::StatusOr<bool> IsSupportedPyDict(PyObject* absl_nonnull py_obj) {
-  if (PyDict_CheckExact(py_obj)) {
-    return true;
-  }
-  if (!PyDict_Check(py_obj)) {
-    return false;
-  }
-  return py_conversions_internal::IsSupportedPyDictSubclass(py_obj);
-}
-
 // Returns true if `type` is non-null and specifies a concrete type (i.e. not
 // `Py_None`, which `DataClassesUtil` uses for `Any` and `Any | None`).
 inline bool HasConcreteType(PyObject* absl_nullable type) {
