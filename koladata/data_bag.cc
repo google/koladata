@@ -302,6 +302,7 @@ absl::Status DataBag::MergeInplace(const DataBagPtr& other_db, bool overwrite,
     return db_impl.MergeInplace(other_db->GetImpl(), merge_options);
   }
   ASSIGN_OR_RETURN(auto other_db_impl, MergeFallbacksToForkedImpl(*other_db));
+  other_db_impl->Freeze();
   return db_impl.MergeInplace(*other_db_impl, merge_options);
 }
 

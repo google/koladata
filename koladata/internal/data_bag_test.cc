@@ -2356,6 +2356,24 @@ TEST(DataBagTest, MergeInplace) {
   ASSERT_OK(res_db->MergeInplace(*big_alloc_databag, merge_options));
 }
 
+TEST(DataBagTest, MergeInplaceIntoEmptyDoesNotShareUnfrozenParent) {
+  DataBagImplPtr parent = DataBagImpl::CreateEmptyDatabag();
+  DataItem obj(AllocateSingleObject());
+  ASSERT_OK(parent->SetAttr(obj, "x", DataItem(1)));
+
+  // Freeze a pristine fork while `parent` remains unfrozen.
+  DataBagImplPtr frozen_fork = parent->PartiallyPersistentFork();
+  frozen_fork->Freeze();
+
+  DataBagImplPtr dst = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(dst->MergeInplace(*frozen_fork, MergeOptions{}));
+  EXPECT_FALSE(dst->IsPristine());
+
+  // Mutating `parent` must not affect `dst`.
+  ASSERT_OK(parent->SetAttr(obj, "x", DataItem(2)));
+  EXPECT_THAT(dst->GetAttr(obj, "x"), IsOkAndHolds(DataItem(1)));
+}
+
 TEST(DataBagTest, StatisticsAdds) {
   auto stats = DataBagStatistics{
       .attr_values_sizes = {{"a", 1}, {"b", 2}},

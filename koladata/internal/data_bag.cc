@@ -4046,8 +4046,22 @@ absl::Status DataBagImpl::MergeInplace(const DataBagImpl& other,
   arolla::profiling::TraceMe traceme(
       "::koladata::internal::DataBagImpl::MergeInplace");
   RETURN_IF_ERROR(CheckNotFrozen());
-  if (other.IsSubsetOf(*this)) {
+  if (other.IsEmpty() || other.IsSubsetOf(*this)) {
     return absl::OkStatus();
+  }
+  if (IsEmpty() && other.IsFrozen()) {
+    const DataBagImpl* non_pristine_other = other.GetNonPristineBag();
+    DCHECK(non_pristine_other != nullptr);
+    if (non_pristine_other->parent_data_bag_ == nullptr &&
+        non_pristine_other->IsFrozen()) {
+      // Avoid copying a flat frozen bag into an empty mutable bag by sharing it
+      // as `parent_data_bag_` in O(1) (matching `PartiallyPersistentFork`).
+      // Restricting to flat frozen sources bounds fork chain depth to at most
+      // 1, ensures merging a chained bag into an empty bag still flattens it,
+      // and avoids sharing an unfrozen parent from a frozen fork.
+      parent_data_bag_ = DataBagImplConstPtr::NewRef(non_pristine_other);
+      return absl::OkStatus();
+    }
   }
   // sources_
   RETURN_IF_ERROR(MergeBigAllocInplace(other, options));

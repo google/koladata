@@ -288,6 +288,132 @@ TEST(DataBagTest, MergeInplace) {
               IsOkAndHolds(IsEquivalentTo(test::DataItem(1, db_1))));
 }
 
+TEST(DataBagTest, MergeInplaceIntoEmptyBagFromImmutable) {
+  DataBagPtr src_mutable = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice src_ds,
+      EntityCreator::FromAttrs(src_mutable, {"a", "b"},
+                               {test::DataItem(1), test::DataItem(2)}));
+  DataBagPtr src_immutable = src_mutable->Freeze();
+
+  DataBagPtr dst = DataBag::EmptyMutable();
+  DataBagPtr empty_snapshot = dst->Freeze();
+  ASSERT_OK(dst->MergeInplace(src_immutable, /*overwrite=*/false,
+                              /*allow_data_conflicts=*/false,
+                              /*allow_schema_conflicts=*/false));
+  // Empty-target fast path forks `src_immutable`'s impl instead of copying it,
+  // leaving `dst`'s own mutable layer pristine while non-empty via parent.
+  EXPECT_TRUE(dst->GetImpl().IsPristine());
+  EXPECT_FALSE(dst->IsEmpty());
+  EXPECT_TRUE(empty_snapshot->IsEmpty());
+
+  DataSlice dst_ds = src_ds.WithBag(dst);
+  EXPECT_THAT(dst_ds.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(1, dst))));
+  EXPECT_THAT(dst_ds.GetAttr("b"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(2, dst))));
+
+  // Mutating `dst` afterward does not affect `src_immutable`.
+  ASSERT_OK(dst_ds.SetAttr("a", test::DataItem(99)));
+  EXPECT_THAT(dst_ds.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(99, dst))));
+  EXPECT_THAT(src_ds.WithBag(src_immutable).GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(1, src_immutable))));
+
+  // Merging an empty bag into an empty bag is a no-op; immutable target fails.
+  DataBagPtr still_empty = DataBag::EmptyMutable();
+  ASSERT_OK(still_empty->MergeInplace(DataBag::Empty(), /*overwrite=*/false,
+                                      /*allow_data_conflicts=*/false,
+                                      /*allow_schema_conflicts=*/false));
+  EXPECT_TRUE(still_empty->IsEmpty());
+  EXPECT_THAT(DataBag::Empty()->MergeInplace(DataBag::Empty(),
+                                             /*overwrite=*/false,
+                                             /*allow_data_conflicts=*/false,
+                                             /*allow_schema_conflicts=*/false),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("cannot modify/create item(s)")));
+}
+
+TEST(DataBagTest, MergeInplaceIntoEmptyBagFromImmutableWithFallbacks) {
+  DataBagPtr fb_high_mutable = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice ds,
+      EntityCreator::FromAttrs(fb_high_mutable, {"a"}, {test::DataItem(1)}));
+  DataBagPtr fb_high = fb_high_mutable->Freeze();
+
+  DataBagPtr fb_low_mutable = DataBag::EmptyMutable();
+  ASSERT_OK(ds.WithBag(fb_low_mutable).SetAttr("a", test::DataItem(10)));
+  ASSERT_OK(ds.WithBag(fb_low_mutable).SetAttr("b", test::DataItem(20)));
+  DataBagPtr fb_low = fb_low_mutable->Freeze();
+
+  ASSERT_OK_AND_ASSIGN(DataBagPtr with_fallbacks,
+                       DataBag::ImmutableEmptyWithFallbacks({fb_high, fb_low}));
+  DataBagPtr dst = DataBag::EmptyMutable();
+  ASSERT_OK(dst->MergeInplace(with_fallbacks, /*overwrite=*/false,
+                              /*allow_data_conflicts=*/false,
+                              /*allow_schema_conflicts=*/false));
+  DataSlice dst_ds = ds.WithBag(dst);
+  EXPECT_THAT(dst_ds.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(1, dst))));
+  EXPECT_THAT(dst_ds.GetAttr("b"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(20, dst))));
+
+  ASSERT_OK(dst_ds.SetAttr("b", test::DataItem(30)));
+  EXPECT_THAT(dst_ds.GetAttr("b"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(30, dst))));
+  EXPECT_THAT(ds.WithBag(fb_low).GetAttr("b"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(20, fb_low))));
+}
+
+TEST(DataBagTest, MergeInplaceIntoEmptyBagFromImmutableSingleFallback) {
+  DataBagPtr fb_mutable = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice ds,
+      EntityCreator::FromAttrs(fb_mutable, {"a"}, {test::DataItem(1)}));
+  DataBagPtr fb = fb_mutable->Freeze();
+
+  ASSERT_OK_AND_ASSIGN(DataBagPtr with_fallback,
+                       DataBag::ImmutableEmptyWithFallbacks({fb}));
+  DataBagPtr dst = DataBag::EmptyMutable();
+  ASSERT_OK(dst->MergeInplace(with_fallback, /*overwrite=*/false,
+                              /*allow_data_conflicts=*/false,
+                              /*allow_schema_conflicts=*/false));
+  // Single flat fallback hits the zero-copy fast path via freezing the
+  // temporary merged impl in `DataBag::MergeInplace`.
+  EXPECT_TRUE(dst->GetImpl().IsPristine());
+  EXPECT_FALSE(dst->IsEmpty());
+
+  DataSlice dst_ds = ds.WithBag(dst);
+  EXPECT_THAT(dst_ds.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(1, dst))));
+  ASSERT_OK(dst_ds.SetAttr("a", test::DataItem(99)));
+  EXPECT_THAT(dst_ds.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(99, dst))));
+  EXPECT_THAT(ds.WithBag(fb).GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(1, fb))));
+}
+
+TEST(DataBagTest, MergeInplaceIntoEmptyBagFlattensChainedSource) {
+  DataBagPtr base = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice ds, EntityCreator::FromAttrs(base, {"a"}, {test::DataItem(1)}));
+  ASSERT_OK_AND_ASSIGN(DataBagPtr child, base->Fork());
+  ASSERT_OK(ds.WithBag(child).SetAttr("b", test::DataItem(2)));
+  DataBagPtr chained_immutable = child->Freeze();
+
+  DataBagPtr dst = DataBag::EmptyMutable();
+  ASSERT_OK(dst->MergeInplace(chained_immutable, /*overwrite=*/false,
+                              /*allow_data_conflicts=*/false,
+                              /*allow_schema_conflicts=*/false));
+  // Chained source has a non-null `parent_data_bag_`, so it is flattened into
+  // `dst` rather than extending the fork chain.
+  EXPECT_FALSE(dst->GetImpl().IsPristine());
+  EXPECT_THAT(ds.WithBag(dst).GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(1, dst))));
+  EXPECT_THAT(ds.WithBag(dst).GetAttr("b"),
+              IsOkAndHolds(IsEquivalentTo(test::DataItem(2, dst))));
+}
+
 TEST(DataBagTest, GetBagIdRepr) {
   DataBagPtr db = DataBag::EmptyMutable();
   EXPECT_THAT(GetBagIdRepr(db), MatchesRegex(R"regex(\$[0-9a-f]{4})regex"));
