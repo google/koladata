@@ -25,6 +25,7 @@
 #include "arolla/util/status_macros_backport.h"
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/expr/expr.h"
@@ -336,6 +337,110 @@ TEST(SerializationTest, ZeroStringInExtraProto) {
                        decode_result.values[0].As<DataSliceImpl>());
 
   EXPECT_THAT(res, ::testing::ElementsAreArray(slice));
+}
+
+// Text/bytes values of at least this size are stored out-of-line in chunks.
+constexpr size_t kMaxInlineStringSize = 1 << 23;
+
+TEST(SerializationTest, BigStringDataItem) {
+  std::vector<DataItem> items{
+      DataItem(arolla::Text(std::string(kMaxInlineStringSize * 2 + 1, 'A'))),
+      DataItem(arolla::Bytes(std::string(kMaxInlineStringSize, 'B'))),
+      // Small values are stored inline.
+      DataItem(arolla::Text(std::string(kMaxInlineStringSize - 1, 'C'))),
+  };
+  std::vector<TypedValue> typed_values;
+  typed_values.reserve(items.size());
+  for (const DataItem& item : items) {
+    typed_values.push_back(TypedValue::FromValue(item));
+  }
+  ASSERT_OK_AND_ASSIGN(auto proto,
+                       arolla::serialization::Encode(typed_values, {}));
+  // 2 codecs + 3 chunks (the first text value is split into 3 chunks, but the
+  // first two chunks are identical and deduplicated) + 1 chunk + 3 items
+  // + 3 outputs.
+  EXPECT_EQ(proto.decoding_steps_size(), 11);
+  for (const auto& step : proto.decoding_steps()) {
+    // A part of a slice can slightly exceed the soft limit.
+    EXPECT_LT(step.ByteSizeLong(), kMaxInlineStringSize * 1.1);
+  }
+
+  ASSERT_OK_AND_ASSIGN(auto decode_result,
+                       arolla::serialization::Decode(proto));
+  ASSERT_EQ(decode_result.exprs.size(), 0);
+  ASSERT_EQ(decode_result.values.size(), items.size());
+  for (size_t i = 0; i < items.size(); ++i) {
+    SCOPED_TRACE(absl::StrCat("item ", i));
+    EXPECT_THAT(decode_result.values[i].As<DataItem>(),
+                IsOkAndHolds(items[i]));
+  }
+}
+
+TEST(SerializationTest, BigStringsInDataSliceImpl) {
+  DataItem big_text(arolla::Text(std::string(kMaxInlineStringSize * 2, 'A')));
+  DataItem big_bytes(arolla::Bytes(std::string(kMaxInlineStringSize + 1, 'B')));
+  DataSliceImpl slice = DataSliceImpl::Create({
+      DataItem(arolla::Text("small")),
+      // ExprQuotes and chunks share input_value_indices; the order matters.
+      DataItem(arolla::expr::ExprQuote(arolla::expr::Leaf("x"))),
+      big_text,
+      DataItem(),
+      DataItem(arolla::Bytes("small")),
+      big_bytes,
+      big_text,  // The same value again; chunks are deduplicated.
+      DataItem(5),
+      DataItem(arolla::expr::ExprQuote(arolla::expr::Leaf("y"))),
+      DataItem(arolla::Text(std::string(kMaxInlineStringSize - 1, 'C'))),
+      DataItem(arolla::Text()),  // Goes to an extra part.
+      DataItem(arolla::Bytes(std::string(kMaxInlineStringSize - 1, 'D'))),
+      // Chunked value with the placeholder in an extra part.
+      DataItem(arolla::Text(std::string(kMaxInlineStringSize + 5, 'E'))),
+  });
+  ASSERT_OK_AND_ASSIGN(auto proto, arolla::serialization::Encode(
+                                       {TypedValue::FromValue(slice)}, {}));
+  for (const auto& step : proto.decoding_steps()) {
+    // A part of a slice can slightly exceed the soft limit.
+    EXPECT_LT(step.ByteSizeLong(), kMaxInlineStringSize * 1.1);
+  }
+
+  ASSERT_OK_AND_ASSIGN(auto decode_result,
+                       arolla::serialization::Decode(proto));
+  ASSERT_EQ(decode_result.exprs.size(), 0);
+  ASSERT_EQ(decode_result.values.size(), 1);
+  ASSERT_OK_AND_ASSIGN(DataSliceImpl res,
+                       decode_result.values[0].As<DataSliceImpl>());
+  EXPECT_THAT(res, ::testing::ElementsAreArray(slice));
+}
+
+TEST(SerializationTest, BigStringsInDataBag) {
+  DataItem big_text(arolla::Text(std::string(kMaxInlineStringSize * 2, 'A')));
+  DataItem big_bytes(arolla::Bytes(std::string(kMaxInlineStringSize, 'B')));
+  auto db = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(DataBagImpl & db_impl, db->GetMutableImpl());
+  // Single item attribute (serialized as DataItem).
+  DataItem obj(internal::AllocateSingleObject());
+  ASSERT_OK(db_impl.SetAttr(obj, "a", big_text));
+  // Attribute of a big allocation (serialized as DataSliceImpl).
+  auto objs = DataSliceImpl::AllocateEmptyObjects(3);
+  DataSliceImpl values = DataSliceImpl::Create(
+      {big_bytes, DataItem(arolla::Text("small")), DataItem()});
+  ASSERT_OK(db_impl.SetAttr(objs, "b", values));
+
+  ASSERT_OK_AND_ASSIGN(auto proto, arolla::serialization::Encode(
+                                       {TypedValue::FromValue(db)}, {}));
+  for (const auto& step : proto.decoding_steps()) {
+    // A part of a slice can slightly exceed the soft limit.
+    EXPECT_LT(step.ByteSizeLong(), kMaxInlineStringSize * 1.1);
+  }
+  ASSERT_OK_AND_ASSIGN(auto decode_result,
+                       arolla::serialization::Decode(proto));
+  ASSERT_EQ(decode_result.exprs.size(), 0);
+  ASSERT_EQ(decode_result.values.size(), 1);
+  ASSERT_OK_AND_ASSIGN(DataBagPtr res,
+                       decode_result.values[0].As<DataBagPtr>());
+  EXPECT_THAT(res->GetImpl().GetAttr(obj, "a"), IsOkAndHolds(big_text));
+  EXPECT_THAT(res->GetImpl().GetAttr(objs, "b"),
+              IsOkAndHolds(ElementsAreArray(values)));
 }
 
 TEST(SerializationTest, DataSliceImplObjectLinkToParentIdBytesSize) {

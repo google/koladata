@@ -31,6 +31,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/expr/expr_node.h"
@@ -135,8 +136,26 @@ internal::ObjectId DecodeObjectId(const KodaV1Proto::ObjectIdProto& proto) {
                                                              proto.lo());
 }
 
+// Concatenates arolla::Bytes `chunks` into a single string. Used for text/bytes
+// values that are too big to be stored in a single proto.
+absl::StatusOr<std::string> ConcatChunks(
+    absl::Span<const TypedValue> chunks) {
+  size_t total_size = 0;
+  for (const TypedValue& chunk : chunks) {
+    ASSIGN_OR_RETURN(const arolla::Bytes& data, chunk.As<arolla::Bytes>(),
+                     _ << "invalid chunk of a big text/bytes value");
+    total_size += data.size();
+  }
+  std::string res;
+  res.reserve(total_size);
+  for (const TypedValue& chunk : chunks) {
+    res.append(chunk.UnsafeAs<arolla::Bytes>());
+  }
+  return res;
+}
+
 // Note: it removes used values from input_values (i.e. applies subspan to the
-// span).
+// span). Chunked text/bytes values consume all the remaining input values.
 absl::StatusOr<internal::DataItem> DecodeDataItemProto(
     const KodaV1Proto::DataItemProto& item_proto,
     absl::Span<const TypedValue>& input_values) {
@@ -145,6 +164,17 @@ absl::StatusOr<internal::DataItem> DecodeDataItemProto(
       return internal::DataItem(item_proto.boolean());
     case KodaV1Proto::DataItemProto::kBytesData:
       return internal::DataItem(arolla::Bytes(item_proto.bytes_data()));
+    // All input values are chunks of the value.
+    case KodaV1Proto::DataItemProto::kChunkedBytes: {
+      ASSIGN_OR_RETURN(std::string data, ConcatChunks(input_values));
+      input_values = {};
+      return internal::DataItem(arolla::Bytes(std::move(data)));
+    }
+    case KodaV1Proto::DataItemProto::kChunkedText: {
+      ASSIGN_OR_RETURN(std::string data, ConcatChunks(input_values));
+      input_values = {};
+      return internal::DataItem(arolla::Text(std::move(data)));
+    }
     case KodaV1Proto::DataItemProto::kDtype: {
       ASSIGN_OR_RETURN(schema::DType dtype,
                        schema::DType::FromId(item_proto.dtype()));
@@ -198,6 +228,15 @@ absl::StatusOr<ValueDecoderResult> DecodeDataItemVectorProto(
     absl::Span<const TypedValue> input_values) {
   internal::SliceBuilder bldr(vec_proto.values_size());
   for (size_t i = 0; i < vec_proto.values_size(); ++i) {
+    // DataItemVectorProto is a legacy format; the number of chunks of a
+    // chunked value is unknown in this context.
+    if (vec_proto.values(i).value_case() ==
+            KodaV1Proto::DataItemProto::kChunkedText ||
+        vec_proto.values(i).value_case() ==
+            KodaV1Proto::DataItemProto::kChunkedBytes) {
+      return absl::InvalidArgumentError(
+          "chunked text/bytes values are not supported in DataItemVectorProto");
+    }
     ASSIGN_OR_RETURN(internal::DataItem item,
                      DecodeDataItemProto(vec_proto.values(i), input_values));
     bldr.InsertIfNotSetAndUpdateAllocIds(i, item);
@@ -266,6 +305,19 @@ const auto& GetValuesFromDataSliceCompactProto(
   ABSL_UNREACHABLE();
 }
 
+// Returns a reference to the chunk counts field (aligned with the values
+// field) in the DataSliceCompactProto. Only for Text and Bytes.
+template <typename T>
+const auto& GetChunkCountsFromDataSliceCompactProto(
+    const KodaV1Proto::DataSliceCompactProto& slice_proto) {
+  if constexpr (std::is_same_v<T, arolla::Text>) {
+    return slice_proto.text_chunk_counts();
+  } else {
+    static_assert(std::is_same_v<T, arolla::Bytes>);
+    return slice_proto.bytes_chunk_counts();
+  }
+}
+
 absl::StatusOr<ValueDecoderResult> DecodeDataSliceCompactProto(
     const KodaV1Proto::DataSliceCompactProto& slice_proto,
     absl::Span<const TypedValue> input_values) {
@@ -283,19 +335,18 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceCompactProto(
   }
   input_values = input_values.subspan(
       0, input_values.size() - slice_proto.extra_part_count());
+
   const std::string& proto_types_buffer = slice_proto.types_buffer();
   internal::SliceBuilder bldr(proto_types_buffer.size());
-  uint64_t processed_types = 0;
   static_assert(std::variant_size_v<internal::ScalarVariant> <
                 sizeof(uint64_t) * 8);
 
-  auto is_valid_present_type_idx = [](uint8_t idx) {
-    return idx > 0 && idx < std::variant_size_v<internal::ScalarVariant>;
-  };
-
-  auto get_values_size = [&]<typename T>(
-                             std::type_identity<T>,
-                             const auto& values) -> absl::StatusOr<size_t> {
+  // Validates the part and returns the number of values of type T in it.
+  auto get_values_size =
+      [&]<typename T>(std::type_identity<T>,
+                      const KodaV1Proto::DataSliceCompactProto& part)
+      -> absl::StatusOr<size_t> {
+    const auto& values = GetValuesFromDataSliceCompactProto<T>(part);
     if constexpr (std::is_same_v<T, internal::ObjectId>) {
       if (values.hi_size() != values.lo_size()) {
         return absl::InvalidArgumentError(
@@ -309,6 +360,17 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceCompactProto(
       // ExprQuote will be read from input_values.
       return 0;
     } else {
+      if constexpr (std::is_same_v<T, arolla::Text> ||
+                    std::is_same_v<T, arolla::Bytes>) {
+        const auto& chunk_counts =
+            GetChunkCountsFromDataSliceCompactProto<T>(part);
+        if (!chunk_counts.empty() && chunk_counts.size() != values.size()) {
+          return absl::InvalidArgumentError(absl::StrFormat(
+              "size of %s_chunk_counts must be equal to size of %s",
+              std::is_same_v<T, arolla::Text> ? "text" : "bytes",
+              std::is_same_v<T, arolla::Text> ? "text" : "bytes_data"));
+        }
+      }
       return values.size();
     }
   };
@@ -316,14 +378,12 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceCompactProto(
   auto last_object_id =
       internal::ObjectId::UnsafeCreateFromInternalHighLow(0, 0);
 
-  auto process_type = [&]<typename T>(
-                          std::type_identity<T>,
-                          size_t start_id) -> absl::StatusOr<size_t> {
+  auto process_type = [&]<typename T>(std::type_identity<T>) -> absl::Status {
     auto typed_bldr = bldr.typed<T>();
-    const auto* values = &GetValuesFromDataSliceCompactProto<T>(slice_proto);
+    const KodaV1Proto::DataSliceCompactProto* part = &slice_proto;
+    const auto* values = &GetValuesFromDataSliceCompactProto<T>(*part);
     ASSIGN_OR_RETURN(size_t part_size,
-                     get_values_size(std::type_identity<T>(), *values));
-    size_t next_start_id = proto_types_buffer.size();
+                     get_values_size(std::type_identity<T>(), *part));
     size_t last_id = 0;
     size_t part_offset = 0;
     auto part_it = extra_parts.begin();
@@ -334,26 +394,15 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceCompactProto(
             arolla::GetQType<T>()->name()));
       }
       part_offset += part_size;
-      values = &GetValuesFromDataSliceCompactProto<T>(*part_it++);
+      part = &*part_it++;
+      values = &GetValuesFromDataSliceCompactProto<T>(*part);
       ASSIGN_OR_RETURN(part_size,
-                       get_values_size(std::type_identity<T>(), *values));
+                       get_values_size(std::type_identity<T>(), *part));
       return absl::OkStatus();
     };
-    for (size_t cur = start_id; cur < proto_types_buffer.size(); ++cur) {
-      uint8_t cur_type_idx = static_cast<uint8_t>(proto_types_buffer[cur]);
-      if (cur_type_idx == internal::TypesBuffer::kUnset) {
-        continue;
-      }
-      if (cur_type_idx == internal::TypesBuffer::kRemoved) {
-        bldr.InsertIfNotSet(cur, std::nullopt);
-        continue;
-      }
-      if (!is_valid_present_type_idx(cur_type_idx)) {
-        return absl::InvalidArgumentError(
-            absl::StrCat("invalid type index: ", cur_type_idx));
-      }
-      if (cur_type_idx != internal::ScalarTypeId<T>()) {
-        next_start_id = std::min(next_start_id, cur);
+    for (size_t cur = 0; cur < proto_types_buffer.size(); ++cur) {
+      if (static_cast<uint8_t>(proto_types_buffer[cur]) !=
+          internal::ScalarTypeId<T>()) {
         continue;
       }
       if constexpr (std::is_same_v<T, arolla::Unit>) {
@@ -371,6 +420,36 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceCompactProto(
       } else {
         while (last_id >= part_offset + part_size) {
           RETURN_IF_ERROR(next_part());
+        }
+        if constexpr (std::is_same_v<T, arolla::Text> ||
+                      std::is_same_v<T, arolla::Bytes>) {
+          const auto& chunk_counts =
+              GetChunkCountsFromDataSliceCompactProto<T>(*part);
+          if (!chunk_counts.empty() &&
+              chunk_counts[last_id - part_offset] != 0) {
+            // The inline value is an empty placeholder; the actual value is
+            // stored in the next `chunk_count` input values.
+            int64_t chunk_count = chunk_counts[last_id - part_offset];
+            if (chunk_count < 0 || !(*values)[last_id - part_offset].empty()) {
+              return absl::InvalidArgumentError(
+                  absl::StrFormat("invalid %s_chunk_counts",
+                                  std::is_same_v<T, arolla::Text> ? "text"
+                                                                  : "bytes"));
+            }
+            if (chunk_count > input_values.size()) {
+              return absl::InvalidArgumentError(absl::StrCat(
+                  "DataSliceCompactProto has not enough input values for "
+                  "chunks of type ",
+                  arolla::GetQType<T>()->name()));
+            }
+            ASSIGN_OR_RETURN(std::string data,
+                             ConcatChunks(input_values.first(chunk_count)));
+            input_values = input_values.subspan(chunk_count);
+            typed_bldr.InsertIfNotSet(
+                cur, internal::DataItem::View<T>(arolla::view_type_t<T>(data)));
+            ++last_id;
+            continue;
+          }
         }
         if constexpr (std::is_same_v<T, internal::ObjectId>) {
           auto object_id = internal::ObjectId::UnsafeCreateFromInternalHighLow(
@@ -404,9 +483,10 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceCompactProto(
           absl::StrCat("DataSliceCompactProto has unused values for type ",
                        arolla::GetQType<T>()->name()));
     }
-    return next_start_id;
+    return absl::OkStatus();
   };
 
+  uint64_t present_types = 0;
   for (size_t i = 0; i < proto_types_buffer.size(); ++i) {
     uint8_t type_idx = static_cast<uint8_t>(proto_types_buffer[i]);
     if (type_idx == internal::TypesBuffer::kUnset) {
@@ -416,47 +496,34 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceCompactProto(
       bldr.InsertIfNotSet(i, std::nullopt);
       continue;
     }
-    if (!is_valid_present_type_idx(type_idx)) {
+    if (type_idx == 0 ||
+        type_idx >= std::variant_size_v<internal::ScalarVariant>) {
       return absl::InvalidArgumentError(
           absl::StrCat("invalid type index: ", type_idx));
     }
-    uint64_t msk = uint64_t{1} << type_idx;
-    if (processed_types & msk) {
-      continue;
-    }
-    processed_types |= msk;
-
-    absl::Status status = absl::OkStatus();
-
-    arolla::meta::foreach_type<internal::supported_types_list>(
-        [&](auto type_meta) {
-          using T = typename decltype(type_meta)::type;
-          if (type_idx != internal::ScalarTypeId<T>()) {
-            return;
-          }
-          absl::StatusOr<size_t> next_i =
-              process_type(std::type_identity<T>(), i);
-          if (!next_i.ok()) {
-            status = next_i.status();
-            return;
-          }
-          i = *next_i - 1;
-        });
-    RETURN_IF_ERROR(std::move(status));
+    present_types |= uint64_t{1} << type_idx;
   }
-  {
+
+  // Types are processed in the order of ScalarTypeId. It is important because
+  // chunks of text/bytes values and ExprQuotes are consumed from
+  // `input_values` sequentially (see DataSliceCompactProto).
+  for (uint8_t type_idx = 1;
+       type_idx < std::variant_size_v<internal::ScalarVariant>; ++type_idx) {
     absl::Status status = absl::OkStatus();
     arolla::meta::foreach_type<internal::supported_types_list>(
         [&](auto type_meta) {
           using T = typename decltype(type_meta)::type;
-          auto type_idx = internal::ScalarTypeId<T>();
-          if (processed_types & (uint64_t{1} << type_idx)) {
+          if (internal::ScalarTypeId<T>() != type_idx) {
             return;
           }
-          const auto& values =
-              GetValuesFromDataSliceCompactProto<T>(slice_proto);
+          if (present_types & (uint64_t{1} << type_idx)) {
+            status = process_type(std::type_identity<T>());
+            return;
+          }
+          // The type is not present in the slice, verify that there are no
+          // unused values.
           absl::StatusOr<size_t> values_size =
-              get_values_size(std::type_identity<T>(), values);
+              get_values_size(std::type_identity<T>(), slice_proto);
           if (!values_size.ok()) {
             status = std::move(values_size).status();
             return;

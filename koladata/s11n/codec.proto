@@ -53,6 +53,11 @@ message KodaV1Proto {
       bytes bytes_data = 10;
       int32 dtype = 11;
       bool expr_quote = 12;  // stored in ValueProto.input_value_indices[0]
+      // chunked_* are used for big text/bytes values (that may not fit into 2GB
+      // proto size limit). Chunks are stored in ValueProto.input_value_indices
+      // as arolla::Bytes; they are concatenated on decoding.
+      bool chunked_text = 13;
+      bool chunked_bytes = 14;
     }
   }
 
@@ -66,14 +71,40 @@ message KodaV1Proto {
   // 254 (TypesBuffer::kRemoved) and 255 (TypesBuffer::kUnset) are special
   // values for REMOVED and UNSET.
   // Values are stored in the corresponding repeated fields without gaps.
+  // Text and bytes values are either in repeated fields `text` or in
+  // `input_values_indices` (if text_chunk_counts/bytes_chunk_counts present and
+  // contain a non-zero in the corresponding position).
   //
   // Example:
-  //  types_buffer = [2, 4, 255, 2, 7, 11, 4, 4, 254, 11]
+  //  types_buffer = [2, 4, 255, 2, 7, 11, 4, 4, 254, 9, 11, 9]
   //  i32 = [10, 11]
   //  f32 = [3.1, 3.5, 3.7]
-  //  ValueProto.input_value_indices links to [expr1, expr2]
+  //  bytes_data = ["", "hi"]
+  //  bytes_chunk_counts = [2, 0]
+  //  ValueProto.input_value_indices links to ["ab", "cd", expr1, expr2]
   // The corresponding DataSliceImpl:
-  //  [10, 3.1, UNSET, 11, Unit, expr1, 3.5, 3.7, REMOVED, expr2]
+  //  [10, 3.1, UNSET, 11, Unit, expr1, 3.5, 3.7, REMOVED, "abcd", expr2, "hi"]
+  //
+  // ValueProto.input_value_indices:
+  //   1) arolla::Bytes chunks of big text values (in the order of appearance
+  //      in types_buffer);
+  //   2) arolla::Bytes chunks of big bytes values (in the order of appearance
+  //      in types_buffer);
+  //   3) ExprQuote values (in the order of appearance in types_buffer);
+  //   4) `extra_part_count` extra parts.
+  //
+  // Notes about text/bytes chunks:
+  //   1) text_chunk_counts/bytes_chunk_counts fields can be missing. In this
+  //      case chunks are not used.
+  //   2) If `text_chunk_counts` is present, its size must be equal to the size
+  //      of `text`. If `bytes_chunk_counts` is present, its size must be equal
+  //      to the size of `bytes_data`.
+  //   3) If some value in `text`/`bytes_data` is not an empty string, then the
+  //      corresponding value in `text_chunk_counts`/`bytes_chunk_counts` (if
+  //      present) must be zero.
+  //   4) Any non-zero value in `text_chunk_counts`/`bytes_chunk_counts` means
+  //      the value is split into the specified number of arolla::Bytes chunks
+  //      and stored in ValueProto.input_value_indices (see above).
   message DataSliceCompactProto {
     optional bytes types_buffer = 255;
 
@@ -92,7 +123,9 @@ message KodaV1Proto {
     repeated bool boolean = 6 [packed = true];
     optional bool unit = 7;  // No stored data.
     repeated string text = 8;
+    repeated int64 text_chunk_counts = 31 [packed = true];
     repeated bytes bytes_data = 9;
+    repeated int64 bytes_chunk_counts = 32 [packed = true];
     repeated int32 dtype = 10 [packed = true];
     optional bool expr_quote = 11;  // Stored in ValueProto.input_value_indices.
   }

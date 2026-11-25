@@ -14,10 +14,13 @@
 //
 #include "arolla/serialization_base/encoder.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "absl/log/check.h"
@@ -26,6 +29,7 @@
 #include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
@@ -77,11 +81,36 @@ using ::arolla::serialization_codecs::
 
 using ::koladata::internal::TypesBuffer;
 
+// Soft limit of the serialized size of a single DataSliceCompactProto part.
+// Text/bytes values of at least this size are stored out-of-line as a sequence
+// of arolla::Bytes chunks (each at most this size) in order to never exceed
+// the 2GB proto size limit.
+constexpr size_t kSoftSizeLimitPerBlock = 1 << 23;
+
 absl::StatusOr<ValueProto> GenValueProto(Encoder& encoder) {
   ASSIGN_OR_RETURN(auto codec_index, encoder.EncodeCodec(kKodaV1Codec));
   ValueProto value_proto;
   value_proto.set_codec_index(codec_index);
   return value_proto;
+}
+
+// Splits `data` into chunks of at most kSoftSizeLimitPerBlock bytes, encodes
+// each chunk as arolla::Bytes and returns indices of the resulting decoding
+// steps.
+absl::StatusOr<std::vector<int64_t>> EncodeChunks(absl::string_view data,
+                                                  Encoder& encoder) {
+  std::vector<int64_t> indices;
+  indices.reserve((data.size() + kSoftSizeLimitPerBlock - 1) /
+                  kSoftSizeLimitPerBlock);
+  for (size_t offset = 0; offset < data.size();
+       offset += kSoftSizeLimitPerBlock) {
+    ASSIGN_OR_RETURN(
+        int64_t index,
+        encoder.EncodeValue(arolla::TypedValue::FromValue(
+            arolla::Bytes(data.substr(offset, kSoftSizeLimitPerBlock)))));
+    indices.push_back(index);
+  }
+  return indices;
 }
 
 absl::StatusOr<ValueProto> EncodeLiteralOperator(arolla::TypedRef value,
@@ -418,6 +447,13 @@ absl::StatusOr<ValueProto> EncodeDataBag(arolla::TypedRef value,
 absl::Status FillItemProto(Encoder& encoder, ValueProto& value_proto,
                            KodaV1Proto::DataItemProto& item_proto,
                            const internal::DataItem& item) {
+  auto add_string_chunks = [&](absl::string_view v) -> absl::Status {
+    ASSIGN_OR_RETURN(std::vector<int64_t> chunks, EncodeChunks(v, encoder));
+    for (int64_t index : chunks) {
+      value_proto.add_input_value_indices(index);
+    }
+    return absl::OkStatus();
+  };
   return item.VisitValue([&]<typename T>(const T& v) -> absl::Status {
     if constexpr (std::is_same_v<T, internal::MissingValue>) {
       item_proto.set_missing(true);
@@ -438,9 +474,19 @@ absl::Status FillItemProto(Encoder& encoder, ValueProto& value_proto,
     } else if constexpr (std::is_same_v<T, arolla::Unit>) {
       item_proto.set_unit(true);
     } else if constexpr (std::is_same_v<T, arolla::Text>) {
-      item_proto.set_text(v.view());
+      if (v.view().size() < kSoftSizeLimitPerBlock) {
+        item_proto.set_text(v.view());
+      } else {
+        item_proto.set_chunked_text(true);
+        RETURN_IF_ERROR(add_string_chunks(v.view()));
+      }
     } else if constexpr (std::is_same_v<T, arolla::Bytes>) {
-      item_proto.set_bytes_data(v);
+      if (v.size() < kSoftSizeLimitPerBlock) {
+        item_proto.set_bytes_data(v);
+      } else {
+        item_proto.set_chunked_bytes(true);
+        RETURN_IF_ERROR(add_string_chunks(v));
+      }
     } else if constexpr (std::is_same_v<T, schema::DType>) {
       item_proto.set_dtype(v.type_id());
     } else if constexpr (std::is_same_v<T, arolla::expr::ExprQuote>) {
@@ -467,12 +513,55 @@ absl::StatusOr<ValueProto> EncodeDataItem(arolla::TypedRef value,
   return value_proto;
 }
 
+// Indices of decoding steps referenced from DataSliceCompactProto (chunks of
+// big text/bytes values and ExprQuotes), grouped by ScalarTypeId.
+using InputIndicesByType =
+    std::array<std::vector<int64_t>,
+               std::variant_size_v<internal::ScalarVariant>>;
+
+// Adds a text/bytes value to the slice proto. Small values are stored inline,
+// big values are stored out-of-line as a sequence of arolla::Bytes chunks (see
+// DataSliceCompactProto.text_chunk_counts).
 template <typename T>
-void AddSliceElementToProto(Encoder& encoder, ValueProto& value_proto,
-                            KodaV1Proto::DataSliceCompactProto& slice_proto,
-                            arolla::view_type_t<T> v,
-                            internal::ObjectId& last_object_id,
-                            absl::Status& status, size_t& size_estimation) {
+absl::Status AddStringToSliceProto(
+    Encoder& encoder, KodaV1Proto::DataSliceCompactProto& slice_proto,
+    absl::string_view v, InputIndicesByType& input_indices,
+    size_t& size_estimation) {
+  static_assert(std::is_same_v<T, arolla::Text> ||
+                std::is_same_v<T, arolla::Bytes>);
+  auto* values = std::is_same_v<T, arolla::Text>
+                     ? slice_proto.mutable_text()
+                     : slice_proto.mutable_bytes_data();
+  auto* chunk_counts = std::is_same_v<T, arolla::Text>
+                           ? slice_proto.mutable_text_chunk_counts()
+                           : slice_proto.mutable_bytes_chunk_counts();
+  if (v.size() < kSoftSizeLimitPerBlock) {
+    size_estimation += v.size() + 1;
+    values->Add(std::string(v));
+    if (!chunk_counts->empty()) {
+      chunk_counts->Add(0);
+    }
+    return absl::OkStatus();
+  }
+  ASSIGN_OR_RETURN(std::vector<int64_t> chunks, EncodeChunks(v, encoder));
+  std::vector<int64_t>& indices = input_indices[internal::ScalarTypeId<T>()];
+  indices.insert(indices.end(), chunks.begin(), chunks.end());
+  // An empty placeholder is stored inline.
+  size_estimation += 1;
+  values->Add("");
+  // `chunk_counts` must be either empty or aligned with `values`.
+  for (int i = chunk_counts->size(); i < values->size() - 1; ++i) {
+    chunk_counts->Add(0);
+  }
+  chunk_counts->Add(chunks.size());
+  return absl::OkStatus();
+}
+
+template <typename T>
+absl::Status AddSliceElementToProto(
+    Encoder& encoder, KodaV1Proto::DataSliceCompactProto& slice_proto,
+    arolla::view_type_t<T> v, InputIndicesByType& input_indices,
+    internal::ObjectId& last_object_id, size_t& size_estimation) {
   if constexpr (std::is_same_v<T, internal::ObjectId>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kObjectIdFieldNumber ==
                   internal::ScalarTypeId<T>());
@@ -515,13 +604,13 @@ void AddSliceElementToProto(Encoder& encoder, ValueProto& value_proto,
   } else if constexpr (std::is_same_v<T, arolla::Text>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kTextFieldNumber ==
                   internal::ScalarTypeId<T>());
-    size_estimation += v.size() + 1;
-    slice_proto.add_text(v);
+    return AddStringToSliceProto<T>(encoder, slice_proto, v, input_indices,
+                                    size_estimation);
   } else if constexpr (std::is_same_v<T, arolla::Bytes>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kBytesDataFieldNumber ==
                   internal::ScalarTypeId<T>());
-    size_estimation += v.size() + 1;
-    slice_proto.add_bytes_data(v);
+    return AddStringToSliceProto<T>(encoder, slice_proto, v, input_indices,
+                                    size_estimation);
   } else if constexpr (std::is_same_v<T, schema::DType>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kDtypeFieldNumber ==
                   internal::ScalarTypeId<T>());
@@ -530,16 +619,14 @@ void AddSliceElementToProto(Encoder& encoder, ValueProto& value_proto,
   } else if constexpr (std::is_same_v<T, arolla::expr::ExprQuote>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kExprQuoteFieldNumber ==
                   internal::ScalarTypeId<T>());
-    absl::StatusOr<int64_t> index =
-        encoder.EncodeValue(arolla::TypedValue::FromValue(std::move(v)));
-    if (!index.ok()) {
-      status = index.status();
-      return;
-    }
-    value_proto.add_input_value_indices(*index);
+    ASSIGN_OR_RETURN(
+        int64_t index,
+        encoder.EncodeValue(arolla::TypedValue::FromValue(std::move(v))));
+    input_indices[internal::ScalarTypeId<T>()].push_back(index);
   } else {
     static_assert(sizeof(T) == 0, "unsupported type for DataSliceCompactProto");
   }
+  return absl::OkStatus();
 }
 
 absl::StatusOr<ValueProto> EncodeDataSliceImpl(arolla::TypedRef value,
@@ -568,9 +655,8 @@ absl::StatusOr<ValueProto> EncodeDataSliceImpl(arolla::TypedRef value,
   KodaV1Proto::DataSliceCompactProto extra_compact_proto;
   KodaV1Proto::DataSliceCompactProto* current_proto = compact_proto;
   std::vector<int64_t> extra_data_indices;
+  InputIndicesByType input_indices;
   size_t size_estimation = 0;
-
-  constexpr size_t kSoftSizeLimitPerBlock = 1 << 23;
 
   auto finalize_current_block = [&]() -> absl::Status {
     if (current_proto == &extra_compact_proto) {
@@ -595,9 +681,10 @@ absl::StatusOr<ValueProto> EncodeDataSliceImpl(arolla::TypedRef value,
         return;
       }
       proto_types_buffer[id] = static_cast<char>(internal::ScalarTypeId<T>());
-      AddSliceElementToProto<T>(encoder, value_proto, *current_proto, value,
-                                last_object_id, status, size_estimation);
-      if (size_estimation > kSoftSizeLimitPerBlock) {
+      status = AddSliceElementToProto<T>(encoder, *current_proto, value,
+                                         input_indices, last_object_id,
+                                         size_estimation);
+      if (status.ok() && size_estimation > kSoftSizeLimitPerBlock) {
         status = finalize_current_block();
       }
     });
@@ -605,6 +692,14 @@ absl::StatusOr<ValueProto> EncodeDataSliceImpl(arolla::TypedRef value,
   RETURN_IF_ERROR(std::move(status));
   if (current_proto == &extra_compact_proto && size_estimation > 0) {
     RETURN_IF_ERROR(finalize_current_block());
+  }
+  // The order of groups is a part of the format (see DataSliceCompactProto).
+  for (auto type_id : {internal::ScalarTypeId<arolla::Text>(),
+                       internal::ScalarTypeId<arolla::Bytes>(),
+                       internal::ScalarTypeId<arolla::expr::ExprQuote>()}) {
+    for (int64_t index : input_indices[type_id]) {
+      value_proto.add_input_value_indices(index);
+    }
   }
   if (!extra_data_indices.empty()) {
     compact_proto->set_extra_part_count(extra_data_indices.size());

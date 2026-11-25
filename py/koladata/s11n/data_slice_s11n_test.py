@@ -26,6 +26,7 @@ from koladata.types import schema_constants
 
 from arolla.jagged_shape.dense_array.serialization_codecs import jagged_shape_codec_pb2 as _
 from arolla.serialization_codecs.dense_array import dense_array_codec_pb2 as _
+from arolla.serialization_codecs.generic import scalar_codec_pb2 as _
 from koladata.s11n import codec_pb2 as _
 
 
@@ -140,6 +141,189 @@ def _get_data_slice_test_case(impl_proto=None, include_decoder_hints=False):
       _get_text_header(impl_proto, include_decoder_hints=include_decoder_hints)
       + _get_text_footer_data_slice()
   )
+
+
+# Decoding steps [2], [3], [4] are arolla::Bytes chunks that can be referenced
+# by chunked text/bytes values. Decoding step [5] is an INT32 value (i.e. an
+# invalid chunk). Decoding step [6] is an extra part of DataSliceCompactProto.
+_CHUNKS_HEADER = """
+    version: 2
+    decoding_steps {  # [0]
+      codec { name: "koladata.s11n" }
+    }
+    decoding_steps {  # [1]
+      codec { name: "arolla.serialization_codecs.ScalarV1Proto.extension" }
+    }
+    decoding_steps {  # [2]
+      value {
+        codec_index: 1
+        [arolla.serialization_codecs.ScalarV1Proto.extension] {
+          bytes_value: "ab"
+        }
+      }
+    }
+    decoding_steps {  # [3]
+      value {
+        codec_index: 1
+        [arolla.serialization_codecs.ScalarV1Proto.extension] {
+          bytes_value: "cd"
+        }
+      }
+    }
+    decoding_steps {  # [4]
+      value {
+        codec_index: 1
+        [arolla.serialization_codecs.ScalarV1Proto.extension] {
+          bytes_value: "ef"
+        }
+      }
+    }
+    decoding_steps {  # [5]
+      value {
+        codec_index: 1
+        [arolla.serialization_codecs.ScalarV1Proto.extension] {
+          int32_value: 1
+        }
+      }
+    }
+    decoding_steps {  # [6]
+      value {
+        codec_index: 1
+        [arolla.serialization_codecs.ScalarV1Proto.extension] {
+          # Serialized DataSliceCompactProto { text: "z" } (an extra part).
+          bytes_value: "B\\001z"
+        }
+      }
+    }
+    decoding_steps {  # [7]
+      codec {
+        name: "arolla.serialization_codecs.JaggedDenseArrayShapeV1Proto.extension"
+      }
+    }
+    decoding_steps {  # [8]
+      codec {
+        name: "arolla.serialization_codecs.DenseArrayV1Proto.extension"
+      }
+    }
+    decoding_steps {  # [9]
+      value {
+        codec_index: 0
+        [koladata.s11n.KodaV1Proto.extension] {
+          internal_data_item_value {
+            dtype: 11  # OBJECT
+          }
+        }
+      }
+    }
+"""
+
+
+def _get_chunked_slice_test_case(impl_proto, input_value_indices, size):
+  """Returns a container with a DataSlice (OBJECT schema) of the given size."""
+  indices = '\n'.join(f'input_value_indices: {i}' for i in input_value_indices)
+  return _CHUNKS_HEADER + f"""
+    decoding_steps {{  # [10]
+      value {{
+        {indices}
+        codec_index: 0
+        [koladata.s11n.KodaV1Proto.extension] {{
+          data_slice_impl_value {{
+            {impl_proto}
+          }}
+        }}
+      }}
+    }}
+    decoding_steps {{  # [11]
+      value {{
+        codec_index: 8
+        [arolla.serialization_codecs.DenseArrayV1Proto.extension] {{
+          dense_array_int64_value {{
+            size: 2
+            values: 0
+            values: {size}
+          }}
+        }}
+      }}
+    }}
+    decoding_steps {{  # [12]
+      value {{
+        input_value_indices: 11
+        codec_index: 8
+        [arolla.serialization_codecs.DenseArrayV1Proto.extension] {{
+          dense_array_edge_value {{
+            edge_type: SPLIT_POINTS
+          }}
+        }}
+      }}
+    }}
+    decoding_steps {{  # [13]
+      value {{
+        input_value_indices: 12
+        codec_index: 7
+        [arolla.serialization_codecs.JaggedDenseArrayShapeV1Proto.extension] {{
+          jagged_dense_array_shape_value: true
+        }}
+      }}
+    }}
+    decoding_steps {{  # [14]
+      value {{
+        input_value_indices: 10
+        input_value_indices: 13
+        input_value_indices: 9
+        codec_index: 0
+        [koladata.s11n.KodaV1Proto.extension] {{
+          data_slice_value_v2: {{
+            is_whole: true
+          }}
+        }}
+      }}
+    }}
+    decoding_steps {{
+      output_value_index: 14
+    }}
+  """
+
+
+def _get_chunked_item_test_case(item_proto, input_value_indices):
+  """Returns a container with a DataItem (OBJECT schema)."""
+  indices = '\n'.join(f'input_value_indices: {i}' for i in input_value_indices)
+  return _CHUNKS_HEADER + f"""
+    decoding_steps {{  # [10]
+      value {{
+        {indices}
+        codec_index: 0
+        [koladata.s11n.KodaV1Proto.extension] {{
+          internal_data_item_value {{
+            {item_proto}
+          }}
+        }}
+      }}
+    }}
+    decoding_steps {{  # [11]
+      value {{
+        codec_index: 7
+        [arolla.serialization_codecs.JaggedDenseArrayShapeV1Proto.extension] {{
+          jagged_dense_array_shape_value: true
+        }}
+      }}
+    }}
+    decoding_steps {{  # [12]
+      value {{
+        input_value_indices: 10
+        input_value_indices: 11
+        input_value_indices: 9
+        codec_index: 0
+        [koladata.s11n.KodaV1Proto.extension] {{
+          data_slice_value_v2: {{
+            is_whole: true
+          }}
+        }}
+      }}
+    }}
+    decoding_steps {{
+      output_value_index: 12
+    }}
+  """
 
 
 class DataSliceS11NTest(codec_test_case.S11nCodecTestCase):
@@ -436,6 +620,148 @@ class DataSliceS11NTest(codec_test_case.S11nCodecTestCase):
           }
         }
       """))
+
+  def test_chunked_values(self):
+    text = _get_chunked_slice_test_case(
+        """
+        data_slice_compact {
+          types_buffer: "\\x09\\x08\\x09\\x08\\x08"
+          text: "x"
+          text: ""
+          text: ""
+          text_chunk_counts: [0, 2, 1]
+          bytes_data: ""
+          bytes_data: "y"
+          bytes_chunk_counts: [1, 0]
+        }
+        """,
+        # Text chunks first, then bytes chunks.
+        input_value_indices=[2, 3, 2, 4],
+        size=5,
+    )
+    self.assertLoadsEqual(
+        text,
+        kd.slice([b'ef', 'x', b'y', 'abcd', 'ab'], schema_constants.OBJECT),
+    )
+
+  def test_chunked_values_with_extra_part(self):
+    text = _get_chunked_slice_test_case(
+        """
+        data_slice_compact {
+          types_buffer: "\\x08\\x08\\x08"
+          extra_part_count: 1
+          text: "x"
+          text: ""
+          text_chunk_counts: [0, 2]
+        }
+        """,
+        # Chunks are followed by the extra part.
+        input_value_indices=[2, 3, 6],
+        size=3,
+    )
+    self.assertLoadsEqual(
+        text, kd.slice(['x', 'abcd', 'z'], schema_constants.OBJECT)
+    )
+
+  def test_chunked_item(self):
+    self.assertLoadsEqual(
+        _get_chunked_item_test_case(
+            'chunked_text: true', input_value_indices=[2, 3]
+        ),
+        kd.item('abcd', schema_constants.OBJECT),
+    )
+    self.assertLoadsEqual(
+        _get_chunked_item_test_case(
+            'chunked_bytes: true', input_value_indices=[4]
+        ),
+        kd.item(b'ef', schema_constants.OBJECT),
+    )
+
+  def test_chunked_item_errors(self):
+    with self.assertRaisesRegex(
+        ValueError, re.escape('invalid chunk of a big text/bytes value')
+    ):
+      self.parse_container_text_proto(
+          _get_chunked_item_test_case(
+              'chunked_text: true', input_value_indices=[2, 5]
+          )
+      )
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'chunked text/bytes values are not supported in'
+            ' DataItemVectorProto'
+        ),
+    ):
+      self.parse_container_text_proto(_get_data_slice_test_case("""
+        data_item_vector {
+            values { chunked_text: true }
+            values { i32: 2 }
+        }
+      """))
+
+  def test_chunked_values_errors(self):
+    def parse(fields, input_value_indices, types_buffer='\\x08\\x08'):
+      self.parse_container_text_proto(
+          _get_chunked_slice_test_case(
+              f"""
+              data_slice_compact {{
+                types_buffer: "{types_buffer}"
+                {fields}
+              }}
+              """,
+              input_value_indices=input_value_indices,
+              size=2,
+          )
+      )
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('size of text_chunk_counts must be equal to size of text'),
+    ):
+      parse('text: "x" text: "" text_chunk_counts: [0]', [])
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'size of bytes_chunk_counts must be equal to size of bytes_data'
+        ),
+    ):
+      parse('text: "x" text: "y" bytes_chunk_counts: [0]', [])
+    with self.assertRaisesRegex(
+        ValueError, re.escape('invalid text_chunk_counts')
+    ):
+      # Non-empty value with chunks.
+      parse('text: "x" text: "y" text_chunk_counts: [0, 1]', [2])
+    with self.assertRaisesRegex(
+        ValueError, re.escape('invalid text_chunk_counts')
+    ):
+      parse('text: "x" text: "" text_chunk_counts: [0, -1]', [])
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'DataSliceCompactProto has not enough input values for chunks of'
+            ' type TEXT'
+        ),
+    ):
+      parse('text: "x" text: "" text_chunk_counts: [0, 3]', [2, 3])
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'DataSliceCompactProto has unused values for type EXPR_QUOTE'
+        ),
+    ):
+      parse('text: "x" text: "" text_chunk_counts: [0, 1]', [2, 3])
+    with self.assertRaisesRegex(
+        ValueError, re.escape('invalid chunk of a big text/bytes value')
+    ):
+      parse('text: "x" text: "" text_chunk_counts: [0, 1]', [5])
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('DataSliceCompactProto has unused values for type BYTES'),
+    ):
+      parse(
+          'text: "x" text: "y" bytes_data: "" bytes_chunk_counts: [1]', [2]
+      )
 
   def test_decoder_errors(self):
     with self.assertRaisesRegex(
