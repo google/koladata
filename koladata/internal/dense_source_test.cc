@@ -35,6 +35,7 @@
 #include "arolla/expr/testing/test_operators.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/base_types.h"
+#include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
@@ -1239,6 +1240,49 @@ TEST(DenseSourceTest, GetAll) {
   {
     SCOPED_TRACE("Readonly GetAll(true)");
     check_slice(readonly_ds->GetAll(true));
+  }
+}
+
+TEST(DenseSourceTest, MultitypeGetAllLifetime) {
+  AllocationId alloc = Allocate(4);
+  AllocationId attr_alloc1 = Allocate(2);
+  AllocationId attr_alloc2 = Allocate(2);
+
+  for (const arolla::QType* main_type :
+       {static_cast<const arolla::QType*>(nullptr),
+        arolla::GetQType<ObjectId>()}) {
+    // copy=true: survives mutation and destruction of the source.
+    {
+      ASSERT_OK_AND_ASSIGN(auto ds,
+                           DenseSource::CreateMutable(alloc, 2, main_type));
+      ASSERT_OK(ds->Set(alloc.ObjectByOffset(0),
+                        DataItem(attr_alloc1.ObjectByOffset(0))));
+      ASSERT_OK(ds->Set(alloc.ObjectByOffset(1), DataItem(1)));
+
+      DataSliceImpl slice_copy = ds->GetAll(/*copy=*/true);
+      ASSERT_OK(ds->Set(alloc.ObjectByOffset(0),
+                        DataItem(attr_alloc2.ObjectByOffset(0))));
+      ASSERT_OK(ds->Set(alloc.ObjectByOffset(1), DataItem(2)));
+      ds.reset();
+
+      EXPECT_EQ(slice_copy[0], DataItem(attr_alloc1.ObjectByOffset(0)));
+      EXPECT_EQ(slice_copy[1], DataItem(1));
+    }
+
+    // copy=false: keeps the source alive after the caller drops its reference.
+    {
+      ASSERT_OK_AND_ASSIGN(auto ds,
+                           DenseSource::CreateMutable(alloc, 2, main_type));
+      ASSERT_OK(ds->Set(alloc.ObjectByOffset(0),
+                        DataItem(attr_alloc1.ObjectByOffset(0))));
+      ASSERT_OK(ds->Set(alloc.ObjectByOffset(1), DataItem(1)));
+
+      DataSliceImpl slice_nocopy = ds->GetAll(/*copy=*/false);
+      ds.reset();
+
+      EXPECT_EQ(slice_nocopy[0], DataItem(attr_alloc1.ObjectByOffset(0)));
+      EXPECT_EQ(slice_nocopy[1], DataItem(1));
+    }
   }
 }
 

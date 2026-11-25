@@ -208,7 +208,7 @@ class MultitypeDenseSource : public DenseSource {
     }
   }
 
-  DataSliceImpl GetAll(bool /*copy*/) const final {
+  DataSliceImpl GetAll(bool copy) const final {
     SliceBuilder bldr(size_);
     bldr.GetMutableAllocationIds().Insert(attr_allocation_ids_);
     // Note: we use ApplyMask to set kUnset to kRemoved for removed values.
@@ -228,8 +228,10 @@ class MultitypeDenseSource : public DenseSource {
                   bitmap, arolla::bitmap::Bitmap(),
                   arolla::StringsBuffer::Create(buf.begin(), buf.end()));
             } else {
-              bldr.InsertIfNotSet<T>(bitmap, arolla::bitmap::Bitmap(),
-                                     arolla::Buffer<T>(nullptr, buf));
+              bldr.InsertIfNotSet<T>(
+                  bitmap, arolla::bitmap::Bitmap(),
+                  copy ? arolla::Buffer<T>::Create(buf.begin(), buf.end())
+                       : arolla::Buffer<T>(shared_from_this(), buf));
             }
           },
           var);
@@ -957,7 +959,7 @@ class TypedDenseSource final : public DenseSource {
   friend class TypedDenseSource;
 
   void CreateMultitype() {
-    multitype_ = std::make_unique<MultitypeDenseSource>(obj_allocation_id_,
+    multitype_ = std::make_shared<MultitypeDenseSource>(obj_allocation_id_,
                                                         values_.size());
     multitype_->attr_allocation_ids_ = std::move(attr_allocation_ids_);
     multitype_->types_buffer_.types.push_back(ScalarTypeId<T>());
@@ -999,7 +1001,7 @@ class TypedDenseSource final : public DenseSource {
   // bits are set - in this case it is not subjected to any changes.
   std::vector<uint32_t> values_mask_;
 
-  std::unique_ptr<MultitypeDenseSource> multitype_;
+  std::shared_ptr<MultitypeDenseSource> multitype_;
 };
 
 // Uses DataSliceImpl as data storage. Can be created from existing
