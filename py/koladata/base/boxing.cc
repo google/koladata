@@ -460,6 +460,18 @@ FlattenPyList(PyObject* py_list, size_t max_depth) {
   int cur_len = 1;
   int cur_depth = 0;
   while (cur_len > 0 && (max_depth == 0 || cur_depth < max_depth)) {
+    bool has_list = false;
+    for (auto item : lst_items) {
+      ASSIGN_OR_RETURN(bool is_list_or_tuple, IsSupportedPyListOrTuple(item));
+      if (is_list_or_tuple) {
+        has_list = true;
+        break;
+      }
+    }
+    if (!has_list) {
+      break;
+    }
+
     std::vector<PyObject*> next_level_items;
     // There will be usually more than lst_items.size()/cur_len, but reserving
     // at least something. NOTE: This cannot be outside the loop, because of the
@@ -468,30 +480,20 @@ FlattenPyList(PyObject* py_list, size_t max_depth) {
     std::vector<int64_t> cur_split_points;
     cur_split_points.reserve(cur_len + 1);
 
-    bool has_list = false;
-    for (auto item : lst_items) {
-      if (PyList_Check(item) || PyTuple_Check(item)) {
-        has_list = true;
-        break;
-      }
-    }
-
     bool is_list = true;
     cur_split_points.push_back(0);
     for (auto item : lst_items) {
-      bool list_check = PyList_Check(item);
-      if (list_check || PyTuple_Check(item)) {
-        int64_t nested_len =
-            list_check ? PyList_Size(item) : PyTuple_Size(item);
-        auto getitem = list_check ? PyList_GetItem : PyTuple_GetItem;
-        for (int j = 0; j < nested_len; ++j) {
-          // Not using PySequence_GetItem as it increases refcount.
-          next_level_items.push_back(getitem(item, j));
-        }
+      if (PyList_CheckExact(item) || PyTuple_CheckExact(item)) {
+        int64_t nested_len = PySequence_Fast_GET_SIZE(item);
+        absl::Span<PyObject*> nested_items(PySequence_Fast_ITEMS(item),
+                                           nested_len);
+        next_level_items.insert(next_level_items.end(), nested_items.begin(),
+                                nested_items.end());
         cur_split_points.push_back(cur_split_points.back() + nested_len);
-      } else if (has_list && Py_IsNone(item)) {
+      } else if (Py_IsNone(item)) {
         cur_split_points.push_back(cur_split_points.back());
       } else {
+        RETURN_IF_ERROR(IsSupportedPyListOrTuple(item).status());
         is_list = false;
       }
     }
@@ -568,12 +570,30 @@ absl::StatusOr<DataSlice> DataSliceFromPyValue(
       return DataSliceFromPrimitivesArray(typed_value.AsRef());
     }
   }
-  if (!PyList_CheckExact(py_obj) && !PyTuple_CheckExact(py_obj)) {
+  ASSIGN_OR_RETURN(bool is_list_or_tuple, IsSupportedPyListOrTuple(py_obj));
+  if (!is_list_or_tuple) {
     return DataItemFromPyValue(py_obj, schema);
   }
   return DataSliceFromPyList(py_obj, schema ? schema->item() : DataItem(),
                              adoption_queue);
 }
+
+namespace boxing_internal {
+
+absl::Status UnsupportedListOrTupleSubclassError(
+    PyObject* absl_nonnull py_obj) {
+  if (PyList_Check(py_obj)) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "list subclass `%s` is not supported; convert it to `list` first",
+        Py_TYPE(py_obj)->tp_name));
+  }
+  return absl::InvalidArgumentError(absl::StrFormat(
+      "tuple subclass `%s` is not supported; convert it to `tuple` (or a "
+      "`dict` / dataclass for named fields) first",
+      Py_TYPE(py_obj)->tp_name));
+}
+
+}  // namespace boxing_internal
 
 absl::StatusOr<DataSlice> DataItemFromPyValue(
     PyObject* py_obj, const std::optional<DataSlice>& schema) {

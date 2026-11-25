@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
 import gc
 import re
+from typing import NamedTuple
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -509,6 +511,49 @@ The cause is the values of attribute '__schema__' are different: ENTITY\(\) with
         ValueError, r'schema can only be 0-rank schema slice, got: rank\(1\)'
     ):
       ds(12, ds([None], SCHEMA))
+
+  @parameterized.named_parameters(
+      (
+          'list_subclass',
+          lambda: type('MyList', (list,), {})([1, 2]),
+          'list subclass `MyList` is not supported; convert it to `list` first',
+      ),
+      (
+          'tuple_subclass',
+          lambda: type('MyTuple', (tuple,), {})((1, 2)),
+          (
+              'tuple subclass `MyTuple` is not supported; convert it to `tuple`'
+              ' (or a `dict` / dataclass for named fields) first'
+          ),
+      ),
+      (
+          'named_tuple',
+          lambda: NamedTuple('Point', [('x', int), ('y', int)])(1, 2),
+          (
+              'tuple subclass `Point` is not supported; convert it to `tuple`'
+              ' (or a `dict` / dataclass for named fields) first'
+          ),
+      ),
+      (
+          'collections_namedtuple',
+          lambda: collections.namedtuple('LegacyPoint', ['x', 'y'])(1, 2),
+          (
+              'tuple subclass `LegacyPoint` is not supported; convert it to'
+              ' `tuple` (or a `dict` / dataclass for named fields) first'
+          ),
+      ),
+  )
+  def test_from_vals_list_and_tuple_subclasses_unsupported(
+      self, make_val, expected_msg
+  ):
+    val = make_val()
+    pattern = re.escape(expected_msg)
+    with self.assertRaisesRegex(ValueError, pattern):
+      ds(val)
+    with self.assertRaisesRegex(ValueError, pattern):
+      ds([val])
+    with self.assertRaisesRegex(ValueError, pattern):
+      ds([[1, 2], val])
 
   def test_from_vals_errors(self):
     with self.assertRaisesRegex(

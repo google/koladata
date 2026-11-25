@@ -294,18 +294,20 @@ class FromPyConverter {
   absl_nullable DataBagPtr GetCreatedBag() && { return std::move(db_); }
 
  private:
-  // Returns true if the given Python objects should be treated as a list or
-  // tuple, either because of the schema or because of the Python types.
-  bool IsListOrTuple(const std::vector<PyObject*>& py_objects,
-                     const std::optional<DataSlice>& schema) {
+  // Returns true if the given Python objects should be converted as lists,
+  // either because of the schema or because of the Python types.
+  absl::StatusOr<bool> ShouldConvertAsList(
+      const std::vector<PyObject*>& py_objects,
+      const std::optional<DataSlice>& schema) {
     if (IsNonObjectSchema(schema)) {
       return schema->IsListSchema();
     }
     if (py_objects.empty()) {
       return false;
     }
-    for (const PyObject* py_obj : py_objects) {
-      if (PyList_Check(py_obj) || PyTuple_Check(py_obj)) {
+    for (PyObject* py_obj : py_objects) {
+      ASSIGN_OR_RETURN(bool is_list_or_tuple, IsSupportedPyListOrTuple(py_obj));
+      if (is_list_or_tuple) {
         return true;
       }
       if (!Py_IsNone(py_obj)) {
@@ -511,7 +513,8 @@ class FromPyConverter {
              .second) {
       return false;
     }
-    if (PyList_Check(py_obj) || PyTuple_Check(py_obj)) {
+    ASSIGN_OR_RETURN(bool is_list_or_tuple, IsSupportedPyListOrTuple(py_obj));
+    if (is_list_or_tuple) {
       groups.lists.Add(index, py_obj);
       return true;
     }
@@ -838,7 +841,9 @@ class FromPyConverter {
       return absl::OkStatus();
     }
 
-    if (IsListOrTuple(py_objects, schema)) {
+    ASSIGN_OR_RETURN(bool should_convert_as_list,
+                     ShouldConvertAsList(py_objects, schema));
+    if (should_convert_as_list) {
       return ConvertListsOrTuples(py_objects, std::move(cur_shape), schema,
                                   itemid, cur_depth, executor, result);
     }
@@ -923,7 +928,8 @@ class FromPyConverter {
         }
         continue;
       }
-      if (!PyList_Check(py_obj) && !PyTuple_Check(py_obj)) {
+      ASSIGN_OR_RETURN(bool is_list_or_tuple, IsSupportedPyListOrTuple(py_obj));
+      if (!is_list_or_tuple) {
         // This can only happen if there is a schema provided; otherwise we
         // always parse objects one by one.
         return absl::InvalidArgumentError(

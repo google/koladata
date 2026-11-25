@@ -22,7 +22,7 @@ import sys
 import threading
 import time
 import types
-from typing import Any
+from typing import Any, NamedTuple
 from unittest import mock
 
 from absl.testing import absltest
@@ -2880,6 +2880,84 @@ assigned schema: ENTITY(a=FLOAT32)"""),
               kde.list_schema(schema_constants.OBJECT)
           ).eval(),
       )
+
+  @parameterized.named_parameters(
+      (
+          'list_subclass',
+          lambda: type('MyList', (list,), {})([1, 'a']),
+          'list subclass `MyList` is not supported; convert it to `list` first',
+      ),
+      (
+          'named_tuple',
+          lambda: NamedTuple('Point', [('x', int), ('y', str)])(1, 'a'),
+          (
+              'tuple subclass `Point` is not supported; convert it to `tuple`'
+              ' (or a `dict` / dataclass for named fields) first'
+          ),
+      ),
+      (
+          'collections_namedtuple',
+          lambda: collections.namedtuple('LegacyPoint', ['x', 'y'])(1, 'a'),
+          (
+              'tuple subclass `LegacyPoint` is not supported; convert it to'
+              ' `tuple` (or a `dict` / dataclass for named fields) first'
+          ),
+      ),
+      (
+          'tuple_subclass',
+          lambda: type('MyTuple', (tuple,), {})((1, 'a')),
+          (
+              'tuple subclass `MyTuple` is not supported; convert it to `tuple`'
+              ' (or a `dict` / dataclass for named fields) first'
+          ),
+      ),
+  )
+  def test_list_and_tuple_subclasses_unsupported(self, make_val, expected_msg):
+    val = make_val()
+    list_schema = kde.list_schema(schema_constants.OBJECT).eval()
+    pattern = re.escape(expected_msg)
+    with self.assertRaisesRegex(ValueError, pattern):
+      from_py(val)
+    with self.assertRaisesRegex(ValueError, pattern):
+      from_py([val])
+    with self.assertRaisesRegex(ValueError, pattern):
+      from_py([1, val])
+    with self.assertRaisesRegex(ValueError, pattern):
+      from_py({'a': val})
+    with self.assertRaisesRegex(ValueError, pattern):
+      from_py(val, schema=None)
+    with self.assertRaisesRegex(ValueError, pattern):
+      from_py([None, val], schema=None)
+    with self.assertRaisesRegex(ValueError, pattern):
+      from_py([[1], val], schema=None)
+    with self.assertRaisesRegex(ValueError, pattern):
+      from_py(val, schema=list_schema)
+    with self.assertRaisesRegex(ValueError, pattern):
+      from_py(val, from_dim=1)
+    with self.assertRaisesRegex(ValueError, pattern):
+      from_py([val], from_dim=1)
+
+  def test_namedtuple_with_entity_schema(self):
+    class Point(NamedTuple):
+      x: int
+      y: str
+
+    entity_schema = kde.schema.new_schema(
+        x=schema_constants.INT64, y=schema_constants.STRING
+    ).eval()
+    testing.assert_equivalent(
+        from_py(Point(1, 'a'), schema=entity_schema),
+        fns.new(x=1, y='a', schema=entity_schema),
+    )
+    testing.assert_equivalent(
+        from_py(
+            [Point(1, 'a'), Point(2, 'b')], schema=entity_schema, from_dim=1
+        ),
+        fns.slice([
+            fns.new(x=1, y='a', schema=entity_schema),
+            fns.new(x=2, y='b', schema=entity_schema),
+        ]),
+    )
 
   def test_arg_errors_schema(self):
     with self.assertRaisesRegex(

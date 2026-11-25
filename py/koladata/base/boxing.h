@@ -22,6 +22,8 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/nullability.h"
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "koladata/adoption_utils.h"
@@ -86,6 +88,23 @@ absl::StatusOr<DataSlice> DataItemFromPyValue(
 
 // Returns true if the given object is a scalar Python object or a QValue.
 bool IsPyScalarOrQValueObject(PyObject* py_obj);
+
+namespace boxing_internal {
+absl::Status UnsupportedListOrTupleSubclassError(PyObject* absl_nonnull py_obj);
+}  // namespace boxing_internal
+
+// Returns true if `py_obj` is an exact `list` or exact `tuple`, false if it is
+// neither, or an InvalidArgumentError if it is a `list` or `tuple` subclass.
+inline absl::StatusOr<bool> IsSupportedPyListOrTuple(
+    PyObject* absl_nonnull py_obj) {
+  if (PyList_CheckExact(py_obj) || PyTuple_CheckExact(py_obj)) {
+    return true;
+  }
+  if (PyList_Check(py_obj) || PyTuple_Check(py_obj)) {
+    return boxing_internal::UnsupportedListOrTupleSubclassError(py_obj);
+  }
+  return false;
+}
 
 // Parses a Python unicode or Koda DataItem into a absl::string_view if
 // possible. Otherwise, returns an error (with dict key specific error message).
