@@ -302,7 +302,12 @@ class YieldMultithreadedTest(absltest.TestCase):
       z = wait_for_cancellation(x + 2)
       return user_facing_kd.iterables.make(y, z)
 
-    with self.assertRaisesRegex(ValueError, r'\[CANCELLED\].*interrupted'):
+    with arolla.testing.assert_raises(
+        ValueError,
+        root_cause=arolla.testing.exc(
+            ValueError, r'\[CANCELLED\].*interrupted'
+        ),
+    ):
       _ = list(
           *parallel.yield_multithreaded(
               functor_factories.trace_py_fn(fn), x=ds(1), max_threads=2

@@ -297,7 +297,12 @@ class CallMultithreadedTest(absltest.TestCase):
       z = wait_for_cancellation(x + 2)
       return y + z
 
-    with self.assertRaisesRegex(ValueError, r'\[CANCELLED\].*interrupted'):
+    with arolla.testing.assert_raises(
+        ValueError,
+        root_cause=arolla.testing.exc(
+            ValueError, r'\[CANCELLED\].*interrupted'
+        ),
+    ):
       parallel.call_multithreaded(
           functor_factories.trace_py_fn(fn), x=ds(1), max_threads=2
       )
