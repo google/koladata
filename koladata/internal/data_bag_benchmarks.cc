@@ -650,6 +650,38 @@ void BM_ExtendList(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * extend_size);
 }
 
+// Same as BM_ExtendList, but with values of two different dtypes
+// (int32 at even and float at odd positions).
+void BM_ExtendListMixed(benchmark::State& state) {
+  int64_t extend_size = state.range(0);
+
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  DataItem list(AllocateSingleList());
+  arolla::DenseArrayBuilder<int> ints(extend_size);
+  arolla::DenseArrayBuilder<float> floats(extend_size);
+  for (int64_t i = 0; i < extend_size; ++i) {
+    if (i % 2 == 0) {
+      ints.Set(i, 0);
+    } else {
+      floats.Set(i, 0.0f);
+    }
+  }
+  auto values =
+      DataSliceImpl::Create(std::move(ints).Build(), std::move(floats).Build());
+
+  for (auto _ : state) {
+    auto db2 = db->PartiallyPersistentFork();
+    benchmark::DoNotOptimize(list);
+    benchmark::DoNotOptimize(values);
+    benchmark::DoNotOptimize(db2);
+
+    CHECK_OK(db2->ExtendList(list, values));
+
+    benchmark::DoNotOptimize(db2);
+  }
+  state.SetItemsProcessed(state.iterations() * extend_size);
+}
+
 void BM_ExtendLists(benchmark::State& state) {
   int64_t list_count = state.range(0);
   int64_t extend_size = state.range(1);
@@ -681,6 +713,7 @@ void BM_ExtendLists(benchmark::State& state) {
 }
 
 BENCHMARK(BM_ExtendList)->Arg(1)->Arg(10)->Arg(100);
+BENCHMARK(BM_ExtendListMixed)->Arg(2)->Arg(10)->Arg(100);
 
 BENCHMARK(BM_ExtendLists)
     ->ArgPair(1, 1)

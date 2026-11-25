@@ -28,6 +28,7 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/bytes.h"
+#include "arolla/util/text.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/memory_stats.h"
@@ -187,6 +188,30 @@ TEST(DataListTest, SetN) {
   list.SetN(2, arolla::CreateDenseArray<double>({1.0, {}, 3.0, 4.0}));
   EXPECT_THAT(list, ElementsAre(DataItem(5), DataItem(), DataItem(1.0),
                                 DataItem(), DataItem(3.0), DataItem(4.0)));
+}
+
+TEST(DataListTest, SetPresentN) {
+  DataList list;
+  list.Resize(6);
+  // Into an all-missing list.
+  list.SetPresentN(1, arolla::CreateDenseArray<int>({1, {}, 3, 4}));
+  EXPECT_THAT(list, ElementsAre(DataItem(), DataItem(1), DataItem(),
+                                DataItem(3), DataItem(4), DataItem()));
+  // Missing values in `data` keep existing items.
+  list.SetPresentN(0, arolla::CreateDenseArray<int>({5, {}, 6, {}}));
+  EXPECT_THAT(list, ElementsAre(DataItem(5), DataItem(1), DataItem(6),
+                                DataItem(3), DataItem(4), DataItem()));
+  // A different type converts the storage and keeps the other items.
+  list.SetPresentN(
+      3, arolla::CreateDenseArray<arolla::Text>({{}, arolla::Text("a"), {}}));
+  EXPECT_THAT(list,
+              ElementsAre(DataItem(5), DataItem(1), DataItem(6), DataItem(3),
+                          DataItem(arolla::Text("a")), DataItem()));
+  // All-missing `data` changes nothing.
+  list.SetPresentN(0, arolla::CreateDenseArray<float>({{}, {}}));
+  EXPECT_THAT(list,
+              ElementsAre(DataItem(5), DataItem(1), DataItem(6), DataItem(3),
+                          DataItem(arolla::Text("a")), DataItem()));
 }
 
 TEST(DataListTest, AllMissing) {

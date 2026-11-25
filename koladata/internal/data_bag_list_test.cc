@@ -397,6 +397,49 @@ TEST(DataBagTest, ReplaceInListsEmptyAndUnknown) {
   }
 }
 
+TEST(DataBagTest, ExtendListSingleAndMixedDtypes) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  DataItem list(AllocateSingleList());
+
+  // Single dtype with missing values into an empty list.
+  ASSERT_OK(db->ExtendList(
+      list, DataSliceImpl::Create(
+                arolla::CreateDenseArray<int>({1, std::nullopt, 3}))));
+  EXPECT_THAT(db->ExplodeList(list),
+              IsOkAndHolds(ElementsAre(1, DataItem(), 3)));
+
+  // Single dtype with missing values into a non-empty list.
+  ASSERT_OK(db->ExtendList(
+      list,
+      DataSliceImpl::Create(arolla::CreateDenseArray<int>({std::nullopt, 5}))));
+  EXPECT_THAT(db->ExplodeList(list),
+              IsOkAndHolds(ElementsAre(1, DataItem(), 3, DataItem(), 5)));
+
+  // Single dtype different from the list's current values.
+  ASSERT_OK(db->ExtendList(
+      list, DataSliceImpl::Create(arolla::CreateDenseArray<float>({6.0f}))));
+  EXPECT_THAT(db->ExplodeList(list),
+              IsOkAndHolds(ElementsAre(1, DataItem(), 3, DataItem(), 5, 6.0f)));
+
+  // Mixed dtypes: values of one dtype must not overwrite the others.
+  ASSERT_OK(db->ExtendList(
+      list, DataSliceImpl::Create({DataItem(7), DataItem(), DataItem(8.0f),
+                                   DataItem(arolla::Text("nine"))})));
+  EXPECT_THAT(
+      db->ExplodeList(list),
+      IsOkAndHolds(ElementsAre(1, DataItem(), 3, DataItem(), 5, 6.0f, 7,
+                               DataItem(), 8.0f, arolla::Text("nine"))));
+
+  // Mixed dtypes into a fresh list.
+  DataItem list2(AllocateSingleList());
+  ASSERT_OK(db->ExtendList(
+      list2, DataSliceImpl::Create({DataItem(arolla::Text("a")), DataItem(),
+                                    DataItem(int64_t{2})})));
+  EXPECT_THAT(
+      db->ExplodeList(list2),
+      IsOkAndHolds(ElementsAre(arolla::Text("a"), DataItem(), int64_t{2})));
+}
+
 TEST(DataBagTest, SingleListOps) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   DataItem list(AllocateSingleList());

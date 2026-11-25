@@ -2200,11 +2200,11 @@ absl::Status DataBagImpl::ExtendList(const DataItem& list,
     return absl::InvalidArgumentError("list size can't be >= 2**63");
   }
   dlist.Resize(offset + values.size());
-  values.VisitValues([&](const auto& vec) {
-    vec.ForEachPresent([&](int64_t id, auto v) {
-      dlist.Set(offset + id,
-                (typename std::decay_t<decltype(vec)>::base_type)(v));
-    });
+  // One `SetPresentN` call per dtype instead of one `Set` call per element.
+  // Positions of other dtypes are left untouched, so this is also correct for
+  // mixed-dtype `values`.
+  values.VisitValues([&]<typename T>(const arolla::DenseArray<T>& arr) {
+    dlist.SetPresentN(offset, arr);
   });
   return absl::OkStatus();
 }

@@ -40,6 +40,7 @@
 #include "arolla/util/meta.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/view_types.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
@@ -156,6 +157,30 @@ class DataList {
 
   // Assign nullopt to the specified index.
   void SetToMissing(int64_t index);
+
+  // Sets the present values of `data` to items starting from `start_index`,
+  // i.e. `list[start_index + i] = data[i]` for each present `data[i]`. Items
+  // that correspond to missing values in `data` are left unchanged, so arrays
+  // of different types covering disjoint positions can be written one after
+  // another.
+  template <typename T>
+  void SetPresentN(int64_t start_index, const arolla::DenseArray<T>& data) {
+    if (data.IsAllMissing()) {
+      return;  // Avoid converting the storage when nothing is written.
+    }
+    ApplyDataItemOrT<T>([&](auto& vec) {
+      auto* dst = vec.data() + start_index;
+      using VT = std::decay_t<decltype(*dst)>;
+      if (data.bitmap.empty()) {  // All values are present.
+        for (auto v : data.values) {
+          *dst++ = VT(T(v));
+        }
+      } else {
+        data.ForEachPresent(
+            [&](int64_t id, arolla::view_type_t<T> v) { dst[id] = VT(T(v)); });
+      }
+    });
+  }
 
   // Assign nullopt to the given range.
   void SetMissingRange(int64_t index_from, int64_t index_to);
