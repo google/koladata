@@ -146,7 +146,7 @@ absl::StatusOr<DataSlice::JaggedShape> CreateNextLevelShape(
 // Returns true if all keys in the Python dict are valid attribute names (i.e.
 // unicode strings or STRING DataItems).
 static bool DictHasOnlyStringKeys(PyObject* py_dict) {
-  DCHECK(PyDict_Check(py_dict));
+  DCHECK(PyDict_CheckExact(py_dict));
   Py_ssize_t pos = 0;
   PyObject* key = nullptr;
   while (PyDict_Next(py_dict, &pos, &key, nullptr)) {
@@ -338,7 +338,7 @@ class FromPyConverter {
     bool has_obj_dict = false;
     bool has_regular_dict = false;
     for (PyObject* py_obj : py_objects) {
-      if (PyDict_Check(py_obj)) {
+      if (PyDict_CheckExact(py_obj)) {
         if (is_entity_schema ||
             (dict_as_obj_ && DictHasOnlyStringKeys(py_obj))) {
           has_obj_dict = true;
@@ -1022,7 +1022,9 @@ class FromPyConverter {
       if (!PyDict_CheckExact(py_obj)) {
         // This can only happen if there is a schema provided; otherwise we
         // always parse objects one by one.
-        return absl::InvalidArgumentError(error_message_for_schema_mismatch);
+        return absl::InvalidArgumentError(absl::StrFormat(
+            "%s, got %s", error_message_for_schema_mismatch,
+            Py_TYPE(py_obj)->tp_name));
       }
 
       const size_t dict_size = PyDict_Size(py_obj);
@@ -1069,7 +1071,7 @@ class FromPyConverter {
     std::optional<arolla::bitmap::AlmostFullBuilder> bitmap_builder;
     RETURN_IF_ERROR(
         ParseDicts(py_objects, py_keys_values, bitmap_builder,
-                   "schema mismatch: expected dict object for dict schema"));
+                   "schema mismatch: expected a dict object for dict schema"));
 
     for (const std::vector<std::pair<PyObject*, PyObject*>>&
              cur_dict_keys_values : py_keys_values) {
@@ -1169,7 +1171,7 @@ class FromPyConverter {
     std::vector<std::vector<std::pair<PyObject*, PyObject*>>> py_keys_values;
     std::optional<arolla::bitmap::AlmostFullBuilder> bitmap_builder;
     RETURN_IF_ERROR(ParseDicts(py_objects, py_keys_values, bitmap_builder,
-                               "schema mismatch: expected dict object when "
+                               "schema mismatch: expected a dict object when "
                                "parsing dict as object"));
 
     int i = 0;

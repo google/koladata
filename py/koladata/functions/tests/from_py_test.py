@@ -1794,10 +1794,12 @@ assigned schema: ENTITY(x=INT32)"""),
 
     # OrderedDict (non-exact dict) fails consistently standalone and mixed.
     with self.assertRaisesRegex(
-        ValueError, 'schema mismatch: expected dict object'
+        ValueError, r'object with unsupported type: collections\.OrderedDict'
     ):
       from_py(collections.OrderedDict({'a': 1}), schema=entity_schema)
-    with self.assertRaisesRegex(AttributeError, "has no attribute 'a'"):
+    with self.assertRaisesRegex(
+        ValueError, r'object with unsupported type: collections\.OrderedDict'
+    ):
       from_py(
           [collections.OrderedDict({'a': 1}), types.SimpleNamespace(a=2)],
           schema=entity_schema,
@@ -1838,6 +1840,45 @@ assigned schema: ENTITY(x=INT32)"""),
             fns.new(a=2, b='after', schema=entity_schema),
         ]),
     )
+
+  @parameterized.parameters(
+      (collections.defaultdict(int, {'a': 1}), 'collections.defaultdict'),
+      (collections.Counter({'a': 1}), 'Counter'),
+      (collections.OrderedDict({'a': 1}), 'collections.OrderedDict'),
+  )
+  def test_dict_subclass_rejected(self, py_obj, type_name):
+    expected_err = re.escape(f'object with unsupported type: {type_name}')
+    with self.assertRaisesRegex(ValueError, expected_err):
+      from_py(py_obj)
+    with self.assertRaisesRegex(ValueError, expected_err):
+      from_py(py_obj, dict_as_obj=True)
+    with self.assertRaisesRegex(ValueError, expected_err):
+      from_py(py_obj, schema=None)
+    with self.assertRaisesRegex(ValueError, expected_err):
+      from_py(py_obj, schema=None, dict_as_obj=True)
+    with self.assertRaisesRegex(ValueError, expected_err):
+      from_py([py_obj, {'b': 2}], schema=schema_constants.OBJECT)
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'schema mismatch: expected a dict object when parsing dict as'
+            f' object, got {type_name}'
+        ),
+    ):
+      from_py([py_obj, {'b': 2}], schema=None, dict_as_obj=True, from_dim=1)
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            f'schema mismatch: expected a dict object for dict schema, got'
+            f' {type_name}'
+        ),
+    ):
+      from_py(
+          py_obj,
+          schema=kde.dict_schema(
+              schema_constants.STRING, schema_constants.INT32
+          ).eval(),
+      )
 
   def test_dataclasses_with_schema(self):
 

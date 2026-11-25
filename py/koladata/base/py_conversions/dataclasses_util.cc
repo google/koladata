@@ -191,6 +191,10 @@ absl::StatusOr<std::vector<PyObject*>> DataClassesUtil::GetAttrValues(
     }
     return GetDictValues(py_obj, attr_names);
   }
+  if (PyDict_Check(py_obj)) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "object with unsupported type: %s", Py_TYPE(py_obj)->tp_name));
+  }
   ASSIGN_OR_RETURN(bool is_simple_namespace, IsSimpleNamespace(py_obj));
   if (is_simple_namespace) {
     PyObjectPtr py_dict =
