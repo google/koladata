@@ -295,6 +295,11 @@ class CopyingProcessor {
     // TODO: Decide on the behavior, when we come to the same
     // object with the different schemas.
     if (slice.schema.holds_value<ObjectId>()) {
+      if (slice.schema.value<ObjectId>().IsNoFollowSchema()) {
+        // Do not mark objects reached via NoFollowSchema as visited, so that
+        // reaching them later through a regular schema still extracts them.
+        return absl::OkStatus();
+      }
       return VisitEntities(slice, push_front);
     } else if (slice.schema.holds_value<schema::DType>()) {
       if (slice.schema == schema::kObject || slice.schema == schema::kSchema) {

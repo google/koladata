@@ -2997,6 +2997,89 @@ TEST_P(ExtractTest, NoFollowEntitySchema) {
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 
+TEST_P(ExtractTest, NoFollowBeforeRegularEdgeExtractsTarget) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(4);
+  auto root = obj_ids[0];
+  auto holder = obj_ids[1];
+  auto target_ent = obj_ids[2];
+  auto target_obj = obj_ids[3];
+  auto target_list = AllocateEmptyLists(1)[0];
+  auto target_dict = AllocateEmptyDicts(1)[0];
+
+  auto int_dtype = DataItem(schema::kInt32);
+  auto obj_dtype = DataItem(schema::kObject);
+  auto root_schema = AllocateSchema();
+  auto holder_schema = AllocateSchema();
+  auto ent_schema = AllocateSchema();
+  auto obj_schema = AllocateSchema();
+  auto list_schema = AllocateSchema();
+  auto dict_schema = AllocateSchema();
+  ASSERT_OK_AND_ASSIGN(auto nofollow_ent_schema,
+                       schema::NoFollowSchemaItem(ent_schema));
+  ASSERT_OK_AND_ASSIGN(auto nofollow_obj_schema,
+                       schema::NoFollowSchemaItem(obj_dtype));
+  ASSERT_OK_AND_ASSIGN(auto nofollow_list_schema,
+                       schema::NoFollowSchemaItem(list_schema));
+  ASSERT_OK_AND_ASSIGN(auto nofollow_dict_schema,
+                       schema::NoFollowSchemaItem(dict_schema));
+
+  // NoFollow edges are at depth 1 on `root`, while regular edges live on
+  // `holder` at depth 2, so BFS deterministically visits all NoFollow edges
+  // before the regular edges regardless of attribute iteration order.
+  TriplesT schema_triples = {
+      {root_schema,
+       {{"nofollow_ent", nofollow_ent_schema},
+        {"nofollow_obj", nofollow_obj_schema},
+        {"nofollow_list", nofollow_list_schema},
+        {"nofollow_dict", nofollow_dict_schema},
+        {"holder", holder_schema}}},
+      {holder_schema,
+       {{"ent", ent_schema},
+        {"obj", obj_dtype},
+        {"list", list_schema},
+        {"dict", dict_schema}}},
+      {ent_schema, {{"x", int_dtype}}},
+      {obj_schema, {{"y", int_dtype}}},
+      {list_schema, {{schema::kListItemsSchemaAttr, int_dtype}}},
+      {dict_schema,
+       {{schema::kDictKeysSchemaAttr, int_dtype},
+        {schema::kDictValuesSchemaAttr, int_dtype}}},
+  };
+  ASSERT_OK(db->ExtendList(target_list, CreateSlice<int>({1, 2})));
+  ASSERT_OK(db->SetInDict(target_dict, DataItem(3), DataItem(4)));
+  TriplesT data_triples = {
+      {root,
+       {{"nofollow_ent", target_ent},
+        {"nofollow_obj", target_obj},
+        {"nofollow_list", target_list},
+        {"nofollow_dict", target_dict},
+        {"holder", holder}}},
+      {holder,
+       {{"ent", target_ent},
+        {"obj", target_obj},
+        {"list", target_list},
+        {"dict", target_dict}}},
+      {target_ent, {{"x", DataItem(10)}}},
+      {target_obj, {{schema::kSchemaAttr, obj_schema}, {"y", DataItem(20)}}},
+  };
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, data_triples);
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(expected_db->ExtendList(target_list, CreateSlice<int>({1, 2})));
+  ASSERT_OK(expected_db->SetInDict(target_dict, DataItem(3), DataItem(4)));
+  SetSchemaTriples(*expected_db, schema_triples);
+  SetDataTriples(*expected_db, data_triples);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(ExtractOp(result_db.get())(root, root_schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
+
+  EXPECT_NE(result_db.get(), db.get());
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
 TEST_P(ExtractTest, NoFollowObjectSchema) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto obj_ids = AllocateEmptyObjects(3);

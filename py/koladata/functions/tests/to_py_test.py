@@ -1563,6 +1563,48 @@ class ToPyTest(parameterized.TestCase):
         ],
     )
 
+  def test_max_depth_nofollow(self):
+    nf_ent = kd.nofollow(fns.new(a=1))
+    nf_obj = kd.nofollow(fns.obj(a=1))
+    for depth in (0, 1, -1):
+      self.assertEqual(
+          py_conversions.to_py(nf_ent, max_depth=depth), _default_obj()
+      )
+      self.assertEqual(
+          py_conversions.to_py(nf_obj, max_depth=depth), _default_obj()
+      )
+
+    root = fns.new(
+        nf=kd.nofollow(fns.new(a=1)),
+        reg=fns.new(b=2),
+    )
+    res_depth1 = py_conversions.to_py(root, max_depth=1)
+    self.assertEqual(res_depth1.nf, _default_obj())
+    testing.assert_equal(res_depth1.reg, root.reg)
+    self.assertEqual(
+        py_conversions.to_py(root, max_depth=2),
+        _default_obj(nf=_default_obj(), reg=_default_obj(b=2)),
+    )
+
+    # NoFollow edge at depth 1 alongside a regular edge to the same entity at
+    # depth 2: at max_depth=1, the regular holder is kept as a DataItem while
+    # the nofollow edge converts to an empty object; at max_depth=2, `shared`
+    # is reached as a leaf through `holder.reg` rather than marked visited by
+    # the depth-1 nofollow edge.
+    bag = object_factories.mutable_bag()
+    shared = bag.new(a=bag.new(b=1))
+    root_shared = bag.new(
+        nf=kd.nofollow(shared),
+        holder=bag.new(reg=shared),
+    )
+    res_shared_d1 = py_conversions.to_py(root_shared, max_depth=1)
+    self.assertEqual(res_shared_d1.nf, _default_obj())
+    testing.assert_equal(res_shared_d1.holder, root_shared.holder)
+
+    res_shared_d2 = py_conversions.to_py(root_shared, max_depth=2)
+    testing.assert_equal(res_shared_d2.nf, kd.nofollow(shared))
+    testing.assert_equal(res_shared_d2.holder.reg, kd.nofollow(shared))
+
   def test_include_missing_attrs(self):
     p = kde.schema.new_schema(
         x=schema_constants.INT32, y=schema_constants.INT32

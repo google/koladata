@@ -209,6 +209,27 @@ class CoreExtractTest(parameterized.TestCase):
     o.a.get_attr('__schema__').set_attr('d', fb_d.get_schema().no_bag())
     testing.assert_equal(result.get_bag(), db)
 
+  @parameterized.parameters(False, True)
+  def test_eval_nofollow_before_regular_edge(self, use_obj):
+    db = data_bag.DataBag.empty_mutable()
+    ent = db.new(x=1)
+    obj = db.obj(y=2)
+    lst = db.list([3, 4])
+    dct = db.dict({'k': 5})
+    make = db.obj if use_obj else db.new
+    # NoFollow edges at depth 1 are visited before regular edges at depth 2.
+    root = make(
+        nf_ent=kd.nofollow(ent),
+        nf_obj=kd.nofollow(obj),
+        nf_lst=kd.nofollow(lst),
+        nf_dct=kd.nofollow(dct),
+        holder=make(ent=ent, obj=obj, lst=lst, dct=dct),
+    )
+
+    result = kd.extract(root)
+
+    testing.assert_equal(result.get_bag(), db)
+
   def test_eval_lists(self):
     db = data_bag.DataBag.empty_mutable()
     tmp_db = data_bag.DataBag.empty_mutable()
