@@ -21,6 +21,7 @@ from koladata.ext.tqdm.proto import progress_pb2 as _progress_pb2
 
 tqdm = _tqdm.tqdm
 trange = _tqdm.trange
+set_metrics = _tqdm.set_metrics
 using_reporter = _context.using_reporter
 get_reporter = _context.get_reporter
 ProgressRecord = _progress_pb2.ProgressRecord

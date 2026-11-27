@@ -27,6 +27,7 @@ makes `tqdm.tqdm(total=n)` / `.update(m)` / `.close()` automatically
 report progress to the active progress reporter set via `using_reporter`.
 """
 
+from collections.abc import Mapping
 import logging
 import typing
 from typing import Any
@@ -71,6 +72,7 @@ class tqdm(_tqdm_auto.tqdm):  # pylint: disable=invalid-name  # pyrefly: ignore[
     # tqdm tracks whether close() has been called via self.disable, so we
     # need our own flag to differentiate a closed bar from a hidden one.
     self._is_closed = False
+    self._metrics: dict[str, float] = {}
 
     # We rely on super().__init__ calling self.refresh() to natively trigger
     # our display() and _set_progress() hooks to broadcast the initial state.
@@ -119,6 +121,16 @@ class tqdm(_tqdm_auto.tqdm):  # pylint: disable=invalid-name  # pyrefly: ignore[
       self._set_progress()
     super().close()
 
+  def _set_metrics(
+      self,
+      metrics: Mapping[str, float],
+      refresh: bool = False,
+  ) -> None:
+    """Sets numeric metrics reported alongside progress updates."""
+    self._metrics = {k: float(v) for k, v in metrics.items()}
+    if refresh:
+      self.refresh()
+
   def _set_progress(self):
     """Send current progress state to the active reporter."""
     if self._reporter is not None:
@@ -130,10 +142,29 @@ class tqdm(_tqdm_auto.tqdm):  # pylint: disable=invalid-name  # pyrefly: ignore[
             bar_id=self._bar_id,
             is_closed=self._is_closed,
             is_displayed=is_displayed,
+            metrics=self._metrics,
         )
         self._reporter.set_progress(state=state)
       except Exception:  # pylint: disable=broad-except
         _logger.warning('Failed to report tqdm progress.', exc_info=True)
+
+
+def set_metrics(
+    bar: Any,
+    metrics: Mapping[str, float],
+    refresh: bool = False,
+) -> None:
+  """Sets numeric metrics on `bar` if it is a `kd_ext.tqdm` bar.
+
+  Safe no-op when `bar` is a standard upstream `tqdm` instance.
+
+  Args:
+    bar: A tqdm progress bar instance.
+    metrics: Mapping of metric names to numeric values.
+    refresh: If True, immediately refreshes `bar` when supported.
+  """
+  if isinstance(bar, tqdm):
+    bar._set_metrics(metrics, refresh=refresh)  # pylint: disable=protected-access
 
 
 def trange(*args, **kwargs):

@@ -69,7 +69,7 @@ wrapper is necessary to propagate the reporter into the worker&#39;s context:
         while not future.done():
             state = ...  # read from reporter</code></pre>
 
-### `kd_ext.tqdm.ProgressState(n: float | None = None, total: float | None = None, elapsed_secs: float = 0.0, rate: float | None = None, initial: float = 0.0, unit: str = 'it', desc: str | None = None, postfix: str | None = None, bar_id: str = '', is_closed: bool = False, is_displayed: bool = True)` {#kd_ext.tqdm.ProgressState}
+### `kd_ext.tqdm.ProgressState(n: float | None = None, total: float | None = None, elapsed_secs: float = 0.0, rate: float | None = None, initial: float = 0.0, unit: str = 'it', desc: str | None = None, postfix: str | None = None, bar_id: str = '', is_closed: bool = False, is_displayed: bool = True, metrics: dict[str, float] = <factory>)` {#kd_ext.tqdm.ProgressState}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Immutable snapshot of tqdm progress state.
 
@@ -90,8 +90,9 @@ Attributes:
   postfix: Postfix string set by the user.
   bar_id: Unique identifier for the progress bar.
   is_closed: True if the progress bar has been closed.
-  is_displayed: True if the progress bar should be displayed (usually False
-    if closed and `leave=False` or if `disable=True`).</code></pre>
+  is_displayed: True if the progress bar should be displayed (usually False if
+    closed and `leave=False` or if `disable=True`).
+  metrics: Optional numeric metrics attached to the progress bar.</code></pre>
 
 ### `kd_ext.tqdm.TqdmConfig(*, suppress_file: bool = True, suppress_display: bool = True, mininterval: float | None = None, maxinterval: float | None = None, miniters: float | int | None = None)` {#kd_ext.tqdm.TqdmConfig}
 
@@ -113,6 +114,17 @@ Attributes:
 ### `kd_ext.tqdm.get_reporter() -> ProgressReporter | None` {#kd_ext.tqdm.get_reporter}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the progress reporter for the current context.</code></pre>
+
+### `kd_ext.tqdm.set_metrics(bar: Any, metrics: Mapping[str, float], refresh: bool = False) -> None` {#kd_ext.tqdm.set_metrics}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Sets numeric metrics on `bar` if it is a `kd_ext.tqdm` bar.
+
+Safe no-op when `bar` is a standard upstream `tqdm` instance.
+
+Args:
+  bar: A tqdm progress bar instance.
+  metrics: Mapping of metric names to numeric values.
+  refresh: If True, immediately refreshes `bar` when supported.</code></pre>
 
 ### `kd_ext.tqdm.tqdm(*args, **kwargs)` {#kd_ext.tqdm.tqdm}
 

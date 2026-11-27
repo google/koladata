@@ -21,6 +21,7 @@ Provides:
 """
 
 import abc
+from collections.abc import Mapping
 import dataclasses
 import threading
 from typing import Any, Self
@@ -49,8 +50,9 @@ class ProgressState:
     postfix: Postfix string set by the user.
     bar_id: Unique identifier for the progress bar.
     is_closed: True if the progress bar has been closed.
-    is_displayed: True if the progress bar should be displayed (usually False
-      if closed and `leave=False` or if `disable=True`).
+    is_displayed: True if the progress bar should be displayed (usually False if
+      closed and `leave=False` or if `disable=True`).
+    metrics: Optional numeric metrics attached to the progress bar.
   """
 
   n: float | None = None
@@ -64,6 +66,9 @@ class ProgressState:
   bar_id: str = ''
   is_closed: bool = False
   is_displayed: bool = True
+  metrics: dict[str, float] = dataclasses.field(
+      default_factory=dict, hash=False
+  )
 
   @property
   def fraction(self) -> float | None:
@@ -79,8 +84,18 @@ class ProgressState:
       bar_id: str,
       is_closed: bool,
       is_displayed: bool,
+      metrics: Mapping[str, float] | None = None,
   ) -> Self:
-    """Constructs a ProgressState from a tqdm `format_dict`."""
+    """Constructs a ProgressState from a tqdm `format_dict`.
+
+    Args:
+      fmt: The tqdm `format_dict` snapshot.
+      bar_id: Unique identifier for the progress bar.
+      is_closed: Whether the progress bar has been closed.
+      is_displayed: Whether the progress bar should be displayed.
+      metrics: Optional numeric metrics to attach. Passing `None` or an empty
+        mapping produces an empty `metrics` dict on the returned state.
+    """
     return cls(
         n=fmt['n'],
         total=fmt['total'],
@@ -94,6 +109,7 @@ class ProgressState:
         bar_id=bar_id,
         is_closed=is_closed,
         is_displayed=is_displayed,
+        metrics=dict(metrics or {}),
     )
 
   @classmethod
@@ -113,6 +129,7 @@ class ProgressState:
         bar_id=ps.bar_id,
         is_closed=ps.is_closed,
         is_displayed=ps.is_displayed,
+        metrics=dict(ps.metrics),
     )
 
   def to_proto(self) -> progress_pb2.ProgressRecord:
@@ -129,6 +146,7 @@ class ProgressState:
         bar_id=self.bar_id,
         is_closed=self.is_closed,
         is_displayed=self.is_displayed,
+        metrics=self.metrics,
     )
 
   @property

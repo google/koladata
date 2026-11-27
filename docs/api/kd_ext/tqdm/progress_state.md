@@ -21,15 +21,16 @@ Attributes:
   postfix: Postfix string set by the user.
   bar_id: Unique identifier for the progress bar.
   is_closed: True if the progress bar has been closed.
-  is_displayed: True if the progress bar should be displayed (usually False
-    if closed and `leave=False` or if `disable=True`).
+  is_displayed: True if the progress bar should be displayed (usually False if
+    closed and `leave=False` or if `disable=True`).
+  metrics: Optional numeric metrics attached to the progress bar.
 </code></pre>
 
 
 
 
 
-### `ProgressState.__init__(self, n: float | None = None, total: float | None = None, elapsed_secs: float = 0.0, rate: float | None = None, initial: float = 0.0, unit: str = 'it', desc: str | None = None, postfix: str | None = None, bar_id: str = '', is_closed: bool = False, is_displayed: bool = True) -> None` {#kd_ext.tqdm.ProgressState.__init__}
+### `ProgressState.__init__(self, n: float | None = None, total: float | None = None, elapsed_secs: float = 0.0, rate: float | None = None, initial: float = 0.0, unit: str = 'it', desc: str | None = None, postfix: str | None = None, bar_id: str = '', is_closed: bool = False, is_displayed: bool = True, metrics: dict[str, float] = <factory>) -> None` {#kd_ext.tqdm.ProgressState.__init__}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Initialize self.  See help(type(self)) for accurate signature.</code></pre>
 
@@ -53,9 +54,17 @@ Attributes:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Constructs a ProgressState from a `ProgressRecord` proto.</code></pre>
 
-### `ProgressState.from_tqdm(fmt: dict[str, Any], bar_id: str, is_closed: bool, is_displayed: bool) -> Self` {#kd_ext.tqdm.ProgressState.from_tqdm}
+### `ProgressState.from_tqdm(fmt: dict[str, Any], bar_id: str, is_closed: bool, is_displayed: bool, metrics: Mapping[str, float] | None = None) -> Self` {#kd_ext.tqdm.ProgressState.from_tqdm}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Constructs a ProgressState from a tqdm `format_dict`.</code></pre>
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Constructs a ProgressState from a tqdm `format_dict`.
+
+Args:
+  fmt: The tqdm `format_dict` snapshot.
+  bar_id: Unique identifier for the progress bar.
+  is_closed: Whether the progress bar has been closed.
+  is_displayed: Whether the progress bar should be displayed.
+  metrics: Optional numeric metrics to attach. Passing `None` or an empty
+    mapping produces an empty `metrics` dict on the returned state.</code></pre>
 
 ### `ProgressState.initial` {#kd_ext.tqdm.ProgressState.initial}
 

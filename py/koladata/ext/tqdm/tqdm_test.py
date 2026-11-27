@@ -352,6 +352,30 @@ class TqdmTest(absltest.TestCase):
     assert reporter.last_state is not None  # pytype
     self.assertAlmostEqual(reporter.last_state.fraction, 0.5)  # pyrefly: ignore[no-matching-overload]
 
+  def test_set_metrics_reports_metrics(self):
+    metrics = {'active': 5.0, 'throughput': 440.0}
+    with tqdm_context.using_reporter(self._reporter):
+      bar = kd_tqdm.tqdm(total=10, mininterval=0)
+      kd_tqdm.set_metrics(bar, metrics, refresh=True)
+
+      self.assertIsNotNone(self._reporter.last_state)
+      assert self._reporter.last_state is not None
+      self.assertEqual(self._reporter.last_state.metrics, metrics)
+
+      updated = {'active': 3.0}
+      call_count_before = self._reporter.call_count
+      kd_tqdm.set_metrics(bar, updated)
+      self.assertEqual(self._reporter.call_count, call_count_before)
+      self.assertEqual(self._reporter.last_state.metrics, metrics)
+
+      bar.update(2)
+      self.assertEqual(self._reporter.last_state.metrics, updated)
+      bar.close()
+
+  def test_set_metrics_noop_on_non_kd_tqdm(self):
+    plain_bar = object()
+    kd_tqdm.set_metrics(plain_bar, {'active': 1.0}, refresh=True)
+
 
 if __name__ == '__main__':
   absltest.main()

@@ -41,4 +41,7 @@ message ProgressRecord {
   // True if the progress bar should be displayed (usually False if closed and
   // leave=False).
   bool is_displayed = 11;
+  // Optional numeric metrics attached to the progress bar (e.g. "loss",
+  // "throughput").
+  map<string, double> metrics = 12;
 }

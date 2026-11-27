@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from absl.testing import absltest
+import copy
+import dataclasses
+import pickle
 
+from absl.testing import absltest
 from koladata.ext.tqdm import types as tqdm_types
 
 
@@ -88,6 +91,32 @@ class ProgressStateProtoTest(absltest.TestCase):
     """remaining_s is None when total is 0 to avoid ZeroDivisionError."""
     state = tqdm_types.ProgressState(n=50.0, total=0.0, rate=10.0)
     self.assertIsNone(state.remaining_s)
+
+  def test_metrics_round_trip(self):
+    metrics = {'loss': 0.25, 'throughput': 440.5}
+    original = tqdm_types.ProgressState(n=10.0, total=20.0, metrics=metrics)
+
+    restored = tqdm_types.ProgressState.from_proto(original.to_proto())
+
+    self.assertEqual(restored.metrics, metrics)
+
+  def test_empty_metrics_round_trip(self):
+    original = tqdm_types.ProgressState(n=10.0, total=20.0)
+
+    restored = tqdm_types.ProgressState.from_proto(original.to_proto())
+
+    self.assertEmpty(restored.metrics)
+
+  def test_hashable_copyable_picklable_and_asdict(self):
+    state = tqdm_types.ProgressState(n=10.0, total=20.0, metrics={'loss': 0.25})
+    equal_state = tqdm_types.ProgressState(
+        n=10.0, total=20.0, metrics={'loss': 0.25}
+    )
+
+    self.assertEqual(hash(state), hash(equal_state))
+    self.assertEqual(copy.deepcopy(state), state)
+    self.assertNotEmpty(pickle.dumps(state))
+    self.assertEqual(dataclasses.asdict(state)['metrics'], {'loss': 0.25})
 
 
 if __name__ == '__main__':
